@@ -101,7 +101,7 @@ export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonEl
   const parent = useContext(MenuContext);
   const item = useCompositeListItem();
 
-  const { floatingStyles, refs, context } = useFloating<HTMLButtonElement>({
+  const { floatingStyles, refs, context } = useFloating({
     nodeId,
     open: isOpen,
     onOpenChange: setIsOpen,
@@ -281,7 +281,7 @@ export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonEl
               <FloatingFocusManager
                 context={context}
                 modal={false}
-                initialFocus={isNested ? -1 : 0}
+                initialFocus={!isNested}
                 returnFocus={!isNested}
               >
                 <div

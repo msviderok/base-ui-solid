@@ -148,7 +148,7 @@ export function Main() {
     activeIndex,
     cols: 3,
     orientation: 'horizontal',
-    loop: true,
+    loopFocus: true,
     focusItemOnOpen: false,
     virtual: true,
     allowEscape: true,
@@ -271,6 +271,11 @@ export function Main() {
                       </div>
                     </Match>
                   </Switch>
+                  <span
+                    data-testid="emoji-picker-active-index"
+                    data-active-index={activeIndex() ?? ''}
+                    style={{ display: 'none' }}
+                  />
                 </div>
               </FloatingFocusManager>
             )}

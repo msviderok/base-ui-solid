@@ -1,6 +1,6 @@
 import * as React from 'react';
 import c from 'clsx';
-import { useForkRefN } from '../../src/utils/useForkRef';
+import { useMergedRefsN } from '@base-ui/utils/useMergedRefs';
 import { CompositeList } from '../../src/composite/list/CompositeList';
 import { useCompositeListItem } from '../../src/composite/list/useCompositeListItem';
 import {
@@ -84,7 +84,7 @@ export const MenuComponent = React.forwardRef<
   const parent = React.useContext(MenuContext);
   const item = useCompositeListItem();
 
-  const { floatingStyles, refs, context } = useFloating<HTMLButtonElement>({
+  const { floatingStyles, refs, context } = useFloating({
     nodeId,
     open: isOpen,
     onOpenChange: setIsOpen,
@@ -197,7 +197,7 @@ export const MenuComponent = React.forwardRef<
     <FloatingNode id={nodeId}>
       <button
         type="button"
-        ref={useForkRefN([refs.setReference, item.ref, forwardedRef])}
+        ref={useMergedRefsN([refs.setReference, item.ref, forwardedRef])}
         data-open={isOpen ? '' : undefined}
         // eslint-disable-next-line no-nested-ternary
         tabIndex={!isNested ? props.tabIndex : parent.activeIndex === item.index ? 0 : -1}
@@ -254,7 +254,7 @@ export const MenuComponent = React.forwardRef<
               <FloatingFocusManager
                 context={context}
                 modal={false}
-                initialFocus={isNested ? -1 : 0}
+                initialFocus={!isNested}
                 returnFocus={!isNested}
               >
                 <div
@@ -273,7 +273,7 @@ export const MenuComponent = React.forwardRef<
                   )}
                   style={{
                     ...floatingStyles,
-                    // @ts-ignore
+                    // @ts-expect-error css var
                     '--cols': cols,
                     // eslint-disable-next-line no-nested-ternary
                     visibility: !keepMounted ? undefined : isOpen ? 'visible' : 'hidden',
@@ -310,7 +310,7 @@ export const MenuItem = React.forwardRef<
   return (
     <button
       {...props}
-      ref={useForkRefN([item.ref, forwardedRef])}
+      ref={useMergedRefsN([item.ref, forwardedRef])}
       type="button"
       role="menuitem"
       disabled={disabled}

@@ -44,7 +44,7 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
 
   const nodeId = useFloatingNodeId();
 
-  const { floatingStyles, refs, context } = useFloating<HTMLAnchorElement>({
+  const { floatingStyles, refs, context } = useFloating({
     open,
     nodeId,
     onOpenChange: setOpen,
@@ -86,7 +86,7 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
       </li>
       <FloatingPortal>
         {open() && (
-          <FloatingFocusManager context={context} modal={false} initialFocus={-1}>
+          <FloatingFocusManager context={context} modal={false} initialFocus={false}>
             <div
               data-testid="subnavigation"
               ref={refs.setFloating}

@@ -1,7 +1,7 @@
 import { randomStringValue } from '@mui/internal-test-utils';
 import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
-import type { Component, ParentComponent } from 'solid-js';
+import { splitProps, type Component, type ParentComponent } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import type {
   BaseUiConformanceTestsOptions,
@@ -13,11 +13,13 @@ export function testRenderProp(
   element: Component<ConformantComponentProps>,
   getOptions: () => BaseUiConformanceTestsOptions,
 ) {
-  const { render, testRenderPropWith: Element = 'div' } = getOptions();
+  const { render, testRenderPropWith: Element = 'div', button = false } = getOptions();
 
   if (!render) {
     throwMissingPropError('render');
   }
+
+  const nativeButton = Element === 'button';
 
   const Wrapper: ParentComponent = (props) => {
     return (
@@ -31,7 +33,8 @@ export function testRenderProp(
     it('renders a customized root element with a function', () => {
       const testValue = randomStringValue();
       render(element, {
-        render: (props) => <Wrapper {...props} data-test-value={testValue} />,
+        render: (props: any) => <Wrapper {...props} data-test-value={testValue} />,
+        ...(button && { nativeButton }),
       });
 
       expect(screen.queryByTestId('base-ui-wrapper')).not.to.equal(null);
@@ -39,14 +42,11 @@ export function testRenderProp(
       expect(screen.queryByTestId('wrapped')).to.have.attribute('data-test-value', testValue);
     });
 
-    /**
-     * TODO: This is
-     * This is skipped as when the element is a JSX element – Solid has already resolved the element
-     */
     it('renders a customized root element with an implicit Dynamic element', () => {
       const testValue = randomStringValue();
       render(element, {
         render: { component: Wrapper, 'data-test-value': testValue },
+        ...(button && { nativeButton }),
       });
 
       expect(screen.queryByTestId('base-ui-wrapper')).not.to.equal(null);
@@ -54,13 +54,10 @@ export function testRenderProp(
       expect(screen.queryByTestId('wrapped')).to.have.attribute('data-test-value', testValue);
     });
 
-    /**
-     * TODO JSX SUPPORT: figure out if this would need to be supported
-     * This is skipped as when the element is a JSX element – Solid has already resolved the element
-     */
     it('renders a customized root element with an element', () => {
       render(element as any, {
         render: Wrapper,
+        ...(button && { nativeButton: Element === 'button' }),
       });
 
       expect(document.querySelector('[data-testid="base-ui-wrapper"]')).not.to.equal(null);
@@ -80,15 +77,11 @@ export function testRenderProp(
         );
       }
 
-      render(Test);
+      render(() => <Test />, { ...(button && { nativeButton }) });
       expect(instanceFromRef!.tagName).to.equal(Element.toUpperCase());
       expect(instanceFromRef!).to.have.attribute('data-testid', 'wrapped');
     });
 
-    /**
-     * TODO JSX SUPPORT: figure out if this would need to be supported
-     * This is skipped as when the element is a JSX element – Solid has already resolved the element
-     */
     it('should merge the rendering element ref with the custom component ref', () => {
       let refA = null as HTMLElement | null;
       let refB = null as HTMLElement | null;
@@ -107,11 +100,12 @@ export function testRenderProp(
               },
             }}
             data-testid="wrapped"
+            {...(button && { nativeButton })}
           />
         );
       }
 
-      render(Test);
+      render(() => <Test />);
 
       expect(refA).not.to.equal(null);
       expect(refA!.tagName).to.equal(Element.toUpperCase());
@@ -121,13 +115,14 @@ export function testRenderProp(
       expect(refB!).to.have.attribute('data-testid', 'wrapped');
     });
 
-    it('should merge the rendering element className with the custom component className', () => {
+    it('should merge the rendering element class with the custom component class', () => {
       function Test() {
         return (
           <Dynamic
             component={element}
             class="component-classname"
             data-testid="test-component"
+            {...(button && { nativeButton })}
             render={(props) => (
               <Dynamic
                 component={Element}
@@ -139,7 +134,7 @@ export function testRenderProp(
         );
       }
 
-      render(Test);
+      render(() => <Test />);
 
       const component = screen.getByTestId('test-component');
       expect(component.classList.contains('component-classname')).to.equal(true);
@@ -153,6 +148,7 @@ export function testRenderProp(
             component={element}
             class={() => 'conditional-component-classname'}
             data-testid="test-component"
+            {...(button && { nativeButton })}
             render={(props) => (
               <Dynamic
                 component={Element}
@@ -164,7 +160,7 @@ export function testRenderProp(
         );
       }
 
-      render(Test);
+      render(() => <Test />);
 
       const component = screen.getByTestId('test-component');
       expect(component.classList.contains('conditional-component-classname')).to.equal(true);

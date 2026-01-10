@@ -149,7 +149,7 @@ export interface BaseUiConformanceTestsOptions<
 > extends Omit<Partial<ConformanceOptions>, 'render' | 'mount' | 'skip' | 'classes'> {
   render: (
     element: (props: Props) => JSX.Element,
-    elementProps: Props,
+    elementProps?: Props,
     options?: RenderOptions | undefined,
   ) => MuiRenderResult;
   skip?: (keyof typeof fullSuite)[];

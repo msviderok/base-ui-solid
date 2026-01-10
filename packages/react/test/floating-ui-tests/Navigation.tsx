@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
 import {
   flip,
   FloatingFocusManager,
@@ -14,7 +15,6 @@ import {
   useHover,
   useInteractions,
 } from '../../src/floating-ui-react';
-import { useForkRef } from '../../src/utils/useForkRef';
 
 interface SubItemProps {
   label: string;
@@ -49,7 +49,7 @@ export const NavigationItem = React.forwardRef<
 
   const nodeId = useFloatingNodeId();
 
-  const { floatingStyles, refs, context } = useFloating<HTMLAnchorElement>({
+  const { floatingStyles, refs, context } = useFloating({
     open,
     nodeId,
     onOpenChange: setOpen,
@@ -70,7 +70,7 @@ export const NavigationItem = React.forwardRef<
     }),
   ]);
 
-  const mergedReferenceRef = useForkRef(ref, refs.setReference);
+  const mergedReferenceRef = useMergedRefs(ref, refs.setReference);
 
   return (
     <FloatingNode id={nodeId}>
@@ -86,7 +86,7 @@ export const NavigationItem = React.forwardRef<
       </li>
       <FloatingPortal>
         {open && (
-          <FloatingFocusManager context={context} modal={false} initialFocus={-1}>
+          <FloatingFocusManager context={context} modal={false} initialFocus={false}>
             <div
               data-testid="subnavigation"
               ref={refs.setFloating}

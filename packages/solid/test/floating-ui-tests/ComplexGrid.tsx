@@ -10,7 +10,7 @@ import {
 
 interface Props {
   orientation?: 'horizontal' | 'both';
-  loop?: boolean;
+  loopFocus?: boolean;
   rtl?: boolean;
 }
 
@@ -31,7 +31,7 @@ interface Props {
 /** @internal */
 export function Main(props: Props) {
   const orientation = () => props.orientation ?? 'horizontal';
-  const loop = () => props.loop ?? false;
+  const loopFocus = () => props.loopFocus ?? false;
   const rtl = () => props.rtl ?? false;
 
   const [open, setOpen] = createSignal(false);
@@ -64,7 +64,7 @@ export function Main(props: Props) {
     onNavigate: setActiveIndex,
     cols: 7,
     orientation,
-    loop,
+    loopFocus,
     rtl,
     openOnArrowKeyDown: false,
     disabledIndices,
