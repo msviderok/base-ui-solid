@@ -1,40 +1,41 @@
-
 import { getWindow, isHTMLElement } from '@floating-ui/utils/dom';
-import { createEffect, createMemo, onCleanup, type Accessor } from 'solid-js';
+import { createEffect, createMemo, onCleanup, onMount, type Accessor } from 'solid-js';
 import type { ElementProps, FloatingRootContext } from '../../floating-ui-solid';
 import { activeElement, contains, getDocument } from '../../floating-ui-solid/utils';
+import { access, type MaybeAccessor } from '../../solid-helpers';
+import { createChangeEventDetails } from '../createBaseUIEventDetails';
 import { useTimeout } from '../useTimeout';
 
 interface UseFocusWithDelayProps {
-  delay?: number;
+  delay?: MaybeAccessor<number | undefined>;
 }
 
 /**
  * Adds support for delay, since Floating UI's `useFocus` hook does not support it.
  */
 export function useFocusWithDelay(
-  context: FloatingRootContext,
+  store: FloatingRootContext,
   props: UseFocusWithDelayProps = {},
 ): Accessor<ElementProps> {
+  const delay = () => access(props.delay);
   const timeout = useTimeout();
   let blockFocusRef = false;
 
-  createEffect(() => {
-    const domReference = context.elements.domReference();
-    const win = getWindow(domReference);
-
-    // If the reference was focused and the user left the tab/window, and the preview card was not
-    // open, the focus should be blocked when they return to the tab/window.
-    function handleBlur() {
-      if (
-        !context.open() &&
-        isHTMLElement(domReference) &&
-        domReference === activeElement(getDocument(domReference))
-      ) {
-        blockFocusRef = true;
-      }
+  // If the reference was focused and the user left the tab/window, and the preview card was not
+  // open, the focus should be blocked when they return to the tab/window.
+  function handleBlur() {
+    const currentDomReference = store.elements.domReference();
+    if (
+      !store.open() &&
+      isHTMLElement(currentDomReference) &&
+      currentDomReference === activeElement(getDocument(currentDomReference))
+    ) {
+      blockFocusRef = true;
     }
+  }
 
+  createEffect(() => {
+    const win = getWindow(store.elements.domReference());
     win.addEventListener('blur', handleBlur);
     onCleanup(() => {
       win.removeEventListener('blur', handleBlur);
@@ -43,21 +44,27 @@ export function useFocusWithDelay(
 
   const reference = createMemo<ElementProps['reference']>(() => ({
     onFocus(event) {
-      timeout.start(props.delay ?? 0, () => {
-        context.onOpenChange(true, event, 'focus');
+      const delayValue = delay();
+      timeout.start(delayValue ?? 0, () => {
+        // store.setOpen(true, createChangeEventDetails(REASONS.triggerFocus, nativeEvent));
+        store.onOpenChange(true, event, 'focus');
       });
+
+      timeout.start(props.delay ?? 0, () => {});
     },
     onBlur(event) {
       blockFocusRef = false;
       const { relatedTarget } = event;
-      const domReference = context.elements.domReference();
+      const currentDomReference = store.elements.domReference();
 
       // Wait for the window blur listener to fire.
       timeout.start(0, () => {
-        const activeEl = activeElement(domReference ? domReference.ownerDocument : document);
+        const activeEl = activeElement(
+          currentDomReference ? currentDomReference.ownerDocument : document,
+        );
 
         // Focus left the page, keep it open.
-        if (!relatedTarget && activeEl === domReference) {
+        if (!relatedTarget && activeEl === currentDomReference) {
           return;
         }
 
@@ -69,13 +76,14 @@ export function useFocusWithDelay(
         // and not the element that actually has received focus if it is located
         // inside a shadow root.
         if (
-          contains(context.dataRef.floatingContext?.refs.floating(), activeEl) ||
-          contains(domReference, activeEl)
+          contains(store.dataRef.floatingContext?.refs.floating(), activeEl) ||
+          contains(currentDomReference, activeEl)
         ) {
           return;
         }
 
-        context.onOpenChange(false, event, 'focus');
+        store.onOpenChange(false, event, 'focus');
+        // store.setOpen(false, createChangeEventDetails(REASONS.triggerFocus, nativeEvent));
       });
     },
   }));

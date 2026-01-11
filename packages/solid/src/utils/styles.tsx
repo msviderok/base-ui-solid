@@ -1,11 +1,17 @@
 export const STYLE_TAG_ID = 'disable-scrollbar';
+const DISABLE_SCROLLBAR_CLASS_NAME = 'base-ui-disable-scrollbar';
 
 export const styleDisableScrollbar = {
-  class: 'base-ui-disable-scrollbar',
+  class: DISABLE_SCROLLBAR_CLASS_NAME,
   element: () => {
     const style = document.createElement('style');
+
     style.id = STYLE_TAG_ID;
-    style.textContent = `.base-ui-disable-scrollbar{scrollbar-width:none}.base-ui-disable-scrollbar::-webkit-scrollbar{display:none}`;
+    style.textContent = `.${DISABLE_SCROLLBAR_CLASS_NAME}{scrollbar-width:none}.${DISABLE_SCROLLBAR_CLASS_NAME}::-webkit-scrollbar{display:none}`;
+
+    (style as any).href = DISABLE_SCROLLBAR_CLASS_NAME;
+    (style as any).precedence = 'base-ui:low';
+
     return style;
   },
 };

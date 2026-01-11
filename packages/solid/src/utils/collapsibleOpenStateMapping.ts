@@ -1,7 +1,6 @@
 import { CollapsiblePanelDataAttributes } from '../collapsible/panel/CollapsiblePanelDataAttributes';
 import { CollapsibleTriggerDataAttributes } from '../collapsible/trigger/CollapsibleTriggerDataAttributes';
-import { type MaybeAccessor, access } from '../solid-helpers';
-import type { CustomStyleHookMapping } from './getStyleHookProps';
+import type { StateAttributesMapping } from './getStateAttributesProps';
 
 const PANEL_OPEN_HOOK = {
   [CollapsiblePanelDataAttributes.open]: '',
@@ -11,11 +10,11 @@ const PANEL_CLOSED_HOOK = {
   [CollapsiblePanelDataAttributes.closed]: '',
 };
 
-export const triggerOpenStateMapping: CustomStyleHookMapping<{
-  open: MaybeAccessor<boolean>;
+export const triggerOpenStateMapping: StateAttributesMapping<{
+  open: boolean;
 }> = {
   open(value) {
-    if (access(value)) {
+    if (value) {
       return {
         [CollapsibleTriggerDataAttributes.panelOpen]: '',
       };
@@ -26,11 +25,11 @@ export const triggerOpenStateMapping: CustomStyleHookMapping<{
 
 export const collapsibleOpenStateMapping = {
   open(value) {
-    if (access(value)) {
+    if (value) {
       return PANEL_OPEN_HOOK;
     }
     return PANEL_CLOSED_HOOK;
   },
-} satisfies CustomStyleHookMapping<{
-  open: MaybeAccessor<boolean>;
+} satisfies StateAttributesMapping<{
+  open: boolean;
 }>;

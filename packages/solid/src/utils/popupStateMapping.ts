@@ -1,6 +1,5 @@
-import { type MaybeAccessor, access } from '../solid-helpers';
-import type { CustomStyleHookMapping } from './getStyleHookProps';
-import { TransitionStatusDataAttributes } from './styleHookMapping';
+import type { StateAttributesMapping } from './getStateAttributesProps';
+import { TransitionStatusDataAttributes } from './stateAttributesMapping';
 
 export enum CommonPopupDataAttributes {
   /**
@@ -59,36 +58,33 @@ const ANCHOR_HIDDEN_HOOK = {
 
 export const triggerOpenStateMapping = {
   open(value) {
-    if (access(value)) {
+    if (value) {
       return TRIGGER_HOOK;
     }
     return null;
   },
-} satisfies CustomStyleHookMapping<{ open: MaybeAccessor<boolean> }>;
+} satisfies StateAttributesMapping<{ open: boolean }>;
 
 export const pressableTriggerOpenStateMapping = {
   open(value) {
-    if (access(value)) {
+    if (value) {
       return PRESSABLE_TRIGGER_HOOK;
     }
     return null;
   },
-} satisfies CustomStyleHookMapping<{ open: MaybeAccessor<boolean> }>;
+} satisfies StateAttributesMapping<{ open: boolean }>;
 
 export const popupStateMapping = {
   open(value) {
-    if (access(value)) {
+    if (value) {
       return POPUP_OPEN_HOOK;
     }
     return POPUP_CLOSED_HOOK;
   },
   anchorHidden(value) {
-    if (access(value)) {
+    if (value) {
       return ANCHOR_HIDDEN_HOOK;
     }
     return null;
   },
-} satisfies CustomStyleHookMapping<{
-  open: MaybeAccessor<boolean>;
-  anchorHidden: MaybeAccessor<boolean>;
-}>;
+} satisfies StateAttributesMapping<{ open: boolean; anchorHidden: boolean }>;

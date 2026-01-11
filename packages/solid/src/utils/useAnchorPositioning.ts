@@ -1,3 +1,4 @@
+import { ownerDocument } from '@base-ui/utils/owner';
 import { getAlignment, getSide, getSideAxis, type Rect } from '@floating-ui/utils';
 import {
   createEffect,
@@ -10,10 +11,8 @@ import {
 } from 'solid-js';
 import { useDirection } from '../direction-provider/DirectionContext';
 import {
-  arrow,
   autoUpdate,
   flip,
-  hide,
   limitShift,
   offset,
   shift,
@@ -22,6 +21,7 @@ import {
   type AutoUpdateOptions,
   type FloatingContext,
   type FloatingRootContext,
+  type FloatingTreeStore,
   type Middleware,
   type MiddlewareState,
   type Padding,
@@ -30,8 +30,10 @@ import {
   type UseFloatingOptions,
   type VirtualElement,
 } from '../floating-ui-solid/index';
+import { arrow } from '../floating-ui-solid/middleware/arrow';
 import { access, type MaybeAccessor, type MaybeAccessorValue } from '../solid-helpers';
-import { ownerDocument } from './owner';
+import { DEFAULT_SIDES } from './adaptiveOriginMiddleware';
+import { hide } from './hideMiddleware';
 
 function getLogicalSide(sideParam: Side, renderedSide: PhysicalSide, isRtl: boolean): Side {
   const isLogicalSideParam = sideParam === 'inline-start' || sideParam === 'inline-end';
@@ -118,10 +120,10 @@ export function useAnchorPositioning(
   const align = () => access(params.align) ?? 'center';
   const alignOffset = () => access(params.alignOffset) ?? 0;
   const collisionBoundary = () => access(params.collisionBoundary);
-  const collisionPadding = () => access(params.collisionPadding) ?? 5;
+  const collisionPaddingParam = () => access(params.collisionPadding) ?? 5;
   const sticky = () => access(params.sticky) ?? false;
   const arrowPadding = () => access(params.arrowPadding) ?? 5;
-  const trackAnchor = () => access(params.trackAnchor) ?? true;
+  const disableAnchorTracking = () => access(params.disableAnchorTracking) ?? false;
   // Private parameters
   const keepMounted = () => access(params.keepMounted) ?? false;
   const mounted = () => access(params.mounted);
@@ -129,6 +131,16 @@ export function useAnchorPositioning(
   const shiftCrossAxis = () => access(params.shiftCrossAxis) ?? false;
   const nodeId = () => access(params.nodeId);
   const adaptiveOrigin = () => access(params.adaptiveOrigin);
+  const lazyFlip = () => access(params.lazyFlip) ?? false;
+  const externalTree = () => access(params.externalTree);
+
+  const [mountSide, setMountSide] = createSignal<PhysicalSide | null>(null);
+
+  createEffect(() => {
+    if (!mounted() && mountSide() !== null) {
+      setMountSide(null);
+    }
+  });
 
   const collisionAvoidanceSide = () => collisionAvoidance().side || 'flip';
   const collisionAvoidanceAlign = () => collisionAvoidance().align || 'flip';
@@ -139,31 +151,65 @@ export function useAnchorPositioning(
 
   const side = createMemo(
     () =>
+      mountSide() ||
       (
-        ({
+        {
           top: 'top',
           right: 'right',
           bottom: 'bottom',
           left: 'left',
           'inline-end': isRtl() ? 'left' : 'right',
           'inline-start': isRtl() ? 'right' : 'left',
-        }) satisfies Record<Side, PhysicalSide>
+        } satisfies Record<Side, PhysicalSide>
       )[sideParam()],
   );
 
   const placement = () => (align() === 'center' ? side() : (`${side()}-${align()}` as Placement));
 
+  // Create a bias to the preferred side.
+  // On iOS, when the mobile software keyboard opens, the input is exactly centered
+  // in the viewport, but this can cause it to flip to the top undesirably.
+  const bias = 1;
+  const biasTop = () => (sideParam() === 'bottom' ? bias : 0);
+  const biasBottom = () => (sideParam() === 'top' ? bias : 0);
+  const biasLeft = () => (sideParam() === 'right' ? bias : 0);
+  const biasRight = () => (sideParam() === 'left' ? bias : 0);
+
+  const collisionPadding = createMemo(() => {
+    let collisionPaddingValue = collisionPaddingParam() as {
+      top: number;
+      right: number;
+      bottom: number;
+      left: number;
+    };
+
+    if (typeof collisionPaddingValue === 'number') {
+      collisionPaddingValue = {
+        top: collisionPaddingValue + biasTop(),
+        right: collisionPaddingValue + biasRight(),
+        bottom: collisionPaddingValue + biasBottom(),
+        left: collisionPaddingValue + biasLeft(),
+      };
+    } else if (collisionPaddingValue) {
+      collisionPaddingValue = {
+        top: (collisionPaddingValue.top || 0) + biasTop(),
+        right: (collisionPaddingValue.right || 0) + biasRight(),
+        bottom: (collisionPaddingValue.bottom || 0) + biasBottom(),
+        left: (collisionPaddingValue.left || 0) + biasLeft(),
+      };
+    }
+
+    return collisionPaddingValue;
+  });
+
   const commonCollisionProps = createMemo(() => {
     const boundary = collisionBoundary();
     return {
       boundary: boundary === 'clipping-ancestors' ? 'clippingAncestors' : boundary,
-      padding: collisionPadding(),
+      padding: collisionPaddingParam(),
     } as const;
   });
 
-  // Using a ref assumes that the arrow element is always present in the DOM for the lifetime of the
-  // popup. If this assumption ends up being false, we can switch to state to manage the arrow's
-  // presence.
   const [arrowRef, setArrowRef] = createSignal<Element | null | undefined>(null);
   const shiftDisabled = () =>
     collisionAvoidanceAlign() === 'none' && collisionAvoidanceSide() !== 'shift';
@@ -190,10 +236,19 @@ export function useAnchorPositioning(
   });
 
   const flipMiddleware = createMemo<Middleware | null>(() => {
+    const collisionPaddingValue = collisionPadding();
     return collisionAvoidanceSide() === 'none'
       ? null
       : flip({
           ...commonCollisionProps(),
+          // Ensure the popup flips if it's been limited by its --available-height and it resizes.
+          // Since the size() padding is smaller than the flip() padding, flip() will take precedence.
+          padding: {
+            top: collisionPaddingValue.top + bias,
+            right: collisionPaddingValue.right + bias,
+            bottom: collisionPaddingValue.bottom + bias,
+            left: collisionPaddingValue.left + bias,
+          },
           mainAxis: !shiftCrossAxis() && collisionAvoidanceSide() === 'flip',
           crossAxis: collisionAvoidanceAlign() === 'flip' ? 'alignment' : false,
           fallbackAxisSideDirection: collisionAvoidanceFallbackAxisSide(),
@@ -220,14 +275,19 @@ export function useAnchorPositioning(
               limiter:
                 sticky() || shiftCrossAxis()
                   ? undefined
-                  : limitShift(() => {
+                  : limitShift((limitData) => {
                       if (!arrowRefValue) {
                         return {};
                       }
-                      const { height } = arrowRefValue.getBoundingClientRect();
-                      const padding = collisionPadding();
+                      const { width, height } = arrowRefValue.getBoundingClientRect();
+                      const sideAxis = getSideAxis(getSide(limitData.placement));
+                      const arrowSize = sideAxis === 'y' ? width : height;
+                      const offsetAmount =
+                        sideAxis === 'y'
+                          ? collisionPadding().left + collisionPadding().right
+                          : collisionPadding().top + collisionPadding().bottom;
                       return {
-                        offset: height / 2 + (typeof padding === 'number' ? padding : 0),
+                        offset: arrowSize / 2 + offsetAmount / 2,
                       };
                     }),
             };
@@ -258,6 +318,7 @@ export function useAnchorPositioning(
       // we'll create a fake element.
       element: arrowRefValue || document.createElement('div'),
       padding: arrowPadding(),
+      offsetParent: 'floating',
     }));
   });
 
@@ -277,12 +338,12 @@ export function useAnchorPositioning(
         const transformY = arrowY + arrowHeight / 2;
         const shiftY = Math.abs(middlewareData.shift?.y || 0);
         const halfAnchorHeight = rects.reference.height / 2;
-        const sideOffsetValue = sideOffset();
-        const isOverlappingAnchor =
-          shiftY >
-          (typeof sideOffsetValue === 'function'
-            ? sideOffsetValue(getOffsetData(state, sideParam(), isRtl()))
-            : sideOffsetValue);
+        const sideOffsetResolvedValue = sideOffset();
+        const sideOffsetValue =
+          typeof sideOffsetResolvedValue === 'function'
+            ? sideOffsetResolvedValue(getOffsetData(state, sideParam(), isRtl()))
+            : sideOffsetResolvedValue;
+        const isOverlappingAnchor = shiftY > sideOffsetValue;
 
         const adjacentTransformOrigin = {
           top: `${transformX}px calc(100% + ${sideOffsetValue}px)`,
@@ -323,17 +384,30 @@ export function useAnchorPositioning(
     middlewareArray.push(
       sizeMiddleware(),
       arrowMiddleware(),
-      hide(),
       transformOriginMiddleware(),
+      hide(),
       adaptiveOrigin(),
     );
 
     return middlewareArray;
   });
 
+  // TODO v1: figure out if this is needed
+  // useIsoLayoutEffect(() => {
+  //   // Ensure positioning doesn't run initially for `keepMounted` elements that
+  //   // aren't initially open.
+  //   if (!mounted && floatingRootContext) {
+  //     floatingRootContext.update({
+  //       referenceElement: null,
+  //       floatingElement: null,
+  //       domReferenceElement: null,
+  //     });
+  //   }
+  // }, [mounted, floatingRootContext]);
+
   const autoUpdateOptions = createMemo<AutoUpdateOptions>(() => ({
-    elementResize: trackAnchor() && typeof ResizeObserver !== 'undefined',
-    layoutShift: trackAnchor() && typeof IntersectionObserver !== 'undefined',
+    elementResize: !disableAnchorTracking() && typeof ResizeObserver !== 'undefined',
+    layoutShift: !disableAnchorTracking() && typeof IntersectionObserver !== 'undefined',
   }));
 
   const {
@@ -359,13 +433,18 @@ export function useAnchorPositioning(
       fn: (...args) => autoUpdate(...args, autoUpdateOptions()),
     },
     nodeId,
+    externalTree,
   });
 
+  // Default to `fixed` when not positioned to prevent `autoFocus` scroll jumps.
+  // This ensures the popup is inside the viewport initially before it gets positioned.
+
   const floatingStyles = createMemo<JSX.CSSProperties>(() => {
-    const { sideX, sideY } = middlewareData().adaptiveOrigin || {};
+    const { sideX, sideY } = middlewareData().adaptiveOrigin || DEFAULT_SIDES;
+    const resolvedPosition: 'absolute' | 'fixed' = isPositioned() ? positionMethod() : 'fixed';
     return adaptiveOrigin()
-      ? { position: positionMethod(), [sideX]: `${x()}px`, [sideY]: `${y()}px` }
-      : originalFloatingStyles();
+      ? { position: resolvedPosition, [sideX]: `${x()}px`, [sideY]: `${y()}px` }
+      : { position: resolvedPosition, ...originalFloatingStyles() };
   });
 
   let registeredPositionReferenceRef: Element | VirtualElement | null = null;
@@ -417,6 +496,17 @@ export function useAnchorPositioning(
   const renderedAlign = () => getAlignment(renderedPlacement()) || 'center';
   const anchorHidden = () => Boolean(middlewareData().hide?.referenceHidden);
 
+  /**
+   * Locks the flip (makes it "sticky") so it doesn't prefer a given placement
+   * and flips back lazily, not eagerly. Ideal for filtered lists that change
+   * the size of the popup dynamically to avoid unwanted flipping when typing.
+   */
+  createEffect(() => {
+    if (lazyFlip() && mounted() && isPositioned()) {
+      setMountSide(renderedSide());
+    }
+  });
+
   const arrowStyles = createMemo<JSX.CSSProperties>(() => ({
     position: 'absolute',
     top:
@@ -433,6 +523,7 @@ export function useAnchorPositioning(
     arrowUncentered,
     side: logicalRenderedSide,
     align: renderedAlign,
+    physicalSide: renderedSide,
     anchorHidden,
     refs: {
       ...refs,
@@ -445,114 +536,159 @@ export function useAnchorPositioning(
   };
 }
 
+export interface UseAnchorPositioningSharedParameters {
+  /**
+   * An element to position the popup against.
+   * By default, the popup will be positioned against the trigger.
+   */
+  anchor?: MaybeAccessor<
+    Element | null | VirtualElement | (() => Element | VirtualElement | null) | undefined
+  >;
+  /**
+   * Determines which CSS `position` property to use.
+   * @default 'absolute'
+   */
+  positionMethod?: MaybeAccessor<'absolute' | 'fixed' | undefined>;
+  /**
+   * Which side of the anchor element to align the popup against.
+   * May automatically change to avoid collisions.
+   * @default 'bottom'
+   */
+  side?: MaybeAccessor<Side | undefined>;
+  /**
+   * Distance between the anchor and the popup in pixels.
+   * Also accepts a function that returns the distance to read the dimensions of the anchor
+   * and positioner elements, along with its side and alignment.
+   *
+   * The function takes a `data` object parameter with the following properties:
+   * - `data.anchor`: the dimensions of the anchor element with properties `width` and `height`.
+   * - `data.positioner`: the dimensions of the positioner element with properties `width` and `height`.
+   * - `data.side`: which side of the anchor element the positioner is aligned against.
+   * - `data.align`: how the positioner is aligned relative to the specified side.
+   *
+   * @example
+   * ```jsx
+   * <Positioner
+   *   sideOffset={({ side, align, anchor, positioner }) => {
+   *     return side === 'top' || side === 'bottom'
+   *       ? anchor.height
+   *       : anchor.width;
+   *   }}
+   * />
+   * ```
+   *
+   * @default 0
+   */
+  sideOffset?: MaybeAccessor<number | OffsetFunction | undefined>;
+  /**
+   * How to align the popup relative to the specified side.
+   * @default 'center'
+   */
+  align?: MaybeAccessor<Align | undefined>;
+  /**
+   * Additional offset along the alignment axis in pixels.
+   * Also accepts a function that returns the offset to read the dimensions of the anchor
+   * and positioner elements, along with its side and alignment.
+   *
+   * The function takes a `data` object parameter with the following properties:
+   * - `data.anchor`: the dimensions of the anchor element with properties `width` and `height`.
+   * - `data.positioner`: the dimensions of the positioner element with properties `width` and `height`.
+   * - `data.side`: which side of the anchor element the positioner is aligned against.
+   * - `data.align`: how the positioner is aligned relative to the specified side.
+   *
+   * @example
+   * ```jsx
+   * <Positioner
+   *   alignOffset={({ side, align, anchor, positioner }) => {
+   *     return side === 'top' || side === 'bottom'
+   *       ? anchor.width
+   *       : anchor.height;
+   *   }}
+   * />
+   * ```
+   *
+   * @default 0
+   */
+  alignOffset?: MaybeAccessor<number | OffsetFunction | undefined>;
+  /**
+   * An element or a rectangle that delimits the area that the popup is confined to.
+   * @default 'clipping-ancestors'
+   */
+  collisionBoundary?: MaybeAccessor<Boundary | undefined>;
+  /**
+   * Additional space to maintain from the edge of the collision boundary.
+   * @default 5
+   */
+  collisionPadding?: MaybeAccessor<Padding | undefined>;
+  /**
+   * Whether to maintain the popup in the viewport after
+   * the anchor element was scrolled out of view.
+   * @default false
+   */
+  sticky?: MaybeAccessor<boolean | undefined>;
+  /**
+   * Minimum distance to maintain between the arrow and the edges of the popup.
+   *
+   * Use it to prevent the arrow element from hanging out of the rounded corners of a popup.
+   * @default 5
+   */
+  arrowPadding?: MaybeAccessor<number | undefined>;
+  /**
+   *Whether to disable the popup from tracking any layout shift of its positioning anchor.
+   * @default false
+   */
+  disableAnchorTracking?: MaybeAccessor<boolean | undefined>;
+  /**
+   * Determines how to handle collisions when positioning the popup.
+   *
+   * @example
+   * ```jsx
+   * <Positioner
+   *   collisionAvoidance={{
+   *     side: 'shift',
+   *     align: 'shift',
+   *     fallbackAxisSide: 'none',
+   *   }}
+   * />
+   * ```
+   *
+   */
+  collisionAvoidance?: MaybeAccessor<CollisionAvoidance | undefined>;
+}
+
+export interface UseAnchorPositioningParameters extends useAnchorPositioning.SharedParameters {
+  keepMounted?: MaybeAccessor<boolean | undefined>;
+  trackCursorAxis?: MaybeAccessor<'none' | 'x' | 'y' | 'both' | undefined>;
+  floatingRootContext?: FloatingRootContext;
+  mounted: MaybeAccessor<boolean>;
+  disableAnchorTracking: MaybeAccessor<boolean>;
+  nodeId?: MaybeAccessor<string | undefined>;
+  adaptiveOrigin?: MaybeAccessor<Middleware | undefined>;
+  collisionAvoidance: MaybeAccessor<CollisionAvoidance>;
+  shiftCrossAxis?: MaybeAccessor<boolean | undefined>;
+  lazyFlip?: MaybeAccessor<boolean | undefined>;
+  externalTree?: FloatingTreeStore;
+}
+
+export interface UseAnchorPositioningReturnValue {
+  positionerStyles: Accessor<JSX.CSSProperties>;
+  arrowStyles: Accessor<JSX.CSSProperties>;
+  arrowUncentered: Accessor<boolean>;
+  side: Accessor<Side>;
+  align: Accessor<Align>;
+  physicalSide: Accessor<PhysicalSide>;
+  anchorHidden: Accessor<boolean>;
+  refs: ReturnType<typeof useFloating>['refs'] & {
+    arrowRef: Accessor<Element | null | undefined>;
+    setArrowRef: Setter<Element | null | undefined>;
+  };
+  context: FloatingContext;
+  isPositioned: Accessor<boolean>;
+  update: () => void;
+}
+
 export namespace useAnchorPositioning {
-  export interface SharedParameters {
-    /**
-     * An element to position the popup against.
-     * By default, the popup will be positioned against the trigger.
-     */
-    anchor?: MaybeAccessor<
-      Element | null | VirtualElement | (() => Element | VirtualElement | null) | undefined
-    >;
-    /**
-     * Determines which CSS `position` property to use.
-     * @default 'absolute'
-     */
-    positionMethod?: MaybeAccessor<'absolute' | 'fixed' | undefined>;
-    /**
-     * Which side of the anchor element to align the popup against.
-     * May automatically change to avoid collisions.
-     * @default 'bottom'
-     */
-    side?: MaybeAccessor<Side | undefined>;
-    /**
-     * Distance between the anchor and the popup in pixels.
-     * Also accepts a function that returns the distance to read the dimensions of the anchor
-     * and positioner elements, along with its side and alignment.
-     *
-     * - `data.anchor`: the dimensions of the anchor element with properties `width` and `height`.
-     * - `data.positioner`: the dimensions of the positioner element with properties `width` and `height`.
-     * - `data.side`: which side of the anchor element the positioner is aligned against.
-     * - `data.align`: how the positioner is aligned relative to the specified side.
-     * @default 0
-     */
-    sideOffset?: MaybeAccessor<number | OffsetFunction | undefined>;
-    /**
-     * How to align the popup relative to the specified side.
-     * @default 'center'
-     */
-    align?: MaybeAccessor<'start' | 'end' | 'center' | undefined>;
-    /**
-     * Additional offset along the alignment axis in pixels.
-     * Also accepts a function that returns the offset to read the dimensions of the anchor
-     * and positioner elements, along with its side and alignment.
-     *
-     * - `data.anchor`: the dimensions of the anchor element with properties `width` and `height`.
-     * - `data.positioner`: the dimensions of the positioner element with properties `width` and `height`.
-     * - `data.side`: which side of the anchor element the positioner is aligned against.
-     * - `data.align`: how the positioner is aligned relative to the specified side.
-     * @default 0
-     */
-    alignOffset?: MaybeAccessor<number | OffsetFunction | undefined>;
-    /**
-     * An element or a rectangle that delimits the area that the popup is confined to.
-     * @default 'clipping-ancestors'
-     */
-    collisionBoundary?: MaybeAccessor<Boundary | undefined>;
-    /**
-     * Additional space to maintain from the edge of the collision boundary.
-     * @default 5
-     */
-    collisionPadding?: MaybeAccessor<Padding | undefined>;
-    /**
-     * Whether to maintain the popup in the viewport after
-     * the anchor element was scrolled out of view.
-     * @default false
-     */
-    sticky?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Minimum distance to maintain between the arrow and the edges of the popup.
-     *
-     * Use it to prevent the arrow element from hanging out of the rounded corners of a popup.
-     * @default 5
-     */
-    arrowPadding?: MaybeAccessor<number | undefined>;
-    /**
-     * Whether the popup tracks any layout shift of its positioning anchor.
-     * @default true
-     */
-    trackAnchor?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Determines how to handle collisions when positioning the popup.
-     */
-    collisionAvoidance?: MaybeAccessor<CollisionAvoidance | undefined>;
-  }
-
-  export interface Parameters extends SharedParameters {
-    keepMounted?: MaybeAccessor<boolean | undefined>;
-    trackCursorAxis?: MaybeAccessor<'none' | 'x' | 'y' | 'both' | undefined>;
-    floatingRootContext?: FloatingRootContext;
-    mounted: MaybeAccessor<boolean>;
-    trackAnchor: MaybeAccessor<boolean>;
-    nodeId?: MaybeAccessor<string | undefined>;
-    adaptiveOrigin?: MaybeAccessor<Middleware | undefined>;
-    collisionAvoidance: MaybeAccessor<CollisionAvoidance>;
-    shiftCrossAxis?: MaybeAccessor<boolean | undefined>;
-  }
-
-  export interface ReturnValue {
-    positionerStyles: Accessor<JSX.CSSProperties>;
-    arrowStyles: Accessor<JSX.CSSProperties>;
-    arrowUncentered: Accessor<boolean>;
-    side: Accessor<Side>;
-    align: Accessor<Align>;
-    anchorHidden: Accessor<boolean>;
-    refs: ReturnType<typeof useFloating>['refs'] & {
-      arrowRef: Accessor<Element | null | undefined>;
-      setArrowRef: Setter<Element | null | undefined>;
-    };
-    context: FloatingContext;
-    isPositioned: Accessor<boolean>;
-    update: () => void;
-  }
+  export type SharedParameters = UseAnchorPositioningSharedParameters;
+  export type Parameters = UseAnchorPositioningParameters;
+  export type ReturnValue = UseAnchorPositioningReturnValue;
 }

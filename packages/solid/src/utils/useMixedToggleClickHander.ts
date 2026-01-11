@@ -1,7 +1,7 @@
+import { ownerDocument } from '@base-ui/utils/owner';
 import { createMemo } from 'solid-js';
 import { access, type MaybeAccessor } from '../solid-helpers';
 import { EMPTY_OBJECT } from './constants';
-import { ownerDocument } from './owner';
 import { BaseUIEvent } from './types';
 
 /**
@@ -54,20 +54,22 @@ export function useMixedToggleClickHandler(params: useMixedToggleClickHandler.Pa
   return result;
 }
 
+export interface UseMixedToggleClickHandlerParameters {
+  /**
+   * Whether the mixed toggle click handler is enabled.
+   * @default true
+   */
+  enabled?: MaybeAccessor<boolean | undefined>;
+  /**
+   * Determines what action is performed on mousedown.
+   */
+  mouseDownAction: MaybeAccessor<'open' | 'close'>;
+  /**
+   * The current open state of the popup.
+   */
+  open: MaybeAccessor<boolean>;
+}
+
 export namespace useMixedToggleClickHandler {
-  export interface Parameters {
-    /**
-     * Whether the mixed toggle click handler is enabled.
-     * @default true
-     */
-    enabled?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Determines what action is performed on mousedown.
-     */
-    mouseDownAction: MaybeAccessor<'open' | 'close'>;
-    /**
-     * The current open state of the popup.
-     */
-    open: MaybeAccessor<boolean>;
-  }
+  export type Parameters = UseMixedToggleClickHandlerParameters;
 }

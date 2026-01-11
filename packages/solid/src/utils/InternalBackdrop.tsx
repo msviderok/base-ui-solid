@@ -1,4 +1,4 @@
-import { createMemo, splitProps, type ComponentProps } from 'solid-js';
+import { createMemo, JSX, splitProps } from 'solid-js';
 import { createAttribute } from '../floating-ui-solid/utils/createAttribute';
 
 /**
@@ -49,16 +49,18 @@ export function InternalBackdrop(props: InternalBackdrop.Props) {
   );
 }
 
+export interface InternalBackdropProps extends JSX.HTMLAttributes<HTMLDivElement> {
+  /**
+   * The element to cut out of the backdrop.
+   * This is useful for allowing certain elements to be interactive while the backdrop is present.
+   */
+  cutout?: Element | null;
+  /**
+   * Whether the backdrop is managed by Base UI.
+   */
+  managed?: boolean;
+}
+
 export namespace InternalBackdrop {
-  export interface Props extends ComponentProps<'div'> {
-    /**
-     * The element to cut out of the backdrop.
-     * This is useful for allowing certain elements to be interactive while the backdrop is present.
-     */
-    cutout?: Element | null;
-    /**
-     * Whether the backdrop is managed by Base UI.
-     */
-    managed?: boolean;
-  }
+  export type Props = InternalBackdropProps;
 }

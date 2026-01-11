@@ -18,6 +18,7 @@ export function useEnhancedClickHandler(
     }
 
     lastClickInteractionTypeRef = event.pointerType as InteractionType;
+    handler(event, event.pointerType as InteractionType);
   };
 
   const handleClick = (event: MouseEvent | PointerEvent) => {

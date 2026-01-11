@@ -6,8 +6,8 @@
  * @param state
  */
 export function resolveClassName<State>(
-  className: string | ((state: State) => string) | undefined,
-  state: State | undefined,
+  className: string | ((state: State) => string | undefined) | undefined,
+  state: State,
 ) {
-  return typeof className === 'function' ? className(state ?? ({} as State)) : className;
+  return typeof className === 'function' ? className(state) : className;
 }

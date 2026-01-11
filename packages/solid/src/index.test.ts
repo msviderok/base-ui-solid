@@ -13,8 +13,9 @@ describe('@msviderok/base-ui-solid', () => {
   });
 
   it('should not have undefined exports', () => {
-    (Object.keys(BaseUI) as (keyof typeof BaseUI)[]).forEach((exportKey) => {
-      expect(Boolean(BaseUI[exportKey])).to.equal(true);
+    Object.keys(BaseUI).forEach((exportKey) => {
+      const value = (BaseUI as Record<string, unknown>)[exportKey];
+      expect(Boolean(value)).to.equal(true);
     });
   });
 
@@ -24,7 +25,9 @@ describe('@msviderok/base-ui-solid', () => {
 
     await Promise.all(
       Object.keys(subpathExports)
-        .filter((key) => !['.', './utils'].includes(key) && !key.startsWith('./unstable-'))
+        .filter(
+          (key) => !['.', './utils', './types'].includes(key) && !key.startsWith('./unstable-'),
+        )
         .map(async (subpath) => {
           const importSpecifier = `@msviderok/base-ui-solid/${subpath.replace('./', '')}`;
           const module = await import(/* @vite-ignore */ importSpecifier);
@@ -37,8 +40,5 @@ describe('@msviderok/base-ui-solid', () => {
           });
         }),
     );
-
-    // Ensure the utils are also exported
-    expect(BaseUI.utils).not.to.equal(undefined);
   });
 });

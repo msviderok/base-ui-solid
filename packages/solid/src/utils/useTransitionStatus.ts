@@ -1,6 +1,6 @@
+import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { batch, createEffect, createSignal, on, onCleanup } from 'solid-js';
 import { access, type MaybeAccessor } from '../solid-helpers';
-import { AnimationFrame } from './useAnimationFrame';
 
 export type TransitionStatus = 'starting' | 'ending' | 'idle' | undefined;
 

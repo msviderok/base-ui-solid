@@ -4,6 +4,14 @@ import type { DynamicProps } from 'solid-js/web';
 export type HTMLProps<T = any> = JSX.HTMLAttributes<T>;
 export type BaseUIHTMLProps<T = any> = WithBaseUIEvent<JSX.HTMLAttributes<T>>;
 
+export interface FloatingUIOpenChangeDetails {
+  open: boolean;
+  reason: string;
+  nativeEvent: Event;
+  nested: boolean;
+  triggerElement?: Element | undefined;
+}
+
 export type BaseUIEvent<E extends Event> = E & {
   preventBaseUIHandler: () => void;
   readonly baseUIHandlerPrevented?: boolean;
@@ -47,14 +55,14 @@ export type BaseUIComponentProps<
   RenderFnElement extends ValidComponent = ValidComponent,
 > = WithBaseUIEvent<
   ElementType extends keyof JSX.IntrinsicElements
-    ? ComponentProps<ElementType>
-    : JSX.HTMLAttributes<any>
+    ? Omit<ComponentProps<ElementType>, 'class' | 'style'>
+    : Omit<JSX.HTMLAttributes<any>, 'class' | 'style'>
 > & {
   /**
    * CSS class applied to the element, or a function that
    * returns a class based on the component’s state.
    */
-  class?: string | ((state: State) => string);
+  class?: string | ((state: State) => string | undefined);
   /**
    * Allows you to replace the component’s HTML element
    * with a different tag, or compose it with another component.
@@ -66,7 +74,32 @@ export type BaseUIComponentProps<
     | DynamicProps<RenderFnElement>
     | ComponentRenderFn<JSX.HTMLAttributes<any>, State>
     | null;
+  /**
+   * Style applied to the element, or a function that
+   * returns a style object based on the component’s state.
+   */
+  style?: JSX.CSSProperties | ((state: State) => JSX.CSSProperties | undefined);
 };
+
+export interface NativeButtonProps {
+  /**
+   * Whether the component renders a native `<button>` element when replacing it
+   * via the `render` prop.
+   * Set to `false` if the rendered element is not a button (e.g. `<div>`).
+   * @default true
+   */
+  nativeButton?: boolean;
+}
+
+export interface NonNativeButtonProps {
+  /**
+   * Whether the component renders a native `<button>` element when replacing it
+   * via the `render` prop.
+   * Set to `true` if the rendered element is a native button.
+   * @default false
+   */
+  nativeButton?: boolean;
+}
 
 /**
  * Simplifies the display of a type (without modifying it).

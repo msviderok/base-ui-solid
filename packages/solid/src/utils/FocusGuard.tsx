@@ -1,6 +1,5 @@
-
+import { isSafari } from '@base-ui/utils/detectBrowser';
 import { createSignal, onMount, type ComponentProps } from 'solid-js';
-import { isSafari } from './detectBrowser';
 import { visuallyHidden } from './visuallyHidden';
 
 /**
@@ -22,10 +21,10 @@ export function FocusGuard(props: ComponentProps<'span'>) {
     <span
       {...props}
       ref={props.ref}
-      tabIndex={0}
       role={role()}
       aria-hidden={role() ? undefined : true}
       style={visuallyHidden}
+      tabIndex={0}
       data-base-ui-focus-guard=""
     />
   );
