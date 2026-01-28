@@ -44,6 +44,36 @@ export function getPreviousTabbable(
   );
 }
 
+function getTabbableNearElement(referenceElement: Element | null | undefined, dir: 1 | -1) {
+  if (!referenceElement) {
+    return null;
+  }
+
+  const list = tabbable(getDocument(referenceElement).body, getTabbableOptions());
+  const elementCount = list.length;
+  if (elementCount === 0) {
+    return null;
+  }
+
+  const index = list.indexOf(referenceElement as FocusableElement);
+  if (index === -1) {
+    return null;
+  }
+
+  const nextIndex = (index + dir + elementCount) % elementCount;
+  return list[nextIndex];
+}
+
+export function getTabbableAfterElement(referenceElement: Element | null): FocusableElement | null {
+  return getTabbableNearElement(referenceElement, 1);
+}
+
+export function getTabbableBeforeElement(
+  referenceElement: Element | null | undefined,
+): FocusableElement | null {
+  return getTabbableNearElement(referenceElement, -1);
+}
+
 export function isOutsideEvent(event: FocusEvent, container?: Element) {
   const containerElement = container || (event.currentTarget as Element);
   const relatedTarget = event.relatedTarget as HTMLElement | null;

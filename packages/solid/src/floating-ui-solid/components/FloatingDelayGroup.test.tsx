@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import { flushMicrotasks } from '#test-utils';
+import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import { type Component, createEffect, createSignal } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { vi } from 'vitest';
-
-import { isJSDOM } from '../../utils/detectBrowser';
 import {
   FloatingDelayGroup,
   useDelayGroup,
@@ -13,8 +12,6 @@ import {
   useHover,
   useInteractions,
 } from '../index';
-
-vi.useFakeTimers();
 
 interface Props {
   label: string;
@@ -29,7 +26,7 @@ function Tooltip(props: Props) {
     onOpenChange: setOpen,
   });
 
-  const { delayRef } = useDelayGroup(context);
+  const { delayRef } = useDelayGroup(context, { open });
   const hover = useHover(context, { delay: delayRef });
   const { getReferenceProps } = useInteractions([hover]);
 
@@ -37,8 +34,7 @@ function Tooltip(props: Props) {
   let renderCountRef: HTMLSpanElement | undefined;
 
   createEffect(() => {
-    // eslint-disable-next-line no-plusplus
-    renderCount++;
+    renderCount += 1;
     if (renderCountRef) {
       renderCountRef.textContent = String(renderCount);
     }
@@ -76,6 +72,10 @@ function App() {
 }
 
 describe.skipIf(!isJSDOM)('FloatingDelayGroup', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   test('groups delays correctly', async () => {
     render(() => <App />);
 

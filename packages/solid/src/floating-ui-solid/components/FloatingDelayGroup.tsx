@@ -1,17 +1,28 @@
 import {
+  batch,
   createContext,
   createEffect,
   createSignal,
+  mergeProps,
   onCleanup,
   useContext,
   type Accessor,
   type JSX,
 } from 'solid-js';
-import { useTimeout, type Timeout } from '../../utils/useTimeout';
-
 import { access, type MaybeAccessor } from '../../solid-helpers';
+import {
+  BaseUIChangeEventDetails,
+  createChangeEventDetails,
+} from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
+import { useTimeout, type Timeout } from '../../utils/useTimeout';
 import { getDelay } from '../hooks/useHover';
-import type { Delay, FloatingRootContext } from '../types';
+import type { Delay, FloatingContext, FloatingRootContext } from '../types';
+
+type CurrentContextRef = {
+  onOpenChange: (open: boolean, eventDetails: BaseUIChangeEventDetails<any>) => void;
+  setIsInstantPhase: (value: boolean) => void;
+} | null;
 
 interface ContextValue {
   hasProvider: Accessor<boolean>;
@@ -24,10 +35,8 @@ interface ContextValue {
   timeout: Timeout;
   currentIdRef: Accessor<any>;
   setCurrentIdRef: (value: any) => void;
-  currentContextRef: {
-    onOpenChange: (open: boolean) => void;
-    setIsInstantPhase: (value: boolean) => void;
-  } | null;
+  currentContextRef: Accessor<CurrentContextRef>;
+  setCurrentContextRef: (value: CurrentContextRef) => void;
 }
 
 const FloatingDelayGroupContext = createContext<ContextValue>({
@@ -41,7 +50,8 @@ const FloatingDelayGroupContext = createContext<ContextValue>({
   setCurrentIdRef: () => {},
   initialDelayRef: 0,
   timeout: useTimeout(),
-  currentContextRef: null,
+  currentContextRef: () => null,
+  setCurrentContextRef: () => {},
 });
 
 export interface FloatingDelayGroupProps {
@@ -77,7 +87,7 @@ export function FloatingDelayGroup(props: FloatingDelayGroupProps): JSX.Element 
   const [timeoutMs, setTimeoutMs] = createSignal(props.timeoutMs ?? 0);
   const [delayRef, setDelayRef] = createSignal(initialDelayRef);
   const [currentIdRef, setCurrentIdRef] = createSignal<any>(null);
-  const currentContextRef: ContextValue['currentContextRef'] = null;
+  const [currentContextRef, setCurrentContextRef] = createSignal<CurrentContextRef>(null);
   const timeout = useTimeout();
 
   return (
@@ -94,6 +104,7 @@ export function FloatingDelayGroup(props: FloatingDelayGroupProps): JSX.Element 
         initialDelayRef,
         timeout,
         currentContextRef,
+        setCurrentContextRef,
       }}
     >
       {props.children}
@@ -107,6 +118,10 @@ interface UseDelayGroupOptions {
    * @default true
    */
   enabled?: MaybeAccessor<boolean>;
+  /**
+   * Whether the trigger this hook is used in has opened the tooltip.
+   */
+  open: MaybeAccessor<boolean>;
 }
 
 interface UseDelayGroupReturn {
@@ -131,40 +146,62 @@ interface UseDelayGroupReturn {
  * @internal
  */
 export function useDelayGroup(
-  context: FloatingRootContext,
-  options: UseDelayGroupOptions = {},
+  context: FloatingRootContext | FloatingContext,
+  optionsProp: UseDelayGroupOptions,
 ): UseDelayGroupReturn {
+  const options = mergeProps({ open: false }, optionsProp);
+  const store = () => ('rootStore' in context ? context.rootStore : context);
+  const floatingId = () => store().state.floatingId;
   const enabled = () => access(options.enabled) ?? true;
+  const open = () => access(options.open);
 
-  const groupContext = useContext(FloatingDelayGroupContext);
+  const {
+    currentIdRef,
+    setCurrentIdRef,
+    currentContextRef,
+    setCurrentContextRef,
+    setDelayRef,
+    delayRef,
+    timeoutMs,
+    initialDelayRef,
+    hasProvider,
+    timeout,
+  } = useContext(FloatingDelayGroupContext);
 
   const [isInstantPhase, setIsInstantPhase] = createSignal(false);
 
-  createEffect(() => {
-    function unset() {
+  function unset() {
+    batch(() => {
       setIsInstantPhase(false);
-      groupContext.currentContextRef?.setIsInstantPhase(false);
-      groupContext.setCurrentIdRef(null);
-      groupContext.currentContextRef = null;
-      groupContext.setDelayRef(groupContext.initialDelayRef);
-    }
+      currentContextRef()?.setIsInstantPhase(false);
+      setCurrentIdRef(null);
+      setCurrentContextRef(null);
+      setDelayRef(initialDelayRef);
+    });
+  }
 
+  createEffect(() => {
     if (!enabled()) {
       return;
     }
-    if (!groupContext.currentIdRef()) {
+    if (!currentIdRef()) {
       return;
     }
 
-    if (!context.open() && groupContext.currentIdRef() === context.floatingId()) {
+    if (!open() && currentIdRef() === floatingId()) {
       setIsInstantPhase(false);
 
-      if (groupContext.timeoutMs()) {
-        groupContext.timeout.start(groupContext.timeoutMs(), unset);
-
-        onCleanup(() => {
-          groupContext.timeout.clear();
+      if (timeoutMs()) {
+        const closingId = floatingId();
+        timeout.start(timeoutMs(), () => {
+          // If another tooltip has taken over the group, skip resetting.
+          if (store().state.open || (currentIdRef() && currentIdRef() !== closingId)) {
+            return;
+          }
+          unset();
         });
+
+        onCleanup(() => timeout.clear());
         return;
       }
 
@@ -176,25 +213,27 @@ export function useDelayGroup(
     if (!enabled()) {
       return;
     }
-    if (!context.open()) {
+    if (!open()) {
       return;
     }
 
-    const prevContext = groupContext.currentContextRef;
-    const prevId = groupContext.currentIdRef();
+    const prevContext = currentContextRef();
+    const prevId = currentIdRef();
 
-    groupContext.currentContextRef = { onOpenChange: context.onOpenChange, setIsInstantPhase };
-    groupContext.setCurrentIdRef(context.floatingId());
-    groupContext.setDelayRef({
+    // A new tooltip is opening, so cancel any pending timeout that would reset
+    // the group's delay back to the initial value.
+    timeout.clear();
+    setCurrentContextRef({ onOpenChange: store().setOpen, setIsInstantPhase });
+    setCurrentIdRef(floatingId());
+    setDelayRef({
       open: 0,
-      close: getDelay(() => groupContext.initialDelayRef, 'close'),
+      close: getDelay(initialDelayRef, 'close'),
     });
 
-    if (prevId !== null && prevId !== context.floatingId()) {
-      groupContext.timeout.clear();
+    if (prevId !== null && prevId !== floatingId()) {
       setIsInstantPhase(true);
       prevContext?.setIsInstantPhase(true);
-      prevContext?.onOpenChange(false);
+      prevContext?.onOpenChange(false, createChangeEventDetails(REASONS.none));
     } else {
       setIsInstantPhase(false);
       prevContext?.setIsInstantPhase(false);
@@ -202,12 +241,12 @@ export function useDelayGroup(
   });
 
   onCleanup(() => {
-    groupContext.currentContextRef = null;
+    setCurrentContextRef(null);
   });
 
   return {
-    hasProvider: groupContext.hasProvider,
-    delayRef: groupContext.delayRef,
+    hasProvider,
+    delayRef,
     isInstantPhase,
   };
 }

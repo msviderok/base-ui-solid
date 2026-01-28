@@ -1,7 +1,7 @@
 import { getWindow } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, createSignal, onCleanup, type Accessor } from 'solid-js';
 import { access, type MaybeAccessor } from '../../solid-helpers';
-import type { ContextData, ElementProps, FloatingRootContext } from '../types';
+import type { ContextData, ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import { contains, getTarget, isMouseLikePointerType } from '../utils';
 
 function createVirtualElement(
@@ -114,22 +114,33 @@ export interface UseClientPointProps {
  * @see https://floating-ui.com/docs/useClientPoint
  */
 export function useClientPoint(
-  contextProp: MaybeAccessor<FloatingRootContext>,
+  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
   props: UseClientPointProps = {},
 ): Accessor<ElementProps> {
+  const context = () => access(contextProp);
+  const store = () => {
+    const ctx = context();
+    return 'rootStore' in ctx ? ctx.rootStore : ctx;
+  };
+  const open = () => store().state.open;
+  const floating = () => store().state.floatingElement;
+  const domReference = () => store().state.domReferenceElement;
+  const dataRef = () => store().context.dataRef;
+
   const enabled = () => access(props.enabled) ?? true;
   const axis = () => access(props.axis) ?? 'both';
   const x = () => access(props.x) ?? null;
   const y = () => access(props.y) ?? null;
-  const context = () => access(contextProp);
-  const floating = () => context().elements.floating?.();
-  const domReference = () => context().elements.domReference?.();
 
   let initialRef = false;
 
   const [pointerType, setPointerType] = createSignal<string | undefined>();
 
-  const setReference = (newX: number | null, newY: number | null) => {
+  const setReference = (
+    newX: number | null,
+    newY: number | null,
+    referenceElement?: Element | null,
+  ) => {
     if (initialRef) {
       return;
     }
@@ -137,17 +148,18 @@ export function useClientPoint(
     // Prevent setting if the open event was not a mouse-like one
     // (e.g. focus to open, then hover over the reference element).
     // Only apply if the event exists.
-    const openEvent = context().dataRef.openEvent;
+    const openEvent = dataRef().openEvent;
     if (openEvent && !isMouseBasedEvent(openEvent as Event | null)) {
       return;
     }
 
-    context().refs.setPositionReference(
-      createVirtualElement(domReference(), {
+    store().set(
+      'positionReference',
+      createVirtualElement(referenceElement ?? domReference(), {
         x: newX,
         y: newY,
         axis: axis(),
-        dataRef: context().dataRef,
+        dataRef: dataRef(),
         pointerType: pointerType(),
       }),
     );
@@ -158,8 +170,8 @@ export function useClientPoint(
       return;
     }
 
-    if (!context().open()) {
-      setReference(event.clientX, event.clientY);
+    if (!open()) {
+      setReference(event.clientX, event.clientY, event.currentTarget as Element);
     }
   };
 
@@ -167,9 +179,7 @@ export function useClientPoint(
   // mouse even if the floating element is transitioning out. On touch
   // devices, this is undesirable because the floating element will move to
   // the dismissal touch point.
-  const openCheck = () => {
-    return isMouseLikePointerType(pointerType()) ? floating() : context().open();
-  };
+  const openCheck = () => (isMouseLikePointerType(pointerType()) ? floating() : open());
 
   function handleMouseMove(event: MouseEvent) {
     const target = getTarget(event) as Element | null;
@@ -190,8 +200,8 @@ export function useClientPoint(
 
     const win = getWindow(floating());
 
-    const openEvent = context().dataRef.openEvent;
-    if (!openEvent || isMouseBasedEvent(openEvent as Event | null)) {
+    const openEvent = dataRef().openEvent;
+    if (!openEvent || isMouseBasedEvent(openEvent)) {
       win.addEventListener('mousemove', handleMouseMove);
 
       onCleanup(() => {
@@ -200,7 +210,7 @@ export function useClientPoint(
       return;
     }
 
-    context().refs.setPositionReference(domReference());
+    store().set('positionReference', domReference());
   });
 
   createEffect(() => {
@@ -210,7 +220,7 @@ export function useClientPoint(
   });
 
   createEffect(() => {
-    if (!enabled() && context().open()) {
+    if (!enabled() && open()) {
       initialRef = true;
     }
   });
@@ -255,7 +265,7 @@ export function useClientPoint(
       return {};
     }
 
-    return { reference: reference(), floating: floatingProps() };
+    return { reference: reference(), trigger: reference(), floating: floatingProps() };
   });
 
   return returnValue;

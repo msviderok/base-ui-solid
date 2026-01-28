@@ -1,4 +1,4 @@
-import { isAndroid, isJSDOM } from '../../utils/detectBrowser';
+import { isAndroid, isJSDOM } from '@base-ui/utils/detectBrowser';
 
 export function stopEvent(event: Event) {
   event.preventDefault();
@@ -49,4 +49,9 @@ export function isMouseLikePointerType(pointerType: string | undefined, strict?:
     values.push('', undefined);
   }
   return values.includes(pointerType);
+}
+
+export function isClickLikeEvent(event: Event) {
+  const type = event.type;
+  return type === 'click' || type === 'mousedown' || type === 'keydown' || type === 'keyup';
 }

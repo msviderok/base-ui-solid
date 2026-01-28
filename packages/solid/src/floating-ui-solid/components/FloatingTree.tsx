@@ -8,8 +8,8 @@ import {
 } from 'solid-js';
 import { access } from '../../solid-helpers';
 import { useId } from '../../utils/useId';
-import type { FloatingContext, FloatingNodeType, FloatingTreeType, ReferenceType } from '../types';
-import { createEventEmitter } from '../utils/createEventEmitter';
+import type { FloatingContext, FloatingTreeType } from '../types';
+import { FloatingTreeStore } from './FloatingTreeStore';
 
 const FloatingNodeContext = createContext<{
   id: Accessor<string | undefined>;
@@ -30,26 +30,26 @@ export const useFloatingParentNodeId = () => {
 /**
  * Returns the nearest floating tree context, if available.
  */
-export const useFloatingTree = <
-  RT extends ReferenceType = ReferenceType,
->(): FloatingTreeType<RT> | null => useContext(FloatingTreeContext) as FloatingTreeType<RT> | null;
+export const useFloatingTree = (externalTree?: FloatingTreeStore): FloatingTreeType | null => {
+  const contextTree = useContext(FloatingTreeContext) as FloatingTreeType | null;
+  return externalTree ?? contextTree;
+};
 
 /**
  * Registers a node into the `FloatingTree`, returning its id.
  * @see https://floating-ui.com/docs/FloatingTree
  */
-export function useFloatingNodeId(customParentId?: string): Accessor<string | undefined> {
+export function useFloatingNodeId(externalTree?: FloatingTreeStore): Accessor<string | undefined> {
   const id = useId();
-  const tree = useFloatingTree();
-  const solidParentId = useFloatingParentNodeId();
-  const parentId = () => customParentId || solidParentId;
+  const tree = useFloatingTree(externalTree);
+  const parentId = useFloatingParentNodeId();
 
   createEffect(() => {
     if (!id()) {
       return;
     }
 
-    const node = { id: id(), parentId: parentId() };
+    const node = { id: id(), parentId };
     tree?.addNode(node);
 
     onCleanup(() => {
@@ -83,6 +83,7 @@ export function FloatingNode(props: FloatingNodeProps): JSX.Element {
 
 export interface FloatingTreeProps {
   children?: JSX.Element;
+  externalTree?: FloatingTreeStore;
 }
 
 /**
@@ -97,28 +98,7 @@ export interface FloatingTreeProps {
  * @internal
  */
 export function FloatingTree(props: FloatingTreeProps): JSX.Element {
-  let nodesRef = [] as FloatingNodeType[];
-
-  function addNode(node: FloatingNodeType) {
-    nodesRef.push(node);
-  }
-
-  function removeNode(node: FloatingNodeType) {
-    nodesRef = nodesRef.filter((n) => n !== node);
-  }
-
-  const events = createEventEmitter();
-
-  return (
-    <FloatingTreeContext.Provider
-      value={{
-        nodesRef,
-        addNode,
-        removeNode,
-        events,
-      }}
-    >
-      {props.children}
-    </FloatingTreeContext.Provider>
-  );
+  // eslint-disable-next-line solid/reactivity
+  const tree = props.externalTree ?? new FloatingTreeStore();
+  return <FloatingTreeContext.Provider value={tree}>{props.children}</FloatingTreeContext.Provider>;
 }

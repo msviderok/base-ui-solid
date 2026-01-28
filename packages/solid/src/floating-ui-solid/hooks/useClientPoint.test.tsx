@@ -12,7 +12,12 @@ function expectLocation({ x, y }: Coords) {
   expect(Number(screen.getByTestId('height')?.textContent)).toBe(0);
 }
 
-function App(props: { enabled?: boolean; point?: Coords; axis?: 'both' | 'x' | 'y' }) {
+function App(props: {
+  enabled?: boolean;
+  point?: Coords;
+  axis?: 'both' | 'x' | 'y';
+  useTriggerProps?: boolean;
+}) {
   const merged = solidMergeProps({ enabled: true }, props);
   const [isOpen, setIsOpen] = createSignal(false);
   const { refs, elements, context } = useFloating({
@@ -25,16 +30,17 @@ function App(props: { enabled?: boolean; point?: Coords; axis?: 'both' | 'x' | '
     y: () => merged.point?.y,
     axis: () => merged.axis,
   });
-  const { getReferenceProps, getFloatingProps } = useInteractions([clientPoint]);
+  const { getReferenceProps, getTriggerProps, getFloatingProps } = useInteractions([clientPoint]);
 
   const rect = () => elements.reference()?.getBoundingClientRect();
+  const referenceProps = () => (merged.useTriggerProps ? getTriggerProps() : getReferenceProps());
 
   return (
     <>
       <div
         data-testid="reference"
         ref={refs.setReference}
-        {...getReferenceProps()}
+        {...referenceProps()}
         style={{ width: 0, height: 0 }}
       >
         Reference
@@ -53,21 +59,74 @@ function App(props: { enabled?: boolean; point?: Coords; axis?: 'both' | 'x' | '
   );
 }
 
-test('renders at explicit client point and can be updated', () => {
+test('renders at explicit client point and can be updated', async () => {
   const [point, setPoint] = createSignal({ x: 0, y: 0 });
   render(() => <App point={point()} />);
 
   fireEvent.click(screen.getByRole('button'));
 
+  await flushMicrotasks();
+
   expectLocation({ x: 0, y: 0 });
 
   setPoint({ x: 1000, y: 1000 });
 
+  await flushMicrotasks();
+
   expectLocation({ x: 1000, y: 1000 });
 });
 
-test('renders at mouse event coords', () => {
+test('updates position from trigger props', async () => {
+  render(() => <App useTriggerProps />);
+
+  await flushMicrotasks();
+
+  fireEvent(
+    screen.getByTestId('reference'),
+    new MouseEvent('mousemove', {
+      bubbles: true,
+      clientX: 400,
+      clientY: 200,
+    }),
+  );
+
+  await flushMicrotasks();
+
+  expectLocation({ x: 400, y: 200 });
+});
+
+test('uses trigger element when dom reference is missing', async () => {
+  render(() => <App axis="x" />);
+
+  const reference = screen.getByTestId('reference');
+  reference.getBoundingClientRect = () => ({
+    x: 10,
+    y: 50,
+    width: 0,
+    height: 0,
+    top: 50,
+    left: 10,
+    right: 10,
+    bottom: 50,
+    toJSON: () => {},
+  });
+
+  await flushMicrotasks();
+
+  fireEvent.mouseMove(reference, {
+    clientX: 200,
+    clientY: 300,
+  });
+
+  await flushMicrotasks();
+
+  expectLocation({ x: 200, y: 50 });
+});
+
+test('renders at mouse event coords', async () => {
   render(() => <App />);
+
+  await flushMicrotasks();
 
   fireEvent(
     screen.getByTestId('reference'),
@@ -77,6 +136,8 @@ test('renders at mouse event coords', () => {
       clientY: 500,
     }),
   );
+
+  await flushMicrotasks();
 
   expectLocation({ x: 500, y: 500 });
 
@@ -88,6 +149,8 @@ test('renders at mouse event coords', () => {
       clientY: 1000,
     }),
   );
+
+  await flushMicrotasks();
 
   expectLocation({ x: 1000, y: 1000 });
 
@@ -101,9 +164,12 @@ test('renders at mouse event coords', () => {
     }),
   );
 
+  await flushMicrotasks();
+
   expectLocation({ x: 1000, y: 1000 });
 
   fireEvent.click(screen.getByRole('button'));
+  await flushMicrotasks();
 
   fireEvent(
     screen.getByTestId('reference'),
@@ -113,6 +179,7 @@ test('renders at mouse event coords', () => {
       clientY: 700,
     }),
   );
+  await flushMicrotasks();
 
   expectLocation({ x: 700, y: 700 });
 
@@ -124,11 +191,12 @@ test('renders at mouse event coords', () => {
       clientY: 0,
     }),
   );
+  await flushMicrotasks();
 
   expectLocation({ x: 0, y: 0 });
 });
 
-test('ignores mouse events when explicit coords are specified', () => {
+test('ignores mouse events when explicit coords are specified', async () => {
   render(() => <App point={{ x: 0, y: 0 }} />);
 
   fireEvent(
@@ -139,6 +207,7 @@ test('ignores mouse events when explicit coords are specified', () => {
       clientY: 500,
     }),
   );
+  await flushMicrotasks();
 
   expectLocation({ x: 0, y: 0 });
 });
@@ -157,7 +226,6 @@ test('cleans up window listener when closing or disabling', async () => {
       clientY: 500,
     }),
   );
-
   await flushMicrotasks();
 
   fireEvent.click(screen.getByRole('button'));
@@ -170,7 +238,6 @@ test('cleans up window listener when closing or disabling', async () => {
       clientY: 0,
     }),
   );
-
   await flushMicrotasks();
 
   expectLocation({ x: 500, y: 500 });
@@ -199,13 +266,12 @@ test('cleans up window listener when closing or disabling', async () => {
       clientY: 0,
     }),
   );
-
   await flushMicrotasks();
 
   expectLocation({ x: 500, y: 500 });
 });
 
-test('axis x', () => {
+test('axis x', async () => {
   render(() => <App axis="x" />);
 
   fireEvent.click(screen.getByRole('button'));
@@ -218,11 +284,12 @@ test('axis x', () => {
       clientY: 500,
     }),
   );
+  await flushMicrotasks();
 
   expectLocation({ x: 500, y: 0 });
 });
 
-test('axis y', () => {
+test('axis y', async () => {
   render(() => <App axis="y" />);
 
   fireEvent.click(screen.getByRole('button'));
@@ -235,11 +302,12 @@ test('axis y', () => {
       clientY: 500,
     }),
   );
+  await flushMicrotasks();
 
   expectLocation({ x: 0, y: 500 });
 });
 
-test('removes window listener when cursor lands on floating element', () => {
+test('removes window listener when cursor lands on floating element', async () => {
   render(() => <App />);
 
   fireEvent.click(screen.getByRole('button'));
@@ -270,6 +338,7 @@ test('removes window listener when cursor lands on floating element', () => {
       clientY: 0,
     }),
   );
+  await flushMicrotasks();
 
   expectLocation({ x: 500, y: 500 });
 });

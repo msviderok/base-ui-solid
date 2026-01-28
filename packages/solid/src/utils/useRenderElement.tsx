@@ -23,8 +23,8 @@ export function useRenderElement<
   RenderFnElement extends ValidComponent = ValidComponent,
 >(
   element: MaybeAccessor<TagName>,
-  componentProps: RenderElement.ComponentProps<State, RenderedElementType, RenderFnElement>,
-  params: RenderElement.Parameters<State, RenderedElementType, TagName, Enabled>,
+  componentProps: useRenderElement.ComponentProps<State, RenderedElementType, RenderFnElement>,
+  params: useRenderElement.Parameters<State, RenderedElementType, TagName, Enabled>,
 ): (props?: HTMLProps) => Enabled extends false ? null : JSX.Element {
   const state = () => params.state ?? (EMPTY_OBJECT as State);
   const Component = (props: HTMLProps) => {
@@ -104,6 +104,10 @@ export function useRenderElement<
   }) as (props?: HTMLProps) => Enabled extends false ? null : JSX.Element;
 }
 
+type RenderFunctionProps<TagName extends keyof JSX.IntrinsicElements | undefined, State> =
+  | BaseUIComponentProps<TagName, State>
+  | JSX.HTMLAttributes<any>;
+
 export type UseRenderElementParameters<
   State extends Record<string, MaybeAccessor<any>>,
   RenderedElementType extends Element,
@@ -132,13 +136,13 @@ export type UseRenderElementParameters<
    * Intrinsic props to be spread on the rendered element.
    */
   props?:
-    | BaseUIComponentProps<TagName, State>
+    | RenderFunctionProps<TagName, State>
     | Array<
-        | BaseUIComponentProps<TagName, State>
+        | RenderFunctionProps<TagName, State>
         | undefined
         | ((
-            props: BaseUIComponentProps<TagName, State>,
-          ) => BaseUIComponentProps<TagName, State> | undefined | null)
+            props: RenderFunctionProps<TagName, State>,
+          ) => RenderFunctionProps<TagName, State> | undefined | null)
       >;
 
   /**
@@ -185,7 +189,7 @@ export interface UseRenderElementComponentProps<
   ref?: Ref<RenderedElementType>;
 }
 
-export namespace RenderElement {
+export namespace useRenderElement {
   export type Parameters<
     State extends Record<string, MaybeAccessor<any>>,
     RenderedElementType extends Element,

@@ -1,73 +1,76 @@
 import { isElement } from '@floating-ui/utils/dom';
-import { createSignal } from 'solid-js';
+import { createEffect } from 'solid-js';
 import { access, type MaybeAccessor } from '../../solid-helpers';
+import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { PopupTriggerMap } from '../../utils/popups';
 import { useId } from '../../utils/useId';
+import { FloatingRootStore, type FloatingRootState } from '../components/FloatingRootStore';
 import { useFloatingParentNodeId } from '../components/FloatingTree';
-import type {
-  ContextData,
-  FloatingRootContext,
-  OpenChangeReason,
-  ReferenceElement,
-} from '../types';
-import { createEventEmitter } from '../utils/createEventEmitter';
 
 export interface UseFloatingRootContextOptions {
   open?: MaybeAccessor<boolean | undefined>;
-  onOpenChange?: (open: boolean, event?: Event, reason?: OpenChangeReason) => void;
-  elements: {
-    reference: MaybeAccessor<Element | null | undefined>;
-    floating: MaybeAccessor<HTMLElement | null | undefined>;
+  onOpenChange?: (open: boolean, eventDetails: BaseUIChangeEventDetails<string>) => void;
+  elements?: {
+    reference?: MaybeAccessor<Element | null | undefined>;
+    floating?: MaybeAccessor<HTMLElement | null | undefined>;
+    /** Non-reactive */
+    triggers?: PopupTriggerMap;
   };
+  /** Non-reactive. Whether to prevent the auto-emitted `openchange` event. */
+  noEmit?: boolean;
 }
 
-export function useFloatingRootContext(
-  options: UseFloatingRootContextOptions,
-): FloatingRootContext {
+export function useFloatingRootContext(options: UseFloatingRootContextOptions): FloatingRootStore {
   const open = () => access(options.open) ?? false;
   const floatingId = useId();
-  const events = createEventEmitter();
-  const parentId = useFloatingParentNodeId();
-  const nested = parentId != null;
-  const dataRef: ContextData = {};
+  const nested = useFloatingParentNodeId() != null;
 
   if (process.env.NODE_ENV !== 'production') {
-    const optionDomReference = access(options.elements.reference);
-    if (optionDomReference && !isElement(optionDomReference)) {
-      console.error(
-        'Cannot pass a virtual element to the `elements.reference` option,',
-        'as it must be a real DOM element. Use `refs.setPositionReference()`',
-        'instead.',
-      );
-    }
+    createEffect(() => {
+      const optionDomReference = access(options.elements?.reference);
+      if (optionDomReference && !isElement(optionDomReference)) {
+        console.error(
+          'Cannot pass a virtual element to the `elements.reference` option,',
+          'as it must be a real DOM element. Use `refs.setPositionReference()`',
+          'instead.',
+        );
+      }
+    });
   }
 
-  const [positionReference, setPositionReference] = createSignal<
-    ReferenceElement | null | undefined
-  >(access(options.elements.reference));
-
-  const onOpenChange = (newOpen: boolean, event?: Event, reason?: OpenChangeReason) => {
-    dataRef.openEvent = newOpen ? event : undefined;
-    events.emit('openchange', { open: newOpen, event, reason, nested });
-    options.onOpenChange?.(newOpen, event, reason);
-  };
-
-  const refs = {
-    setPositionReference,
-  };
-
-  const elements = {
-    reference: () => positionReference() || access(options.elements.reference),
-    floating: () => access(options.elements.floating),
-    domReference: () => access(options.elements.reference),
-  };
-
-  return {
-    dataRef,
+  const store = new FloatingRootStore({
     open,
-    onOpenChange,
-    elements,
-    events,
+    onOpenChange: options.onOpenChange,
+    referenceElement: () => access(options.elements?.reference) ?? null,
+    floatingElement: () => access(options.elements?.floating) ?? null,
+    triggerElements: options.elements?.triggers ?? new PopupTriggerMap(),
     floatingId,
-    refs,
-  };
+    nested,
+    noEmit: options.noEmit || false,
+  });
+
+  createEffect(() => {
+    const valuesToSync: Writeable<Partial<FloatingRootState>> = {
+      open: open(),
+      floatingId: floatingId(),
+    };
+
+    // Only sync elements that are defined to avoid overwriting existing ones
+    if (options.elements?.reference !== undefined) {
+      valuesToSync.referenceElement = access(options.elements.reference);
+      valuesToSync.domReferenceElement = isElement(access(options.elements.reference))
+        ? access(options.elements.reference)
+        : null;
+    }
+
+    if (options.elements?.floating !== undefined) {
+      valuesToSync.floatingElement = access(options.elements.floating);
+    }
+
+    store.update(valuesToSync);
+  });
+
+  return store;
 }
+
+type Writeable<T> = { -readonly [P in keyof T]: T[P] };

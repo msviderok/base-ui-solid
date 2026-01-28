@@ -24,6 +24,7 @@ export {
   useFloatingParentNodeId,
   useFloatingTree,
 } from './components/FloatingTree';
+export { FloatingTreeStore } from './components/FloatingTreeStore';
 export { useClick } from './hooks/useClick';
 export { useClientPoint } from './hooks/useClientPoint';
 export { useDismiss } from './hooks/useDismiss';
@@ -31,9 +32,12 @@ export { useFloating } from './hooks/useFloating';
 export { useFloatingRootContext } from './hooks/useFloatingRootContext';
 export { useFocus } from './hooks/useFocus';
 export { useHover } from './hooks/useHover';
+export { useHoverFloatingInteraction } from './hooks/useHoverFloatingInteraction';
+export { useHoverReferenceInteraction } from './hooks/useHoverReferenceInteraction';
 export { useInteractions } from './hooks/useInteractions';
 export { useListNavigation } from './hooks/useListNavigation';
 export { useRole } from './hooks/useRole';
+export { useSyncedFloatingRootContext } from './hooks/useSyncedFloatingRootContext';
 export { useTypeahead } from './hooks/useTypeahead';
 export { safePolygon } from './safePolygon';
 export type * from './types';

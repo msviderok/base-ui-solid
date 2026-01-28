@@ -1,6 +1,9 @@
 import type { VirtualElement } from '@floating-ui/dom';
 import type { Accessor, JSX } from 'solid-js';
 import type { MaybeAccessor } from '../solid-helpers';
+import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
+import type { FloatingRootStore } from './components/FloatingRootStore';
+import type { FloatingTreeStore } from './components/FloatingTreeStore';
 import type {
   UsePositionFloatingReturn,
   UsePositionFloatingSharedReturn,
@@ -69,13 +72,15 @@ export type {
 export * from '.';
 export type { FloatingDelayGroupProps } from './components/FloatingDelayGroup';
 export type { FloatingFocusManagerProps } from './components/FloatingFocusManager';
-export type { FloatingPortalProps, UseFloatingPortalNodeProps } from './components/FloatingPortal';
+export type { UseFloatingPortalNodeProps } from './components/FloatingPortal';
 export type { FloatingNodeProps, FloatingTreeProps } from './components/FloatingTree';
 export type { UseClientPointProps } from './hooks/useClientPoint';
 export type { UseDismissProps } from './hooks/useDismiss';
 export type { UseFloatingRootContextOptions } from './hooks/useFloatingRootContext';
 export type { UseFocusProps } from './hooks/useFocus';
 export type { HandleClose, HandleCloseContext, UseHoverProps } from './hooks/useHover';
+export type { UseHoverFloatingInteractionProps } from './hooks/useHoverFloatingInteraction';
+export type { UseHoverReferenceInteractionProps } from './hooks/useHoverReferenceInteraction';
 export type { UseInteractionsReturn } from './hooks/useInteractions';
 export type { UseListNavigationProps } from './hooks/useListNavigation';
 export type { UseRoleProps } from './hooks/useRole';
@@ -86,35 +91,23 @@ export type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
 
-export type OpenChangeReason =
-  | 'outside-press'
-  | 'escape-key'
-  | 'ancestor-scroll'
-  | 'reference-press'
-  | 'click'
-  | 'hover'
-  | 'focus'
-  | 'focus-out'
-  | 'list-navigation'
-  | 'safe-polygon';
-
 export type Delay = number | Partial<{ open: number; close: number }>;
 
 export type NarrowedElement<T> = T extends Element ? T : Element;
 
-export interface ExtendedRefs<RT> {
+export interface ExtendedRefs {
   reference: Accessor<ReferenceType | null | undefined>;
   floating: Accessor<HTMLElement | null | undefined>;
-  domReference: Accessor<NarrowedElement<RT> | null | undefined>;
-  setReference: (value: RT | null | undefined) => void;
+  domReference: Accessor<NarrowedElement<ReferenceType> | null | undefined>;
+  setReference: (value: ReferenceType | null | undefined) => void;
   setFloating: (value: HTMLElement | null | undefined) => void;
   setPositionReference: (value: ReferenceType | null | undefined) => void;
 }
 
-export interface ExtendedElements<RT> {
+export interface ExtendedElements {
   reference: Accessor<ReferenceType | null | undefined>;
   floating: Accessor<HTMLElement | null | undefined>;
-  domReference: Accessor<NarrowedElement<RT> | null | undefined>;
+  domReference: Accessor<NarrowedElement<ReferenceType> | null | undefined>;
 }
 
 export interface FloatingEvents {
@@ -125,52 +118,33 @@ export interface FloatingEvents {
 
 export interface ContextData {
   openEvent?: Event;
-  floatingContext?: FloatingContext<any>;
+  floatingContext?: FloatingContext;
   /** @deprecated use `onTypingChange` prop in `useTypeahead` */
   typing?: boolean;
   [key: string]: any;
 }
 
-interface FloatingRootSharedContext {
-  dataRef: ContextData;
+export type FloatingRootContext = FloatingRootStore;
+
+export interface FloatingContext extends UsePositionFloatingSharedReturn {
   open: Accessor<boolean>;
-  onOpenChange(open: boolean, event?: Event, reason?: OpenChangeReason): void;
+  onOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails<string>): void;
   events: FloatingEvents;
-  floatingId: Accessor<string | undefined>;
-}
-
-export interface FloatingRootContext<RT extends ReferenceType = ReferenceType>
-  extends FloatingRootSharedContext {
-  elements: {
-    domReference: Accessor<Element | null | undefined>;
-    reference: Accessor<RT | null | undefined>;
-    floating: Accessor<HTMLElement | null | undefined>;
-  };
-  refs: {
-    setPositionReference(node: ReferenceType | null | undefined): void;
-  };
-}
-
-export interface FloatingContext<RT extends ReferenceType = ReferenceType>
-  extends FloatingRootSharedContext,
-    UsePositionFloatingSharedReturn {
+  dataRef: ContextData;
   nodeId: Accessor<string | undefined>;
-  refs: ExtendedRefs<RT>;
-  elements: ExtendedElements<RT>;
+  floatingId: Accessor<string | undefined>;
+  refs: ExtendedRefs;
+  elements: ExtendedElements;
+  rootStore: FloatingRootContext;
 }
 
-export interface FloatingNodeType<RT extends ReferenceType = ReferenceType> {
-  id: string | undefined;
+export interface FloatingNodeType {
+  id: string | null;
   parentId: string | null;
-  context?: FloatingContext<RT>;
+  context?: FloatingContext;
 }
 
-export interface FloatingTreeType<RT extends ReferenceType = ReferenceType> {
-  nodesRef: Array<FloatingNodeType<RT>>;
-  events: FloatingEvents;
-  addNode(node: FloatingNodeType): void;
-  removeNode(node: FloatingNodeType): void;
-}
+export type FloatingTreeType = FloatingTreeStore;
 
 export interface ElementProps {
   reference?: JSX.HTMLAttributes<Element>;
@@ -178,28 +152,27 @@ export interface ElementProps {
   item?:
     | JSX.HTMLAttributes<HTMLElement>
     | ((props: ExtendedUserProps) => JSX.HTMLAttributes<HTMLElement>);
+  trigger?: JSX.HTMLAttributes<Element>;
 }
 
 export type ReferenceType = Element | VirtualElement;
 
-export type UseFloatingReturn<RT extends ReferenceType> = Prettify<
+export type UseFloatingReturn = Prettify<
   Accessorify<Omit<UsePositionFloatingReturn, 'refs' | 'elements'>> & {
     /**
      * `FloatingContext`
      */
-    context: Prettify<FloatingContext<RT>>;
+    context: Prettify<FloatingContext>;
     /**
      * Object containing the reference and floating refs and reactive setters.
      */
-    refs: ExtendedRefs<RT>;
-    elements: ExtendedElements<RT>;
+    refs: ExtendedRefs;
+    elements: ExtendedElements;
   }
 >;
 
-// TODO: explain the reasoning for this
-export interface UseFloatingOptions<RT extends ReferenceType = ReferenceType>
-  extends Omit<UsePositionOptions<RT>, 'elements'> {
-  rootContext?: FloatingRootContext<RT>;
+export interface UseFloatingOptions extends Omit<UsePositionOptions, 'elements'> {
+  rootContext?: FloatingRootContext;
   /**
    * Object of external elements as an alternative to the `refs` object setters.
    */
@@ -207,7 +180,7 @@ export interface UseFloatingOptions<RT extends ReferenceType = ReferenceType>
     /**
      * Externally passed reference element. Store in state.
      */
-    reference?: MaybeAccessor<Element | null | undefined>;
+    reference?: MaybeAccessor<ReferenceType | null | undefined>;
     /**
      * Externally passed floating element. Store in state.
      */
@@ -217,11 +190,15 @@ export interface UseFloatingOptions<RT extends ReferenceType = ReferenceType>
    * An event callback that is invoked when the floating element is opened or
    * closed.
    */
-  onOpenChange?(open: boolean, event?: Event, reason?: OpenChangeReason): void;
+  onOpenChange?(open: boolean, eventDetails: BaseUIChangeEventDetails<string>): void;
   /**
    * Unique node id when using `FloatingTree`.
    */
   nodeId?: MaybeAccessor<string | undefined>;
+  /**
+   * External FlatingTree to use when the one provided by context can't be used.
+   */
+  externalTree?: FloatingTreeStore;
 }
 
 export type Accessorify<T, Type extends 'accessor' | 'maybeAccessor' = 'accessor'> = {
