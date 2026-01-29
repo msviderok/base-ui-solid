@@ -1,9 +1,9 @@
 import { createEffect, createMemo, type Accessor } from 'solid-js';
-import { useTimeout } from '../../utils/useTimeout';
-import { stopEvent } from '../utils';
-
 import { access, type MaybeAccessor } from '../../solid-helpers';
-import type { ElementProps, FloatingRootContext } from '../types';
+import { EMPTY_ARRAY } from '../../utils/constants';
+import { useTimeout } from '../../utils/useTimeout';
+import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
+import { stopEvent } from '../utils';
 
 export interface UseTypeaheadProps {
   /**
@@ -59,22 +59,30 @@ export interface UseTypeaheadProps {
  * @see https://floating-ui.com/docs/useTypeahead
  */
 export function useTypeahead(
-  contextProp: MaybeAccessor<FloatingRootContext>,
+  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
   props: UseTypeaheadProps,
 ): Accessor<ElementProps> {
-  const enabled = () => access(props.enabled) ?? true;
   const context = () => access(contextProp);
+  const store = () => {
+    const ctx = context();
+    return 'rootStore' in ctx ? ctx.rootStore : ctx;
+  };
+  const open = () => store().useState('open')();
+  const dataRef = () => store().context.dataRef;
+  const listRef = () => access(props.listRef);
+  const activeIndex = () => access(props.activeIndex);
+  const enabled = () => access(props.enabled) ?? true;
   const resetMs = () => access(props.resetMs) ?? 750;
-  const ignoreKeys = () => access(props.ignoreKeys) ?? [];
+  const ignoreKeys = () => access(props.ignoreKeys) ?? EMPTY_ARRAY;
   const selectedIndex = () => access(props.selectedIndex) ?? null;
 
   const timeout = useTimeout();
   let stringRef = '';
-  let prevIndexRef: number | null = selectedIndex() ?? access(props.activeIndex) ?? -1;
+  let prevIndexRef: number | null = selectedIndex() ?? activeIndex() ?? -1;
   let matchIndexRef: number | null = null;
 
   createEffect(() => {
-    if (context().open()) {
+    if (open()) {
       timeout.clear();
       matchIndexRef = null;
       stringRef = '';
@@ -83,19 +91,19 @@ export function useTypeahead(
 
   createEffect(() => {
     // Sync arrow key navigation but not typeahead navigation.
-    if (context().open() && stringRef === '') {
-      prevIndexRef = selectedIndex() ?? access(props.activeIndex) ?? -1;
+    if (open() && stringRef === '') {
+      prevIndexRef = selectedIndex() ?? activeIndex() ?? -1;
     }
   });
 
   const setTypingChange = (value: boolean) => {
     if (value) {
-      if (!context().dataRef.typing) {
-        context().dataRef.typing = value;
+      if (!dataRef().typing) {
+        dataRef().typing = value;
         props.onTypingChange?.(value);
       }
-    } else if (context().dataRef.typing) {
-      context().dataRef.typing = value;
+    } else if (dataRef().typing) {
+      dataRef().typing = value;
       props.onTypingChange?.(value);
     }
   };
@@ -115,7 +123,7 @@ export function useTypeahead(
       return str ? list.indexOf(str) : -1;
     }
 
-    const listContent = access(props.listRef);
+    const listContent = listRef();
 
     if (stringRef.length > 0 && stringRef[0] !== ' ') {
       if (getMatchingIndex(listContent, listContent, stringRef) === -1) {
@@ -138,7 +146,7 @@ export function useTypeahead(
       return;
     }
 
-    if (context().open() && event.key !== ' ') {
+    if (open() && event.key !== ' ') {
       stopEvent(event);
       setTypingChange(true);
     }

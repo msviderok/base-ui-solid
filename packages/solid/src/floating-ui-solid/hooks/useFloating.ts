@@ -2,8 +2,10 @@ import { type VirtualElement } from '@floating-ui/dom';
 import { isElement } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, createSignal, mergeProps as solidMergeProps } from 'solid-js';
 import { access } from '../../solid-helpers';
+import { FloatingRootStore } from '../components/FloatingRootStore';
 import { useFloatingTree } from '../components/FloatingTree';
 import type {
+  FloatingContext,
   NarrowedElement,
   ReferenceType,
   UseFloatingOptions,
@@ -17,43 +19,32 @@ import { useFloatingRootContext } from './useFloatingRootContext';
  * @see https://floating-ui.com/docs/useFloating
  */
 
-export function useFloating<RT extends ReferenceType = ReferenceType>(
-  options: UseFloatingOptions<RT>,
-): UseFloatingReturn<RT> {
-  const defaultRootContext = useFloatingRootContext({
-    ...options,
-    elements: {
-      reference: () => null,
-      floating: () => null,
-      ...options.elements,
-    },
-  });
+export function useFloating(options: UseFloatingOptions = {}): UseFloatingReturn {
+  const internalRootStore = useFloatingRootContext(options);
 
-  const rootContext = () => access(options.rootContext) || defaultRootContext;
+  const rootContext = () => access(options.rootContext) || internalRootStore;
+  const rootContextElements = {
+    reference: () => rootContext().useState('referenceElement')(),
+    floating: () => rootContext().useState('floatingElement')(),
+    domReference: () => rootContext().useState('domReferenceElement')(),
+  };
 
-  const [domReferenceState, setDomReference] = createSignal<NarrowedElement<RT> | null | undefined>(
-    null,
-  );
   const [positionReference, setPositionReferenceRaw] = createSignal<
     ReferenceType | null | undefined
   >(null);
 
-  const optionDomReference = () => rootContext().elements.domReference();
-  const domReference = createMemo(
-    () => (optionDomReference() || domReferenceState()) as NarrowedElement<RT> | null | undefined,
-  );
+  const domReference = createMemo(() => {
+    const ref = rootContextElements.domReference();
+    return (ref ?? null) as NarrowedElement<ReferenceType> | null | undefined;
+  });
 
   const tree = useFloatingTree();
 
   const position = usePosition({
-    ...(options as unknown as UseFloatingOptions<ReferenceType>),
+    ...options,
     elements: {
-      floating: () => rootContext().elements.floating(),
-      reference: () =>
-        (positionReference() ?? rootContext().elements.reference()) as
-          | NarrowedElement<RT>
-          | null
-          | undefined,
+      floating: () => rootContextElements.floating(),
+      reference: () => positionReference() ?? rootContextElements.reference(),
     },
   });
 
@@ -68,12 +59,28 @@ export function useFloating<RT extends ReferenceType = ReferenceType>(
     // Store the positionReference in state if the DOM reference is specified externally via the
     // `elements.reference` option. This ensures that it won't be overridden on future renders.
     setPositionReferenceRaw(computedPositionReference);
-    position.refs.setReference(computedPositionReference as RT | null | undefined);
+    position.refs.setReference(computedPositionReference);
   };
 
-  const setReference = (node: RT | null | undefined) => {
+  const [localDomReference, setLocalDomReference] = createSignal<
+    NarrowedElement<ReferenceType> | null | undefined
+  >(null);
+  const [localFloatingElement, setLocalFloatingElement] = createSignal<
+    HTMLElement | null | undefined
+  >(null);
+
+  createEffect(() => {
+    rootContext().useSyncedValue('referenceElement', localDomReference());
+    rootContext().useSyncedValue(
+      'domReferenceElement',
+      isElement(localDomReference()) ? localDomReference() : null,
+    );
+    rootContext().useSyncedValue('floatingElement', localFloatingElement());
+  });
+
+  const setReference = (node: ReferenceType | null | undefined) => {
     if (isElement(node) || node == null) {
-      setDomReference(() => node as NarrowedElement<RT> | null | undefined);
+      setLocalDomReference(node as NarrowedElement<ReferenceType> | null);
     }
 
     // Backwards-compatibility for passing a virtual element to `reference`
@@ -91,17 +98,26 @@ export function useFloating<RT extends ReferenceType = ReferenceType>(
     }
   };
 
+  const setFloating = (node: HTMLElement | null | undefined) => {
+    setLocalFloatingElement(node);
+    position.refs.setFloating(node);
+  };
+
   const refs = solidMergeProps(position.refs, {
     setReference,
+    setFloating,
     setPositionReference,
     domReference,
   });
 
   const elements = solidMergeProps(position.elements, {
-    domReference,
+    domReference: rootContextElements.domReference,
   });
 
-  const context: UseFloatingReturn<RT>['context'] = {
+  const open = () => rootContext().useState('open')();
+  const floatingId = () => rootContext().useState('floatingId')();
+
+  const context: FloatingContext = {
     // from UsePositionFloatingReturn
     update: position.update,
     floatingStyles: position.floatingStyles,
@@ -113,24 +129,27 @@ export function useFloating<RT extends ReferenceType = ReferenceType>(
     y: position.y,
 
     // from FloatingRootContext
-    open: () => rootContext().open(),
-    onOpenChange: (...args) => rootContext().onOpenChange(...args),
-    get events() {
-      return rootContext().events;
-    },
     get dataRef() {
-      return rootContext().dataRef;
+      return rootContext().context.dataRef;
     },
-    floatingId: () => rootContext().floatingId(),
+    open,
+    onOpenChange: (...args) => rootContext().setOpen(...args),
+    get events() {
+      return rootContext().context.events;
+    },
+    floatingId,
 
     // additional
     refs,
     elements,
     nodeId: () => access(options.nodeId),
+    get rootStore() {
+      return rootContext();
+    },
   };
 
   createEffect(() => {
-    rootContext().dataRef.floatingContext = context;
+    rootContext().context.dataRef.floatingContext = context;
 
     if (!tree) {
       return;
@@ -155,5 +174,8 @@ export function useFloating<RT extends ReferenceType = ReferenceType>(
     context,
     refs,
     elements,
-  };
+    get rootStore() {
+      return rootContext() as unknown as FloatingRootStore;
+    },
+  } as UseFloatingReturn;
 }

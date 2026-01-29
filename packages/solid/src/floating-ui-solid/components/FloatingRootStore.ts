@@ -1,5 +1,5 @@
-import type { Accessor } from 'solid-js';
-import { createStore, produce, reconcile, type SetStoreFunction, type Store } from 'solid-js/store';
+import { createEffect, onCleanup, type Accessor } from 'solid-js';
+import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
 import { access, type MaybeAccessor } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import type { PopupTriggerMap } from '../../utils/popups';
@@ -112,6 +112,51 @@ export class FloatingRootStore {
   };
 
   /**
+   * Synchronizes a single external value into the store.
+   *
+   * Note that the while the value in `state` is updated immediately, the value returned
+   * by `useState` is updated before the next render (similarly to React's `useState`).
+   */
+  public useSyncedValue<Key extends keyof FloatingRootState, Value extends FloatingRootState[Key]>(
+    key: keyof FloatingRootState,
+    value: Value,
+  ) {
+    createEffect(() => {
+      if (this.state[key] !== value) {
+        this.set(key, value);
+      }
+    });
+  }
+
+  /**
+   * Synchronizes a single external value into the store and
+   * cleans it up (sets to `undefined`) on unmount.
+   *
+   * Note that the while the value in `state` is updated immediately, the value returned
+   * by `useState` is updated before the next render (similarly to React's `useState`).
+   */
+  public useSyncedValueWithCleanup<Key extends KeysAllowingUndefined<FloatingRootState>>(
+    key: Key,
+    value: FloatingRootState[Key],
+  ) {
+    createEffect(() => {
+      if (this.state[key] !== value) {
+        this.set(key, value);
+      }
+
+      onCleanup(() => this.set(key, undefined as FloatingRootState[Key]));
+    });
+  }
+
+  public select = <T extends keyof FloatingRootState>(key: T): FloatingRootState[T] => {
+    return this.state[key];
+  };
+
+  public useState = <T extends keyof FloatingRootState>(key: T): Accessor<FloatingRootState[T]> => {
+    return () => this.state[key];
+  };
+
+  /**
    * Sets a specific key in the store's state to a new value and notifies listeners if the value has changed.
    * If the key is controlled (registered via {@link useControlledProp} with a non-undefined value),
    * the update is ignored and no listeners are notified.
@@ -153,3 +198,7 @@ export class FloatingRootStore {
     this.setState(newValues);
   }
 }
+
+type KeysAllowingUndefined<State> = {
+  [Key in keyof State]-?: undefined extends State[Key] ? Key : never;
+}[keyof State];

@@ -6,12 +6,13 @@ import { PopupTriggerMap } from '../../utils/popups';
 import { useId } from '../../utils/useId';
 import { FloatingRootStore, type FloatingRootState } from '../components/FloatingRootStore';
 import { useFloatingParentNodeId } from '../components/FloatingTree';
+import type { ReferenceType } from '../types';
 
 export interface UseFloatingRootContextOptions {
   open?: MaybeAccessor<boolean | undefined>;
   onOpenChange?: (open: boolean, eventDetails: BaseUIChangeEventDetails<string>) => void;
   elements?: {
-    reference?: MaybeAccessor<Element | null | undefined>;
+    reference?: MaybeAccessor<ReferenceType | null | undefined>;
     floating?: MaybeAccessor<HTMLElement | null | undefined>;
     /** Non-reactive */
     triggers?: PopupTriggerMap;
@@ -57,10 +58,9 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
 
     // Only sync elements that are defined to avoid overwriting existing ones
     if (options.elements?.reference !== undefined) {
-      valuesToSync.referenceElement = access(options.elements.reference);
-      valuesToSync.domReferenceElement = isElement(access(options.elements.reference))
-        ? access(options.elements.reference)
-        : null;
+      const ref = access(options.elements.reference);
+      valuesToSync.referenceElement = ref;
+      valuesToSync.domReferenceElement = isElement(ref) ? ref : null;
     }
 
     if (options.elements?.floating !== undefined) {

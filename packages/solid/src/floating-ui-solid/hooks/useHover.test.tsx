@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import { flushMicrotasks } from '#test-utils';
-import { cleanup, fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
+import { isJSDOM } from '@base-ui/utils/detectBrowser';
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { createSignal } from 'solid-js';
 import { test, vi } from 'vitest';
 import { Popover } from '../../../test/floating-ui-tests/Popover';
-import { isJSDOM } from '../../utils/detectBrowser';
+import { REASONS } from '../../utils/reasons';
 import { useFloating, useHover, useInteractions } from '../index';
 import type { UseHoverProps } from './useHover';
-
-vi.useFakeTimers();
 
 function App(props: UseHoverProps & { showReference?: boolean }) {
   const showReference = () => props.showReference ?? true;
@@ -31,6 +30,10 @@ function App(props: UseHoverProps & { showReference?: boolean }) {
 }
 
 describe.skipIf(!isJSDOM)('useHover', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   test('opens on mouseenter', async () => {
     render(() => <App />);
 
@@ -38,7 +41,7 @@ describe.skipIf(!isJSDOM)('useHover', () => {
 
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
-    cleanup();
+    await flushMicrotasks();
   });
 
   test('closes on mouseleave', () => {
@@ -47,8 +50,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
     fireEvent.mouseEnter(screen.getByRole('button'));
     fireEvent.mouseLeave(screen.getByRole('button'));
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-
-    cleanup();
   });
 
   describe('delay', () => {
@@ -64,8 +65,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
       vi.advanceTimersByTime(1);
 
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
-
-      cleanup();
     });
 
     test('open', async () => {
@@ -80,8 +79,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
       vi.advanceTimersByTime(1);
 
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
-
-      cleanup();
     });
 
     test('close', async () => {
@@ -97,8 +94,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
       vi.advanceTimersByTime(1);
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-
-      cleanup();
     });
 
     test('open with close 0', async () => {
@@ -113,8 +108,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
       vi.advanceTimersByTime(1);
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-
-      cleanup();
     });
 
     test('restMs + nullish open delay should respect restMs', async () => {
@@ -125,8 +118,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
       vi.advanceTimersByTime(99);
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-
-      cleanup();
     });
   });
 
@@ -159,7 +150,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     spy.mockRestore();
-    cleanup();
   });
 
   test.skip('restMs is always 0 for touch input', async () => {
@@ -209,7 +199,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     spy.mockRestore();
-    cleanup();
   });
 
   test('mouseleave on the floating element closes it (mouse)', async () => {
@@ -241,8 +230,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
     vi.advanceTimersByTime(999);
 
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-
-    cleanup();
   });
 
   test('reason string', async () => {
@@ -250,9 +237,9 @@ describe.skipIf(!isJSDOM)('useHover', () => {
       const [isOpen, setIsOpen] = createSignal(false);
       const { refs, context } = useFloating({
         open: isOpen,
-        onOpenChange(isOpen, _, reason) {
-          setIsOpen(isOpen);
-          expect(reason).toBe('hover');
+        onOpenChange(nextOpen, data) {
+          setIsOpen(nextOpen);
+          expect(data?.reason).toBe(REASONS.triggerHover);
         },
       });
 
@@ -339,7 +326,5 @@ describe.skipIf(!isJSDOM)('useHover', () => {
     expect(screen.getByText('Child title')).toBeInTheDocument();
     await user.click(screen.getByText('Parent title'));
     expect(screen.getByText('Parent title')).toBeInTheDocument();
-
-    vi.useFakeTimers();
   });
 });

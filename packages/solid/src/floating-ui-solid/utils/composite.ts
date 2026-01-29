@@ -1,11 +1,11 @@
 import { floor } from '@floating-ui/utils';
-
-import type { MaybeAccessor } from '../../solid-helpers';
 import type { Dimensions } from '../types';
 import { ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, ARROW_UP } from './constants';
 import { stopEvent } from './event';
 
-type DisabledIndices = MaybeAccessor<ReadonlyArray<number>> | ((index?: number) => boolean);
+type DisabledIndices =
+  | ReadonlyArray<number>
+  | ((index?: number) => boolean | ReadonlyArray<number>);
 
 export function isDifferentGridRow(index: number, cols: number, prevRow: number) {
   return Math.floor(index / cols) !== prevRow;
@@ -427,8 +427,7 @@ export function isListIndexDisabled(
   disabledIndices?: DisabledIndices,
 ) {
   if (typeof disabledIndices === 'function') {
-    const disabled = disabledIndices.length > 0 ? disabledIndices(index) : disabledIndices();
-    return Array.isArray(disabled) ? disabled.includes(index) : disabled === true;
+    return disabledIndices(index);
   }
 
   if (disabledIndices) {

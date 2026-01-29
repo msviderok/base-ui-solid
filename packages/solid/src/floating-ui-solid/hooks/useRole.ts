@@ -1,8 +1,9 @@
 import { createEffect, createMemo, createSignal, type Accessor, type JSX } from 'solid-js';
 import { access, type MaybeAccessor } from '../../solid-helpers';
+import { EMPTY_OBJECT } from '../../utils/constants';
 import { useId } from '../../utils/useId';
 import { useFloatingParentNodeId } from '../components/FloatingTree';
-import type { ElementProps, FloatingRootContext } from '../types';
+import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import { getFloatingFocusElement } from '../utils';
 import type { ExtendedUserProps } from './useInteractions';
 
@@ -35,11 +36,20 @@ const componentRoleToAriaRoleMap = new Map<AriaRole | ComponentRole, AriaRole | 
  * @see https://floating-ui.com/docs/useRole
  */
 export function useRole(
-  contextProp: MaybeAccessor<FloatingRootContext>,
+  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
   props: UseRoleProps = {},
 ): Accessor<ElementProps> {
-  const enabled = () => access(props.enabled) ?? true;
   const context = () => access(contextProp);
+  const store = () => {
+    const ctx = context();
+    return 'rootStore' in ctx ? ctx.rootStore : ctx;
+  };
+  const open = () => store().useState('open')();
+  const defaultFloatingId = () => store().useState('floatingId')();
+  const domReference = () => store().useState('domReferenceElement')();
+  const floatingElement = () => store().useState('floatingElement')();
+
+  const enabled = () => access(props.enabled) ?? true;
   const role = () => access(props.role) ?? 'dialog';
 
   const defaultReferenceId = useId();
@@ -47,17 +57,15 @@ export function useRole(
    * TODO: this needs to be memoized as it causes an infinite loop
    * with the MenuRoot triggerElement assignement
    */
-  const referenceId = createMemo(
-    () => context().elements.domReference()?.id || defaultReferenceId(),
-  );
+  const referenceId = createMemo(() => domReference()?.id || defaultReferenceId());
 
   // Track the actual floating element id (including user-provided custom id) after mount.
   const [resolvedFloatingId, setResolvedFloatingId] = createSignal<string | undefined>(undefined);
   createEffect(() => {
-    const element = getFloatingFocusElement(context().elements.floating());
+    const element = getFloatingFocusElement(floatingElement());
     setResolvedFloatingId(element?.id);
   });
-  const floatingId = createMemo(() => resolvedFloatingId() || context().floatingId());
+  const floatingId = createMemo(() => resolvedFloatingId() || defaultFloatingId());
 
   const ariaRole = () =>
     (componentRoleToAriaRoleMap.get(role()) ?? role()) as AriaRole | false | undefined;
@@ -65,24 +73,36 @@ export function useRole(
   const parentId = useFloatingParentNodeId();
   const isNested = parentId != null;
 
+  const trigger = createMemo<ElementProps['trigger']>(() => {
+    if (ariaRole() === 'tooltip' || role() === 'label') {
+      return EMPTY_OBJECT;
+    }
+
+    return {
+      'aria-haspopup': ariaRole() === 'alertdialog' ? 'dialog' : ariaRole(),
+      'aria-expanded': 'false',
+      ...(ariaRole() === 'listbox' && { role: 'combobox' }),
+      ...(ariaRole() === 'menu' && isNested && { role: 'menuitem' }),
+      ...(role() === 'select' && { 'aria-autocomplete': 'none' }),
+      ...(role() === 'combobox' && { 'aria-autocomplete': 'list' }),
+    };
+  });
+
   const reference = createMemo<ElementProps['reference']>(() => {
     if (ariaRole() === 'tooltip' || role() === 'label') {
       return {
-        [`aria-${role() === 'label' ? 'labelledby' : 'describedby'}`]: context().open()
+        [`aria-${role() === 'label' ? 'labelledby' : 'describedby'}`]: open()
           ? floatingId()
           : undefined,
       };
     }
 
+    const triggerProps = trigger();
     return {
-      'aria-expanded': context().open() ? 'true' : 'false',
-      'aria-haspopup': ariaRole() === 'alertdialog' ? 'dialog' : ariaRole(),
-      'aria-controls': context().open() ? floatingId() : undefined,
-      ...(ariaRole() === 'listbox' && { role: 'combobox' }),
+      ...triggerProps,
+      'aria-expanded': open() ? 'true' : 'false',
+      'aria-controls': open() ? floatingId() : undefined,
       ...(ariaRole() === 'menu' && { id: referenceId() }),
-      ...(ariaRole() === 'menu' && isNested && { role: 'menuitem' }),
-      ...(role() === 'select' && { 'aria-autocomplete': 'none' }),
-      ...(role() === 'combobox' && { 'aria-autocomplete': 'list' }),
     } as JSX.HTMLAttributes<Element>;
   });
 
@@ -98,7 +118,9 @@ export function useRole(
 
     return {
       ...floatingProps,
-      ...(ariaRole() === 'menu' && { 'aria-labelledby': referenceId() }),
+      ...(ariaRole() === 'menu' && {
+        'aria-labelledby': referenceId(),
+      }),
     };
   });
 
@@ -113,16 +135,13 @@ export function useRole(
     // avoid defaulting to `menuitem` as it may overwrite custom role props.
     switch (role()) {
       case 'select':
-        return {
-          ...commonProps,
-          'aria-selected': params.active && params.selected,
-        };
       case 'combobox': {
         return {
           ...commonProps,
           'aria-selected': params.selected,
         };
       }
+
       default:
     }
 
@@ -134,7 +153,7 @@ export function useRole(
       return {};
     }
 
-    return { reference: reference(), floating: floating(), item };
+    return { reference: reference(), floating: floating(), item, trigger: trigger() };
   });
 
   return returnValue;

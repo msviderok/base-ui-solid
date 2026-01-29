@@ -7,7 +7,9 @@ import { Main } from '../../../test/floating-ui-tests/Menu';
 import { useClick, useFloating, useInteractions, useTypeahead } from '../index';
 import type { UseTypeaheadProps } from './useTypeahead';
 
-vi.useFakeTimers({ shouldAdvanceTime: true });
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+});
 
 const useImpl = (
   props: Pick<UseTypeaheadProps, 'onMatch' | 'onTypingChange'> & {
@@ -236,14 +238,20 @@ describe('useTypeahead', () => {
 
     await userEvent.keyboard('c');
 
-    expect(screen.getByText('Copy as')).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByText('Copy as')).toHaveFocus();
+    });
 
     await userEvent.keyboard('opy as ');
 
-    expect(screen.getByText('Copy as').getAttribute('aria-expanded')).toBe('false');
+    await waitFor(() => {
+      expect(screen.getByText('Copy as').getAttribute('aria-expanded')).toBe('false');
+    });
 
     await userEvent.keyboard(' ');
 
-    expect(screen.getByText('Copy as').getAttribute('aria-expanded')).toBe('true');
+    await waitFor(() => {
+      expect(screen.getByText('Copy as').getAttribute('aria-expanded')).toBe('true');
+    });
   });
 });

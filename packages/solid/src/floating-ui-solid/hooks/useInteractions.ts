@@ -18,6 +18,9 @@ export interface UseInteractionsReturn {
   getItemProps: <T extends HTMLElement>(
     userProps?: Omit<JSX.HTMLAttributes<T>, 'selected' | 'active'> & ExtendedUserProps,
   ) => Record<string, unknown>;
+  getTriggerProps: <T extends Element>(
+    userProps?: JSX.HTMLAttributes<T>,
+  ) => Record<string, unknown>;
 }
 
 /**
@@ -71,6 +74,19 @@ export function useInteractions(
       }
 
       list = list.map((item) => (typeof item === 'function' ? item(userProps ?? {}) : item));
+
+      const combined = combineProps(list);
+
+      return Object.assign({}, combined);
+    },
+    getTriggerProps(userProps) {
+      const list = propsList
+        .map((item) => item?.()?.trigger)
+        .filter((i): i is JSX.HTMLAttributes<any> => !!i);
+
+      if (userProps) {
+        list.push(userProps);
+      }
 
       const combined = combineProps(list);
 
