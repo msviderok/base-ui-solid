@@ -47,7 +47,9 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
     triggerElements: options.elements?.triggers ?? new PopupTriggerMap(),
     floatingId,
     nested,
-    noEmit: options.noEmit || false,
+    get noEmit() {
+      return options.noEmit || false;
+    },
   });
 
   createEffect(() => {
