@@ -11,13 +11,15 @@ import { CollapsibleRootContext } from '../../collapsible/root/CollapsibleRootCo
 import { useCollapsibleRoot } from '../../collapsible/root/useCollapsibleRoot';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { type CodependentRefs, splitComponentProps } from '../../solid-helpers';
+import { type BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { AccordionRoot } from '../root/AccordionRoot';
 import { useAccordionRootContext } from '../root/AccordionRootContext';
 import { AccordionItemContext } from './AccordionItemContext';
-import { accordionStyleHookMapping } from './styleHooks';
+import { accordionStateAttributesMapping } from './stateAttributesMapping';
 
 /**
  * Groups an accordion header with the corresponding panel.
@@ -41,7 +43,8 @@ export function AccordionItem(componentProps: AccordionItem.Props) {
     value: openValues,
   } = useAccordionRootContext();
 
-  const value = () => local.value ?? index();
+  const fallbackValue = useBaseUiId();
+  const value = () => local.value ?? fallbackValue();
 
   const disabled = () => (local.disabled ?? false) || contextDisabled();
 
@@ -60,10 +63,15 @@ export function AccordionItem(componentProps: AccordionItem.Props) {
     return false;
   });
 
-  const onOpenChange = (nextOpen: boolean) => {
+  const onOpenChange = (nextOpen: boolean, eventDetails: CollapsibleRoot.ChangeEventDetails) => {
     batch(() => {
+      local.onOpenChange?.(nextOpen, eventDetails);
+
+      if (eventDetails.isCanceled) {
+        return;
+      }
+
       handleValueChange(value(), nextOpen);
-      local.onOpenChange?.(nextOpen);
     });
   };
 
@@ -91,7 +99,6 @@ export function AccordionItem(componentProps: AccordionItem.Props) {
   const collapsibleContext: CollapsibleRootContext = solidMergeProps(collapsible, {
     onOpenChange,
     state: collapsibleState,
-    transitionStatus: collapsible.transitionStatus,
   });
 
   const state: AccordionItem.State = solidMergeProps(rootState, {
@@ -133,7 +140,7 @@ export function AccordionItem(componentProps: AccordionItem.Props) {
     state,
     ref: setListItemRef,
     props: elementProps,
-    customStyleHookMapping: accordionStyleHookMapping,
+    stateAttributesMapping: accordionStateAttributesMapping,
   });
 
   return (
@@ -145,24 +152,43 @@ export function AccordionItem(componentProps: AccordionItem.Props) {
   );
 }
 
-export type AccordionItemValue = any | null;
+export interface AccordionItemState extends AccordionRoot.State {
+  index: number;
+  open: boolean;
+}
+
+export interface AccordionItemProps
+  extends
+    BaseUIComponentProps<'div', AccordionItem.State>,
+    Partial<Pick<useCollapsibleRoot.Parameters, 'disabled'>> {
+  /**
+   * A unique value that identifies this accordion item.
+   * If no value is provided, a unique ID will be generated automatically.
+   * Use when controlling the accordion programmatically, or to set an initial
+   * open state.
+   * @example
+   * ```tsx
+   * <Accordion.Root value={['a']}>
+   *   <Accordion.Item value="a" /> // initially open
+   *   <Accordion.Item value="b" /> // initially closed
+   * </Accordion.Root>
+   * ```
+   */
+  value?: any;
+  /**
+   * Event handler called when the panel is opened or closed.
+   */
+  onOpenChange?: (open: boolean, eventDetails: AccordionItem.ChangeEventDetails) => void;
+}
+
+export type AccordionItemChangeEventReason = typeof REASONS.triggerPress | typeof REASONS.none;
+
+export type AccordionItemChangeEventDetails =
+  BaseUIChangeEventDetails<AccordionItem.ChangeEventReason>;
 
 export namespace AccordionItem {
-  export interface State extends AccordionRoot.State {
-    index: number;
-    open: boolean;
-  }
-
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    value?: AccordionItemValue;
-    /**
-     * Event handler called when the panel is opened or closed.
-     */
-    onOpenChange?: (open: boolean) => void;
-    /**
-     * Whether the component should ignore user interaction.
-     * @default false
-     */
-    disabled?: boolean;
-  }
+  export type State = AccordionItemState;
+  export type Props = AccordionItemProps;
+  export type ChangeEventReason = AccordionItemChangeEventReason;
+  export type ChangeEventDetails = AccordionItemChangeEventDetails;
 }

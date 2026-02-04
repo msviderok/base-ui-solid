@@ -1,46 +1,21 @@
-import { createEffect, createMemo } from 'solid-js';
-import {
-  ARROW_DOWN,
-  ARROW_LEFT,
-  ARROW_RIGHT,
-  ARROW_UP,
-  END,
-  HOME,
-  stopEvent,
-} from '../../composite/composite';
+import { warn } from '@base-ui/utils/warn';
+import { batch, createEffect, createMemo } from 'solid-js';
 import { CompositeList } from '../../composite/list/CompositeList';
 import { useDirection } from '../../direction-provider/DirectionContext';
-import { access, splitComponentProps } from '../../solid-helpers';
-import { isElementDisabled } from '../../utils/isElementDisabled';
+import { splitComponentProps } from '../../solid-helpers';
+import {
+  createChangeEventDetails,
+  type BaseUIChangeEventDetails,
+} from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps, Orientation } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { warn } from '../../utils/warn';
 import { AccordionRootContext } from './AccordionRootContext';
 
-const SUPPORTED_KEYS = new Set([ARROW_DOWN, ARROW_UP, ARROW_RIGHT, ARROW_LEFT, HOME, END]);
-
-const rootStyleHookMapping = {
+const rootStateAttributesMapping = {
   value: () => null,
 };
-
-function getActiveTriggers(
-  accordionItemElements: (HTMLElement | null | undefined)[],
-): HTMLButtonElement[] {
-  const output: HTMLButtonElement[] = [];
-
-  for (let i = 0; i < accordionItemElements.length; i += 1) {
-    const section = accordionItemElements[i];
-    if (!isElementDisabled(section)) {
-      const trigger = section?.querySelector('[type="button"]') as HTMLButtonElement;
-      if (!isElementDisabled(trigger)) {
-        output.push(trigger);
-      }
-    }
-  }
-
-  return output;
-}
 
 /**
  * Groups all parts of the accordion.
@@ -53,16 +28,16 @@ export function AccordionRoot(componentProps: AccordionRoot.Props) {
     'disabled',
     'hiddenUntilFound',
     'keepMounted',
-    'loop',
+    'loopFocus',
     'onValueChange',
-    'openMultiple',
+    'multiple',
     'orientation',
     'value',
     'defaultValue',
   ]);
   const disabled = () => local.disabled ?? false;
-  const loop = () => local.loop ?? true;
-  const openMultiple = () => local.openMultiple ?? true;
+  const loopFocus = () => local.loopFocus ?? true;
+  const multiple = () => local.multiple ?? false;
   const orientation = () => local.orientation ?? 'vertical';
 
   const direction = useDirection();
@@ -97,20 +72,32 @@ export function AccordionRoot(componentProps: AccordionRoot.Props) {
   });
 
   const handleValueChange = (newValue: number | string, nextOpen: boolean) => {
-    if (!openMultiple()) {
-      const nextValue = value()?.[0] === newValue ? [] : [newValue];
-      setValue(nextValue);
-      local.onValueChange?.(nextValue);
-    } else if (nextOpen) {
-      const nextOpenValues = value()?.slice();
-      nextOpenValues.push(newValue);
-      setValue(nextOpenValues);
-      local.onValueChange?.(nextOpenValues);
-    } else {
-      const nextOpenValues = value()?.filter((v) => v !== newValue);
-      setValue(nextOpenValues);
-      local.onValueChange?.(nextOpenValues);
-    }
+    const details = createChangeEventDetails(REASONS.none);
+    batch(() => {
+      if (!multiple()) {
+        const nextValue = value()?.[0] === newValue ? [] : [newValue];
+        local.onValueChange?.(nextValue, details);
+        if (details.isCanceled) {
+          return;
+        }
+        setValue(nextValue);
+      } else if (nextOpen) {
+        const nextOpenValues = value()?.slice();
+        nextOpenValues.push(newValue);
+        local.onValueChange?.(nextOpenValues, details);
+        if (details.isCanceled) {
+          return;
+        }
+        setValue(nextOpenValues);
+      } else {
+        const nextOpenValues = value()?.filter((v) => v !== newValue);
+        local.onValueChange?.(nextOpenValues, details);
+        if (details.isCanceled) {
+          return;
+        }
+        setValue(nextOpenValues);
+      }
+    });
   };
 
   const isRtl = () => direction() === 'rtl';
@@ -135,6 +122,7 @@ export function AccordionRoot(componentProps: AccordionRoot.Props) {
     handleValueChange,
     hiddenUntilFound: () => local.hiddenUntilFound ?? false,
     keepMounted: () => local.keepMounted ?? false,
+    loopFocus,
     orientation,
     state,
     value,
@@ -147,88 +135,11 @@ export function AccordionRoot(componentProps: AccordionRoot.Props) {
         get dir() {
           return direction();
         },
-        get role() {
-          return 'region' as const;
-        },
-        onKeyDown(event) {
-          if (!SUPPORTED_KEYS.has(event.key)) {
-            return;
-          }
-
-          stopEvent(event);
-
-          const triggers = getActiveTriggers(accordionItemElements);
-
-          const numOfEnabledTriggers = triggers.length;
-          const lastIndex = numOfEnabledTriggers - 1;
-
-          let nextIndex = -1;
-
-          const thisIndex = triggers.indexOf(event.target as HTMLButtonElement);
-
-          function toNext() {
-            if (loop()) {
-              nextIndex = thisIndex + 1 > lastIndex ? 0 : thisIndex + 1;
-            } else {
-              nextIndex = Math.min(thisIndex + 1, lastIndex);
-            }
-          }
-
-          function toPrev() {
-            if (loop()) {
-              nextIndex = thisIndex === 0 ? lastIndex : thisIndex - 1;
-            } else {
-              nextIndex = thisIndex - 1;
-            }
-          }
-
-          switch (event.key) {
-            case ARROW_DOWN:
-              if (!isHorizontal()) {
-                toNext();
-              }
-              break;
-            case ARROW_UP:
-              if (!isHorizontal()) {
-                toPrev();
-              }
-              break;
-            case ARROW_RIGHT:
-              if (isHorizontal()) {
-                if (isRtl()) {
-                  toPrev();
-                } else {
-                  toNext();
-                }
-              }
-              break;
-            case ARROW_LEFT:
-              if (isHorizontal()) {
-                if (isRtl()) {
-                  toNext();
-                } else {
-                  toPrev();
-                }
-              }
-              break;
-            case 'Home':
-              nextIndex = 0;
-              break;
-            case 'End':
-              nextIndex = lastIndex;
-              break;
-            default:
-              break;
-          }
-
-          if (nextIndex > -1) {
-            triggers[nextIndex].focus();
-          }
-        },
+        role: 'region',
       },
       elementProps,
     ],
-    customStyleHookMapping: rootStyleHookMapping,
+    stateAttributesMapping: rootStateAttributesMapping,
   });
 
   return (
@@ -240,69 +151,79 @@ export function AccordionRoot(componentProps: AccordionRoot.Props) {
 
 export type AccordionValue = (any | null)[];
 
-export namespace AccordionRoot {
-  export interface State {
-    value: AccordionValue;
-    /**
-     * Whether the component should ignore user interaction.
-     */
-    disabled: boolean;
-    orientation: Orientation;
-  }
+export interface AccordionRootState {
+  value: AccordionValue;
+  /**
+   * Whether the component should ignore user interaction.
+   */
+  disabled: boolean;
+  orientation: Orientation;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * The controlled value of the item(s) that should be expanded.
-     *
-     * To render an uncontrolled accordion, use the `defaultValue` prop instead.
-     */
-    value?: AccordionValue;
-    /**
-     * The uncontrolled value of the item(s) that should be initially expanded.
-     *
-     * To render a controlled accordion, use the `value` prop instead.
-     */
-    defaultValue?: AccordionValue;
-    /**
-     * Whether the component should ignore user interaction.
-     * @default false
-     */
-    disabled?: boolean;
-    /**
-     * Allows the browser’s built-in page search to find and expand the panel contents.
-     *
-     * Overrides the `keepMounted` prop and uses `hidden="until-found"`
-     * to hide the element without removing it from the DOM.
-     * @default false
-     */
-    hiddenUntilFound?: boolean;
-    /**
-     * Whether to keep the element in the DOM while the panel is closed.
-     * This prop is ignored when `hiddenUntilFound` is used.
-     * @default false
-     */
-    keepMounted?: boolean;
-    /**
-     * Whether to loop keyboard focus back to the first item
-     * when the end of the list is reached while using the arrow keys.
-     * @default true
-     */
-    loop?: boolean;
-    /**
-     * Event handler called when an accordion item is expanded or collapsed.
-     * Provides the new value as an argument.
-     */
-    onValueChange?: (value: AccordionValue) => void;
-    /**
-     * Whether multiple items can be open at the same time.
-     * @default true
-     */
-    openMultiple?: boolean;
-    /**
-     * The visual orientation of the accordion.
-     * Controls whether roving focus uses left/right or up/down arrow keys.
-     * @default 'vertical'
-     */
-    orientation?: Orientation;
-  }
+export interface AccordionRootProps extends BaseUIComponentProps<'div', AccordionRoot.State> {
+  /**
+   * The controlled value of the item(s) that should be expanded.
+   *
+   * To render an uncontrolled accordion, use the `defaultValue` prop instead.
+   */
+  value?: AccordionValue;
+  /**
+   * The uncontrolled value of the item(s) that should be initially expanded.
+   *
+   * To render a controlled accordion, use the `value` prop instead.
+   */
+  defaultValue?: AccordionValue;
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * Allows the browser’s built-in page search to find and expand the panel contents.
+   *
+   * Overrides the `keepMounted` prop and uses `hidden="until-found"`
+   * to hide the element without removing it from the DOM.
+   * @default false
+   */
+  hiddenUntilFound?: boolean;
+  /**
+   * Whether to keep the element in the DOM while the panel is closed.
+   * This prop is ignored when `hiddenUntilFound` is used.
+   * @default false
+   */
+  keepMounted?: boolean;
+  /**
+   * Whether to loop keyboard focus back to the first item
+   * when the end of the list is reached while using the arrow keys.
+   * @default true
+   */
+  loopFocus?: boolean;
+  /**
+   * Event handler called when an accordion item is expanded or collapsed.
+   * Provides the new value as an argument.
+   */
+  onValueChange?: (value: AccordionValue, eventDetails: AccordionRootChangeEventDetails) => void;
+  /**
+   * Whether multiple items can be open at the same time.
+   * @default false
+   */
+  multiple?: boolean;
+  /**
+   * The visual orientation of the accordion.
+   * Controls whether roving focus uses left/right or up/down arrow keys.
+   * @default 'vertical'
+   */
+  orientation?: Orientation;
+}
+
+export type AccordionRootChangeEventReason = typeof REASONS.triggerPress | typeof REASONS.none;
+
+export type AccordionRootChangeEventDetails =
+  BaseUIChangeEventDetails<AccordionRoot.ChangeEventReason>;
+
+export namespace AccordionRoot {
+  export type State = AccordionRootState;
+  export type Props = AccordionRootProps;
+  export type ChangeEventReason = AccordionRootChangeEventReason;
+  export type ChangeEventDetails = AccordionRootChangeEventDetails;
 }

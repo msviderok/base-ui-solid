@@ -10,7 +10,7 @@ describe('<Accordion.Panel />', () => {
       render: (node, props) =>
         render(() => (
           <Accordion.Root>
-            <Accordion.Item>{node(props)}</Accordion.Item>
+            <Accordion.Item>{node(props!)}</Accordion.Item>
           </Accordion.Root>
         )),
       refInstanceof: window.HTMLDivElement,

@@ -1,3 +1,4 @@
+import { warn } from '@base-ui/utils/warn';
 import { createEffect, Show, mergeProps as solidMergeProps } from 'solid-js';
 import { useCollapsiblePanel } from '../../collapsible/panel/useCollapsiblePanel';
 import { useCollapsibleRootContext } from '../../collapsible/root/CollapsibleRootContext';
@@ -6,10 +7,9 @@ import { BaseUIComponentProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
-import { warn } from '../../utils/warn';
 import type { AccordionItem } from '../item/AccordionItem';
 import { useAccordionItemContext } from '../item/AccordionItemContext';
-import { accordionStyleHookMapping } from '../item/styleHooks';
+import { accordionStateAttributesMapping } from '../item/stateAttributesMapping';
 import type { AccordionRoot } from '../root/AccordionRoot';
 import { useAccordionRootContext } from '../root/AccordionRootContext';
 import { AccordionPanelCssVars } from './AccordionPanelCssVars';
@@ -75,7 +75,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
   });
 
   useOpenChangeComplete({
-    open,
+    open: () => open() && transitionStatus() === 'idle',
     ref: () => refs.panelRef,
     onComplete() {
       if (!open()) {
@@ -142,7 +142,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
       },
       elementProps,
     ],
-    customStyleHookMapping: accordionStyleHookMapping,
+    stateAttributesMapping: accordionStateAttributesMapping,
   });
 
   const shouldRender = () => keepMounted() || hiddenUntilFound() || (!keepMounted() && mounted());
@@ -150,12 +150,16 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
   return <Show when={shouldRender()}>{element()}</Show>;
 }
 
-export namespace AccordionPanel {
-  export interface State extends AccordionItem.State {
-    transitionStatus: TransitionStatus;
-  }
+export interface AccordionPanelState extends AccordionItem.State {
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props
-    extends BaseUIComponentProps<'div', AccordionItem.State>,
-      Pick<AccordionRoot.Props, 'hiddenUntilFound' | 'keepMounted'> {}
+export interface AccordionPanelProps
+  extends
+    BaseUIComponentProps<'div', AccordionPanel.State>,
+    Pick<AccordionRoot.Props, 'hiddenUntilFound' | 'keepMounted'> {}
+
+export namespace AccordionPanel {
+  export type State = AccordionPanelState;
+  export type Props = AccordionPanelProps;
 }

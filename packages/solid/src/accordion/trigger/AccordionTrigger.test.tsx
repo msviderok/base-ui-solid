@@ -5,12 +5,14 @@ describe('<Accordion.Trigger />', () => {
   const { render } = createRenderer();
 
   describeConformance(Accordion.Trigger, () => ({
+    refInstanceof: window.HTMLButtonElement,
+    testComponentPropWith: 'button',
+    button: true,
     render: (node, props) =>
       render(() => (
         <Accordion.Root>
-          <Accordion.Item>{node(props)}</Accordion.Item>
+          <Accordion.Item>{node(props!)}</Accordion.Item>
         </Accordion.Root>
       )),
-    refInstanceof: window.HTMLButtonElement,
   }));
 });

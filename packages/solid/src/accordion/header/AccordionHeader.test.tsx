@@ -8,7 +8,7 @@ describe('<Accordion.Header />', () => {
     render: (node, props) =>
       render(() => (
         <Accordion.Root>
-          <Accordion.Item>{node(props)}</Accordion.Item>
+          <Accordion.Item>{node(props!)}</Accordion.Item>
         </Accordion.Root>
       )),
     refInstanceof: window.HTMLHeadingElement,

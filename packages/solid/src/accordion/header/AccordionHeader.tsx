@@ -3,7 +3,7 @@ import { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { AccordionItem } from '../item/AccordionItem';
 import { useAccordionItemContext } from '../item/AccordionItemContext';
-import { accordionStyleHookMapping } from '../item/styleHooks';
+import { accordionStateAttributesMapping } from '../item/stateAttributesMapping';
 
 /**
  * A heading that labels the corresponding panel.
@@ -19,12 +19,13 @@ export function AccordionHeader(componentProps: AccordionHeader.Props) {
   const element = useRenderElement('h3', componentProps, {
     state,
     props: elementProps,
-    customStyleHookMapping: accordionStyleHookMapping,
+    stateAttributesMapping: accordionStateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
+export interface AccordionHeaderProps extends BaseUIComponentProps<'h3', AccordionItem.State> {}
 export namespace AccordionHeader {
-  export interface Props extends BaseUIComponentProps<'h3', AccordionItem.State> {}
+  export type Props = AccordionHeaderProps;
 }
