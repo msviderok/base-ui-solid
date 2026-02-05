@@ -11,11 +11,7 @@ export type DirectionContext = {
  */
 export const DirectionContext = createContext<DirectionContext>();
 
-export function useDirection(optional = true) {
+export function useDirection() {
   const context = useContext(DirectionContext);
-  if (context === undefined && !optional) {
-    throw new Error('Base UI: DirectionContext is missing.');
-  }
-
   return () => context?.direction() ?? 'ltr';
 }

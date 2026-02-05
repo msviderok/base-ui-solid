@@ -13,13 +13,15 @@ export function DirectionProvider(props: DirectionProvider.Props) {
   );
 }
 
+export interface DirectionProviderProps {
+  children?: JSX.Element;
+  /**
+   * The reading direction of the text
+   * @default 'ltr'
+   */
+  direction?: TextDirection;
+}
+
 export namespace DirectionProvider {
-  export interface Props {
-    children?: JSX.Element;
-    /**
-     * The reading direction of the text
-     * @default 'ltr'
-     */
-    direction?: TextDirection;
-  }
+  export type Props = DirectionProviderProps;
 }
