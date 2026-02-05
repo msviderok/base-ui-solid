@@ -1,4 +1,3 @@
-/* eslint-disable testing-library/no-wait-for-multiple-assertions */
 import { createRenderer, flushMicrotasks, isJSDOM } from '#test-utils';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
@@ -28,33 +27,37 @@ describe('Composite', () => {
 
       render(() => <App />);
 
-      screen.getByTestId('1').focus();
+      const item1 = screen.getByTestId('1');
+      const item2 = screen.getByTestId('2');
+      const item3 = screen.getByTestId('3');
+
+      item1.focus();
 
       expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+      fireEvent.keyDown(item1, { key: 'ArrowDown' });
       await flushMicrotasks();
 
-      expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-      expect(screen.getByTestId('2')).toHaveFocus();
+      expect(item2).to.have.attribute('tabindex', '0');
+      expect(item2).toHaveFocus();
 
-      fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowDown' });
+      fireEvent.keyDown(item2, { key: 'ArrowDown' });
       await flushMicrotasks();
 
-      expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-      expect(screen.getByTestId('3')).toHaveFocus();
+      expect(item3).to.have.attribute('tabindex', '0');
+      expect(item3).toHaveFocus();
 
-      fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowUp' });
+      fireEvent.keyDown(item3, { key: 'ArrowUp' });
       await flushMicrotasks();
 
-      expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-      expect(screen.getByTestId('2')).toHaveFocus();
+      expect(item2).to.have.attribute('tabindex', '0');
+      expect(item2).toHaveFocus();
 
-      fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowUp' });
+      fireEvent.keyDown(item2, { key: 'ArrowUp' });
       await flushMicrotasks();
 
-      expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-      expect(screen.getByTestId('1')).toHaveFocus();
+      expect(item1).to.have.attribute('tabindex', '0');
+      expect(item1).toHaveFocus();
     });
 
     it('uncontrolled mode', async () => {
@@ -66,35 +69,63 @@ describe('Composite', () => {
         </CompositeRoot>
       ));
 
-      screen.getByTestId('1').focus();
+      const item1 = screen.getByTestId('1');
+      const item2 = screen.getByTestId('2');
+      const item3 = screen.getByTestId('3');
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+      item1.focus();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('2')).toHaveFocus();
-      });
-
-      fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowDown' });
+      fireEvent.keyDown(item1, { key: 'ArrowDown' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('3')).toHaveFocus();
+        expect(item2).to.have.attribute('tabindex', '0');
+        expect(item2).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowUp' });
+      fireEvent.keyDown(item2, { key: 'ArrowDown' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('2')).toHaveFocus();
+        expect(item3).to.have.attribute('tabindex', '0');
+        expect(item3).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowUp' });
+      fireEvent.keyDown(item3, { key: 'ArrowUp' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item2).to.have.attribute('tabindex', '0');
+        expect(item2).toHaveFocus();
       });
+
+      fireEvent.keyDown(item2, { key: 'ArrowUp' });
+
+      await waitFor(() => {
+        expect(item1).to.have.attribute('tabindex', '0');
+        expect(item1).toHaveFocus();
+      });
+    });
+
+    it.skipIf(isJSDOM)('updates the order of items', async () => {
+      function App(props: { items: string[] }) {
+        return (
+          <CompositeRoot>
+            <Index each={props.items}>
+              {(item) => <CompositeItem data-testid={item()}>{item()}</CompositeItem>}
+            </Index>
+          </CompositeRoot>
+        );
+      }
+
+      const [items, setItems] = createSignal(['1', '2', '3']);
+
+      const { user } = render(() => <App items={items()} />);
+      setItems(['1', '3', '2']);
+
+      const item1 = screen.getByTestId('1');
+      const item3 = screen.getByTestId('3');
+
+      item1.focus();
+      await user.keyboard('{ArrowDown}');
+      expect(item3).toHaveFocus();
     });
 
     describe('Home and End keys', () => {
@@ -107,13 +138,16 @@ describe('Composite', () => {
           </CompositeRoot>
         ));
 
-        screen.getByTestId('3').focus();
+        const item1 = screen.getByTestId('1');
+        const item3 = screen.getByTestId('3');
 
-        fireEvent.keyDown(screen.getByTestId('3'), { key: 'Home' });
+        item3.focus();
+
+        fireEvent.keyDown(item3, { key: 'Home' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('1')).toHaveFocus();
+          expect(item1).to.have.attribute('tabindex', '0');
+          expect(item1).toHaveFocus();
         });
       });
 
@@ -126,13 +160,16 @@ describe('Composite', () => {
           </CompositeRoot>
         ));
 
-        screen.getByTestId('1').focus();
+        const item1 = screen.getByTestId('1');
+        const item3 = screen.getByTestId('3');
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'End' });
+        item1.focus();
+
+        fireEvent.keyDown(item1, { key: 'End' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
       });
     });
@@ -151,44 +188,48 @@ describe('Composite', () => {
           </div>
         ));
 
-        screen.getByTestId('1').focus();
+        const item1 = screen.getByTestId('1');
+        const item2 = screen.getByTestId('2');
+        const item3 = screen.getByTestId('3');
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+        item1.focus();
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowLeft' });
+        fireEvent.keyDown(item1, { key: 'ArrowDown' });
+
+        fireEvent.keyDown(item1, { key: 'ArrowLeft' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('2')).toHaveFocus();
+          expect(item2).to.have.attribute('tabindex', '0');
+          expect(item2).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowLeft' });
+        fireEvent.keyDown(item2, { key: 'ArrowLeft' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowRight' });
+        fireEvent.keyDown(item3, { key: 'ArrowRight' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('2')).toHaveFocus();
+          expect(item2).to.have.attribute('tabindex', '0');
+          expect(item2).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowRight' });
+        fireEvent.keyDown(item2, { key: 'ArrowRight' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('1')).toHaveFocus();
+          expect(item1).to.have.attribute('tabindex', '0');
+          expect(item1).toHaveFocus();
         });
 
         // loop backward
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowRight' });
+        fireEvent.keyDown(item1, { key: 'ArrowRight' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
       });
 
@@ -205,48 +246,52 @@ describe('Composite', () => {
           </div>
         ));
 
-        screen.getByTestId('1').focus();
+        const item1 = screen.getByTestId('1');
+        const item2 = screen.getByTestId('2');
+        const item3 = screen.getByTestId('3');
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowLeft' });
+        item1.focus();
+
+        fireEvent.keyDown(item1, { key: 'ArrowLeft' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('2')).toHaveFocus();
+          expect(item2).to.have.attribute('tabindex', '0');
+          expect(item2).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowLeft' });
+        fireEvent.keyDown(item2, { key: 'ArrowLeft' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowRight' });
+        fireEvent.keyDown(item3, { key: 'ArrowRight' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('2')).toHaveFocus();
+          expect(item2).to.have.attribute('tabindex', '0');
+          expect(item2).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowRight' });
+        fireEvent.keyDown(item2, { key: 'ArrowRight' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('1')).toHaveFocus();
+          expect(item1).to.have.attribute('tabindex', '0');
+          expect(item1).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+        fireEvent.keyDown(item1, { key: 'ArrowDown' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('2')).toHaveFocus();
+          expect(item2).to.have.attribute('tabindex', '0');
+          expect(item2).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowDown' });
+        fireEvent.keyDown(item2, { key: 'ArrowDown' });
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
       });
     });
@@ -463,20 +508,25 @@ describe('Composite', () => {
 
         render(() => <App />);
 
-        screen.getByTestId('1').focus();
+        const item1 = screen.getByTestId('1');
+        const item3 = screen.getByTestId('3');
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+        item1.focus();
+
+        fireEvent.keyDown(item1, { key: 'ArrowDown' });
+        await flushMicrotasks();
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowUp' });
+        fireEvent.keyDown(item3, { key: 'ArrowUp' });
+        await flushMicrotasks();
 
         await waitFor(() => {
-          expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('1')).toHaveFocus();
+          expect(item1).to.have.attribute('tabindex', '0');
+          expect(item1).toHaveFocus();
         });
       });
 
@@ -524,38 +574,46 @@ describe('Composite', () => {
 
         render(() => <App />);
 
-        screen.getByTestId('1').focus();
+        const item1 = screen.getByTestId('1');
+        const item2 = screen.getByTestId('2');
+        const item3 = screen.getByTestId('3');
+
+        item1.focus();
 
         await waitFor(() => {
-          expect(screen.getByTestId('1')).toHaveFocus();
+          expect(item1).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+        fireEvent.keyDown(item1, { key: 'ArrowDown' });
+        await flushMicrotasks();
 
         await waitFor(() => {
-          expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('2')).toHaveFocus();
+          expect(item2).to.have.attribute('tabindex', '0');
+          expect(item2).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowDown' });
+        fireEvent.keyDown(item2, { key: 'ArrowDown' });
+        await flushMicrotasks();
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowDown' });
+        fireEvent.keyDown(item3, { key: 'ArrowDown' });
+        await flushMicrotasks();
 
         await waitFor(() => {
-          expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('1')).toHaveFocus();
+          expect(item1).to.have.attribute('tabindex', '0');
+          expect(item1).toHaveFocus();
         });
 
-        fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowUp' });
+        fireEvent.keyDown(item1, { key: 'ArrowUp' });
+        await flushMicrotasks();
 
         await waitFor(() => {
-          expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-          expect(screen.getByTestId('3')).toHaveFocus();
+          expect(item3).to.have.attribute('tabindex', '0');
+          expect(item3).toHaveFocus();
         });
       });
     });
@@ -580,20 +638,25 @@ describe('Composite', () => {
 
       render(() => <App />);
 
-      screen.getByTestId('1').focus();
+      const item1 = screen.getByTestId('1');
+      const item3 = screen.getByTestId('3');
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+      item1.focus();
+
+      fireEvent.keyDown(item1, { key: 'ArrowDown' });
+      await flushMicrotasks();
 
       await waitFor(() => {
-        expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('3')).toHaveFocus();
+        expect(item3).to.have.attribute('tabindex', '0');
+        expect(item3).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowUp' });
+      fireEvent.keyDown(item3, { key: 'ArrowUp' });
+      await flushMicrotasks();
 
       await waitFor(() => {
-        expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).to.have.attribute('tabindex', '0');
+        expect(item1).toHaveFocus();
       });
     });
 
@@ -639,34 +702,42 @@ describe('Composite', () => {
 
       render(() => <App />);
 
-      screen.getByTestId('1').focus();
+      const item1 = screen.getByTestId('1');
+      const item2 = screen.getByTestId('2');
+      const item3 = screen.getByTestId('3');
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown' });
+      item1.focus();
+
+      fireEvent.keyDown(item1, { key: 'ArrowDown' });
+      await flushMicrotasks();
 
       await waitFor(() => {
-        expect(screen.getByTestId('2')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('2')).toHaveFocus();
+        expect(item2).to.have.attribute('tabindex', '0');
+        expect(item2).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowDown' });
+      fireEvent.keyDown(item2, { key: 'ArrowDown' });
+      await flushMicrotasks();
 
       await waitFor(() => {
-        expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('3')).toHaveFocus();
+        expect(item3).to.have.attribute('tabindex', '0');
+        expect(item3).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('3'), { key: 'ArrowDown' });
+      fireEvent.keyDown(item3, { key: 'ArrowDown' });
+      await flushMicrotasks();
 
       await waitFor(() => {
-        expect(screen.getByTestId('1')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).to.have.attribute('tabindex', '0');
+        expect(item1).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowUp' });
+      fireEvent.keyDown(item1, { key: 'ArrowUp' });
+      await flushMicrotasks();
 
       await waitFor(() => {
-        expect(screen.getByTestId('3')).to.have.attribute('tabindex', '0');
-        expect(screen.getByTestId('3')).toHaveFocus();
+        expect(item3).to.have.attribute('tabindex', '0');
+        expect(item3).toHaveFocus();
       });
     });
   });
@@ -680,28 +751,34 @@ describe('Composite', () => {
         </CompositeRoot>
       ));
 
-      screen.getByTestId('1').focus();
+      const item1 = screen.getByTestId('1');
 
-      expect(screen.getByTestId('1')).toHaveFocus();
+      item1.focus();
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown', shiftKey: true });
+      expect(item1).toHaveFocus();
+
+      fireEvent.keyDown(item1, { key: 'ArrowDown', shiftKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown', ctrlKey: true });
+      fireEvent.keyDown(item1, { key: 'ArrowDown', ctrlKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown', altKey: true });
+      fireEvent.keyDown(item1, { key: 'ArrowDown', altKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown', metaKey: true });
+      fireEvent.keyDown(item1, { key: 'ArrowDown', metaKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).toHaveFocus();
       });
     });
 
@@ -714,28 +791,36 @@ describe('Composite', () => {
         </CompositeRoot>
       ));
 
-      screen.getByTestId('1').focus();
+      const item1 = screen.getByTestId('1');
+      const item2 = screen.getByTestId('2');
+      const item3 = screen.getByTestId('3');
 
-      expect(screen.getByTestId('1')).toHaveFocus();
+      item1.focus();
+
+      expect(item1).toHaveFocus();
 
       fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown', shiftKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown', ctrlKey: true });
+      fireEvent.keyDown(item1, { key: 'ArrowDown', ctrlKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('1')).toHaveFocus();
+        expect(item1).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('1'), { key: 'ArrowDown', altKey: true });
+      fireEvent.keyDown(item1, { key: 'ArrowDown', altKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('2')).toHaveFocus();
+        expect(item2).toHaveFocus();
       });
 
-      fireEvent.keyDown(screen.getByTestId('2'), { key: 'ArrowDown', metaKey: true });
+      fireEvent.keyDown(item2, { key: 'ArrowDown', metaKey: true });
+      await flushMicrotasks();
       await waitFor(() => {
-        expect(screen.getByTestId('3')).toHaveFocus();
+        expect(item3).toHaveFocus();
       });
     });
   });

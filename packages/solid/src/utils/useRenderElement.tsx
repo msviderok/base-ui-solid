@@ -68,10 +68,14 @@ export function useRenderElement<
                   componentProps.ref = el;
                 }
 
-                if (typeof params.ref === 'function') {
-                  params.ref(el);
-                } else {
-                  params.ref = el;
+                const paramsRefs = Array.isArray(params.ref) ? params.ref.flat() : [params.ref];
+                // eslint-disable-next-line no-plusplus
+                for (let i = 0; i < paramsRefs.length; i++) {
+                  if (typeof paramsRefs[i] === 'function') {
+                    (paramsRefs[i] as Function)(el);
+                  } else {
+                    paramsRefs[i] = el;
+                  }
                 }
               },
             },
@@ -80,7 +84,7 @@ export function useRenderElement<
 
             getStateAttributesProps(state(), params.stateAttributesMapping),
 
-            mergeProps(params.props),
+            mergeProps(Array.isArray(params.props) ? params.props.flat() : params.props),
 
             {
               component: undefined,
@@ -127,7 +131,14 @@ export type UseRenderElementParameters<
   /**
    * The ref to apply to the rendered element.
    */
-  ref?: Ref<RenderedElementType>;
+  ref?:
+    | Ref<RenderedElementType>
+    | (
+        | Ref<RenderedElementType>
+        | undefined
+        | null
+        | (Ref<RenderedElementType> | undefined | null)[]
+      )[];
   /**
    * The state of the component.
    */
@@ -143,6 +154,13 @@ export type UseRenderElementParameters<
         | ((
             props: RenderFunctionProps<TagName, State>,
           ) => RenderFunctionProps<TagName, State> | undefined | null)
+        | Array<
+            | RenderFunctionProps<TagName, State>
+            | undefined
+            | ((
+                props: RenderFunctionProps<TagName, State>,
+              ) => RenderFunctionProps<TagName, State> | undefined | null)
+          >
       >;
 
   /**

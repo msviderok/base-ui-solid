@@ -1,4 +1,7 @@
+import { mergeProps as solidMergeProps, type JSX, type Ref } from 'solid-js';
 import { splitComponentProps, type MaybeAccessor } from '../../solid-helpers';
+import { EMPTY_ARRAY, EMPTY_OBJECT } from '../../utils/constants';
+import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useCompositeItem } from './useCompositeItem';
@@ -6,31 +9,62 @@ import { useCompositeItem } from './useCompositeItem';
 /**
  * @internal
  */
-export function CompositeItem<Metadata>(componentProps: CompositeItem.Props<Metadata>) {
-  const [, local, elementProps] = splitComponentProps(componentProps, ['refs', 'metadata']);
-  const compositeItem = useCompositeItem({ metadata: local.metadata });
+export function CompositeItem<Metadata, State extends Record<string, any>>(
+  componentProps: CompositeItem.Props<Metadata, State>,
+) {
+  const [, local, elementProps] = splitComponentProps(componentProps, [
+    'state',
+    'props',
+    'refs',
+    'metadata',
+    'stateAttributesMapping',
+    'tag',
+  ]);
+  const mergedProps = solidMergeProps(
+    {
+      state: EMPTY_OBJECT as State,
+      props: EMPTY_ARRAY,
+      refs: EMPTY_ARRAY,
+      tag: 'div',
+    } as typeof local,
+    local,
+  );
+  const { compositeProps, setCompositeRef } = useCompositeItem({ metadata: local.metadata });
 
-  const element = useRenderElement('div', componentProps, {
-    ref: (el) => {
-      if (componentProps.refs) {
-        componentProps.refs.itemRef = el;
-      }
-      compositeItem.setRef(el);
+  const element = useRenderElement(() => mergedProps.tag, componentProps, {
+    get state() {
+      return mergedProps.state;
     },
-    props: [compositeItem.props, elementProps],
+    get ref() {
+      return [mergedProps.refs, setCompositeRef];
+    },
+    get props() {
+      return [compositeProps, mergedProps.props, elementProps];
+    },
+    get stateAttributesMapping() {
+      return mergedProps.stateAttributesMapping;
+    },
   });
 
   return <>{element()}</>;
 }
 
-export namespace CompositeItem {
-  export interface State {}
+export interface CompositeItemProps<Metadata, State extends Record<string, any>> extends Pick<
+  BaseUIComponentProps<any, State>,
+  'render' | 'class'
+> {
+  children?: JSX.Element;
+  metadata?: MaybeAccessor<Metadata | undefined>;
+  refs?: Ref<HTMLElement | null | undefined>[];
+  props?: Array<Record<string, any> | (() => Record<string, any>)>;
+  state?: State;
+  stateAttributesMapping?: StateAttributesMapping<State>;
+  tag?: keyof JSX.IntrinsicElements;
+}
 
-  export interface Props<Metadata> extends BaseUIComponentProps<'div', State> {
-    // the itemRef name collides with https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/itemref
-    refs?: {
-      itemRef?: HTMLElement | null | undefined;
-    };
-    metadata?: MaybeAccessor<Metadata | undefined>;
-  }
+export namespace CompositeItem {
+  export type Props<Metadata, State extends Record<string, any>> = CompositeItemProps<
+    Metadata,
+    State
+  >;
 }

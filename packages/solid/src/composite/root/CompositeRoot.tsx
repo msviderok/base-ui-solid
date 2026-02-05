@@ -1,6 +1,8 @@
-import { batch } from 'solid-js';
+import { batch, mergeProps as solidMergeProps, type JSX } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
-import { access, splitComponentProps, type MaybeAccessor } from '../../solid-helpers';
+import { access, splitComponentProps } from '../../solid-helpers';
+import { EMPTY_ARRAY, EMPTY_OBJECT } from '../../utils/constants';
+import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { Dimensions, ModifierKey } from '../composite';
@@ -8,19 +10,23 @@ import { CompositeList, type CompositeMetadata } from '../list/CompositeList';
 import { CompositeRootContext } from './CompositeRootContext';
 import { useCompositeRoot } from './useCompositeRoot';
 
-const COMPOSITE_ROOT_STATE = {};
-
 /**
  * @internal
  */
-export function CompositeRoot<Metadata extends {}>(componentProps: CompositeRoot.Props<Metadata>) {
+export function CompositeRoot<Metadata extends {}, State extends Record<string, any>>(
+  componentProps: CompositeRoot.Props<Metadata, State>,
+) {
   const [, local, elementProps] = splitComponentProps(componentProps, [
+    'refs',
+    'props',
+    'state',
+    'stateAttributesMapping',
     'highlightedIndex',
     'onHighlightedIndexChange',
     'orientation',
     'dense',
     'itemSizes',
-    'loop',
+    'loopFocus',
     'cols',
     'enableHomeAndEndKeys',
     'onMapChange',
@@ -28,62 +34,93 @@ export function CompositeRoot<Metadata extends {}>(componentProps: CompositeRoot
     'disabledIndices',
     'modifierKeys',
     'highlightItemOnHover',
+    'tag',
+    'rootRef',
   ]);
+  const mergedProps = solidMergeProps(
+    {
+      refs: EMPTY_ARRAY,
+      props: EMPTY_ARRAY,
+      state: EMPTY_OBJECT,
+      stopEventPropagation: true,
+      highlightItemOnHover: false,
+      tag: 'div',
+    } as typeof local,
+    local,
+  );
 
   const direction = useDirection();
-  const compositeRoot = useCompositeRoot(local, direction);
-
-  function onMapChange(
-    newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>,
-  ) {
-    batch(() => {
-      local.onMapChange?.(newMap);
-      compositeRoot.onMapChange(newMap);
-    });
-  }
+  const {
+    props: defaultProps,
+    highlightedIndex,
+    onHighlightedIndexChange,
+    onMapChange: onMapChangeUnwrapped,
+    relayKeyboardEvent,
+    setRootRef,
+    refs: elementsRefs,
+  } = useCompositeRoot(mergedProps, direction);
 
   const contextValue: CompositeRootContext = {
-    highlightedIndex: compositeRoot.highlightedIndex,
-    highlightItemOnHover: () => access(local.highlightItemOnHover) ?? false,
-    onHighlightedIndexChange: compositeRoot.onHighlightedIndexChange,
+    highlightedIndex,
+    highlightItemOnHover: () => access(mergedProps.highlightItemOnHover) ?? false,
+    onHighlightedIndexChange,
+    relayKeyboardEvent,
   };
 
-  const element = useRenderElement('div', componentProps, {
-    state: COMPOSITE_ROOT_STATE,
-    ref: compositeRoot.setRootRef,
-    props: [compositeRoot.props, elementProps],
+  const element = useRenderElement(() => mergedProps.tag, componentProps, {
+    state: mergedProps.state,
+    ref: [setRootRef, mergedProps.refs],
+    props: [defaultProps, elementProps],
+    stateAttributesMapping: mergedProps.stateAttributesMapping,
   });
 
   return (
     <CompositeRootContext.Provider value={contextValue}>
-      <CompositeList<Metadata> refs={compositeRoot.refs} onMapChange={onMapChange}>
+      <CompositeList<Metadata>
+        refs={elementsRefs}
+        onMapChange={(newMap) => {
+          batch(() => {
+            mergedProps.onMapChange?.(newMap);
+            onMapChangeUnwrapped(newMap);
+          });
+        }}
+      >
         {element()}
       </CompositeList>
     </CompositeRootContext.Provider>
   );
 }
 
-export namespace CompositeRoot {
-  export interface State {}
+export interface CompositeRootProps<Metadata, State extends Record<string, any>> extends Pick<
+  BaseUIComponentProps<'div', State>,
+  'render' | 'class' | 'children'
+> {
+  props?: Array<Record<string, any> | (() => Record<string, any>)>;
+  state?: State;
+  stateAttributesMapping?: StateAttributesMapping<State>;
+  refs?: Array<HTMLElement | null | undefined>;
+  tag?: keyof JSX.IntrinsicElements;
+  orientation?: 'horizontal' | 'vertical' | 'both';
+  cols?: number;
+  loopFocus?: boolean;
+  highlightedIndex?: number;
+  onHighlightedIndexChange?: (index: number) => void;
+  itemSizes?: Dimensions[];
+  dense?: boolean;
+  enableHomeAndEndKeys?: boolean;
+  onMapChange?: (
+    newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>,
+  ) => void;
+  stopEventPropagation?: boolean;
+  rootRef?: HTMLElement | null | undefined;
+  disabledIndices?: number[];
+  modifierKeys?: ModifierKey[];
+  highlightItemOnHover?: boolean;
+}
 
-  export interface Props<Metadata> extends BaseUIComponentProps<'div', State> {
-    orientation?: MaybeAccessor<'horizontal' | 'vertical' | 'both' | undefined>;
-    cols?: MaybeAccessor<number | undefined>;
-    loop?: MaybeAccessor<boolean | undefined>;
-    highlightedIndex?: MaybeAccessor<number | undefined>;
-    onHighlightedIndexChange?: (index: number) => void;
-    itemSizes?: MaybeAccessor<Dimensions[] | undefined>;
-    dense?: MaybeAccessor<boolean | undefined>;
-    enableHomeAndEndKeys?: MaybeAccessor<boolean | undefined>;
-    onMapChange?: (
-      newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>,
-    ) => void;
-    stopEventPropagation?: MaybeAccessor<boolean | undefined>;
-    refs?: {
-      rootRef?: HTMLElement | null | undefined;
-    };
-    disabledIndices?: MaybeAccessor<number[] | undefined>;
-    modifierKeys?: MaybeAccessor<ModifierKey[] | undefined>;
-    highlightItemOnHover?: MaybeAccessor<boolean | undefined>;
-  }
+export namespace CompositeRoot {
+  export type Props<Metadata, State extends Record<string, any>> = CompositeRootProps<
+    Metadata,
+    State
+  >;
 }

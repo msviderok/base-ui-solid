@@ -1,9 +1,7 @@
-import { createEffect, createSignal, type Accessor } from 'solid-js';
+import { isElementDisabled } from '@base-ui/utils/isElementDisabled';
+import { createSignal, type Accessor } from 'solid-js';
 import type { TextDirection } from '../../direction-provider/DirectionContext';
-import { activeElement } from '../../floating-ui-solid/utils';
 import { access, type MaybeAccessor } from '../../solid-helpers';
-import { isElementDisabled } from '../../utils/isElementDisabled';
-import { ownerDocument } from '../../utils/owner';
 import type { HTMLProps } from '../../utils/types';
 import {
   ALL_KEYS,
@@ -39,14 +37,12 @@ import { type CompositeList, type CompositeMetadata } from '../list/CompositeLis
 export interface UseCompositeRootParameters {
   orientation?: MaybeAccessor<'horizontal' | 'vertical' | 'both' | undefined>;
   cols?: MaybeAccessor<number | undefined>;
-  loop?: MaybeAccessor<boolean | undefined>;
+  loopFocus?: MaybeAccessor<boolean | undefined>;
   highlightedIndex?: MaybeAccessor<number | undefined>;
   onHighlightedIndexChange?: (index: number) => void;
   dense?: MaybeAccessor<boolean | undefined>;
   itemSizes?: MaybeAccessor<Dimensions[] | undefined>;
-  refs?: {
-    rootRef?: HTMLElement | null | undefined;
-  };
+  rootRef?: HTMLElement | null | undefined;
   /**
    * When `true`, pressing the Home key moves focus to the first item,
    * and pressing the End key moves focus to the last item.
@@ -55,7 +51,7 @@ export interface UseCompositeRootParameters {
   enableHomeAndEndKeys?: MaybeAccessor<boolean | undefined>;
   /**
    * When `true`, keypress events on Composite's navigation keys
-   * be stopped with event.stopPropagation()
+   * be stopped with event.stopPropagation().
    * @default false
    */
   stopEventPropagation?: MaybeAccessor<boolean | undefined>;
@@ -79,7 +75,7 @@ export function useCompositeRoot<Metadata>(
   direction: Accessor<TextDirection>,
 ) {
   const cols = () => access(params.cols) ?? 1;
-  const loop = () => access(params.loop) ?? true;
+  const loopFocus = () => access(params.loopFocus) ?? true;
   const dense = () => access(params.dense) ?? false;
   const orientation = () => access(params.orientation) ?? 'both';
   const enableHomeAndEndKeys = () => access(params.enableHomeAndEndKeys) ?? false;
@@ -108,20 +104,6 @@ export function useCompositeRoot<Metadata>(
       scrollIntoViewIfNeeded(rootRef(), newActiveItem, direction(), orientation());
     }
   }
-
-  // Ensure external controlled updates moves focus to the highlighted item
-  // if focus is currently inside the list.
-  // https://github.com/mui/base-ui/issues/2101
-  // TODO: Solid JS impolementation should be revisited. Patching with a signal for now.
-  createEffect(() => {
-    const activeEl = activeElement(ownerDocument(rootRef())) as HTMLDivElement | null;
-    if (refs.elements.includes(activeEl)) {
-      const focusedItem = refs.elements[highlightedIndex()];
-      if (focusedItem && focusedItem !== activeEl) {
-        focusedItem.focus();
-      }
-    }
-  });
 
   function onMapChange(
     newMap: Array<{ element: Element; metadata: CompositeMetadata<any> | null }>,
@@ -235,7 +217,7 @@ export function useCompositeRoot<Metadata>(
             {
               event,
               orientation: orientationValue,
-              loop: loop(),
+              loopFocus: loopFocus(),
               cols: cols(),
               // treat undefined (empty grid spaces) as disabled indices so we
               // don't end up in them
@@ -259,6 +241,7 @@ export function useCompositeRoot<Metadata>(
                 // use a corner matching the edge closest to the direction we're
                 // moving in so we don't end up in the same item. Prefer
                 // top/left over bottom/right.
+                // eslint-disable-next-line no-nested-ternary
                 event.key === ARROW_DOWN ? 'bl' : event.key === ARROW_RIGHT ? 'tr' : 'tl',
               ),
               rtl: isRtl,
@@ -299,9 +282,9 @@ export function useCompositeRoot<Metadata>(
         nextIndex === highlightedIndex() &&
         (forwardKeys.includes(event.key) || backwardKeys.includes(event.key))
       ) {
-        if (loop() && nextIndex === maxIndex && forwardKeys.includes(event.key)) {
+        if (loopFocus() && nextIndex === maxIndex && forwardKeys.includes(event.key)) {
           nextIndex = minIndex;
-        } else if (loop() && nextIndex === minIndex && backwardKeys.includes(event.key)) {
+        } else if (loopFocus() && nextIndex === minIndex && backwardKeys.includes(event.key)) {
           nextIndex = maxIndex;
         } else {
           nextIndex = findNonDisabledListIndex(refs.elements, {
@@ -338,11 +321,10 @@ export function useCompositeRoot<Metadata>(
     rootRef,
     onHighlightedIndexChange,
     onMapChange,
-    setRootRef: (el: HTMLElement | null | undefined) => {
+    relayKeyboardEvent: props.onKeyDown!,
+    setRootRef: (el: any) => {
       setRootRef(el);
-      if (params.refs) {
-        params.refs.rootRef = el;
-      }
+      params.rootRef = el;
     },
   };
 }

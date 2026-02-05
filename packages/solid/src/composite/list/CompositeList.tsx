@@ -1,4 +1,12 @@
-import { createEffect, createMemo, createSignal, createUniqueId, on, type JSX } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  createUniqueId,
+  on,
+  onCleanup,
+  type JSX,
+} from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { access, type MaybeAccessor } from '../../solid-helpers';
 import { CompositeListContext } from './CompositeListContext';
@@ -18,8 +26,11 @@ export function CompositeList<Metadata>(props: CompositeList.Props<Metadata>) {
     {},
   );
 
+  // Filter out disconnected elements before sorting to avoid inconsistent
+  // compareDocumentPosition results when elements are detached from the DOM.
   const nodesAsArray = createMemo(() => {
     return Object.values(nodes)
+      .filter((node) => node.element.isConnected)
       .sort((a, b) => sortByDocumentPosition(a.element, b.element))
       .map((node, index) => ({
         element: node.element,
@@ -73,6 +84,31 @@ export function CompositeList<Metadata>(props: CompositeList.Props<Metadata>) {
     }
   }
 
+  createEffect(() => {
+    if (typeof MutationObserver !== 'function' || sortedMap().size === 0) {
+      return;
+    }
+
+    const mutationObserver = new MutationObserver((entries) => {
+      const diff = new Set<Node>();
+      const updateDiff = (node: Node) => (diff.has(node) ? diff.delete(node) : diff.add(node));
+      entries.forEach((entry) => {
+        entry.removedNodes.forEach(updateDiff);
+        entry.addedNodes.forEach(updateDiff);
+      });
+    });
+
+    sortedMap().forEach((_, node) => {
+      if (node.parentElement) {
+        mutationObserver.observe(node.parentElement, { childList: true });
+      }
+    });
+
+    onCleanup(() => {
+      mutationObserver.disconnect();
+    });
+  });
+
   createEffect(
     on(nodesAsArray, (newArray) => {
       if (props.refs.elements.length !== newArray.length) {
@@ -86,6 +122,13 @@ export function CompositeList<Metadata>(props: CompositeList.Props<Metadata>) {
   );
 
   createEffect(on(sortedMap, (sorted) => listeners.forEach((l) => l(sorted))));
+
+  onCleanup(() => {
+    props.refs.elements = [];
+    if (props.refs.labels) {
+      props.refs.labels = [];
+    }
+  });
 
   return (
     <CompositeListContext.Provider
@@ -122,24 +165,29 @@ function sortByDocumentPosition(a: Element, b: Element) {
   return 0;
 }
 
-export namespace CompositeList {
-  export interface Props<Metadata> {
-    children: JSX.Element;
-    refs: {
-      /**
-       * A ref to the list of HTML elements, ordered by their index.
-       * `useListNavigation`'s `listRef` prop.
-       */
-      elements: Array<HTMLElement | null | undefined>;
-      /**
-       * A ref to the list of element labels, ordered by their index.
-       * `useTypeahead`'s `listRef` prop.
-       */
-      labels?: Array<string | null>;
-    };
+export interface CompositeListProps<Metadata> {
+  children: JSX.Element;
+  /**
+   * A ref to the list of HTML elements, ordered by their index.
+   * `useListNavigation`'s `listRef` prop.
+   */
+  refs: {
+    /**
+     * A ref to the list of HTML elements, ordered by their index.
+     * `useListNavigation`'s `listRef` prop.
+     */
+    elements: Array<HTMLElement | null | undefined>;
+    /**
+     * A ref to the list of element labels, ordered by their index.
+     * `useTypeahead`'s `listRef` prop.
+     */
+    labels?: Array<string | null>;
+  };
+  onMapChange?: (
+    newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>,
+  ) => void;
+}
 
-    onMapChange?: (
-      newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>,
-    ) => void;
-  }
+export namespace CompositeList {
+  export type Props<Metadata> = CompositeListProps<Metadata>;
 }

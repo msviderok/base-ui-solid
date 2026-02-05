@@ -4,6 +4,7 @@ import type { CompositeMetadata } from './CompositeList';
 import { useCompositeListContext } from './CompositeListContext';
 
 export interface UseCompositeListItemParameters<Metadata> {
+  index?: MaybeAccessor<number | undefined>;
   label?: MaybeAccessor<string | null | undefined>;
   metadata?: MaybeAccessor<Metadata | undefined | null>;
   textRef?: MaybeAccessor<HTMLElement | null | undefined>;
@@ -42,10 +43,11 @@ function initialIndex(
 export function useCompositeListItem<Metadata>(
   params: UseCompositeListItemParameters<Metadata> = {},
 ): UseCompositeListItemReturnValue {
+  const externalIndex = () => access(params.index);
   const context = useCompositeListContext();
   const indexRef = -1;
   const [index, setIndex] = createSignal<number>(
-    params.indexGuessBehavior === IndexGuessBehavior.GuessFromOrder
+    (externalIndex() ?? params.indexGuessBehavior === IndexGuessBehavior.GuessFromOrder)
       ? initialIndex(indexRef, context.nextIndex(), context.setNextIndex)
       : -1,
   );
@@ -75,6 +77,10 @@ export function useCompositeListItem<Metadata>(
   }
 
   createEffect(() => {
+    if (externalIndex() != null) {
+      return;
+    }
+
     const node = componentRef();
     if (node) {
       context.register(node, params.metadata);

@@ -1,19 +1,23 @@
 import { createSignal } from 'solid-js';
 import type { HTMLProps } from '../../utils/types';
-import { useCompositeListItem } from '../list/useCompositeListItem';
+import {
+  useCompositeListItem,
+  type UseCompositeListItemParameters,
+} from '../list/useCompositeListItem';
 import { useCompositeRootContext } from '../root/CompositeRootContext';
 
-export interface UseCompositeItemParameters<Metadata> {
-  metadata?: Metadata;
-}
+export interface UseCompositeItemParameters<Metadata> extends Pick<
+  UseCompositeListItemParameters<Metadata>,
+  'metadata' | 'indexGuessBehavior'
+> {}
 
 export function useCompositeItem<Metadata>(params: UseCompositeItemParameters<Metadata>) {
   const context = useCompositeRootContext();
   const listItem = useCompositeListItem(params);
   const isHighlighted = () => context.highlightedIndex() === listItem.index();
-  const [itemRef, setItemRef] = createSignal<HTMLElement | null>(null);
+  const [itemRef, setItemRef] = createSignal<HTMLElement | null | undefined>(null);
 
-  const props: HTMLProps = {
+  const compositeProps: HTMLProps = {
     get tabIndex() {
       return isHighlighted() ? 0 : -1;
     },
@@ -33,9 +37,9 @@ export function useCompositeItem<Metadata>(params: UseCompositeItemParameters<Me
   };
 
   return {
-    props,
+    compositeProps,
     index: listItem.index,
-    setRef: (el: HTMLElement | null) => {
+    setCompositeRef: (el: HTMLElement | null | undefined) => {
       setItemRef(el);
       listItem.setRef(el);
     },
