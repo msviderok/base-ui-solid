@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
+import { createRenderer, describeConformance, flushMicrotasks, isJSDOM } from '#test-utils';
 import { Collapsible } from '@msviderok/base-ui-solid/collapsible';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
@@ -13,12 +13,12 @@ describe('<Collapsible.Panel />', () => {
   describeConformance(Collapsible.Panel, () => ({
     refInstanceof: window.HTMLDivElement,
     render: (node, props) => {
-      return render(() => <Collapsible.Root defaultOpen>{node(props)}</Collapsible.Root>);
+      return render(() => <Collapsible.Root defaultOpen>{node(props!)}</Collapsible.Root>);
     },
   }));
 
   describe('prop: keepMounted', () => {
-    it('does not unmount the panel when true', () => {
+    it('does not unmount the panel when true', async () => {
       function App() {
         const [open, setOpen] = createSignal(false);
         return (
@@ -39,6 +39,7 @@ describe('<Collapsible.Panel />', () => {
       expect(screen.queryByText(PANEL_CONTENT)).to.have.attribute('data-closed');
 
       fireEvent.click(trigger);
+      await flushMicrotasks();
 
       expect(trigger).to.have.attribute('aria-expanded', 'true');
       expect(trigger.getAttribute('aria-controls')).to.equal(
@@ -50,6 +51,7 @@ describe('<Collapsible.Panel />', () => {
       expect(trigger).to.have.attribute('data-panel-open');
 
       fireEvent.click(trigger);
+      await flushMicrotasks();
 
       expect(trigger).to.have.attribute('aria-expanded', 'false');
       expect(trigger.getAttribute('aria-controls')).to.equal(null);

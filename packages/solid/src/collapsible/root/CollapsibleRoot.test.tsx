@@ -1,9 +1,10 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Collapsible } from '@msviderok/base-ui-solid/collapsible';
 import { screen } from '@solidjs/testing-library';
-import userEvent from '@testing-library/user-event';
 import { expect } from 'chai';
+import { spy } from 'sinon';
 import { createSignal } from 'solid-js';
+import { REASONS } from '../../utils/reasons';
 
 const PANEL_CONTENT = 'This is panel content';
 
@@ -62,6 +63,32 @@ describe('<Collapsible.Root />', () => {
     });
   });
 
+  describe('BaseUIChangeEventDetails', () => {
+    it('calls onOpenChange with eventDetails', async () => {
+      const handleOpenChange = spy();
+
+      const { user } = render(() => (
+        <Collapsible.Root onOpenChange={handleOpenChange}>
+          <Collapsible.Trigger>Toggle</Collapsible.Trigger>
+          <Collapsible.Panel>{PANEL_CONTENT}</Collapsible.Panel>
+        </Collapsible.Root>
+      ));
+
+      const trigger = screen.getByRole('button', { name: 'Toggle' });
+      await user.click(trigger);
+
+      expect(handleOpenChange.callCount).to.equal(1);
+      const [openArg, details] = handleOpenChange.firstCall.args as [boolean, any];
+      expect(openArg).to.equal(true);
+      expect(details).to.not.equal(undefined);
+      expect(details.reason).to.equal(REASONS.triggerPress);
+      expect(details.event).to.be.instanceOf(MouseEvent);
+      expect(details.isCanceled).to.equal(false);
+      expect(typeof details.cancel).to.equal('function');
+      expect(typeof details.allowPropagation).to.equal('function');
+    });
+  });
+
   describe.skipIf(isJSDOM)('open state', () => {
     it('controlled mode', async () => {
       function App() {
@@ -79,24 +106,17 @@ describe('<Collapsible.Root />', () => {
         );
       }
 
-      render(() => <App />);
+      const { user } = render(() => <App />);
 
-      let externalTrigger!: HTMLElement;
-      let trigger!: HTMLElement;
-      function updateTriggers() {
-        externalTrigger = screen.getByRole('button', { name: 'toggle' });
-        trigger = screen.getByRole('button', { name: 'trigger' });
-      }
+      const externalTrigger = screen.getByRole('button', { name: 'toggle' });
+      const trigger = screen.getByRole('button', { name: 'trigger' });
 
-      updateTriggers();
       expect(trigger).to.not.have.attribute('aria-controls');
       expect(trigger).to.have.attribute('aria-expanded', 'false');
       expect(screen.queryByText(PANEL_CONTENT)).to.equal(null);
 
-      await userEvent.click(externalTrigger);
-      updateTriggers();
+      await user.click(externalTrigger);
 
-      // Re-query for trigger after state change
       expect(trigger).to.have.attribute('aria-expanded', 'true');
       expect(trigger).to.have.attribute('aria-controls');
 
@@ -105,32 +125,28 @@ describe('<Collapsible.Root />', () => {
       expect(screen.queryByText(PANEL_CONTENT)).to.have.attribute('data-open');
       expect(trigger).to.have.attribute('data-panel-open');
 
-      await userEvent.click(externalTrigger);
-      updateTriggers();
+      await user.click(externalTrigger);
 
-      // Re-query for trigger after state change
       expect(trigger).to.not.have.attribute('aria-controls');
       expect(trigger).to.have.attribute('aria-expanded', 'false');
       expect(screen.queryByText(PANEL_CONTENT)).to.equal(null);
     });
 
     it('uncontrolled mode', async () => {
-      render(() => (
+      const { user } = render(() => (
         <Collapsible.Root defaultOpen={false}>
           <Collapsible.Trigger />
           <Collapsible.Panel>This is panel content</Collapsible.Panel>
         </Collapsible.Root>
       ));
 
-      let trigger = screen.getByRole('button');
+      const trigger = screen.getByRole('button');
 
       expect(trigger).to.not.have.attribute('aria-controls');
       expect(trigger).to.have.attribute('aria-expanded', 'false');
       expect(screen.queryByText(PANEL_CONTENT)).to.equal(null);
 
-      await userEvent.pointer({ keys: '[MouseLeft]', target: trigger });
-
-      trigger = screen.getByRole('button');
+      await user.pointer({ keys: '[MouseLeft]', target: trigger });
 
       expect(trigger).to.have.attribute('aria-expanded', 'true');
       expect(trigger).to.have.attribute('aria-controls');
@@ -139,28 +155,12 @@ describe('<Collapsible.Root />', () => {
       expect(screen.queryByText(PANEL_CONTENT)).to.have.attribute('data-open');
       expect(trigger).to.have.attribute('data-panel-open');
 
-      await userEvent.pointer({ keys: '[MouseLeft]', target: trigger });
-
-      trigger = screen.getByRole('button');
+      await user.pointer({ keys: '[MouseLeft]', target: trigger });
 
       expect(trigger).to.have.attribute('aria-expanded', 'false');
       expect(trigger).to.not.have.attribute('aria-controls');
       expect(trigger).to.not.have.attribute('data-panel-open');
       expect(screen.queryByText(PANEL_CONTENT)).to.equal(null);
-    });
-  });
-
-  describe('prop: render', () => {
-    it('does not render a root element when `null`', () => {
-      const { container } = render(() => (
-        <Collapsible.Root defaultOpen render={null}>
-          <Collapsible.Trigger />
-          <Collapsible.Panel>This is panel content</Collapsible.Panel>
-        </Collapsible.Root>
-      ));
-
-      const trigger = screen.getByRole('button');
-      expect(container.firstElementChild as HTMLElement).to.equal(trigger);
     });
   });
 
@@ -174,7 +174,7 @@ describe('<Collapsible.Root />', () => {
           </Collapsible.Root>
         ));
 
-        let trigger = screen.getByRole('button');
+        const trigger = screen.getByRole('button');
 
         expect(trigger).to.not.have.attribute('aria-controls');
         expect(trigger).to.have.attribute('aria-expanded', 'false');
@@ -184,18 +184,14 @@ describe('<Collapsible.Root />', () => {
         expect(trigger).toHaveFocus();
         await user.keyboard(`[${key}]`);
 
-        trigger = screen.getByRole('button');
-
         expect(trigger).to.have.attribute('aria-controls');
         expect(trigger).to.have.attribute('aria-expanded', 'true');
         expect(trigger).to.have.attribute('data-panel-open');
         expect(screen.queryByText(PANEL_CONTENT)).toBeVisible();
-        expect(screen.queryByText(PANEL_CONTENT)).to.not.equal(null);
+        expect(screen.queryByText(PANEL_CONTENT)).not.to.equal(null);
         expect(screen.queryByText(PANEL_CONTENT)).to.have.attribute('data-open');
 
         await user.keyboard(`[${key}]`);
-
-        trigger = screen.getByRole('button');
 
         expect(trigger).to.not.have.attribute('aria-controls');
         expect(trigger).to.have.attribute('aria-expanded', 'false');

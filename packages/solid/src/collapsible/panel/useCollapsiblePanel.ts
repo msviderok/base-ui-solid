@@ -1,3 +1,5 @@
+import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { warn } from '@base-ui/utils/warn';
 import {
   createEffect,
   createMemo,
@@ -10,16 +12,18 @@ import {
 } from 'solid-js';
 import { AccordionRootDataAttributes } from '../../accordion/root/AccordionRootDataAttributes';
 import { access, type MaybeAccessor } from '../../solid-helpers';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import { HTMLProps } from '../../utils/types';
-import { AnimationFrame } from '../../utils/useAnimationFrame';
-import { warn } from '../../utils/warn';
+import { useAnimationFrame } from '../../utils/useAnimationFrame';
+import type { CollapsibleRoot } from '../root/CollapsibleRoot';
 import { useCollapsibleRootContext } from '../root/CollapsibleRootContext';
 import type { AnimationType, Dimensions } from '../root/useCollapsibleRoot';
 import { CollapsiblePanelDataAttributes } from './CollapsiblePanelDataAttributes';
 
-export function useCollapsiblePanel<T extends HTMLElement>(
-  parameters: useCollapsiblePanel.Parameters<T>,
-): useCollapsiblePanel.ReturnValue<T> {
+export function useCollapsiblePanel(
+  parameters: useCollapsiblePanel.Parameters,
+): useCollapsiblePanel.ReturnValue {
   const height = () => access(parameters.height);
   const hiddenUntilFound = () => access(parameters.hiddenUntilFound);
   const id = () => access(parameters.id);
@@ -30,11 +34,13 @@ export function useCollapsiblePanel<T extends HTMLElement>(
   const width = () => access(parameters.width);
   const { setCodependentRefs } = useCollapsibleRootContext();
 
-  let ref: T | undefined;
+  let ref: HTMLElement | undefined;
   let isBeforeMatchRef = false;
   let latestAnimationNameRef = null as string | null;
   let shouldCancelInitialOpenAnimationRef = open();
   let shouldCancelInitialOpenTransitionRef = open();
+
+  const endingStyleFrame = useAnimationFrame();
 
   /**
    * When opening, the `hidden` attribute is removed immediately.
@@ -56,7 +62,7 @@ export function useCollapsiblePanel<T extends HTMLElement>(
    * time it opens. If the panel is in the middle of a close transition that is
    * interrupted and re-opens, this won't run as the panel was not unmounted.
    */
-  function handlePanelRef(element: T) {
+  function handlePanelRef(element: HTMLElement) {
     if (!element) {
       return;
     }
@@ -106,17 +112,8 @@ export function useCollapsiblePanel<T extends HTMLElement>(
       return;
     }
 
-    /**
-     * Explicitly set `display` to ensure the panel is actually rendered before
-     * measuring anything. `!important` is to needed to override a conflicting
-     * Tailwind v4 default that sets `display: none !important` on `[hidden]`:
-     * https://github.com/tailwindlabs/tailwindcss/blob/cd154a4f471e7a63cc27cad15dada650de89d52b/packages/tailwindcss/preflight.css#L320-L326
-     */
-    element.style.setProperty('display', 'block', 'important');
-
     if (height() === undefined || width() === undefined) {
       parameters.setDimensions({ height: element.scrollHeight, width: element.scrollWidth });
-      element.style.removeProperty('display');
 
       if (shouldCancelInitialOpenTransitionRef) {
         element.style.setProperty('transition-duration', '0s');
@@ -176,8 +173,16 @@ export function useCollapsiblePanel<T extends HTMLElement>(
         }
 
         if (open()) {
+          const originalLayoutStyles = {
+            'justify-content': panel.style.justifyContent,
+            'align-items': panel.style.alignItems,
+            'align-content': panel.style.alignContent,
+            'justify-items': panel.style.justifyItems,
+          };
           /* opening */
-          panel.style.setProperty('display', 'block', 'important');
+          Object.keys(originalLayoutStyles).forEach((key) => {
+            panel.style.setProperty(key, 'initial', 'important');
+          });
 
           /**
            * When `keepMounted={false}` and the panel is initially closed, the very
@@ -193,32 +198,63 @@ export function useCollapsiblePanel<T extends HTMLElement>(
           parameters.setDimensions({ height: panel.scrollHeight, width: panel.scrollWidth });
 
           resizeFrame = AnimationFrame.request(() => {
-            panel.style.removeProperty('display');
+            Object.entries(originalLayoutStyles).forEach(([key, value]) => {
+              if (value === '') {
+                panel.style.removeProperty(key);
+              } else {
+                panel.style.setProperty(key, value);
+              }
+            });
           });
         } else {
+          if (panel.scrollHeight === 0 && panel.scrollWidth === 0) {
+            return;
+          }
+
           /* closing */
           parameters.setDimensions({ height: panel.scrollHeight, width: panel.scrollWidth });
 
-          parameters.refs.abortControllerRef = new AbortController();
-          const signal = parameters.refs.abortControllerRef.signal;
+          const abortController = new AbortController();
+          parameters.refs.abortControllerRef = abortController;
+          const signal = abortController.signal;
 
-          let frame2 = -1;
-          const frame1 = AnimationFrame.request(() => {
-            // Wait until the `[data-ending-style]` attribute is added.
-            frame2 = AnimationFrame.request(() => {
+          let attributeObserver: MutationObserver | null = null;
+
+          const endingStyleAttribute = CollapsiblePanelDataAttributes.endingStyle;
+
+          // Wait for `[data-ending-style]` to be applied.
+          attributeObserver = new MutationObserver((mutationList) => {
+            const hasEndingStyle = mutationList.some(
+              (mutation) =>
+                mutation.type === 'attributes' && mutation.attributeName === endingStyleAttribute,
+            );
+
+            if (hasEndingStyle) {
+              attributeObserver?.disconnect();
+              attributeObserver = null;
               parameters.runOnceAnimationsFinish(() => {
                 parameters.setDimensions({ height: 0, width: 0 });
                 panel.style.removeProperty('content-visibility');
-                panel.style.removeProperty('display');
                 parameters.setMounted(false);
-                parameters.refs.abortControllerRef = null;
+                if (parameters.refs.abortControllerRef === abortController) {
+                  parameters.refs.abortControllerRef = null;
+                }
               }, signal);
-            });
+            }
+          });
+
+          attributeObserver.observe(panel, {
+            attributes: true,
+            attributeFilter: [endingStyleAttribute],
           });
 
           onCleanup(() => {
-            AnimationFrame.cancel(frame1);
-            AnimationFrame.cancel(frame2);
+            attributeObserver?.disconnect();
+            endingStyleFrame.cancel();
+            if (parameters.refs.abortControllerRef === abortController) {
+              abortController.abort();
+              parameters.refs.abortControllerRef = null;
+            }
           });
           return;
         }
@@ -334,10 +370,10 @@ export function useCollapsiblePanel<T extends HTMLElement>(
       return;
     }
 
-    function handleBeforeMatch() {
+    function handleBeforeMatch(event: Event) {
       isBeforeMatchRef = true;
       parameters.setOpen(true);
-      parameters.onOpenChange(true);
+      parameters.onOpenChange(true, createChangeEventDetails(REASONS.none, event));
     }
 
     panel.addEventListener('beforematch', handleBeforeMatch);
@@ -355,7 +391,7 @@ export function useCollapsiblePanel<T extends HTMLElement>(
   });
 
   return {
-    ref: (el) => {
+    setRef: (el) => {
       ref = el;
       /**
        * TODO: putting it into onMount seems to properly time the measurement.
@@ -374,67 +410,66 @@ export function useCollapsiblePanel<T extends HTMLElement>(
   };
 }
 
-export namespace useCollapsiblePanel {
-  export interface Parameters<T extends HTMLElement> {
-    animationType: Accessor<AnimationType>;
-    setAnimationType: Setter<AnimationType>;
-    /**
-     * The height of the panel.
-     */
-    height: MaybeAccessor<number | undefined>;
-    /**
-     * Allows the browser’s built-in page search to find and expand the panel contents.
-     *
-     * Overrides the `keepMounted` prop and uses `hidden="until-found"`
-     * to hide the element without removing it from the DOM.
-     */
-    hiddenUntilFound: MaybeAccessor<boolean>;
-    /**
-     * The `id` attribute of the panel.
-     */
-    id: MaybeAccessor<JSX.HTMLAttributes<Element>['id']>;
-    /**
-     * Whether to keep the element in the DOM while the panel is closed.
-     * This prop is ignored when `hiddenUntilFound` is used.
-     */
-    keepMounted: MaybeAccessor<boolean>;
-    /**
-     * Whether the collapsible panel is currently mounted.
-     */
-    mounted: MaybeAccessor<boolean>;
-    onOpenChange: (open: boolean) => void;
-    /**
-     * Whether the collapsible panel is currently open.
-     */
-    open: MaybeAccessor<boolean>;
-    refs: {
-      abortControllerRef: AbortController | null;
-      panelRef: T | null | undefined;
-    };
-    runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
-    setDimensions: (nextDimensions: Dimensions) => void;
-    setMounted: (nextMounted: boolean) => void;
-    setOpen: (nextOpen: boolean) => void;
-    setVisible: (nextVisible: boolean) => void;
-    transitionDimension: Accessor<'height' | 'width' | null>;
-    setTransitionDimension: Setter<'height' | 'width' | null>;
-    /**
-     * The visible state of the panel used to determine the `[hidden]` attribute
-     * only when CSS keyframe animations are used.
-     */
-    visible: MaybeAccessor<boolean>;
-    /**
-     * The width of the panel.
-     */
-    width: MaybeAccessor<number | undefined>;
-  }
+export interface UseCollapsiblePanelParameters {
+  animationType: Accessor<AnimationType>;
+  setAnimationType: Setter<AnimationType>;
+  /**
+   * The height of the panel.
+   */
+  height: MaybeAccessor<number | undefined>;
+  /**
+   * Allows the browser’s built-in page search to find and expand the panel contents.
+   *
+   * Overrides the `keepMounted` prop and uses `hidden="until-found"`
+   * to hide the element without removing it from the DOM.
+   */
+  hiddenUntilFound: MaybeAccessor<boolean>;
+  /**
+   * The `id` attribute of the panel.
+   */
+  id: MaybeAccessor<JSX.HTMLAttributes<Element>['id']>;
+  /**
+   * Whether to keep the element in the DOM while the panel is closed.
+   * This prop is ignored when `hiddenUntilFound` is used.
+   */
+  keepMounted: MaybeAccessor<boolean>;
+  /**
+   * Whether the collapsible panel is currently mounted.
+   */
+  mounted: MaybeAccessor<boolean>;
+  onOpenChange: (open: boolean, eventDetails: CollapsibleRoot.ChangeEventDetails) => void;
+  /**
+   * Whether the collapsible panel is currently open.
+   */
+  open: MaybeAccessor<boolean>;
+  refs: {
+    abortControllerRef: AbortController | null;
+    panelRef: HTMLElement | null | undefined;
+  };
+  runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
+  setDimensions: (nextDimensions: Dimensions) => void;
+  setMounted: (nextMounted: boolean) => void;
+  setOpen: (nextOpen: boolean) => void;
+  setVisible: (nextVisible: boolean) => void;
+  transitionDimension: Accessor<'height' | 'width' | null>;
+  setTransitionDimension: Setter<'height' | 'width' | null>;
+  /**
+   * The visible state of the panel used to determine the `[hidden]` attribute
+   * only when CSS keyframe animations are used.
+   */
+  visible: MaybeAccessor<boolean>;
+  /**
+   * The width of the panel.
+   */
+  width: MaybeAccessor<number | undefined>;
+}
 
-  export interface ReturnValue<T extends HTMLElement> {
-    ref: (el: T) => void;
-    /**
-     * TODO: provide better explanation
-     * Ref should be ommited as Solid handles refs differently than React.
-     */
-    props: HTMLProps;
-  }
+export interface UseCollapsiblePanelReturnValue {
+  setRef: (el: HTMLElement) => void;
+  props: HTMLProps;
+}
+
+export namespace useCollapsiblePanel {
+  export type Parameters = UseCollapsiblePanelParameters;
+  export type ReturnValue = UseCollapsiblePanelReturnValue;
 }

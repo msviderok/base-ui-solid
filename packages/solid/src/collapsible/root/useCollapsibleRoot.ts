@@ -10,10 +10,13 @@ import {
 } from 'solid-js';
 import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
 import { access, type CodependentRefs, type MaybeAccessor } from '../../solid-helpers';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import { useAnimationsFinished } from '../../utils/useAnimationsFinished';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useControlled } from '../../utils/useControlled';
 import { TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
+import type { CollapsibleRoot } from './CollapsibleRoot';
 
 export type AnimationType = 'css-transition' | 'css-animation' | 'none' | null;
 
@@ -64,10 +67,17 @@ export function useCollapsibleRoot(
 
   const runOnceAnimationsFinish = useAnimationsFinished(refs.panelRef, false);
 
-  function handleTrigger() {
+  function handleTrigger(event: MouseEvent | KeyboardEvent) {
     const nextOpen = !open();
+    const eventDetails = createChangeEventDetails(REASONS.triggerPress, event);
 
     batch(() => {
+      parameters.onOpenChange(nextOpen, eventDetails);
+
+      if (eventDetails.isCanceled) {
+        return;
+      }
+
       if (animationType() === 'css-animation' && refs.panelRef != null) {
         refs.panelRef!.style.removeProperty('animation-name');
       }
@@ -90,12 +100,9 @@ export function useCollapsibleRoot(
       }
 
       setOpen(nextOpen);
-      parameters.onOpenChange(nextOpen);
 
-      if (animationType() === 'none') {
-        if (mounted() && !nextOpen) {
-          setMounted(false);
-        }
+      if (animationType() === 'none' && mounted() && !nextOpen) {
+        setMounted(false);
       }
     });
   }
@@ -154,77 +161,80 @@ export function useCollapsibleRoot(
   };
 }
 
-export namespace useCollapsibleRoot {
-  export interface Parameters {
-    /**
-     * Whether the collapsible panel is currently open.
-     *
-     * To render an uncontrolled collapsible, use the `defaultOpen` prop instead.
-     */
-    open?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Whether the collapsible panel is initially open.
-     *
-     * To render a controlled collapsible, use the `open` prop instead.
-     * @default false
-     */
-    defaultOpen?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Event handler called when the panel is opened or closed.
-     */
-    onOpenChange: (open: boolean) => void;
-    /**
-     * Whether the component should ignore user interaction.
-     * @default false
-     */
-    disabled: MaybeAccessor<boolean>;
-  }
+export interface UseCollapsibleRootParameters {
+  /**
+   * Whether the collapsible panel is currently open.
+   *
+   * To render an uncontrolled collapsible, use the `defaultOpen` prop instead.
+   */
+  open?: MaybeAccessor<boolean | undefined>;
+  /**
+   * Whether the collapsible panel is initially open.
+   *
+   * To render a controlled collapsible, use the `open` prop instead.
+   * @default false
+   */
+  defaultOpen?: MaybeAccessor<boolean | undefined>;
+  /**
+   * Event handler called when the panel is opened or closed.
+   */
+  onOpenChange: (open: boolean, eventDetails: CollapsibleRoot.ChangeEventDetails) => void;
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled: MaybeAccessor<boolean>;
+}
 
-  export interface ReturnValue {
-    animationType: Accessor<AnimationType>;
-    setAnimationType: Setter<AnimationType>;
-    /**
-     * Whether the component should ignore user interaction.
-     */
-    disabled: Accessor<boolean>;
-    handleTrigger: () => void;
-    /**
-     * The height of the panel.
-     */
-    height: Accessor<number | undefined>;
-    /**
-     * Whether the collapsible panel is currently mounted.
-     */
-    mounted: Accessor<boolean>;
-    /**
-     * Whether the collapsible panel is currently open.
-     */
-    open: Accessor<boolean>;
-    codependentRefs: Store<CodependentRefs<['panel']>>;
-    setCodependentRefs: SetStoreFunction<CodependentRefs<['panel']>>;
-    panelId: Accessor<JSX.HTMLAttributes<Element>['id']>;
-    refs: {
-      abortControllerRef: AbortController | null;
-      panelRef: HTMLElement | null | undefined;
-    };
-    runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
-    setDimensions: Setter<Dimensions>;
-    setHiddenUntilFound: Setter<boolean>;
-    setKeepMounted: Setter<boolean>;
-    setMounted: (open: boolean) => void;
-    setOpen: (open: boolean) => void;
-    setVisible: Setter<boolean>;
-    transitionDimension: Accessor<'height' | 'width' | null>;
-    setTransitionDimension: Setter<'height' | 'width' | null>;
-    transitionStatus: Accessor<TransitionStatus>;
-    /**
-     * The visible state of the panel used to determine the `[hidden]` attribute
-     * only when CSS keyframe animations are used.
-     */
-    visible: Accessor<boolean>;
-    /**
-     * The width of the panel.
-     */
-    width: Accessor<number | undefined>;
-  }
+export interface UseCollapsibleRootReturnValue {
+  animationType: Accessor<AnimationType>;
+  setAnimationType: Setter<AnimationType>;
+  /**
+   * Whether the component should ignore user interaction.
+   */
+  disabled: Accessor<boolean>;
+  handleTrigger: (event: MouseEvent | KeyboardEvent) => void;
+  /**
+   * The height of the panel.
+   */
+  height: Accessor<number | undefined>;
+  /**
+   * Whether the collapsible panel is currently mounted.
+   */
+  mounted: Accessor<boolean>;
+  /**
+   * Whether the collapsible panel is currently open.
+   */
+  open: Accessor<boolean>;
+  codependentRefs: Store<CodependentRefs<['panel']>>;
+  setCodependentRefs: SetStoreFunction<CodependentRefs<['panel']>>;
+  panelId: Accessor<JSX.HTMLAttributes<Element>['id']>;
+  refs: {
+    abortControllerRef: AbortController | null;
+    panelRef: HTMLElement | null | undefined;
+  };
+  runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
+  setDimensions: Setter<Dimensions>;
+  setHiddenUntilFound: Setter<boolean>;
+  setKeepMounted: Setter<boolean>;
+  setMounted: (open: boolean) => void;
+  setOpen: (open: boolean) => void;
+  setVisible: Setter<boolean>;
+  transitionDimension: Accessor<'height' | 'width' | null>;
+  setTransitionDimension: Setter<'height' | 'width' | null>;
+  transitionStatus: Accessor<TransitionStatus>;
+  /**
+   * The visible state of the panel used to determine the `[hidden]` attribute
+   * only when CSS keyframe animations are used.
+   */
+  visible: Accessor<boolean>;
+  /**
+   * The width of the panel.
+   */
+  width: Accessor<number | undefined>;
+}
+
+export namespace useCollapsibleRoot {
+  export type Parameters = UseCollapsibleRootParameters;
+  export type ReturnValue = UseCollapsibleRootReturnValue;
 }

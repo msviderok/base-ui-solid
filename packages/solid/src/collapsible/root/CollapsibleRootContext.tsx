@@ -4,7 +4,7 @@ import type { CollapsibleRoot } from './CollapsibleRoot';
 import type { useCollapsibleRoot } from './useCollapsibleRoot';
 
 export interface CollapsibleRootContext extends useCollapsibleRoot.ReturnValue {
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (open: boolean, eventDetails: CollapsibleRoot.ChangeEventDetails) => void;
   state: CollapsibleRoot.State;
   transitionStatus: Accessor<TransitionStatus>;
 }

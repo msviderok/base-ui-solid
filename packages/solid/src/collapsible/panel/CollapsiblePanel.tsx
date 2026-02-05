@@ -1,12 +1,13 @@
+import { warn } from '@base-ui/utils/warn';
 import { createEffect, createMemo, Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { warn } from '../../utils/warn';
+import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import type { CollapsibleRoot } from '../root/CollapsibleRoot';
 import { useCollapsibleRootContext } from '../root/CollapsibleRootContext';
-import { collapsibleStyleHookMapping } from '../root/styleHooks';
+import { collapsibleStateAttributesMapping } from '../root/stateAttributesMapping';
 import { CollapsiblePanelCssVars } from './CollapsiblePanelCssVars';
 import { useCollapsiblePanel } from './useCollapsiblePanel';
 
@@ -56,6 +57,7 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     visible,
     width,
     state,
+    transitionStatus,
   } = useCollapsibleRootContext();
 
   createEffect(() => {
@@ -66,7 +68,7 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     setKeepMounted(keepMounted());
   });
 
-  const panel = useCollapsiblePanel({
+  const { props, setRef } = useCollapsiblePanel({
     animationType,
     setAnimationType,
     height,
@@ -89,7 +91,7 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
   });
 
   useOpenChangeComplete({
-    open,
+    open: () => open() && transitionStatus() === 'idle',
     ref: () => refs.panelRef,
     onComplete() {
       if (!open()) {
@@ -108,10 +110,10 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     state,
     ref: (el) => {
       refs.panelRef = el;
-      panel.ref(el);
+      setRef(el);
     },
     props: [
-      panel.props,
+      props,
       {
         get style() {
           return {
@@ -124,30 +126,35 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
       },
       elementProps,
     ],
-    customStyleHookMapping: collapsibleStyleHookMapping,
+    stateAttributesMapping: collapsibleStateAttributesMapping,
   });
 
   return <Show when={shouldRender()}>{element()}</Show>;
 }
 
-export namespace CollapsiblePanel {
-  export interface State extends CollapsibleRoot.State {}
+export interface CollapsiblePanelState extends CollapsibleRoot.State {
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', CollapsibleRoot.State> {
-    /**
-     * Allows the browser’s built-in page search to find and expand the panel contents.
-     *
-     * Overrides the `keepMounted` prop and uses `hidden="until-found"`
-     * to hide the element without removing it from the DOM.
-     *
-     * @default false
-     */
-    hiddenUntilFound?: boolean;
-    /**
-     * Whether to keep the element in the DOM while the panel is hidden.
-     * This prop is ignored when `hiddenUntilFound` is used.
-     * @default false
-     */
-    keepMounted?: boolean;
-  }
+export interface CollapsiblePanelProps extends BaseUIComponentProps<'div', CollapsiblePanel.State> {
+  /**
+   * Allows the browser’s built-in page search to find and expand the panel contents.
+   *
+   * Overrides the `keepMounted` prop and uses `hidden="until-found"`
+   * to hide the element without removing it from the DOM.
+   *
+   * @default false
+   */
+  hiddenUntilFound?: boolean;
+  /**
+   * Whether to keep the element in the DOM while the panel is hidden.
+   * This prop is ignored when `hiddenUntilFound` is used.
+   * @default false
+   */
+  keepMounted?: boolean;
+}
+
+export namespace CollapsiblePanel {
+  export type State = CollapsiblePanelState;
+  export type Props = CollapsiblePanelProps;
 }
