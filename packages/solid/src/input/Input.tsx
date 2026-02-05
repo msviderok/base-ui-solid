@@ -11,14 +11,22 @@ export function Input(props: Input.Props) {
   return <Field.Control {...props} />;
 }
 
-export namespace Input {
-  export interface Props extends BaseUIComponentProps<'input', State> {
-    /**
-     * Callback fired when the `value` changes. Use when controlled.
-     */
-    onValueChange?: Field.Control.Props['onValueChange'];
-    defaultValue?: Field.Control.Props['defaultValue'];
-  }
+export interface InputProps extends BaseUIComponentProps<'input', Input.State> {
+  /**
+   * Callback fired when the `value` changes. Use when controlled.
+   */
+  onValueChange?: Field.Control.Props['onValueChange'];
+  defaultValue?: Field.Control.Props['defaultValue'];
+}
 
-  export interface State extends Field.Control.State {}
+export interface InputState extends Field.Control.State {}
+
+export type InputChangeEventReason = Field.Control.ChangeEventReason;
+export type InputChangeEventDetails = Field.Control.ChangeEventDetails;
+
+export namespace Input {
+  export type Props = InputProps;
+  export type State = InputState;
+  export type ChangeEventReason = InputChangeEventReason;
+  export type ChangeEventDetails = InputChangeEventDetails;
 }
