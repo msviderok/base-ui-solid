@@ -1,5 +1,6 @@
 import { expectType } from '#test-utils';
 import type { JSX } from 'solid-js';
+import { Button } from '../button';
 import type { HTMLProps } from '../utils/types';
 import { useRender } from './useRender';
 
@@ -29,3 +30,30 @@ const element4 = useRender({
 });
 
 expectType<(props?: HTMLProps) => JSX.Element | null, typeof element4>(element4);
+
+const element5 = useRender({
+  render: () => <button type="button">Click</button>,
+});
+
+expectType<(props?: HTMLProps) => JSX.Element, typeof element5>(element5);
+
+const element6 = useRender({
+  render: 'div',
+});
+
+expectType<(props?: HTMLProps) => JSX.Element, typeof element6>(element6);
+
+const element7 = useRender({
+  render: (p) => <button {...p} type="button" aria-label="Submit" />,
+  props: {
+    class: 'btn-primary',
+    onClick: () => console.log('clicked'),
+  },
+});
+
+expectType<(props?: HTMLProps) => JSX.Element, typeof element7>(element7);
+
+function App() {
+  const element = useRender({ defaultTagName: 'div' });
+  return <Button render={element} />;
+}
