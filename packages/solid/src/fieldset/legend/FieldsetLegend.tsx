@@ -1,4 +1,4 @@
-import { onMount } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -13,14 +13,17 @@ import { useFieldsetRootContext } from '../root/FieldsetRootContext';
  */
 export function FieldsetLegend(componentProps: FieldsetLegend.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
+  const idProp = () => local.id;
 
-  const { disabled, setCodependentRefs } = useFieldsetRootContext();
+  const { disabled, setLegendId } = useFieldsetRootContext();
 
-  const id = useBaseUiId(() => local.id);
-  let ref!: HTMLElement;
+  const id = useBaseUiId(idProp);
 
-  onMount(() => {
-    setCodependentRefs('legend', { explicitId: id, ref: () => ref, id: () => local.id });
+  createEffect(() => {
+    setLegendId(id());
+    onCleanup(() => {
+      setLegendId(undefined);
+    });
   });
 
   const state: FieldsetLegend.State = {
@@ -31,9 +34,6 @@ export function FieldsetLegend(componentProps: FieldsetLegend.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -47,13 +47,16 @@ export function FieldsetLegend(componentProps: FieldsetLegend.Props) {
   return <>{element()}</>;
 }
 
-export namespace FieldsetLegend {
-  export interface State {
-    /**
-     * Whether the component should ignore user interaction.
-     */
-    disabled: boolean;
-  }
+export interface FieldsetLegendState {
+  /**
+   * Whether the component should ignore user interaction.
+   */
+  disabled: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface FieldsetLegendProps extends BaseUIComponentProps<'div', FieldsetLegend.State> {}
+
+export namespace FieldsetLegend {
+  export type State = FieldsetLegendState;
+  export type Props = FieldsetLegendProps;
 }

@@ -8,7 +8,7 @@ describe('<Fieldset.Legend />', () => {
 
   describeConformance(Fieldset.Legend, () => ({
     refInstanceof: window.HTMLDivElement,
-    render: (node, props) => render(() => <Fieldset.Root>{node(props)}</Fieldset.Root>),
+    render: (node, props) => render(() => <Fieldset.Root>{node(props!)}</Fieldset.Root>),
   }));
 
   it('should set aria-labelledby on the fieldset automatically', () => {

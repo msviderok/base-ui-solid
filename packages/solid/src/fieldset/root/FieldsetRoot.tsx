@@ -1,6 +1,5 @@
-import { createEffect, createSignal, on, onCleanup } from 'solid-js';
-import { createStore } from 'solid-js/store';
-import { splitComponentProps, type CodependentRefs } from '../../solid-helpers';
+import { createSignal } from 'solid-js';
+import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { FieldsetRootContext } from './FieldsetRootContext';
@@ -16,7 +15,6 @@ export function FieldsetRoot(componentProps: FieldsetRoot.Props) {
   const disabled = () => local.disabled ?? false;
 
   const [legendId, setLegendId] = createSignal<string | undefined>();
-  const [codependentRefs, setCodependentRefs] = createStore<CodependentRefs<['legend']>>({});
 
   const state: FieldsetRoot.State = {
     get disabled() {
@@ -26,25 +24,9 @@ export function FieldsetRoot(componentProps: FieldsetRoot.Props) {
 
   const contextValue: FieldsetRootContext = {
     legendId,
-    codependentRefs,
-    setCodependentRefs,
+    setLegendId,
     disabled,
   };
-
-  createEffect(
-    on(
-      () => codependentRefs.legend,
-      (legend) => {
-        if (legend) {
-          setLegendId(legend.id() ?? legend.explicitId());
-        }
-
-        onCleanup(() => {
-          setLegendId(undefined);
-        });
-      },
-    ),
-  );
 
   const element = useRenderElement('fieldset', componentProps, {
     state,
@@ -63,13 +45,15 @@ export function FieldsetRoot(componentProps: FieldsetRoot.Props) {
   );
 }
 
-export namespace FieldsetRoot {
-  export type State = {
-    /**
-     * Whether the component should ignore user interaction.
-     */
-    disabled: boolean;
-  };
+export interface FieldsetRootState {
+  /**
+   * Whether the component should ignore user interaction.
+   */
+  disabled: boolean;
+}
+export interface FieldsetRootProps extends BaseUIComponentProps<'fieldset', FieldsetRoot.State> {}
 
-  export interface Props extends BaseUIComponentProps<'fieldset', State> {}
+export namespace FieldsetRoot {
+  export type State = FieldsetRootState;
+  export type Props = FieldsetRootProps;
 }
