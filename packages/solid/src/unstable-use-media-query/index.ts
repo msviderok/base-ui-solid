@@ -58,30 +58,32 @@ export function useMediaQuery(
   return match;
 }
 
+export interface UseMediaQueryOptions {
+  /**
+   * As `window.matchMedia()` is unavailable on the server,
+   * it returns a default matches during the first mount.
+   * @default false
+   */
+  defaultMatches?: MaybeAccessor<boolean | undefined>;
+  /**
+   * You can provide your own implementation of matchMedia.
+   * This can be used for handling an iframe content window.
+   */
+  matchMedia?: typeof window.matchMedia;
+  /**
+   * To perform the server-side hydration, the hook needs to render twice.
+   * A first time with `defaultMatches`, the value of the server, and a second time with the resolved value.
+   * This double pass rendering cycle comes with a drawback: it's slower.
+   * You can set this option to `true` if you use the returned value **only** client-side.
+   * @default false
+   */
+  noSsr?: MaybeAccessor<boolean | undefined>;
+  /**
+   * You can provide your own implementation of `matchMedia`, it's used when rendering server-side.
+   */
+  ssrMatchMedia?: (query: string) => { matches: boolean };
+}
+
 export namespace useMediaQuery {
-  export interface Options {
-    /**
-     * As `window.matchMedia()` is unavailable on the server,
-     * it returns a default matches during the first mount.
-     * @default false
-     */
-    defaultMatches?: MaybeAccessor<boolean>;
-    /**
-     * You can provide your own implementation of matchMedia.
-     * This can be used for handling an iframe content window.
-     */
-    matchMedia?: typeof window.matchMedia;
-    /**
-     * To perform the server-side hydration, the hook needs to render twice.
-     * A first time with `defaultMatches`, the value of the server, and a second time with the resolved value.
-     * This double pass rendering cycle comes with a drawback: it's slower.
-     * You can set this option to `true` if you use the returned value **only** client-side.
-     * @default false
-     */
-    noSsr?: MaybeAccessor<boolean>;
-    /**
-     * You can provide your own implementation of `matchMedia`, it's used when rendering server-side.
-     */
-    ssrMatchMedia?: (query: string) => { matches: boolean };
-  }
+  export type Options = UseMediaQueryOptions;
 }
