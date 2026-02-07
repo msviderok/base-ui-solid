@@ -3,7 +3,7 @@ import { splitComponentProps } from '../../solid-helpers';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { AvatarRootContext } from './AvatarRootContext';
-import { avatarStyleHookMapping } from './styleHooks';
+import { avatarStateAttributesMapping } from './stateAttributesMapping';
 
 /**
  * Displays a user's profile picture, initials, or fallback icon.
@@ -30,7 +30,7 @@ export function AvatarRoot(componentProps: AvatarRoot.Props) {
   const element = useRenderElement('span', componentProps, {
     state,
     props: elementProps,
-    customStyleHookMapping: avatarStyleHookMapping,
+    customStyleHookMapping: avatarStateAttributesMapping,
   });
 
   return <AvatarRootContext.Provider value={contextValue}>{element()}</AvatarRootContext.Provider>;
@@ -38,10 +38,13 @@ export function AvatarRoot(componentProps: AvatarRoot.Props) {
 
 export type ImageLoadingStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
-export namespace AvatarRoot {
-  export interface Props extends BaseUIComponentProps<'span', State> {}
+export interface AvatarRootState {
+  imageLoadingStatus: ImageLoadingStatus;
+}
 
-  export interface State {
-    imageLoadingStatus: ImageLoadingStatus;
-  }
+export interface AvatarRootProps extends BaseUIComponentProps<'span', AvatarRoot.State> {}
+
+export namespace AvatarRoot {
+  export type State = AvatarRootState;
+  export type Props = AvatarRootProps;
 }

@@ -5,7 +5,7 @@ import { useRenderElement } from '../../utils/useRenderElement';
 import { useTimeout } from '../../utils/useTimeout';
 import type { AvatarRoot } from '../root/AvatarRoot';
 import { useAvatarRootContext } from '../root/AvatarRootContext';
-import { avatarStyleHookMapping } from '../root/styleHooks';
+import { avatarStateAttributesMapping } from '../root/stateAttributesMapping';
 
 /**
  * Rendered when the image fails to load or when no image is provided.
@@ -38,18 +38,20 @@ export function AvatarFallback(componentProps: AvatarFallback.Props) {
   const element = useRenderElement('span', componentProps, {
     state,
     props: elementProps,
-    customStyleHookMapping: avatarStyleHookMapping,
     enabled: () => imageLoadingStatus() !== 'loaded' && delayPassed(),
+    customStyleHookMapping: avatarStateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
+export interface AvatarFallbackProps extends BaseUIComponentProps<'span', AvatarRoot.State> {
+  /**
+   * How long to wait before showing the fallback. Specified in milliseconds.
+   */
+  delay?: number;
+}
+
 export namespace AvatarFallback {
-  export interface Props extends BaseUIComponentProps<'span', AvatarRoot.State> {
-    /**
-     * How long to wait before showing the fallback. Specified in milliseconds.
-     */
-    delay?: number;
-  }
+  export type Props = AvatarFallbackProps;
 }

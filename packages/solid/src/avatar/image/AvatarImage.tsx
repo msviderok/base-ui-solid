@@ -4,7 +4,7 @@ import { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { AvatarRoot } from '../root/AvatarRoot';
 import { useAvatarRootContext } from '../root/AvatarRootContext';
-import { avatarStyleHookMapping } from '../root/styleHooks';
+import { avatarStateAttributesMapping } from '../root/stateAttributesMapping';
 import { ImageLoadingStatus, useImageLoadingStatus } from './useImageLoadingStatus';
 
 /**
@@ -49,18 +49,20 @@ export function AvatarImage(componentProps: AvatarImage.Props) {
   const element = useRenderElement('img', componentProps, {
     state,
     props: elementProps,
-    customStyleHookMapping: avatarStyleHookMapping,
+    customStyleHookMapping: avatarStateAttributesMapping,
     enabled: () => imageLoadingStatus() === 'loaded',
   });
 
   return <>{element()}</>;
 }
 
+export interface AvatarImageProps extends BaseUIComponentProps<'img', AvatarRoot.State> {
+  /**
+   * Callback fired when the loading status changes.
+   */
+  onLoadingStatusChange?: (status: ImageLoadingStatus) => void;
+}
+
 export namespace AvatarImage {
-  export interface Props extends BaseUIComponentProps<'img', AvatarRoot.State> {
-    /**
-     * Callback fired when the loading status changes.
-     */
-    onLoadingStatusChange?: (status: ImageLoadingStatus) => void;
-  }
+  export type Props = AvatarImageProps;
 }

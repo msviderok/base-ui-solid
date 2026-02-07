@@ -8,7 +8,7 @@ describe('<Avatar.Image />', () => {
   }));
 
   describeConformance(Avatar.Image, () => ({
-    render: (node, props) => render(() => <Avatar.Root>{node(props)}</Avatar.Root>),
+    render: (node, props) => render(() => <Avatar.Root>{node(props!)}</Avatar.Root>),
     refInstanceof: window.HTMLImageElement,
   }));
 });
