@@ -1,4 +1,6 @@
-import { createEffect, splitProps, type ComponentProps, type JSX } from 'solid-js';
+import { error } from '@base-ui/utils/error';
+import { isHTMLElement } from '@floating-ui/utils/dom';
+import { createEffect, on, splitProps, type ComponentProps, type JSX } from 'solid-js';
 import { useCompositeRootContext } from '../composite/root/CompositeRootContext';
 import { makeEventPreventable } from '../merge-props';
 import { mergeProps } from '../merge-props/mergeProps';
@@ -12,12 +14,12 @@ export function useButton(parameters: useButton.Parameters = {}): useButton.Retu
   const isNativeButton = () => access(parameters.native) ?? true;
   const focusableWhenDisabled = () => access(parameters.focusableWhenDisabled);
 
-  let buttonRef: HTMLButtonElement | HTMLAnchorElement | HTMLElement | undefined | null;
+  let elementRef: HTMLElement | null | undefined;
 
   const isCompositeItem = () => useCompositeRootContext(true) !== undefined;
 
   const isValidLink = () => {
-    return Boolean(buttonRef?.tagName === 'A' && (buttonRef as HTMLAnchorElement)?.href);
+    return Boolean(elementRef?.tagName === 'A' && (elementRef as HTMLAnchorElement)?.href);
   };
 
   const { props: focusableWhenDisabledProps } = useFocusableWhenDisabled({
@@ -28,13 +30,30 @@ export function useButton(parameters: useButton.Parameters = {}): useButton.Retu
     isNativeButton,
   });
 
-  // handles a disabled composite button rendering another button, e.g.
-  // <Toolbar.Button disabled render={() => <Menu.Trigger />} />
-  // the `disabled` prop needs to pass through 2 `useButton`s then finally
-  // delete the `disabled` attribute from DOM
-  createEffect(() => {
-    const element = buttonRef;
-    if (!(element instanceof HTMLButtonElement)) {
+  if (process.env.NODE_ENV !== 'production') {
+    createEffect(() => {
+      if (!elementRef) {
+        return;
+      }
+
+      const isButtonTag = elementRef.tagName === 'BUTTON';
+
+      if (isNativeButton()) {
+        if (!isButtonTag) {
+          error(
+            'A component that acts as a button was not rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is a real <button>, or set the `nativeButton` prop on the component to `false`.',
+          );
+        }
+      } else if (isButtonTag) {
+        error(
+          'A component that acts as a button was rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is not a real <button>, or set the `nativeButton` prop on the component to `true`.',
+        );
+      }
+    });
+  }
+
+  const updateDisabled = () => {
+    if (!isButtonElement(elementRef)) {
       return;
     }
 
@@ -42,11 +61,21 @@ export function useButton(parameters: useButton.Parameters = {}): useButton.Retu
       isCompositeItem() &&
       disabled() &&
       focusableWhenDisabledProps().disabled === undefined &&
-      element.disabled
+      elementRef.disabled
     ) {
-      element.disabled = false;
+      elementRef.disabled = false;
     }
-  });
+  };
+
+  // handles a disabled composite button rendering another button, e.g.
+  // <Toolbar.Button disabled render={() => <Menu.Trigger />} />
+  // the `disabled` prop needs to pass through 2 `useButton`s then finally
+  // delete the `disabled` attribute from DOM
+  createEffect(
+    on([disabled, () => focusableWhenDisabledProps().disabled, isCompositeItem], () => {
+      updateDisabled();
+    }),
+  );
 
   // TODO: fix typing in the whole function
   function getButtonProps(externalProps: GenericButtonProps = {}) {
@@ -95,16 +124,23 @@ export function useButton(parameters: useButton.Parameters = {}): useButton.Retu
             return;
           }
 
-          // Keyboard accessibility for non interactive elements
-          if (
+          const shouldClick =
             event.target === event.currentTarget &&
             !isNativeButton() &&
             !isValidLink() &&
-            (event as any).key === 'Enter' &&
-            !disabled()
-          ) {
-            callEventHandler(externalOnClick, event as any);
-            event.preventDefault();
+            !disabled();
+          const isEnterKey = event.key === 'Enter';
+          const isSpaceKey = event.key === ' ';
+
+          // Keyboard accessibility for non interactive elements
+          if (shouldClick) {
+            if (isSpaceKey || isEnterKey) {
+              event.preventDefault();
+            }
+
+            if (isEnterKey) {
+              callEventHandler(externalOnClick, event as any);
+            }
           }
         },
         onKeyUp(event) {
@@ -156,56 +192,65 @@ export function useButton(parameters: useButton.Parameters = {}): useButton.Retu
   return {
     getButtonProps,
     buttonRef: (value) => {
-      buttonRef = value;
+      elementRef = value;
+      updateDisabled();
     },
   };
+}
+
+function isButtonElement(
+  elem: HTMLButtonElement | HTMLAnchorElement | HTMLElement | null | undefined,
+): elem is HTMLButtonElement {
+  return isHTMLElement(elem) && elem.tagName === 'BUTTON';
 }
 
 interface GenericButtonProps extends HTMLProps, AdditionalButtonProps {
   tabIndex?: number;
 }
 
-interface AdditionalButtonProps
-  extends Partial<{
-    'aria-disabled': JSX.AriaAttributes['aria-disabled'];
-    disabled: boolean;
-    role: JSX.AriaAttributes['role'];
-    tabIndex?: number;
-  }> {}
+interface AdditionalButtonProps extends Partial<{
+  'aria-disabled': JSX.AriaAttributes['aria-disabled'];
+  disabled: boolean;
+  role: JSX.AriaAttributes['role'];
+  tabIndex?: number;
+}> {}
+
+export interface UseButtonParameters {
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled?: MaybeAccessor<boolean | undefined>;
+  /**
+   * Whether the button may receive focus even if it is disabled.
+   * @default false
+   */
+  focusableWhenDisabled?: MaybeAccessor<boolean | undefined>;
+  tabIndex?: MaybeAccessor<NonNullable<JSX.HTMLAttributes<any>['tabIndex']> | undefined>;
+  /**
+   * Whether the component is being rendered as a native button.
+   * @default true
+   */
+  native?: MaybeAccessor<boolean | undefined>;
+}
+
+export interface UseButtonReturnValue {
+  /**
+   * Resolver for the button props.
+   * @param externalProps additional props for the button
+   * @returns props that should be spread on the button
+   */
+  getButtonProps: (externalProps?: ComponentProps<any>) => ComponentProps<any>;
+  /**
+   * A ref to the button DOM element. This ref should be passed to the rendered element.
+   * It is not a part of the props returned by `getButtonProps`.
+   */
+  buttonRef: (
+    value: HTMLButtonElement | HTMLAnchorElement | HTMLElement | null | undefined,
+  ) => void;
+}
 
 export namespace useButton {
-  export interface Parameters {
-    /**
-     * Whether the component should ignore user interaction.
-     * @default false
-     */
-    disabled?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Whether the button may receive focus even if it is disabled.
-     * @default false
-     */
-    focusableWhenDisabled?: MaybeAccessor<boolean | undefined>;
-    tabIndex?: MaybeAccessor<NonNullable<JSX.HTMLAttributes<any>['tabIndex']> | undefined>;
-    /**
-     * Whether the component is being rendered as a native button.
-     * @default true
-     */
-    native?: MaybeAccessor<boolean | undefined>;
-  }
-
-  export interface ReturnValue {
-    /**
-     * Resolver for the button props.
-     * @param externalProps additional props for the button
-     * @returns props that should be spread on the button
-     */
-    getButtonProps: (externalProps?: ComponentProps<any>) => ComponentProps<any>;
-    /**
-     * A ref to the button DOM element. This ref should be passed to the rendered element.
-     * It is not a part of the props returned by `getButtonProps`.
-     */
-    buttonRef: (
-      value: HTMLButtonElement | HTMLAnchorElement | HTMLElement | null | undefined,
-    ) => void;
-  }
+  export type Parameters = UseButtonParameters;
+  export type ReturnValue = UseButtonReturnValue;
 }
