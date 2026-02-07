@@ -8,7 +8,7 @@ describe('<Field.Label />', () => {
 
   describeConformance(Field.Label, () => ({
     refInstanceof: window.HTMLLabelElement,
-    render: (node, props) => render(() => <Field.Root>{node(props)}</Field.Root>),
+    render: (node, props) => render(() => <Field.Root>{node(props!)}</Field.Root>),
   }));
 
   it('should set htmlFor referencing the control automatically', () => {

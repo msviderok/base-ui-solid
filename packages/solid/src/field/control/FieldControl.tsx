@@ -1,15 +1,18 @@
-import { createEffect, onMount, mergeProps as solidMergeProps, type JSX } from 'solid-js';
+import { batch, createEffect, mergeProps as solidMergeProps, type JSX } from 'solid-js';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
+import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
-import { useControlled } from '../../utils';
+import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps } from '../../utils/types';
-import { useBaseUiId } from '../../utils/useBaseUiId';
+import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { FieldRoot } from '../root/FieldRoot';
 import { useFieldRootContext } from '../root/FieldRootContext';
 import { useField } from '../useField';
 import { fieldValidityMapping } from '../utils/constants';
-import { useFieldControlValidation } from './useFieldControlValidation';
 
 /**
  * The form control to label and validate.
@@ -30,36 +33,31 @@ export function FieldControl(componentProps: FieldControl.Props) {
     'onValueChange',
     'defaultValue',
   ]);
+  const idProp = () => local.id;
+  const nameProp = () => local.name;
+  const valueProp = () => local.value;
   const disabledProp = () => local.disabled ?? false;
 
   const { state: fieldState, name: fieldName, disabled: fieldDisabled } = useFieldRootContext();
 
   const disabled = () => fieldDisabled() || disabledProp();
-  const name = () => fieldName() ?? local.name;
+  const name = () => fieldName() ?? nameProp();
 
-  const {
-    labelId,
-    setTouched,
-    setDirty,
-    validityData,
-    setFocused,
-    setFilled,
-    validationMode,
-    setCodependentRefs: setChildRefs,
-  } = useFieldRootContext();
-
-  const { getValidationProps, getInputValidationProps, commitValidation, refs } =
-    useFieldControlValidation();
-
-  const id = useBaseUiId(() => local.id);
-
-  onMount(() => {
-    setChildRefs('control', { explicitId: id, ref: () => refs.inputRef, id });
+  const state: FieldControl.State = solidMergeProps(fieldState, {
+    get disabled() {
+      return disabled();
+    },
   });
 
+  const { setTouched, setDirty, validityData, setFocused, setFilled, validationMode, validation } =
+    useFieldRootContext();
+  const { labelId } = useLabelableContext();
+
+  const id = useLabelableId({ id: idProp });
+
   createEffect(() => {
-    const hasExternalValue = local.value != null;
-    if (refs.inputRef?.value || (hasExternalValue && local.value !== '')) {
+    const hasExternalValue = valueProp() != null;
+    if (validation.inputRef?.value || (hasExternalValue && valueProp() !== '')) {
       setFilled(true);
     } else if (hasExternalValue && local.value === '') {
       setFilled(false);
@@ -73,30 +71,31 @@ export function FieldControl(componentProps: FieldControl.Props) {
     state: 'value',
   });
 
-  const setValue = (nextValue: string, event: Event) => {
-    setValueUnwrapped(nextValue);
-    local.onValueChange?.(nextValue, event);
+  const setValue = (nextValue: string, eventDetails: FieldControl.ChangeEventDetails) => {
+    batch(() => {
+      local.onValueChange?.(nextValue, eventDetails);
+
+      if (eventDetails.isCanceled) {
+        return;
+      }
+
+      setValueUnwrapped(nextValue);
+    });
   };
 
   useField({
     id,
     name,
-    commitValidation,
+    commit: validation.commit,
     value,
-    getValue: () => refs.inputRef?.value,
-    controlRef: () => refs.inputRef,
-  });
-
-  const controlState: FieldControl.State = solidMergeProps(fieldState, {
-    get disabled() {
-      return disabled();
-    },
+    getValue: () => validation.inputRef?.value,
+    controlRef: () => validation.inputRef,
   });
 
   const element = useRenderElement('input', componentProps, {
-    state: controlState,
+    state,
     ref: (el) => {
-      refs.inputRef = el;
+      validation.inputRef = el;
     },
     customStyleHookMapping: fieldValidityMapping,
     props: [
@@ -117,12 +116,10 @@ export function FieldControl(componentProps: FieldControl.Props) {
           return value();
         },
         onChange(event) {
-          if (value() != null) {
-            setValue(event.currentTarget.value, event);
-          }
-
-          setDirty(event.currentTarget.value !== validityData.initialValue);
-          setFilled(event.currentTarget.value !== '');
+          const inputValue = event.currentTarget.value;
+          setValue(inputValue, createChangeEventDetails(REASONS.none, event));
+          setDirty(inputValue !== validityData.initialValue);
+          setFilled(inputValue !== '');
         },
         onFocus() {
           setFocused(true);
@@ -132,33 +129,43 @@ export function FieldControl(componentProps: FieldControl.Props) {
           setFocused(false);
 
           if (validationMode() === 'onBlur') {
-            commitValidation(event.currentTarget.value);
+            validation.commit(event.currentTarget.value);
           }
         },
         onKeyDown(event) {
           if (event.currentTarget.tagName === 'INPUT' && event.key === 'Enter') {
             setTouched(true);
-            commitValidation(event.currentTarget.value);
+            validation.commit(event.currentTarget.value);
           }
         },
       },
-      (props) => mergeProps(props, getValidationProps()),
-      (props) => mergeProps(props, getInputValidationProps()),
+      (props) => mergeProps(props, validation.getInputValidationProps()),
       elementProps,
     ],
+    stateAttributesMapping: fieldValidityMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace FieldControl {
-  export type State = FieldRoot.State;
+export type FieldControlState = FieldRoot.State;
 
-  export interface Props extends BaseUIComponentProps<'input', State> {
-    /**
-     * Callback fired when the `value` changes. Use when controlled.
-     */
-    onValueChange?: (value: string, event: Event) => void;
-    defaultValue?: JSX.InputHTMLAttributes<HTMLInputElement>['value'];
-  }
+export interface FieldControlProps extends BaseUIComponentProps<'input', FieldControl.State> {
+  /**
+   * Callback fired when the `value` changes. Use when controlled.
+   */
+  onValueChange?: (value: string, eventDetails: FieldControl.ChangeEventDetails) => void;
+  defaultValue?: JSX.InputHTMLAttributes<HTMLInputElement>['value'];
+}
+
+export type FieldControlChangeEventReason = typeof REASONS.none;
+
+export type FieldControlChangeEventDetails =
+  BaseUIChangeEventDetails<FieldControl.ChangeEventReason>;
+
+export namespace FieldControl {
+  export type State = FieldControlState;
+  export type Props = FieldControlProps;
+  export type ChangeEventReason = FieldControlChangeEventReason;
+  export type ChangeEventDetails = FieldControlChangeEventDetails;
 }

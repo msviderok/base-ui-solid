@@ -1,4 +1,5 @@
 import { createEffect, onCleanup } from 'solid-js';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -16,11 +17,10 @@ import { fieldValidityMapping } from '../utils/constants';
 export function FieldDescription(componentProps: FieldDescription.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
 
-  const { state } = useFieldRootContext(false);
-
   const id = useBaseUiId(() => local.id);
 
-  const { setMessageIds } = useFieldRootContext();
+  const fieldRootContext = useFieldRootContext(false);
+  const { setMessageIds } = useLabelableContext();
 
   createEffect(() => {
     const idValue = id();
@@ -36,8 +36,7 @@ export function FieldDescription(componentProps: FieldDescription.Props) {
   });
 
   const element = useRenderElement('p', componentProps, {
-    state,
-    customStyleHookMapping: fieldValidityMapping,
+    state: fieldRootContext.state,
     props: [
       {
         get id() {
@@ -46,13 +45,17 @@ export function FieldDescription(componentProps: FieldDescription.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: fieldValidityMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace FieldDescription {
-  export type State = FieldRoot.State;
+export type FieldDescriptionState = FieldRoot.State;
 
-  export interface Props extends BaseUIComponentProps<'p', State> {}
+export interface FieldDescriptionProps extends BaseUIComponentProps<'p', FieldDescription.State> {}
+
+export namespace FieldDescription {
+  export type State = FieldDescriptionState;
+  export type Props = FieldDescriptionProps;
 }

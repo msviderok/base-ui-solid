@@ -1,13 +1,14 @@
 'use client';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import * as React from 'react';
 import { getTarget } from '../../floating-ui-react/utils';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
+import type { BaseUIComponentProps } from '../../utils/types';
+import { useBaseUiId } from '../../utils/useBaseUiId';
+import { useRenderElement } from '../../utils/useRenderElement';
 import { FieldRoot } from '../root/FieldRoot';
 import { useFieldRootContext } from '../root/FieldRootContext';
 import { fieldValidityMapping } from '../utils/constants';
-import { useBaseUiId } from '../../utils/useBaseUiId';
-import { useModernLayoutEffect } from '../../utils/useModernLayoutEffect';
-import type { BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
 
 /**
  * An accessible label that is automatically associated with the field control.
@@ -17,31 +18,35 @@ import { useRenderElement } from '../../utils/useRenderElement';
  */
 export const FieldLabel = React.forwardRef(function FieldLabel(
   componentProps: FieldLabel.Props,
-  forwardedRef: React.ForwardedRef<any>,
+  forwardedRef: React.ForwardedRef<HTMLElement>,
 ) {
   const { render, className, id: idProp, ...elementProps } = componentProps;
 
-  const { labelId, setLabelId, state, controlId } = useFieldRootContext(false);
+  const fieldRootContext = useFieldRootContext(false);
+
+  const { controlId, setLabelId, labelId } = useLabelableContext();
 
   const id = useBaseUiId(idProp);
-  const htmlFor = controlId ?? undefined;
 
-  useModernLayoutEffect(() => {
-    if (controlId != null || idProp) {
+  const labelRef = React.useRef<HTMLLabelElement>(null);
+
+  useIsoLayoutEffect(() => {
+    if (id) {
       setLabelId(id);
     }
+
     return () => {
       setLabelId(undefined);
     };
-  }, [controlId, id, idProp, setLabelId]);
+  }, [id, setLabelId]);
 
   const element = useRenderElement('label', componentProps, {
-    ref: forwardedRef,
-    state,
+    ref: [forwardedRef, labelRef],
+    state: fieldRootContext.state,
     props: [
       {
         id: labelId,
-        htmlFor,
+        htmlFor: controlId ?? undefined,
         onMouseDown(event) {
           const target = getTarget(event.nativeEvent) as HTMLElement | null;
           if (target?.closest('button,input,select,textarea')) {
@@ -56,14 +61,17 @@ export const FieldLabel = React.forwardRef(function FieldLabel(
       },
       elementProps,
     ],
-    customStyleHookMapping: fieldValidityMapping,
+    stateAttributesMapping: fieldValidityMapping,
   });
 
   return element;
 });
 
-export namespace FieldLabel {
-  export type State = FieldRoot.State;
+export type FieldLabelState = FieldRoot.State;
 
-  export interface Props extends BaseUIComponentProps<'label', State> {}
+export interface FieldLabelProps extends BaseUIComponentProps<'label', FieldLabel.State> {}
+
+export namespace FieldLabel {
+  export type State = FieldLabelState;
+  export type Props = FieldLabelProps;
 }

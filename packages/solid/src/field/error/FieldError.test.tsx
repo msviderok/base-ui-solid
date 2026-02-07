@@ -1,5 +1,6 @@
 import { createRenderer, describeConformance } from '#test-utils';
 import { Field } from '@msviderok/base-ui-solid/field';
+import { Form } from '@msviderok/base-ui-solid/form';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 
@@ -10,7 +11,7 @@ describe('<Field.Error />', () => {
     (props) => <Field.Error match {...props} ref={props.ref} />,
     () => ({
       refInstanceof: window.HTMLDivElement,
-      render: (node, props) => render(() => <Field.Root invalid>{node(props)}</Field.Root>),
+      render: (node, props) => render(() => <Field.Root invalid>{node(props!)}</Field.Root>),
     }),
   );
 
@@ -30,10 +31,13 @@ describe('<Field.Error />', () => {
 
   it('should show error messages by default', async () => {
     render(() => (
-      <Field.Root>
-        <Field.Control required />
-        <Field.Error>Message</Field.Error>
-      </Field.Root>
+      <Form>
+        <Field.Root>
+          <Field.Control required />
+          <Field.Error>Message</Field.Error>
+        </Field.Root>
+        <button type="submit">submit</button>
+      </Form>
     ));
 
     expect(screen.queryByText('Message')).to.equal(null);
@@ -44,46 +48,58 @@ describe('<Field.Error />', () => {
     fireEvent.change(input, { target: { value: 'a' } });
     fireEvent.change(input, { target: { value: '' } });
     fireEvent.blur(input);
+    expect(screen.queryByText('Message')).to.equal(null);
 
+    fireEvent.click(screen.getByText('submit'));
     expect(screen.queryByText('Message')).not.to.equal(null);
   });
 
   describe('prop: match', () => {
     it('should only render when `match` matches constraint validation', async () => {
       render(() => (
-        <Field.Root>
-          <Field.Control required />
-          <Field.Error match="valueMissing">Message</Field.Error>
-        </Field.Root>
+        <Form>
+          <Field.Root>
+            <Field.Control required minLength={2} />
+            <Field.Error match="valueMissing">Message</Field.Error>
+          </Field.Root>
+          <button type="submit">submit</button>
+        </Form>
       ));
 
       expect(screen.queryByText('Message')).to.equal(null);
+
+      fireEvent.click(screen.getByText('submit'));
+      expect(screen.queryByText('Message')).not.to.equal(null);
 
       const input = screen.getByRole<HTMLInputElement>('textbox');
 
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: 'a' } });
-      fireEvent.change(input, { target: { value: '' } });
-      fireEvent.blur(input);
+      expect(screen.queryByText('Message')).to.equal(null);
 
+      fireEvent.change(input, { target: { value: '' } });
       expect(screen.queryByText('Message')).not.to.equal(null);
     });
 
     it('should show custom errors', async () => {
       render(() => (
-        <Field.Root validate={() => 'error'}>
-          <Field.Control />
-          <Field.Error match="customError">Message</Field.Error>
-        </Field.Root>
+        <Form>
+          <Field.Root validate={() => 'error'}>
+            <Field.Control />
+            <Field.Error match="customError">Message</Field.Error>
+          </Field.Root>
+          <button type="submit">submit</button>
+        </Form>
       ));
 
       const input = screen.getByRole<HTMLInputElement>('textbox');
 
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: 'a' } });
-      fireEvent.change(input, { target: { value: '' } });
       fireEvent.blur(input);
+      expect(screen.queryByText('Message')).to.equal(null);
 
+      fireEvent.click(screen.getByText('submit'));
       expect(screen.queryByText('Message')).not.to.equal(null);
     });
 

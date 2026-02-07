@@ -1,11 +1,11 @@
 import { createEffect, onCleanup } from 'solid-js';
-import { produce } from 'solid-js/store';
+import { produce, reconcile } from 'solid-js/store';
 import { useFormContext } from '../form/FormContext';
 import { type MaybeAccessor, access } from '../solid-helpers';
 import { useFieldRootContext } from './root/FieldRootContext';
 import { getCombinedFieldValidityData } from './utils/getCombinedFieldValidityData';
 
-export function useField(params: useField.Parameters) {
+export function useField(params: UseFieldParameters) {
   const { setFormRef } = useFormContext();
   const { invalid, refs, validityData, setValidityData } = useFieldRootContext();
   const enabled = () => access(params.enabled) ?? true;
@@ -30,13 +30,17 @@ export function useField(params: useField.Parameters) {
   });
 
   createEffect(() => {
-    if (!enabled()) {
+    const idValue = id();
+    if (!enabled() || !idValue) {
       return;
     }
 
-    const idValue = id();
-    if (idValue) {
-      setFormRef('fields', idValue, {
+    setFormRef(
+      'fields',
+      idValue,
+      reconcile({
+        getValue: params.getValue ?? (() => undefined),
+        name: name(),
         controlRef: controlRef(),
         validityData: getCombinedFieldValidityData(validityData, invalid()),
         validate() {
@@ -45,14 +49,11 @@ export function useField(params: useField.Parameters) {
             nextValue = params.getValue?.();
           }
           refs.markedDirtyRef = true;
-
           // Synchronously update the validity state so the submit event can be prevented.
-          params.commitValidation?.(nextValue);
+          params.commit(nextValue);
         },
-        getValueRef: params.getValue,
-        name: name(),
-      });
-    }
+      }),
+    );
   });
 
   createEffect(() => {
@@ -70,18 +71,16 @@ export function useField(params: useField.Parameters) {
   });
 }
 
-export namespace useField {
-  export interface Parameters {
-    enabled?: MaybeAccessor<boolean | undefined>;
-    value: MaybeAccessor<unknown>;
-    getValue?: (() => unknown) | undefined;
-    id: MaybeAccessor<string | undefined>;
-    name?: MaybeAccessor<string | undefined>;
-    commitValidation: (value: unknown) => void;
-    /**
-     * A ref to a focusable element that receives focus when the field fails
-     * validation during form submission.
-     */
-    controlRef: MaybeAccessor<any>;
-  }
+export interface UseFieldParameters {
+  enabled?: MaybeAccessor<boolean | undefined>;
+  value: MaybeAccessor<unknown>;
+  getValue?: (() => unknown) | undefined;
+  id: MaybeAccessor<string | undefined>;
+  name?: MaybeAccessor<string | undefined>;
+  commit: (value: unknown) => void;
+  /**
+   * A ref to a focusable element that receives focus when the field fails
+   * validation during form submission.
+   */
+  controlRef: MaybeAccessor<any>;
 }

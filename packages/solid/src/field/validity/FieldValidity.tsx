@@ -13,7 +13,7 @@ import { getCombinedFieldValidityData } from '../utils/getCombinedFieldValidityD
 export function FieldValidity(props: FieldValidity.Props) {
   const { validityData, invalid } = useFieldRootContext(false);
 
-  const fieldValidityState = createMemo<FieldValidityState>(() => {
+  const fieldValidityState = createMemo<FieldValidity.State>(() => {
     const combinedFieldValidityData = getCombinedFieldValidityData(validityData, invalid());
     return {
       ...combinedFieldValidityData,
@@ -28,21 +28,22 @@ export interface FieldValidityState extends Omit<FieldValidityData, 'state'> {
   validity: FieldValidityData['state'];
 }
 
-export namespace FieldValidity {
-  export interface State {}
+export interface FieldValidityProps {
+  /**
+   * A function that accepts the field validity state as an argument.
+   *
+   * ```jsx
+   * <Field.Validity>
+   *   {(validity) => {
+   *     return <div>...</div>
+   *   }}
+   * </Field.Validity>
+   * ```
+   */
+  children: (state: FieldValidity.State) => JSX.Element;
+}
 
-  export interface Props {
-    /**
-     * A function that accepts the field validity state as an argument.
-     *
-     * ```jsx
-     * <Field.Validity>
-     *   {(validity) => {
-     *     return <div>...</div>
-     *   }}
-     * </Field.Validity>
-     * ```
-     */
-    children: (state: FieldValidityState) => JSX.Element;
-  }
+export namespace FieldValidity {
+  export type State = FieldValidityState;
+  export type Props = FieldValidityProps;
 }

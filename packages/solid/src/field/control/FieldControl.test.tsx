@@ -6,6 +6,6 @@ describe('<Field.Control />', () => {
 
   describeConformance(Field.Control, () => ({
     refInstanceof: window.HTMLInputElement,
-    render: (node, props) => render(() => <Field.Root>{node(props)}</Field.Root>),
+    render: (node, props) => render(() => <Field.Root>{node(props!)}</Field.Root>),
   }));
 });

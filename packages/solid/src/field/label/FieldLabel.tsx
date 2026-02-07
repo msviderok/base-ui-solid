@@ -1,5 +1,6 @@
-import { onMount } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { getTarget } from '../../floating-ui-solid/utils';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -16,30 +17,38 @@ import { fieldValidityMapping } from '../utils/constants';
  */
 export function FieldLabel(componentProps: FieldLabel.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
+  const idProp = () => local.id;
 
-  const { labelId, state, controlId, setCodependentRefs } = useFieldRootContext(false);
+  const fieldRootContext = useFieldRootContext(false);
 
-  const id = useBaseUiId(() => local.id);
-  const htmlFor = () => controlId() ?? undefined;
-  let ref: HTMLElement;
+  const { controlId, setLabelId, labelId } = useLabelableContext();
 
-  onMount(() => {
-    setCodependentRefs('label', { explicitId: id, ref: () => ref, id: () => local.id });
+  const id = useBaseUiId(idProp);
+  let labelRef = null as HTMLLabelElement | null | undefined;
+
+  createEffect(() => {
+    const resolvedId = id();
+    if (resolvedId) {
+      setLabelId(resolvedId);
+    }
+
+    onCleanup(() => {
+      setLabelId(undefined);
+    });
   });
 
   const element = useRenderElement('label', componentProps, {
-    state,
+    state: fieldRootContext.state,
     ref: (el) => {
-      ref = el;
+      labelRef = el;
     },
-    customStyleHookMapping: fieldValidityMapping,
     props: [
       {
         get id() {
           return labelId();
         },
         get for() {
-          return htmlFor();
+          return controlId() ?? undefined;
         },
         onMouseDown(event) {
           const target = getTarget(event) as HTMLElement | null;
@@ -55,13 +64,17 @@ export function FieldLabel(componentProps: FieldLabel.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: fieldValidityMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace FieldLabel {
-  export type State = FieldRoot.State;
+export type FieldLabelState = FieldRoot.State;
 
-  export interface Props extends BaseUIComponentProps<'label', State> {}
+export interface FieldLabelProps extends BaseUIComponentProps<'label', FieldLabel.State> {}
+
+export namespace FieldLabel {
+  export type State = FieldLabelState;
+  export type Props = FieldLabelProps;
 }

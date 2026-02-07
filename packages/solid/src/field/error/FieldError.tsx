@@ -1,5 +1,6 @@
 import { createEffect, createMemo, For, onCleanup, splitProps } from 'solid-js';
 import { useFormContext } from '../../form/FormContext';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -15,10 +16,12 @@ import { fieldValidityMapping } from '../utils/constants';
  */
 export function FieldError(componentProps: FieldError.Props) {
   const [local, elementProps] = splitProps(componentProps, ['id', 'match']);
+  const idProp = () => local.id;
 
-  const id = useBaseUiId(() => local.id);
+  const id = useBaseUiId(idProp);
 
-  const { validityData, state, name, setMessageIds } = useFieldRootContext(false);
+  const { validityData, state, name } = useFieldRootContext(false);
+  const { setMessageIds } = useLabelableContext();
 
   const { errors } = useFormContext();
 
@@ -52,7 +55,6 @@ export function FieldError(componentProps: FieldError.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     enabled: rendered,
-    customStyleHookMapping: fieldValidityMapping,
     props: [
       {
         get id() {
@@ -80,21 +82,25 @@ export function FieldError(componentProps: FieldError.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: fieldValidityMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace FieldError {
-  export type State = FieldRoot.State;
+export type FieldErrorState = FieldRoot.State;
 
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * Determines whether to show the error message according to the field’s
-     * [ValidityState](https://developer.mozilla.org/en-US/docs/Web/API/ValidityState).
-     * Specifying `true` will always show the error message, and lets external libraries
-     * control the visibility.
-     */
-    match?: boolean | keyof ValidityState;
-  }
+export interface FieldErrorProps extends BaseUIComponentProps<'div', FieldError.State> {
+  /**
+   * Determines whether to show the error message according to the field’s
+   * [ValidityState](https://developer.mozilla.org/en-US/docs/Web/API/ValidityState).
+   * Specifying `true` will always show the error message, and lets external libraries
+   * control the visibility.
+   */
+  match?: boolean | keyof ValidityState;
+}
+
+export namespace FieldError {
+  export type State = FieldErrorState;
+  export type Props = FieldErrorProps;
 }

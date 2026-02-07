@@ -1,24 +1,15 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import { type SetStoreFunction, type Store } from 'solid-js/store';
-import type { CodependentRefs } from '../../solid-helpers';
+import type { Form } from '../../form';
+import { EMPTY_OBJECT } from '../../utils/constants';
 import { NOOP } from '../../utils/noop';
+import type { HTMLProps } from '../../utils/types';
 import { DEFAULT_VALIDITY_STATE } from '../utils/constants';
 import type { FieldRoot, FieldValidityData } from './FieldRoot';
-
-export type FieldRootChildRefs = CodependentRefs<['label', 'control']>;
+import type { UseFieldValidationReturnValue } from './useFieldValidation';
 
 export interface FieldRootContext {
   invalid: Accessor<boolean | undefined>;
-  /**
-   * The `id` of the labelable element that corresponds to the `for` attribute of a `Field.Label`.
-   * When `null` the association is implicit.
-   */
-  controlId: Accessor<string | null | undefined>;
-  setControlId: Setter<string | null | undefined>;
-  labelId: Accessor<string | undefined>;
-  setLabelId: Setter<string | undefined>;
-  messageIds: Accessor<string[]>;
-  setMessageIds: Setter<string[]>;
   name: Accessor<string | undefined>;
   validityData: Store<FieldValidityData>;
   setValidityData: SetStoreFunction<FieldValidityData>;
@@ -35,24 +26,18 @@ export interface FieldRootContext {
     value: unknown,
     formValues: Record<string, unknown>,
   ) => string | string[] | null | Promise<string | string[] | null>;
-  validationMode: Accessor<'onBlur' | 'onChange'>;
+  validationMode: Accessor<Form.ValidationMode>;
   validationDebounceTime: Accessor<number>;
+  shouldValidateOnChange: () => boolean;
   state: FieldRoot.State;
   refs: {
     markedDirtyRef: boolean;
   };
-  codependentRefs: Store<FieldRootChildRefs>;
-  setCodependentRefs: SetStoreFunction<FieldRootChildRefs>;
+  validation: UseFieldValidationReturnValue;
 }
 
 export const FieldRootContext = createContext<FieldRootContext>({
   invalid: () => undefined,
-  controlId: () => undefined,
-  setControlId: NOOP as any,
-  labelId: () => undefined,
-  setLabelId: NOOP as any,
-  messageIds: () => [],
-  setMessageIds: NOOP as Setter<any>,
   name: () => undefined,
   validityData: {
     state: DEFAULT_VALIDITY_STATE,
@@ -72,8 +57,9 @@ export const FieldRootContext = createContext<FieldRootContext>({
   focused: () => false,
   setFocused: NOOP as Setter<any>,
   validate: () => null,
-  validationMode: () => 'onBlur' as const,
+  validationMode: () => 'onSubmit' as const,
   validationDebounceTime: () => 0,
+  shouldValidateOnChange: () => false,
   state: {
     disabled: false,
     valid: null,
@@ -85,14 +71,18 @@ export const FieldRootContext = createContext<FieldRootContext>({
   refs: {
     markedDirtyRef: false,
   },
-  codependentRefs: {},
-  setCodependentRefs: NOOP as SetStoreFunction<FieldRootChildRefs>,
+  validation: {
+    getValidationProps: (props = EMPTY_OBJECT) => props,
+    getInputValidationProps: (props = EMPTY_OBJECT) => props,
+    inputRef: null,
+    commit: async () => {},
+  },
 });
 
 export function useFieldRootContext(optional = true) {
   const context = useContext(FieldRootContext);
 
-  if (context.setControlId === NOOP && !optional) {
+  if (context.setValidityData === NOOP && !optional) {
     throw new Error(
       'Base UI: FieldRootContext is missing. Field parts must be placed within <Field.Root>.',
     );

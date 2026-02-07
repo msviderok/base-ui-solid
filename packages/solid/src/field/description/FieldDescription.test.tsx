@@ -8,7 +8,7 @@ describe('<Field.Description />', () => {
 
   describeConformance(Field.Description, () => ({
     refInstanceof: window.HTMLParagraphElement,
-    render: (node, props) => render(() => <Field.Root>{node(props)}</Field.Root>),
+    render: (node, props) => render(() => <Field.Root>{node(props!)}</Field.Root>),
   }));
 
   it('should set aria-describedby on the control automatically', () => {
