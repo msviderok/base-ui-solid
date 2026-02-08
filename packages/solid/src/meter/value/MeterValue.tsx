@@ -32,8 +32,13 @@ export function MeterValue(componentProps: MeterValue.Props) {
   return <>{element()}</>;
 }
 
+export interface MeterValueProps extends Omit<
+  BaseUIComponentProps<'span', MeterRoot.State>,
+  'children'
+> {
+  children?: null | ((formattedValue: string, value: number) => JSX.Element);
+}
+
 export namespace MeterValue {
-  export interface Props extends Omit<BaseUIComponentProps<'span', MeterRoot.State>, 'children'> {
-    children?: null | ((formattedValue: string, value: number) => JSX.Element);
-  }
+  export type Props = MeterValueProps;
 }

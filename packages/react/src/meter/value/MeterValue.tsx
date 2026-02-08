@@ -1,9 +1,9 @@
 'use client';
 import * as React from 'react';
 import type { BaseUIComponentProps } from '../../utils/types';
-import { useMeterRootContext } from '../root/MeterRootContext';
-import type { MeterRoot } from '../root/MeterRoot';
 import { useRenderElement } from '../../utils/useRenderElement';
+import type { MeterRoot } from '../root/MeterRoot';
+import { useMeterRootContext } from '../root/MeterRootContext';
 
 /**
  * A text element displaying the current value.
@@ -34,8 +34,13 @@ export const MeterValue = React.forwardRef(function MeterValue(
   });
 });
 
+export interface MeterValueProps extends Omit<
+  BaseUIComponentProps<'span', MeterRoot.State>,
+  'children'
+> {
+  children?: null | ((formattedValue: string, value: number) => React.ReactNode);
+}
+
 export namespace MeterValue {
-  export interface Props extends Omit<BaseUIComponentProps<'span', MeterRoot.State>, 'children'> {
-    children?: null | ((formattedValue: string, value: number) => React.ReactNode);
-  }
+  export type Props = MeterValueProps;
 }

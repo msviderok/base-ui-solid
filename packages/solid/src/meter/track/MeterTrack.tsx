@@ -19,6 +19,8 @@ export function MeterTrack(componentProps: MeterTrack.Props) {
   return <>{element()}</>;
 }
 
+export interface MeterTrackProps extends BaseUIComponentProps<'div', MeterRoot.State> {}
+
 export namespace MeterTrack {
-  export interface Props extends BaseUIComponentProps<'div', MeterRoot.State> {}
+  export type Props = MeterTrackProps;
 }

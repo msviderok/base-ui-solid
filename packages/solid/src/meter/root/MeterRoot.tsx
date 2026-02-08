@@ -1,10 +1,8 @@
-import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
-import { createStore } from 'solid-js/store';
-import { splitComponentProps, type CodependentRefs } from '../../solid-helpers';
+import { createMemo, createSignal, type JSX } from 'solid-js';
+import { splitComponentProps } from '../../solid-helpers';
 import { formatNumber } from '../../utils/formatNumber';
 import { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { valueToPercent } from '../../utils/valueToPercent';
 import { MeterRootContext } from './MeterRootContext';
 
 function formatValue(
@@ -36,23 +34,21 @@ export function MeterRoot(componentProps: MeterRoot.Props) {
   ]);
   const max = () => local.max ?? 100;
   const min = () => local.min ?? 0;
+  const valueProp = () => local.value;
 
   const [labelId, setLabelId] = createSignal<string>();
-  const [codependentRefs, setCodependentRefs] = createStore<CodependentRefs<['label']>>({});
-
-  const percentageValue = () => valueToPercent(local.value, min(), max());
-  const formattedValue = () => formatValue(local.value, local.locale, local.format);
+  const formattedValue = () => formatValue(valueProp(), local.locale, local.format);
 
   const ariaValuetext = createMemo(() => {
     if (local.getAriaValueText) {
-      return local.getAriaValueText(formattedValue(), local.value);
+      return local.getAriaValueText(formattedValue(), valueProp());
     }
 
     if (local.format) {
       return formattedValue();
     }
 
-    return `${percentageValue()}%`;
+    return `${valueProp()}%`;
   });
 
   const defaultProps: HTMLProps = {
@@ -67,7 +63,7 @@ export function MeterRoot(componentProps: MeterRoot.Props) {
       return min();
     },
     get 'aria-valuenow'() {
-      return percentageValue() / 100;
+      return valueProp();
     },
     get 'aria-valuetext'() {
       return ariaValuetext();
@@ -78,26 +74,9 @@ export function MeterRoot(componentProps: MeterRoot.Props) {
     formattedValue,
     max,
     min,
-    percentageValue,
-    value: () => local.value,
-    codependentRefs,
-    setCodependentRefs,
+    setLabelId,
+    value: valueProp,
   };
-
-  createEffect(
-    on(
-      () => codependentRefs.label,
-      (label) => {
-        if (label) {
-          setLabelId(label.id() ?? label.explicitId());
-        }
-
-        onCleanup(() => {
-          setLabelId(undefined);
-        });
-      },
-    ),
-  );
 
   const element = useRenderElement('div', componentProps, {
     props: [defaultProps, elementProps],
@@ -106,39 +85,46 @@ export function MeterRoot(componentProps: MeterRoot.Props) {
   return <MeterRootContext.Provider value={contextValue}>{element()}</MeterRootContext.Provider>;
 }
 
-export namespace MeterRoot {
-  export interface State {}
+export interface MeterRootState {}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * Options to format the value.
-     */
-    format?: Intl.NumberFormatOptions;
-    /**
-     * A function that returns a string value that provides a human-readable text alternative for the current value of the meter.
-     * @param {string} formattedValue The formatted value
-     * @param {number} value The raw value
-     * @returns {string}
-     */
-    getAriaValueText?: (formattedValue: string, value: number) => string;
-    /**
-     * The locale used by `Intl.NumberFormat` when formatting the value.
-     * Defaults to the user's runtime locale.
-     */
-    locale?: Intl.LocalesArgument;
-    /**
-     * The maximum value
-     * @default 100
-     */
-    max?: number;
-    /**
-     * The minimum value
-     * @default 0
-     */
-    min?: number;
-    /**
-     * The current value.
-     */
-    value: number;
-  }
+export interface MeterRootProps extends BaseUIComponentProps<'div', MeterRoot.State> {
+  /**
+   * A string value that provides a user-friendly name for `aria-valuenow`, the current value of the meter.
+   */
+  'aria-valuetext'?: JSX.AriaAttributes['aria-valuetext'];
+  /**
+   * Options to format the value.
+   */
+  format?: Intl.NumberFormatOptions;
+  /**
+   * A function that returns a string value that provides a human-readable text alternative for `aria-valuenow`, the current value of the meter.
+   * @param {string} formattedValue The formatted value
+   * @param {number} value The raw value
+   * @returns {string}
+   */
+  getAriaValueText?: (formattedValue: string, value: number) => string;
+  /**
+   * The locale used by `Intl.NumberFormat` when formatting the value.
+   * Defaults to the user's runtime locale.
+   */
+  locale?: Intl.LocalesArgument;
+  /**
+   * The maximum value
+   * @default 100
+   */
+  max?: number;
+  /**
+   * The minimum value
+   * @default 0
+   */
+  min?: number;
+  /**
+   * The current value.
+   */
+  value: number;
+}
+
+export namespace MeterRoot {
+  export type State = MeterRootState;
+  export type Props = MeterRootProps;
 }

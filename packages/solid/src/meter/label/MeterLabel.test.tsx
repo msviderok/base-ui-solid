@@ -5,7 +5,7 @@ describe('<Meter.Label />', () => {
   const { render } = createRenderer();
 
   describeConformance(Meter.Label, () => ({
-    render: (node, props) => render(() => <Meter.Root value={50}>{node(props)}</Meter.Root>),
+    render: (node, props) => render(() => <Meter.Root value={50}>{node(props!)}</Meter.Root>),
     refInstanceof: window.HTMLSpanElement,
   }));
 });

@@ -8,7 +8,7 @@ describe('<Meter.Value />', () => {
   const { render } = createRenderer();
 
   describeConformance(Meter.Value, () => ({
-    render: (node, props) => render(() => <Meter.Root value={30}>{node(props)}</Meter.Root>),
+    render: (node, props) => render(() => <Meter.Root value={30}>{node(props!)}</Meter.Root>),
     refInstanceof: window.HTMLSpanElement,
   }));
 
@@ -19,8 +19,9 @@ describe('<Meter.Value />', () => {
           <Meter.Value data-testid="value" />
         </Meter.Root>
       ));
+
       const value = screen.getByTestId('value');
-      expect(value).to.have.text('30%');
+      expect(value).to.have.text((0.3).toLocaleString(undefined, { style: 'percent' }));
     });
 
     it('renders a formatted value when a format is provided', async () => {
@@ -36,6 +37,7 @@ describe('<Meter.Value />', () => {
           <Meter.Value data-testid="value" />
         </Meter.Root>
       ));
+
       const value = screen.getByTestId('value');
       expect(value).to.have.text(formatValue(30));
     });

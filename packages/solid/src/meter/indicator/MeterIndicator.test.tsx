@@ -7,7 +7,7 @@ describe('<Meter.Indicator />', () => {
   const { render } = createRenderer();
 
   describeConformance(Meter.Indicator, () => ({
-    render: (node, props) => render(() => <Meter.Root value={30}>{node(props)}</Meter.Root>),
+    render: (node, props) => render(() => <Meter.Root value={30}>{node(props!)}</Meter.Root>),
     refInstanceof: window.HTMLDivElement,
   }));
 

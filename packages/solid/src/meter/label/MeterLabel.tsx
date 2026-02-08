@@ -1,4 +1,4 @@
-import { onMount } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -15,18 +15,15 @@ import { useMeterRootContext } from '../root/MeterRootContext';
 export function MeterLabel(componentProps: MeterLabel.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
   const id = useBaseUiId(() => local.id);
-  let ref!: HTMLElement;
 
-  const { setCodependentRefs } = useMeterRootContext();
+  const { setLabelId } = useMeterRootContext();
 
-  onMount(() => {
-    setCodependentRefs('label', { explicitId: id, ref: () => ref, id: () => local.id });
+  createEffect(() => {
+    setLabelId(id());
+    onCleanup(() => setLabelId(undefined));
   });
 
   const element = useRenderElement('span', componentProps, {
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -40,6 +37,8 @@ export function MeterLabel(componentProps: MeterLabel.Props) {
   return <>{element()}</>;
 }
 
+export interface MeterLabelProps extends BaseUIComponentProps<'span', MeterRoot.State> {}
+
 export namespace MeterLabel {
-  export interface Props extends BaseUIComponentProps<'span', MeterRoot.State> {}
+  export type Props = MeterLabelProps;
 }
