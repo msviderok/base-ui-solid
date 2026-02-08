@@ -1,6 +1,8 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
-import { useFieldControlValidation } from '../field/control/useFieldControlValidation';
+import type { UseFieldValidationReturnValue } from '../field/root/useFieldValidation';
+import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
 import { NOOP } from '../utils/noop';
+import type { BaseUIEventReasons } from '../utils/reasons';
 
 export interface RadioGroupContext {
   disabled: Accessor<boolean | undefined>;
@@ -8,11 +10,17 @@ export interface RadioGroupContext {
   required: Accessor<boolean | undefined>;
   name: Accessor<string | undefined>;
   checkedValue: Accessor<unknown>;
-  setCheckedValue: (value: unknown) => void;
-  onValueChange: (value: unknown, event: Event) => void;
+  setCheckedValue: (
+    value: unknown,
+    eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
+  ) => void;
+  onValueChange: (
+    value: unknown,
+    eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
+  ) => void;
   touched: Accessor<boolean>;
   setTouched: (value: boolean) => void;
-  fieldControlValidation?: ReturnType<typeof useFieldControlValidation>;
+  validation?: UseFieldValidationReturnValue;
   registerControlRef: (element: HTMLElement | null | undefined) => void;
 }
 

@@ -13,7 +13,7 @@ describe('<Radio.Indicator />', () => {
   const { render } = createRenderer();
 
   describeConformance(Radio.Indicator, () => ({
-    render: (node, props) => render(() => <Radio.Root value="">{node(props)}</Radio.Root>),
+    render: (node, props) => render(() => <Radio.Root value="">{node(props!)}</Radio.Root>),
     refInstanceof: window.HTMLSpanElement,
   }));
 

@@ -55,7 +55,7 @@ export interface CompositeItemProps<Metadata, State extends Record<string, any>>
 > {
   children?: JSX.Element;
   metadata?: MaybeAccessor<Metadata | undefined>;
-  refs?: Ref<HTMLElement | null | undefined>[];
+  refs?: Ref<HTMLElement | null | undefined> | Ref<HTMLElement | null | undefined>[];
   props?: Array<Record<string, any> | (() => Record<string, any>)>;
   state?: State;
   stateAttributesMapping?: StateAttributesMapping<State>;
