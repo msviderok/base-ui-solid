@@ -1,4 +1,4 @@
-import { TransitionStatusDataAttributes } from '../../utils/styleHookMapping';
+import { TransitionStatusDataAttributes } from '../../utils/stateAttributesMapping';
 
 export enum CheckboxIndicatorDataAttributes {
   /**
@@ -8,7 +8,10 @@ export enum CheckboxIndicatorDataAttributes {
   /**
    * Present when the checkbox is not checked.
    */
-  unchecked = 'data-unchecked',
+  unchecked = 'data-unchecked' /**
+   * Present when the checkbox is in an indeterminate state.
+   */,
+  indeterminate = 'data-indeterminate',
   /**
    * Present when the checkbox is disabled.
    */

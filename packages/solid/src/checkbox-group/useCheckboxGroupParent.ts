@@ -1,4 +1,6 @@
 import { batch, createSignal, type Accessor } from 'solid-js';
+import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
+import type { BaseUIEventReasons } from '../utils/reasons';
 import { useBaseUiId } from '../utils/useBaseUiId';
 
 const EMPTY: string[] = [];
@@ -28,12 +30,14 @@ export function useCheckboxGroupParent(
     get checked() {
       return checked();
     },
+    // TODO: custom `id` on child checkboxes breaks this
+    // https://github.com/mui/base-ui/issues/2691
     get 'aria-controls'() {
       return allValues()
         .map((v) => `${id()}-${v}`)
         .join(' ');
     },
-    onCheckedChange(_, event) {
+    onCheckedChange(_, eventDetails) {
       batch(() => {
         const uncontrolledState = uncontrolledStateRef;
 
@@ -55,47 +59,43 @@ export function useCheckboxGroupParent(
 
         if (allOnOrOff) {
           if (value().length === all.length) {
-            params.onValueChange?.(none, event);
+            params.onValueChange?.(none, eventDetails);
           } else {
-            params.onValueChange?.(all, event);
+            params.onValueChange?.(all, eventDetails);
           }
           return;
         }
 
         if (status() === 'mixed') {
-          params.onValueChange?.(all, event);
+          params.onValueChange?.(all, eventDetails);
           setStatus('on');
         } else if (status() === 'on') {
-          params.onValueChange?.(none, event);
+          params.onValueChange?.(none, eventDetails);
           setStatus('off');
         } else if (status() === 'off') {
-          params.onValueChange?.(uncontrolledState, event);
+          params.onValueChange?.(uncontrolledState, eventDetails);
           setStatus('mixed');
         }
       });
     },
   });
 
-  const getChildProps: useCheckboxGroupParent.ReturnValue['getChildProps'] = (name: string) => ({
-    get name() {
-      return name;
-    },
-    get id() {
-      return `${id()}-${name}`;
-    },
+  const getChildProps: useCheckboxGroupParent.ReturnValue['getChildProps'] = (
+    childValue: string,
+  ) => ({
     get checked() {
-      return value().includes(name);
+      return value().includes(childValue);
     },
-    onCheckedChange(nextChecked, event) {
+    onCheckedChange(nextChecked, eventDetails) {
       batch(() => {
         const newValue = value().slice();
         if (nextChecked) {
-          newValue.push(name);
+          newValue.push(childValue);
         } else {
-          newValue.splice(newValue.indexOf(name), 1);
+          newValue.splice(newValue.indexOf(childValue), 1);
         }
         uncontrolledStateRef = newValue;
-        params.onValueChange?.(newValue, event);
+        params.onValueChange?.(newValue, eventDetails);
         setStatus('mixed');
       });
     },
@@ -110,29 +110,39 @@ export function useCheckboxGroupParent(
   };
 }
 
-export namespace useCheckboxGroupParent {
-  export interface Parameters {
-    allValues?: Accessor<string[] | undefined>;
-    value?: Accessor<string[] | undefined>;
-    onValueChange?: (value: string[], event: Event) => void;
-  }
+export interface UseCheckboxGroupParentParameters {
+  allValues?: Accessor<string[] | undefined>;
+  value?: Accessor<string[] | undefined>;
+  onValueChange?: (
+    value: string[],
+    eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
+  ) => void;
+}
 
-  export interface ReturnValue {
-    id: Accessor<string | undefined>;
-    indeterminate: Accessor<boolean>;
-    disabledStatesRef: Map<string, boolean>;
-    getParentProps: () => {
-      id: string | undefined;
-      indeterminate: boolean;
-      checked: boolean;
-      'aria-controls': string;
-      onCheckedChange: (checked: boolean, event: Event) => void;
-    };
-    getChildProps: (name: string) => {
-      name: string;
-      id: string;
-      checked: boolean;
-      onCheckedChange: (checked: boolean, event: Event) => void;
-    };
-  }
+export interface UseCheckboxGroupParentReturnValue {
+  id: Accessor<string | undefined>;
+  indeterminate: Accessor<boolean>;
+  disabledStatesRef: Map<string, boolean>;
+  getParentProps: () => {
+    id: string | undefined;
+    indeterminate: boolean;
+    checked: boolean;
+    'aria-controls': string;
+    onCheckedChange: (
+      checked: boolean,
+      eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
+    ) => void;
+  };
+  getChildProps: (name: string) => {
+    checked: boolean;
+    onCheckedChange: (
+      checked: boolean,
+      eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
+    ) => void;
+  };
+}
+
+export namespace useCheckboxGroupParent {
+  export type Parameters = UseCheckboxGroupParentParameters;
+  export type ReturnValue = UseCheckboxGroupParentReturnValue;
 }

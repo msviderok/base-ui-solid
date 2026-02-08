@@ -1,10 +1,11 @@
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { fieldValidityMapping } from '../../field/utils/constants';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import type { CheckboxRoot } from '../root/CheckboxRoot';
 import { CheckboxRootDataAttributes } from '../root/CheckboxRootDataAttributes';
 
-export function useCustomStyleHookMapping(
+export function useStateAttributesMapping(
   state: CheckboxRoot.State,
-): CustomStyleHookMapping<CheckboxRoot.State> {
+): StateAttributesMapping<typeof state> {
   return {
     checked(value): Record<string, string> {
       if (state.indeterminate) {
@@ -22,5 +23,6 @@ export function useCustomStyleHookMapping(
         [CheckboxRootDataAttributes.unchecked]: '',
       };
     },
+    ...fieldValidityMapping,
   };
 }

@@ -1,14 +1,14 @@
 import { Show, mergeProps as solidMergeProps, splitProps } from 'solid-js';
 import { fieldValidityMapping } from '../../field/utils/constants';
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { type TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
 import type { CheckboxRoot } from '../root/CheckboxRoot';
 import { useCheckboxRootContext } from '../root/CheckboxRootContext';
-import { useCustomStyleHookMapping } from '../utils/useCustomStyleHookMapping';
+import { useStateAttributesMapping } from '../utils/useStateAttributesMapping';
 
 /**
  * Indicates whether the checkbox is ticked.
@@ -38,10 +38,10 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
     },
   });
 
-  const baseStyleHookMapping = useCustomStyleHookMapping(rootState);
+  const baseStateAttributesMapping = useStateAttributesMapping(rootState);
 
-  const customStyleHookMapping: CustomStyleHookMapping<CheckboxIndicator.State> = {
-    ...baseStyleHookMapping,
+  const stateAttributesMapping: StateAttributesMapping<CheckboxIndicator.State> = {
+    ...baseStateAttributesMapping,
     ...transitionStatusMapping,
     ...fieldValidityMapping,
   };
@@ -59,7 +59,7 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
     ref: (el) => {
       indicatorRef = el;
     },
-    customStyleHookMapping,
+    stateAttributesMapping,
     props: elementProps,
     enabled: shouldRender,
   });
@@ -67,16 +67,22 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
   return <Show when={shouldRender()}>{element()}</Show>;
 }
 
-export namespace CheckboxIndicator {
-  export interface State extends CheckboxRoot.State {
-    transitionStatus: TransitionStatus;
-  }
+export interface CheckboxIndicatorState extends CheckboxRoot.State {
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'span', State> {
-    /**
-     * Whether to keep the element in the DOM when the checkbox is not checked.
-     * @default false
-     */
-    keepMounted?: boolean;
-  }
+export interface CheckboxIndicatorProps extends BaseUIComponentProps<
+  'span',
+  CheckboxIndicator.State
+> {
+  /**
+   * Whether to keep the element in the DOM when the checkbox is not checked.
+   * @default false
+   */
+  keepMounted?: boolean;
+}
+
+export namespace CheckboxIndicator {
+  export type State = CheckboxIndicatorState;
+  export type Props = CheckboxIndicatorProps;
 }

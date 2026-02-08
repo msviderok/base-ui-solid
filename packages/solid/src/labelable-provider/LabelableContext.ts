@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import { NOOP } from '../utils/noop';
-import { HTMLProps } from '../utils/types';
+import type { BaseUIHTMLProps, HTMLProps } from '../utils/types';
 
 export interface LabelableContext {
   /**
@@ -20,7 +20,7 @@ export interface LabelableContext {
    */
   messageIds: Accessor<string[]>;
   setMessageIds: Setter<string[]>;
-  getDescriptionProps: (externalProps: HTMLProps) => HTMLProps;
+  getDescriptionProps: (externalProps: HTMLProps | BaseUIHTMLProps) => BaseUIHTMLProps;
 }
 
 /**
@@ -34,7 +34,7 @@ export const LabelableContext = createContext<LabelableContext>({
   setLabelId: NOOP as Setter<string | undefined>,
   messageIds: () => [],
   setMessageIds: NOOP as Setter<string[]>,
-  getDescriptionProps: (externalProps: HTMLProps) => externalProps,
+  getDescriptionProps: (externalProps) => externalProps,
 });
 
 export function useLabelableContext() {
