@@ -1,11 +1,12 @@
+import { mergeProps as solidMergeProps } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
-import { BaseUIComponentProps } from '../../utils/types';
+import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { NumberFieldRoot } from '../root/NumberFieldRoot';
 import { useNumberFieldRootContext } from '../root/NumberFieldRootContext';
 import { useNumberFieldButton } from '../root/useNumberFieldButton';
-import { styleHookMapping } from '../utils/styleHooks';
+import { stateAttributesMapping } from '../utils/stateAttributesMapping';
 
 /**
  * A stepper button that decreases the field value when clicked.
@@ -14,7 +15,9 @@ import { styleHookMapping } from '../utils/styleHooks';
  * Documentation: [Base UI Number Field](https://base-ui.com/react/components/number-field)
  */
 export function NumberFieldDecrement(componentProps: NumberFieldDecrement.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, ['disabled']);
+  const [, local, elementProps] = splitComponentProps(componentProps, ['disabled', 'nativeButton']);
+  const disabledProp = () => local.disabled ?? false;
+  const nativeButton = () => local.nativeButton ?? true;
 
   const {
     disabled: contextDisabled,
@@ -23,7 +26,6 @@ export function NumberFieldDecrement(componentProps: NumberFieldDecrement.Props)
     incrementValue,
     inputValue,
     intentionalTouchCheckTimeout,
-    maxWithDefault,
     minWithDefault,
     readOnly,
     setValue,
@@ -33,17 +35,16 @@ export function NumberFieldDecrement(componentProps: NumberFieldDecrement.Props)
     value,
     locale,
     refs,
+    onValueCommitted,
   } = useNumberFieldRootContext();
 
-  const disabled = () => (local.disabled ?? false) || contextDisabled();
+  const isMin = () => value() != null && value()! < minWithDefault();
+  const disabled = () => disabledProp() || contextDisabled() || isMin();
 
   const { props } = useNumberFieldButton({
     isIncrement: false,
     startAutoChange,
     stopAutoChange,
-    minWithDefault,
-    maxWithDefault,
-    value,
     inputValue,
     disabled,
     readOnly,
@@ -54,22 +55,37 @@ export function NumberFieldDecrement(componentProps: NumberFieldDecrement.Props)
     intentionalTouchCheckTimeout,
     locale,
     refs,
+    onValueCommitted,
   });
 
-  const { getButtonProps, buttonRef } = useButton({ disabled });
+  const { getButtonProps, buttonRef } = useButton({
+    disabled,
+    native: nativeButton,
+    focusableWhenDisabled: true,
+  });
+
+  const buttonState = solidMergeProps(state, {
+    get disabled() {
+      return disabled();
+    },
+  });
 
   const element = useRenderElement('button', componentProps, {
-    state,
+    state: buttonState,
     ref: buttonRef,
     props: [props, elementProps, getButtonProps],
-    customStyleHookMapping: styleHookMapping,
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace NumberFieldDecrement {
-  export interface State extends NumberFieldRoot.State {}
+export interface NumberFieldDecrementState extends NumberFieldRoot.State {}
 
-  export interface Props extends BaseUIComponentProps<'button', State> {}
+export interface NumberFieldDecrementProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', NumberFieldDecrement.State> {}
+
+export namespace NumberFieldDecrement {
+  export type State = NumberFieldDecrementState;
+  export type Props = NumberFieldDecrementProps;
 }

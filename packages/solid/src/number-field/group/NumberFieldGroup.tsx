@@ -3,7 +3,7 @@ import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { NumberFieldRoot } from '../root/NumberFieldRoot';
 import { useNumberFieldRootContext } from '../root/NumberFieldRootContext';
-import { styleHookMapping } from '../utils/styleHooks';
+import { stateAttributesMapping } from '../utils/stateAttributesMapping';
 
 /**
  * Groups the input with the increment and decrement buttons.
@@ -19,14 +19,20 @@ export function NumberFieldGroup(componentProps: NumberFieldGroup.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     props: [{ role: 'group' }, elementProps],
-    customStyleHookMapping: styleHookMapping,
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace NumberFieldGroup {
-  export interface State extends NumberFieldRoot.State {}
+export interface NumberFieldGroupState extends NumberFieldRoot.State {}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface NumberFieldGroupProps extends BaseUIComponentProps<
+  'div',
+  NumberFieldGroup.State
+> {}
+
+export namespace NumberFieldGroup {
+  export type State = NumberFieldGroupState;
+  export type Props = NumberFieldGroupProps;
 }

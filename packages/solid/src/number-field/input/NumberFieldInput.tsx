@@ -1,24 +1,40 @@
-import { batch, createEffect, type JSX } from 'solid-js';
-import { useFieldControlValidation } from '../../field/control/useFieldControlValidation';
+import { batch, createEffect, on, type JSX } from 'solid-js';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useField } from '../../field/useField';
 import { fieldValidityMapping } from '../../field/utils/constants';
 import { stopEvent } from '../../floating-ui-solid/utils';
 import { useFormContext } from '../../form/FormContext';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
+import {
+  createChangeEventDetails,
+  createGenericEventDetails,
+} from '../../utils/createBaseUIEventDetails';
 import { formatNumber, formatNumberMaxPrecision } from '../../utils/formatNumber';
+import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { NumberFieldRoot } from '../root/NumberFieldRoot';
 import { useNumberFieldRootContext } from '../root/NumberFieldRootContext';
 import { DEFAULT_STEP } from '../utils/constants';
-import { ARABIC_RE, HAN_RE, getNumberLocaleDetails, parseNumber } from '../utils/parse';
-import { styleHookMapping } from '../utils/styleHooks';
+import {
+  ANY_MINUS_DETECT_RE,
+  ANY_MINUS_RE,
+  ANY_PLUS_DETECT_RE,
+  ANY_PLUS_RE,
+  ARABIC_DETECT_RE,
+  FULLWIDTH_DETECT_RE,
+  getNumberLocaleDetails,
+  HAN_DETECT_RE,
+  parseNumber,
+  PERSIAN_DETECT_RE,
+} from '../utils/parse';
+import { stateAttributesMapping as numberFieldStateAttributesMapping } from '../utils/stateAttributesMapping';
 
-const customStyleHookMapping = {
+const stateAttributesMapping = {
   ...fieldValidityMapping,
-  ...styleHookMapping,
+  ...numberFieldStateAttributesMapping,
 };
 
 const NAVIGATE_KEYS = new Set([
@@ -59,62 +75,48 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
     setInputValue,
     locale,
     value,
+    onValueCommitted,
   } = useNumberFieldRootContext();
 
   const { clearErrors } = useFormContext();
-  const { labelId, validationMode, setTouched, setFocused, invalid } = useFieldRootContext();
-
-  const {
-    getInputValidationProps,
-    getValidationProps,
-    commitValidation,
-    refs: fieldControlRefs,
-  } = useFieldControlValidation();
+  const { validationMode, setTouched, setFocused, invalid, shouldValidateOnChange, validation } =
+    useFieldRootContext();
+  const { labelId } = useLabelableContext();
 
   let hasTouchedInputRef = false;
   let blockRevalidationRef = false;
 
   useField({
     id,
-    commitValidation,
+    commit: validation.commit,
     value,
     controlRef: () => refs.inputRef,
     name,
     getValue: () => value() ?? null,
   });
 
-  let prevValueRef = value();
-  let prevInputValueRef = inputValue();
+  createEffect(
+    on(value, (val, previousValue) => {
+      const validateOnChange = shouldValidateOnChange();
 
-  // TODO: this effect has to be the first in order to sync the refs
-  createEffect(() => {
-    prevValueRef = value();
-    prevInputValueRef = inputValue();
-  });
+      clearErrors(name());
 
-  createEffect(() => {
-    if (prevValueRef === value() && prevInputValueRef === inputValue()) {
-      return;
-    }
+      if (validateOnChange) {
+        validation.commit(value);
+      }
 
-    clearErrors(name());
+      if (previousValue === val || validateOnChange) {
+        return;
+      }
 
-    if (validationMode() === 'onChange') {
-      commitValidation(value());
-    }
-  });
+      if (blockRevalidationRef) {
+        blockRevalidationRef = false;
+        return;
+      }
 
-  createEffect(() => {
-    if (prevValueRef === value() || validationMode() === 'onChange') {
-      return;
-    }
-
-    if (blockRevalidationRef) {
-      blockRevalidationRef = false;
-      return;
-    }
-    commitValidation(value(), true);
-  });
+      validation.commit(val, true);
+    }),
+  );
 
   const inputProps: JSX.InputHTMLAttributes<HTMLInputElement> = {
     type: 'text',
@@ -151,12 +153,17 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
     // causing a hydration mismatch.
     // suppressHydrationWarning: true,
     onFocus(event) {
-      if (event.defaultPrevented || readOnly() || disabled() || hasTouchedInputRef) {
+      if (event.defaultPrevented || readOnly() || disabled()) {
+        return;
+      }
+
+      setFocused(true);
+
+      if (hasTouchedInputRef) {
         return;
       }
 
       hasTouchedInputRef = true;
-      setFocused(true);
 
       // Browsers set selection at the start of the input field by default. We want to set it at
       // the end for the first focus.
@@ -172,55 +179,61 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
       setTouched(true);
       setFocused(false);
 
+      const hadManualInput = !refs.allowInputSyncRef;
+      const hadPendingProgrammaticChange = refs.hasPendingCommitRef;
+
       refs.allowInputSyncRef = true;
 
       if (inputValue().trim() === '') {
-        setValue(null);
+        setValue(null, createChangeEventDetails(REASONS.inputClear, event));
         if (validationMode() === 'onBlur') {
-          commitValidation(null);
+          validation.commit(null);
         }
+        onValueCommitted(null, createGenericEventDetails(REASONS.inputClear, event));
         return;
       }
 
       const formatOptions = refs.formatOptionsRef;
       const parsedValue = parseNumber(inputValue(), locale(), formatOptions);
-      const canonicalText = formatNumber(parsedValue, locale(), formatOptions);
-      const maxPrecisionText = formatNumberMaxPrecision(parsedValue, locale(), formatOptions);
-      const canonical = parseNumber(canonicalText, locale(), formatOptions);
-      const maxPrecision = parseNumber(maxPrecisionText, locale(), formatOptions);
 
       if (parsedValue === null) {
         return;
       }
 
-      blockRevalidationRef = true;
-
-      if (validationMode() === 'onBlur') {
-        commitValidation(canonical);
-      }
-
+      // If an explicit precision is requested, round the committed numeric value.
       const hasExplicitPrecision =
         formatOptions?.maximumFractionDigits != null ||
         formatOptions?.minimumFractionDigits != null;
 
-      if (hasExplicitPrecision) {
-        // When the consumer explicitly requests a precision, always round the number to that
-        // precision and normalize the displayed text accordingly.
-        if (value() !== canonical) {
-          setValue(canonical, event);
-        }
-        if (inputValue() !== canonicalText) {
-          setInputValue(canonicalText);
-        }
-      } else if (value() !== maxPrecision) {
-        // Default behaviour: preserve max precision until it differs from canonical
-        setValue(canonical, event);
-      } else {
-        const shouldPreserveFullPrecision =
-          parsedValue === value() && inputValue() === maxPrecisionText;
-        if (!shouldPreserveFullPrecision && inputValue() !== canonicalText) {
-          setInputValue(canonicalText);
-        }
+      const maxFrac = formatOptions?.maximumFractionDigits;
+      const committed =
+        hasExplicitPrecision && typeof maxFrac === 'number'
+          ? Number(parsedValue.toFixed(maxFrac))
+          : parsedValue;
+
+      const nextEventDetails = createGenericEventDetails(REASONS.inputBlur, event);
+      const shouldUpdateValue = value() !== committed;
+      const shouldCommit = hadManualInput || shouldUpdateValue || hadPendingProgrammaticChange;
+
+      if (validationMode() === 'onBlur') {
+        validation.commit(committed);
+      }
+      if (shouldUpdateValue) {
+        blockRevalidationRef = true;
+        setValue(committed, createChangeEventDetails(REASONS.inputBlur, event));
+      }
+      if (shouldCommit) {
+        onValueCommitted(committed, nextEventDetails);
+      }
+
+      // Normalize only the displayed text
+      const canonicalText = formatNumber(committed, locale(), formatOptions);
+      const maxPrecisionText = formatNumberMaxPrecision(parsedValue, locale(), formatOptions);
+      const shouldPreserveFullPrecision =
+        !hasExplicitPrecision && parsedValue === value() && inputValue() === maxPrecisionText;
+
+      if (!shouldPreserveFullPrecision && inputValue() !== canonicalText) {
+        setInputValue(canonicalText);
       }
     },
     onInput(event) {
@@ -233,24 +246,51 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
       const targetValue = event.target.value;
 
       if (targetValue.trim() === '') {
-        batch(() => {
-          setInputValue(targetValue);
-          setValue(null, event);
-        });
+        setInputValue(targetValue);
+        setValue(null, createChangeEventDetails(REASONS.inputClear, event));
+        return;
+      }
+
+      // For trusted user typing, update the input text immediately and only fire onValueChange
+      // if the typed value is currently parseable into a number. This preserves good UX for IME
+      // composition/partial input while still providing live numeric updates when possible.
+      const allowedNonNumericKeys = getAllowedNonNumericKeys();
+      const isValidCharacterString = Array.from(targetValue).every((ch) => {
+        const isAsciiDigit = ch >= '0' && ch <= '9';
+        const isArabicNumeral = ARABIC_DETECT_RE.test(ch);
+        const isHanNumeral = HAN_DETECT_RE.test(ch);
+        const isPersianNumeral = PERSIAN_DETECT_RE.test(ch);
+        const isFullwidthNumeral = FULLWIDTH_DETECT_RE.test(ch);
+        const isMinus = ANY_MINUS_DETECT_RE.test(ch);
+        return (
+          isAsciiDigit ||
+          isArabicNumeral ||
+          isHanNumeral ||
+          isPersianNumeral ||
+          isFullwidthNumeral ||
+          isMinus ||
+          allowedNonNumericKeys.has(ch)
+        );
+      });
+
+      if (!isValidCharacterString) {
         return;
       }
 
       if (event.isTrusted) {
         setInputValue(targetValue);
+        const parsedValue = parseNumber(targetValue, locale(), refs.formatOptionsRef);
+        if (parsedValue !== null) {
+          setValue(parsedValue, createChangeEventDetails(REASONS.inputChange, event));
+        }
         return;
       }
 
       const parsedValue = parseNumber(targetValue, locale(), refs.formatOptionsRef);
+
       if (parsedValue !== null) {
-        batch(() => {
-          setInputValue(targetValue);
-          setValue(parsedValue, event);
-        });
+        setInputValue(targetValue);
+        setValue(parsedValue, createChangeEventDetails(REASONS.inputChange, event));
       }
     },
     onKeyDown(event) {
@@ -264,34 +304,62 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
 
       let isAllowedNonNumericKey = allowedNonNumericKeys.has(event.key);
 
-      const { decimal, currency, percentSign } = getNumberLocaleDetails([], refs.formatOptionsRef);
+      const { decimal, currency, percentSign } = getNumberLocaleDetails(
+        locale(),
+        refs.formatOptionsRef,
+      );
 
       const selectionStart = event.currentTarget.selectionStart;
       const selectionEnd = event.currentTarget.selectionEnd;
       const isAllSelected = selectionStart === 0 && selectionEnd === inputValue().length;
 
-      // Allow the minus key only if there isn't already a plus or minus sign, or if all the text
-      // is selected, or if only the minus sign is highlighted.
-      if (event.key === '-' && allowedNonNumericKeys.has('-')) {
-        const isMinusHighlighted =
-          selectionStart === 0 && selectionEnd === 1 && inputValue()[0] === '-';
-        isAllowedNonNumericKey = !inputValue().includes('-') || isAllSelected || isMinusHighlighted;
+      // Normalize handling of plus/minus signs via precomputed regexes
+      const selectionContainsIndex = (index: number) =>
+        selectionStart != null &&
+        selectionEnd != null &&
+        index >= selectionStart &&
+        index < selectionEnd;
+
+      if (
+        ANY_MINUS_DETECT_RE.test(event.key) &&
+        Array.from(allowedNonNumericKeys).some((k) => ANY_MINUS_DETECT_RE.test(k || ''))
+      ) {
+        // Only allow one sign unless replacing the existing one or all text is selected
+        const existingIndex = inputValue().search(ANY_MINUS_RE);
+        const isReplacingExisting =
+          existingIndex != null && existingIndex !== -1 && selectionContainsIndex(existingIndex);
+        isAllowedNonNumericKey =
+          !(ANY_MINUS_DETECT_RE.test(inputValue()) || ANY_PLUS_DETECT_RE.test(inputValue())) ||
+          isAllSelected ||
+          isReplacingExisting;
+      }
+      if (
+        ANY_PLUS_DETECT_RE.test(event.key) &&
+        Array.from(allowedNonNumericKeys).some((k) => ANY_PLUS_DETECT_RE.test(k || ''))
+      ) {
+        const existingIndex = inputValue().search(ANY_PLUS_RE);
+        const isReplacingExisting =
+          existingIndex != null && existingIndex !== -1 && selectionContainsIndex(existingIndex);
+        isAllowedNonNumericKey =
+          !(ANY_MINUS_DETECT_RE.test(inputValue()) || ANY_PLUS_DETECT_RE.test(inputValue())) ||
+          isAllSelected ||
+          isReplacingExisting;
       }
 
       // Only allow one of each symbol.
       [decimal, currency, percentSign].forEach((symbol) => {
         if (event.key === symbol) {
           const symbolIndex = inputValue().indexOf(symbol);
-          const isSymbolHighlighted =
-            selectionStart === symbolIndex && selectionEnd === symbolIndex + 1;
+          const isSymbolHighlighted = selectionContainsIndex(symbolIndex);
           isAllowedNonNumericKey =
             !inputValue().includes(symbol) || isAllSelected || isSymbolHighlighted;
         }
       });
 
-      const isLatinNumeral = /^[0-9]$/.test(event.key);
-      const isArabicNumeral = ARABIC_RE.test(event.key);
-      const isHanNumeral = HAN_RE.test(event.key);
+      const isAsciiDigit = event.key >= '0' && event.key <= '9';
+      const isArabicNumeral = ARABIC_DETECT_RE.test(event.key);
+      const isHanNumeral = HAN_DETECT_RE.test(event.key);
+      const isFullwidthNumeral = FULLWIDTH_DETECT_RE.test(event.key);
       const isNavigateKey = NAVIGATE_KEYS.has(event.key);
 
       if (
@@ -303,8 +371,9 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
         event.ctrlKey ||
         event.metaKey ||
         isAllowedNonNumericKey ||
-        isLatinNumeral ||
+        isAsciiDigit ||
         isArabicNumeral ||
+        isFullwidthNumeral ||
         isHanNumeral ||
         isNavigateKey
       ) {
@@ -319,14 +388,30 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
       // Prevent insertion of text or caret from moving.
       stopEvent(event);
 
+      const commitDetails = createGenericEventDetails(REASONS.keyboard, event);
+
       if (event.key === 'ArrowUp') {
-        incrementValue(amount, 1, parsedValue, event);
+        incrementValue(amount, {
+          direction: 1,
+          currentValue: parsedValue,
+          event,
+          reason: REASONS.keyboard,
+        });
+        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
       } else if (event.key === 'ArrowDown') {
-        incrementValue(amount, -1, parsedValue, event);
+        incrementValue(amount, {
+          direction: -1,
+          currentValue: parsedValue,
+          event,
+          reason: REASONS.keyboard,
+        });
+        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
       } else if (event.key === 'Home' && min() != null) {
-        setValue(min()!, event);
+        setValue(min()!, createChangeEventDetails(REASONS.keyboard, event));
+        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
       } else if (event.key === 'End' && max() != null) {
-        setValue(max()!, event);
+        setValue(max()!, createChangeEventDetails(REASONS.keyboard, event));
+        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
       }
     },
     onPaste(event) {
@@ -344,7 +429,7 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
       if (parsedValue !== null) {
         batch(() => {
           refs.allowInputSyncRef = false;
-          setValue(parsedValue, event);
+          setValue(parsedValue, createChangeEventDetails(REASONS.inputPaste, event));
           setInputValue(pastedData);
         });
       }
@@ -355,22 +440,32 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
     state,
     ref: (el) => {
       refs.inputRef = el;
-      fieldControlRefs.inputRef = el;
     },
     props: [
       inputProps,
-      (props) => mergeProps(props, getInputValidationProps()),
-      (props) => mergeProps(props, getValidationProps()),
+      (props) => mergeProps(props, validation.getValidationProps()),
       elementProps,
     ],
-    customStyleHookMapping,
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace NumberFieldInput {
-  export interface State extends NumberFieldRoot.State {}
+export interface NumberFieldInputState extends NumberFieldRoot.State {}
 
-  export interface Props extends BaseUIComponentProps<'input', State> {}
+export interface NumberFieldInputProps extends BaseUIComponentProps<
+  'input',
+  NumberFieldInput.State
+> {
+  /**
+   * A string value that provides a user-friendly name for the role of the input.
+   * @default 'Number field'
+   */
+  'aria-roledescription'?: JSX.AriaAttributes['aria-roledescription'] | undefined;
+}
+
+export namespace NumberFieldInput {
+  export type State = NumberFieldInputState;
+  export type Props = NumberFieldInputProps;
 }

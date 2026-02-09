@@ -1,5 +1,6 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import { Timeout } from '../../utils/useTimeout';
+import type { IncrementValueParameters } from '../utils/types';
 import { EventWithOptionalKeyState } from '../utils/types';
 import type { NumberFieldRoot } from './NumberFieldRoot';
 
@@ -15,19 +16,16 @@ export interface NumberFieldRootContext {
   disabled: Accessor<boolean>;
   readOnly: Accessor<boolean>;
   id: Accessor<string | undefined>;
-  setValue: (unvalidatedValue: number | null, event?: Event, dir?: 1 | -1) => void;
+  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => void;
   getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
-  incrementValue: (
-    amount: number,
-    dir: 1 | -1,
-    currentValue?: number | null,
-    event?: Event,
-  ) => void;
+  incrementValue: (amount: number, params: IncrementValueParameters) => void;
   refs: {
     inputRef: HTMLInputElement | null | undefined;
     allowInputSyncRef: boolean | null;
     formatOptionsRef: Intl.NumberFormatOptions | undefined;
     valueRef: number | null;
+    lastChangedValueRef: number | null;
+    hasPendingCommitRef: boolean;
     isPressedRef: boolean | null;
     movesAfterTouchRef: number | null;
   };
@@ -44,6 +42,10 @@ export interface NumberFieldRootContext {
   isScrubbing: Accessor<boolean>;
   setIsScrubbing: Setter<boolean>;
   state: NumberFieldRoot.State;
+  onValueCommitted: (
+    value: number | null,
+    eventDetails: NumberFieldRoot.CommitEventDetails,
+  ) => void;
 }
 
 export const NumberFieldRootContext = createContext<NumberFieldRootContext>();

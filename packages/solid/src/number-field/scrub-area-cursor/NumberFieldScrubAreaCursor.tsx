@@ -1,14 +1,14 @@
+import { isWebKit } from '@base-ui/utils/detectBrowser';
+import { ownerDocument } from '@base-ui/utils/owner';
 import { createSignal } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { splitComponentProps } from '../../solid-helpers';
-import { isWebKit } from '../../utils/detectBrowser';
-import { ownerDocument } from '../../utils/owner';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { NumberFieldRoot } from '../root/NumberFieldRoot';
 import { useNumberFieldRootContext } from '../root/NumberFieldRootContext';
 import { useNumberFieldScrubAreaContext } from '../scrub-area/NumberFieldScrubAreaContext';
-import { styleHookMapping } from '../utils/styleHooks';
+import { stateAttributesMapping } from '../utils/stateAttributesMapping';
 
 /**
  * A custom element to display instead of the native cursor while using the scrub area.
@@ -49,14 +49,20 @@ export function NumberFieldScrubAreaCursor(componentProps: NumberFieldScrubAreaC
       },
       elementProps,
     ],
-    customStyleHookMapping: styleHookMapping,
+    stateAttributesMapping,
   });
 
-  return <Portal mount={ownerDocument(domElement()).body}>{element()}</Portal>;
+  return <Portal mount={ownerDocument(domElement() ?? null).body}>{element()}</Portal>;
 }
 
-export namespace NumberFieldScrubAreaCursor {
-  export interface State extends NumberFieldRoot.State {}
+export interface NumberFieldScrubAreaCursorState extends NumberFieldRoot.State {}
 
-  export interface Props extends BaseUIComponentProps<'span', State> {}
+export interface NumberFieldScrubAreaCursorProps extends BaseUIComponentProps<
+  'span',
+  NumberFieldScrubAreaCursor.State
+> {}
+
+export namespace NumberFieldScrubAreaCursor {
+  export type State = NumberFieldScrubAreaCursorState;
+  export type Props = NumberFieldScrubAreaCursorProps;
 }

@@ -6,6 +6,7 @@ import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { createSignal } from 'solid-js';
+import { REASONS } from '../../utils/reasons';
 
 describe('<NumberField />', () => {
   const { render } = createRenderer();
@@ -73,6 +74,81 @@ describe('<NumberField />', () => {
     });
   });
 
+  it('blocks submission when step mismatch occurs', () => {
+    render(() => (
+      <form data-testid="form">
+        <NumberFieldBase.Root name="quantity" min={0} step={0.1}>
+          <NumberFieldBase.Group>
+            <NumberFieldBase.Input />
+          </NumberFieldBase.Group>
+        </NumberFieldBase.Root>
+        <button type="submit">Submit</button>
+      </form>
+    ));
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '0.11' } });
+
+    const hiddenInput = document.querySelector(
+      'input[type="number"][name="quantity"]',
+    ) as HTMLInputElement;
+    expect(hiddenInput).not.to.equal(null);
+    expect(hiddenInput.validity.stepMismatch).to.equal(true);
+
+    const form = screen.getByTestId<HTMLFormElement>('form');
+    expect(form.checkValidity()).to.equal(false);
+  });
+
+  it.skipIf(isJSDOM)('blocks submission when step mismatch occurs with default step', () => {
+    render(() => (
+      <form data-testid="form">
+        <NumberFieldBase.Root name="quantity" min={0}>
+          <NumberFieldBase.Group>
+            <NumberFieldBase.Input />
+          </NumberFieldBase.Group>
+        </NumberFieldBase.Root>
+        <button type="submit">Submit</button>
+      </form>
+    ));
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '0.11' } });
+
+    const hiddenInput = document.querySelector(
+      'input[type="number"][name="quantity"]',
+    ) as HTMLInputElement;
+    expect(hiddenInput).not.to.equal(null);
+    expect(hiddenInput.validity.stepMismatch).to.equal(true);
+
+    const form = screen.getByTestId<HTMLFormElement>('form');
+    expect(form.checkValidity()).to.equal(false);
+  });
+
+  it('does not block submission when step="any"', () => {
+    render(() => (
+      <form data-testid="form">
+        <NumberFieldBase.Root name="quantity" min={0} step="any">
+          <NumberFieldBase.Group>
+            <NumberFieldBase.Input />
+          </NumberFieldBase.Group>
+        </NumberFieldBase.Root>
+        <button type="submit">Submit</button>
+      </form>
+    ));
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '0.11' } });
+
+    const hiddenInput = document.querySelector(
+      'input[type="number"][name="quantity"]',
+    ) as HTMLInputElement;
+    expect(hiddenInput).not.to.equal(null);
+    expect(hiddenInput.validity.stepMismatch).to.equal(false);
+
+    const form = screen.getByTestId<HTMLFormElement>('form');
+    expect(form.checkValidity()).to.equal(true);
+  });
+
   describe('prop: onValueChange', () => {
     it('should be called when the value changes', async () => {
       const onValueChange = spy();
@@ -136,6 +212,445 @@ describe('<NumberField />', () => {
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(null);
     });
+
+    it('includes the reason for parseable typing', () => {
+      const onValueChange = spy();
+      render(() => <NumberField onValueChange={onValueChange} />);
+      const input = screen.getByRole('textbox');
+
+      fireEvent.change(input, { target: { value: '12' } });
+
+      expect(onValueChange).to.have.property('callCount', 1);
+      const [, details] = onValueChange.firstCall.args as [
+        number | null,
+        NumberFieldBase.Root.ChangeEventDetails,
+      ];
+      expect(details.reason).to.equal(REASONS.inputChange);
+    });
+
+    it('includes the reason when clearing the value', () => {
+      const onValueChange = spy();
+      render(() => <NumberField defaultValue={5} onValueChange={onValueChange} />);
+      const input = screen.getByRole('textbox');
+
+      fireEvent.change(input, { target: { value: '' } });
+
+      expect(onValueChange).to.have.property('callCount', 1);
+      const [, details] = onValueChange.firstCall.args as [
+        number | null,
+        NumberFieldBase.Root.ChangeEventDetails,
+      ];
+      expect(details.reason).to.equal(REASONS.inputClear);
+    });
+
+    it('includes the reason for keyboard increments', () => {
+      const onValueChange = spy();
+      render(() => <NumberField defaultValue={1} onValueChange={onValueChange} />);
+      const input = screen.getByRole('textbox');
+
+      input.focus();
+      fireEvent.keyDown(input, { key: 'ArrowUp' });
+
+      expect(onValueChange).to.have.property('callCount', 1);
+      const [, details] = onValueChange.firstCall.args as [
+        number | null,
+        NumberFieldBase.Root.ChangeEventDetails,
+      ];
+      expect(details.reason).to.equal('keyboard');
+    });
+
+    it('includes the reason for increment button presses', () => {
+      const onValueChange = spy();
+      render(() => <NumberField defaultValue={1} onValueChange={onValueChange} />);
+      const incrementButton = screen.getByRole('button', { name: 'Increase' });
+
+      fireEvent.click(incrementButton);
+
+      expect(onValueChange.callCount).to.equal(1);
+      const [, details] = onValueChange.firstCall.args as [
+        number | null,
+        NumberFieldBase.Root.ChangeEventDetails,
+      ];
+      expect(details.reason).to.equal('increment-press');
+    });
+
+    it('includes the reason for decrement button presses', () => {
+      const onValueChange = spy();
+      render(() => <NumberField defaultValue={1} onValueChange={onValueChange} />);
+      const decrementButton = screen.getByRole('button', { name: 'Decrease' });
+
+      fireEvent.click(decrementButton);
+
+      expect(onValueChange.callCount).to.equal(1);
+      const [, details] = onValueChange.firstCall.args as [
+        number | null,
+        NumberFieldBase.Root.ChangeEventDetails,
+      ];
+      expect(details.reason).to.equal('decrement-press');
+    });
+
+    it('includes the reason for wheel scrubbing', () => {
+      const onValueChange = spy();
+      render(() => <NumberField allowWheelScrub defaultValue={4} onValueChange={onValueChange} />);
+      const input = screen.getByRole('textbox');
+
+      input.focus();
+      fireEvent.wheel(input, { deltaY: -100 });
+
+      expect(onValueChange.callCount).to.equal(1);
+      const [, details] = onValueChange.firstCall.args as [
+        number | null,
+        NumberFieldBase.Root.ChangeEventDetails,
+      ];
+      expect(details.reason).to.equal('wheel');
+    });
+  });
+
+  describe('typing behavior (parseable changes)', () => {
+    it('fires onValueChange for each parseable change while typing', () => {
+      const onValueChange = spy();
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField onValueChange={onValueChange} onValueCommitted={onValueCommitted} />
+      ));
+
+      const input = screen.getByRole('textbox');
+
+      // Type '1' -> parseable
+      fireEvent.change(input, { target: { value: '1' } });
+      // Type '12' -> parseable
+      fireEvent.change(input, { target: { value: '12' } });
+      // Type '12.' -> parseable (treated as 12)
+      fireEvent.change(input, { target: { value: '12.' } });
+      // Type '12.a' -> not parseable, should not fire
+      fireEvent.change(input, { target: { value: '12.a' } });
+
+      expect(onValueChange.callCount).to.equal(3);
+      expect(onValueChange.getCall(0).args[0]).to.equal(1);
+      expect(onValueChange.getCall(1).args[0]).to.equal(12);
+      expect(onValueChange.getCall(2).args[0]).to.equal(12);
+
+      expect(onValueCommitted.callCount).to.equal(0);
+    });
+
+    it('does not fire onValueChange for non-numeric composition/partial input', () => {
+      const onValueChange = spy();
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField onValueChange={onValueChange} onValueCommitted={onValueCommitted} />
+      ));
+      const input = screen.getByRole('textbox');
+
+      // Simulate IME composition of non-numeric text; intermediate values like 'ni'
+      fireEvent.compositionStart(input);
+      fireEvent.change(input, { target: { value: 'n' } });
+      fireEvent.change(input, { target: { value: 'ni' } });
+      fireEvent.compositionEnd(input);
+
+      expect(onValueChange.callCount).to.equal(0);
+
+      // Now enter a Han numeral which is parseable
+      fireEvent.change(input, { target: { value: '一' } });
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(1);
+
+      expect(onValueCommitted.callCount).to.equal(0);
+      fireEvent.blur(input);
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.firstCall.args[0]).to.equal(1);
+    });
+
+    it('handles sign and decimal partials vs. parseable numbers', () => {
+      const onValueChange = spy();
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField onValueChange={onValueChange} onValueCommitted={onValueCommitted} min={-10} />
+      ));
+      const input = screen.getByRole('textbox');
+
+      // '-' or '.' alone aren't parseable
+      fireEvent.change(input, { target: { value: '-' } });
+      fireEvent.change(input, { target: { value: '.' } });
+      // '0.' is parseable (-> 0)
+      fireEvent.change(input, { target: { value: '0.' } });
+      fireEvent.change(input, { target: { value: '-1' } });
+      fireEvent.change(input, { target: { value: '-1.5' } });
+
+      expect(onValueChange.callCount).to.equal(3);
+      expect(onValueChange.getCall(0).args[0]).to.equal(0);
+      expect(onValueChange.getCall(1).args[0]).to.equal(-1);
+      expect(onValueChange.getCall(2).args[0]).to.equal(-1.5);
+
+      // No commit until blur
+      expect(onValueCommitted.callCount).to.equal(0);
+
+      fireEvent.blur(input);
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.firstCall.args[0]).to.equal(-1.5);
+    });
+
+    it('allows typing a decimal while replacing a selection', () => {
+      render(() => <NumberField defaultValue={12.3} locale="en-US" />);
+      const input = screen.getByRole<HTMLInputElement>('textbox');
+
+      input.focus();
+
+      const decimalIndex = input.value.indexOf('.');
+      expect(decimalIndex).to.be.greaterThan(-1);
+      input.setSelectionRange(1, decimalIndex + 2);
+
+      const keydownResult = fireEvent.keyDown(input, { key: '.' });
+      expect(keydownResult).to.equal(true);
+    });
+
+    it('accepts grouping while typing and parses progressively', () => {
+      const onValueChange = spy();
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField onValueChange={onValueChange} onValueCommitted={onValueCommitted} />
+      ));
+      const input = screen.getByRole('textbox');
+
+      fireEvent.change(input, { target: { value: '1' } }); // 1
+      fireEvent.change(input, { target: { value: '1,' } }); // 1 (group symbol)
+      fireEvent.change(input, { target: { value: '1,2' } }); // 12
+      fireEvent.change(input, { target: { value: '1,23' } }); // 123
+      fireEvent.change(input, { target: { value: '1,234' } }); // 1234
+
+      expect(onValueChange.callCount).to.equal(5);
+      expect(onValueChange.getCall(0).args[0]).to.equal(1);
+      expect(onValueChange.getCall(1).args[0]).to.equal(1);
+      expect(onValueChange.getCall(2).args[0]).to.equal(12);
+      expect(onValueChange.getCall(3).args[0]).to.equal(123);
+      expect(onValueChange.getCall(4).args[0]).to.equal(1234);
+
+      expect(onValueCommitted.callCount).to.equal(0);
+      fireEvent.blur(input);
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.firstCall.args[0]).to.equal(1234);
+    });
+
+    it('respects locale decimal separator while typing (de-DE)', () => {
+      const onValueChange = spy();
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField
+          onValueChange={onValueChange}
+          onValueCommitted={onValueCommitted}
+          locale="de-DE"
+        />
+      ));
+      const input = screen.getByRole('textbox');
+
+      fireEvent.change(input, { target: { value: '1' } }); // 1
+      fireEvent.change(input, { target: { value: '1,' } }); // 1 (decimal separator typed)
+      fireEvent.change(input, { target: { value: '1,5' } }); // 1.5
+
+      expect(onValueChange.callCount).to.equal(3);
+      expect(onValueChange.getCall(0).args[0]).to.equal(1);
+      expect(onValueChange.getCall(1).args[0]).to.equal(1);
+      expect(onValueChange.getCall(2).args[0]).to.equal(1.5);
+
+      fireEvent.blur(input);
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.firstCall.args[0]).to.equal(1.5);
+    });
+
+    it('parses percent while typing and commits canonical percent value', () => {
+      const onValueChange = spy();
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField
+          onValueChange={onValueChange}
+          onValueCommitted={onValueCommitted}
+          format={{ style: 'percent' }}
+        />
+      ));
+      const input = screen.getByRole('textbox');
+
+      // Typing digits in percent style represents a fraction (12 -> 0.12)
+      fireEvent.change(input, { target: { value: '12' } });
+      // Typing with explicit percent sign also remains 0.12
+      fireEvent.change(input, { target: { value: '12%' } });
+
+      expect(onValueChange.callCount).to.equal(2);
+      expect(onValueChange.getCall(0).args[0]).to.equal(0.12);
+      expect(onValueChange.getCall(1).args[0]).to.equal(0.12);
+      expect(onValueCommitted.callCount).to.equal(0);
+
+      fireEvent.blur(input);
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.firstCall.args[0]).to.equal(0.12);
+    });
+
+    it('accepts currency symbol while typing and parses numeric value', () => {
+      const onValueChange = spy();
+      render(() => (
+        <NumberField
+          onValueChange={onValueChange}
+          format={{ style: 'currency', currency: 'USD' }}
+        />
+      ));
+      const input = screen.getByRole('textbox');
+
+      fireEvent.change(input, { target: { value: '$1' } });
+      fireEvent.change(input, { target: { value: '$1,2' } });
+
+      expect(onValueChange.callCount).to.equal(2);
+      expect(onValueChange.getCall(0).args[0]).to.equal(1);
+      expect(onValueChange.getCall(1).args[0]).to.equal(12);
+    });
+
+    it('allows deleting trailing currency symbols with locale literals', () => {
+      const onValueChange = spy();
+      const format: Intl.NumberFormatOptions = {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      };
+      const formatter = new Intl.NumberFormat('de-DE', format);
+
+      render(() => (
+        <NumberField
+          defaultValue={12.34}
+          locale="de-DE"
+          format={format}
+          onValueChange={onValueChange}
+        />
+      ));
+      const input = screen.getByRole('textbox');
+      const formatted = formatter.format(12.34);
+      const withoutCurrency = formatted.replace('€', '');
+
+      fireEvent.change(input, { target: { value: withoutCurrency } });
+
+      expect(input).to.have.value(withoutCurrency);
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(12.34);
+    });
+
+    it('allows backspace to remove trailing currency symbol that follows a locale literal', () => {
+      const onValueChange = spy();
+      const format: Intl.NumberFormatOptions = {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      };
+      const formatter = new Intl.NumberFormat('de-DE', format);
+
+      render(() => (
+        <NumberField
+          defaultValue={12.34}
+          locale="de-DE"
+          format={format}
+          onValueChange={onValueChange}
+        />
+      ));
+
+      const input = screen.getByRole('textbox');
+      const formatted = formatter.format(12.34);
+      const afterBackspace = formatted.slice(0, -1);
+
+      input.focus();
+
+      const keydownResult = fireEvent.keyDown(input, { key: 'Backspace' });
+      expect(keydownResult).to.equal(true);
+
+      fireEvent.change(input, { target: { value: afterBackspace } });
+
+      expect(input).to.have.value(afterBackspace);
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(12.34);
+    });
+
+    // In JSDOM, change events are not trusted; input text state is not updated for invalid
+    // partials (like "."). We cover browser behavior here.
+    it.skipIf(isJSDOM)('does not commit on blur for invalid input', () => {
+      const onValueCommitted = spy();
+      render(() => <NumberField onValueCommitted={onValueCommitted} />);
+      const input = screen.getByRole('textbox');
+
+      fireEvent.change(input, { target: { value: '.' } });
+      fireEvent.blur(input);
+
+      expect(onValueCommitted.firstCall.args[0]).to.equal(null);
+    });
+  });
+
+  describe('prop: onValueCommitted', () => {
+    it('fires on blur with committed numeric value', () => {
+      const onValueCommitted = spy();
+      render(() => <NumberField onValueCommitted={onValueCommitted} />);
+      const input = screen.getByRole('textbox');
+
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: '123.' } });
+      fireEvent.blur(input);
+
+      expect(onValueCommitted.callCount).to.equal(1);
+      // Canonicalizes to 123
+      expect(onValueCommitted.firstCall.args[0]).to.equal(123);
+    });
+
+    it('fires null on blur when input is cleared', () => {
+      const onValueCommitted = spy();
+      render(() => <NumberField defaultValue={5} onValueCommitted={onValueCommitted} />);
+      const input = screen.getByRole('textbox');
+
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.blur(input);
+
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.firstCall.args[0]).to.equal(null);
+    });
+
+    it('fires on keyboard interactions (ArrowUp/Down/Home/End)', () => {
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField defaultValue={0} min={-10} max={10} onValueCommitted={onValueCommitted} />
+      ));
+
+      const input = screen.getByRole('textbox');
+      input.focus();
+
+      fireEvent.keyDown(input, { key: 'ArrowUp' });
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.lastCall.args[0]).to.equal(1);
+
+      fireEvent.keyDown(input, { key: 'ArrowDown' });
+      expect(onValueCommitted.callCount).to.equal(2);
+      expect(onValueCommitted.lastCall.args[0]).to.equal(0);
+
+      fireEvent.keyDown(input, { key: 'Home' });
+      expect(onValueCommitted.callCount).to.equal(3);
+      expect(onValueCommitted.lastCall.args[0]).to.equal(-10);
+
+      fireEvent.keyDown(input, { key: 'End' });
+      expect(onValueCommitted.callCount).to.equal(4);
+      expect(onValueCommitted.lastCall.args[0]).to.equal(10);
+    });
+
+    it('fires when using increment/decrement buttons', () => {
+      const onValueCommitted = spy();
+      render(() => <NumberField defaultValue={0} onValueCommitted={onValueCommitted} />);
+
+      const input = screen.getByRole('textbox');
+      const inc = screen.getByLabelText('Increase');
+      const dec = screen.getByLabelText('Decrease');
+
+      fireEvent.click(inc);
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.lastCall.args[0]).to.equal(1);
+      expect(input).to.have.value('1');
+
+      fireEvent.click(dec);
+      expect(onValueCommitted.callCount).to.equal(2);
+      expect(onValueCommitted.lastCall.args[0]).to.equal(0);
+      expect(input).to.have.value('0');
+    });
   });
 
   describe('prop: disabled', () => {
@@ -163,9 +678,11 @@ describe('<NumberField />', () => {
   });
 
   describe('prop: name', () => {
-    it('should set the name attribute on the hidden input', async () => {
-      const { container } = render(() => <NumberField name="test" />);
-      const hiddenInput = container.querySelector('input[type=hidden]');
+    it('should set the name attribute on the hidden input', () => {
+      render(() => <NumberField name="test" />);
+      const hiddenInput = screen.getByText('', {
+        selector: 'input[aria-hidden][type=number]',
+      });
       expect(hiddenInput).to.have.attribute('name', 'test');
     });
   });
@@ -438,6 +955,36 @@ describe('<NumberField />', () => {
       fireEvent.wheel(input, { deltaY: -5 });
       expect(input).to.have.value('5');
     });
+
+    it('calls onValueChange on wheel and commits on blur', () => {
+      const onValueChange = spy();
+      const onValueCommitted = spy();
+      render(() => (
+        <NumberField
+          defaultValue={5}
+          allowWheelScrub
+          onValueChange={onValueChange}
+          onValueCommitted={onValueCommitted}
+        />
+      ));
+      const input = screen.getByRole('textbox');
+      input.focus();
+
+      fireEvent.wheel(input, { deltaY: 1 });
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.lastCall.args[0]).to.equal(4);
+
+      fireEvent.wheel(input, { deltaY: -1 });
+      expect(onValueChange.callCount).to.equal(2);
+      expect(onValueChange.lastCall.args[0]).to.equal(5);
+
+      // Wheel does not commit; blur commits current value
+      expect(onValueCommitted.callCount).to.equal(0);
+
+      fireEvent.blur(input);
+      expect(onValueCommitted.callCount).to.equal(1);
+      expect(onValueCommitted.firstCall.args[0]).to.equal(5);
+    });
   });
 
   describe('Form', () => {
@@ -547,7 +1094,6 @@ describe('<NumberField />', () => {
         return (
           <Form
             errors={errors()}
-            onClearErrors={setErrors}
             onSubmit={(event) => {
               event.preventDefault();
               setErrors({ quantity: 'server error' });
@@ -573,20 +1119,19 @@ describe('<NumberField />', () => {
       expect(screen.queryByTestId('error')).to.have.text('server error');
     });
 
-    it('clears errors on change', async () => {
-      function App() {
-        const [errors, setErrors] = createSignal({ test: 'test' });
-        return (
-          <Form errors={errors()} onClearErrors={setErrors}>
-            <Field.Root name="test" data-testid="field">
-              <NumberField defaultValue={1} />
-              <Field.Error data-testid="error" />
-            </Field.Root>
-          </Form>
-        );
-      }
-
-      render(() => <App />);
+    it('clears external errors on change', async () => {
+      render(() => (
+        <Form
+          errors={{
+            test: 'test',
+          }}
+        >
+          <Field.Root name="test" data-testid="field">
+            <NumberField defaultValue={1} />
+            <Field.Error data-testid="error" />
+          </Field.Root>
+        </Form>
+      ));
 
       const input = screen.getByRole('textbox');
 
@@ -626,6 +1171,28 @@ describe('<NumberField />', () => {
 
       expect(screen.queryByTestId('error')).to.equal(null);
       expect(input).not.to.have.attribute('aria-invalid');
+    });
+
+    it('should handle browser autofill', () => {
+      const onValueChange = spy();
+
+      render(() => (
+        <Field.Root name="quantity">
+          <NumberFieldBase.Root onValueChange={onValueChange}>
+            <NumberFieldBase.Input />
+          </NumberFieldBase.Root>
+        </Field.Root>
+      ));
+
+      const input = screen.getByRole('textbox');
+      const hiddenInput = document.querySelector('input[type="number"][name="quantity"]');
+
+      expect(hiddenInput).not.to.equal(null);
+      fireEvent.change(hiddenInput!, { target: { value: '42' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(42);
+      expect(input).to.have.value('42');
     });
   });
 
@@ -729,9 +1296,30 @@ describe('<NumberField />', () => {
       expect(input).not.to.have.attribute('data-focused');
     });
 
+    it('adds [data-focused] attribute on every focus', () => {
+      render(() => (
+        <Field.Root>
+          <NumberFieldBase.Root>
+            <NumberFieldBase.Input data-testid="input" />
+          </NumberFieldBase.Root>
+        </Field.Root>
+      ));
+
+      const input = screen.getByTestId('input');
+
+      fireEvent.focus(input);
+      expect(input).to.have.attribute('data-focused', '');
+
+      fireEvent.blur(input);
+      expect(input).not.to.have.attribute('data-focused');
+
+      fireEvent.focus(input);
+      expect(input).to.have.attribute('data-focused', '');
+    });
+
     it('prop: validate', async () => {
       render(() => (
-        <Field.Root validate={() => 'error'}>
+        <Field.Root validationMode="onBlur" validate={() => 'error'}>
           <NumberFieldBase.Root>
             <NumberFieldBase.Input />
           </NumberFieldBase.Root>
@@ -749,52 +1337,207 @@ describe('<NumberField />', () => {
       expect(input).to.have.attribute('aria-invalid', 'true');
     });
 
-    it('prop: validationMode=onChange', async () => {
-      render(() => (
-        <Field.Root
-          validationMode="onChange"
-          validate={(value) => {
-            return value === 1 ? 'error' : null;
-          }}
-        >
-          <NumberFieldBase.Root>
-            <NumberFieldBase.Input data-testid="input" />
-          </NumberFieldBase.Root>
-        </Field.Root>
-      ));
+    describe('prop: validationMode', () => {
+      it('onSubmit', () => {
+        render(() => (
+          <Form>
+            <Field.Root validate={(value) => (value === 1 ? 'custom error' : null)}>
+              <NumberFieldBase.Root required>
+                <NumberFieldBase.Input data-testid="input" />
+              </NumberFieldBase.Root>
+              <Field.Error data-testid="error" match="valueMissing">
+                valueMissing error
+              </Field.Error>
+              <Field.Error data-testid="error" match="customError" />
+            </Field.Root>
+            <button type="submit">submit</button>
+          </Form>
+        ));
 
-      const input = screen.getByTestId('input');
+        const input = screen.getByRole('textbox');
+        expect(input).not.to.have.attribute('aria-invalid');
 
-      expect(input).not.to.have.attribute('aria-invalid');
+        fireEvent.change(input, { target: { value: '1' } });
+        fireEvent.blur(input);
+        expect(input).not.to.have.attribute('aria-invalid');
+        expect(screen.queryByTestId('error')).to.equal(null);
 
-      fireEvent.input(input, { target: { value: '1' } });
+        fireEvent.change(input, { target: { value: '' } });
+        fireEvent.blur(input);
+        expect(input).not.to.have.attribute('aria-invalid');
+        expect(screen.queryByTestId('error')).to.equal(null);
 
-      expect(input).to.have.attribute('aria-invalid', 'true');
+        fireEvent.click(screen.getByText('submit'));
+        expect(input).to.have.attribute('aria-invalid', 'true');
+        expect(screen.queryByTestId('error')).to.have.text('valueMissing error');
+
+        fireEvent.change(input, { target: { value: '2' } });
+        expect(input).not.to.have.attribute('aria-invalid');
+        expect(screen.queryByTestId('error')).to.equal(null);
+        // re-invalidate the field value
+        fireEvent.change(input, { target: { value: '1' } });
+        expect(input).to.have.attribute('aria-invalid', 'true');
+        expect(screen.queryByTestId('error')).to.have.text('custom error');
+
+        fireEvent.change(input, { target: { value: '3' } });
+        expect(input).not.to.have.attribute('aria-invalid');
+        expect(screen.queryByTestId('error')).to.equal(null);
+
+        fireEvent.change(input, { target: { value: '' } });
+        expect(input).to.have.attribute('aria-invalid', 'true');
+        expect(screen.queryByTestId('error')).to.have.text('valueMissing error');
+      });
+
+      it('onChange', () => {
+        render(() => (
+          <Field.Root
+            validationMode="onChange"
+            validate={(value) => {
+              return value === 1 ? 'error' : null;
+            }}
+          >
+            <NumberFieldBase.Root>
+              <NumberFieldBase.Input data-testid="input" />
+            </NumberFieldBase.Root>
+          </Field.Root>
+        ));
+
+        const input = screen.getByTestId('input');
+
+        expect(input).not.to.have.attribute('aria-invalid');
+
+        fireEvent.change(input, { target: { value: '1' } });
+
+        expect(input).to.have.attribute('aria-invalid', 'true');
+      });
+
+      it('revalidates when the controlled value changes externally', () => {
+        const validateSpy = spy((value: unknown) =>
+          (value as number | null) === 5 ? 'error' : null,
+        );
+
+        function App() {
+          const [value, setValue] = createSignal<number | null>(null);
+
+          return (
+            <>
+              <Field.Root validationMode="onChange" validate={validateSpy} name="quantity">
+                <NumberFieldBase.Root value={value()} onValueChange={(next) => setValue(next)}>
+                  <NumberFieldBase.Input data-testid="input" />
+                </NumberFieldBase.Root>
+              </Field.Root>
+              <button type="button" onClick={() => setValue(5)}>
+                Set externally
+              </button>
+            </>
+          );
+        }
+
+        render(() => <App />);
+
+        const input = screen.getByTestId('input');
+        const toggle = screen.getByText('Set externally');
+
+        expect(input).not.to.have.attribute('aria-invalid');
+        const initialCallCount = validateSpy.callCount;
+
+        fireEvent.click(toggle);
+
+        expect(validateSpy.callCount).to.equal(initialCallCount + 1);
+        expect(validateSpy.lastCall.args[0]).to.equal(5);
+        expect(input).to.have.attribute('aria-invalid', 'true');
+      });
+
+      it('onBlur', () => {
+        render(() => (
+          <Field.Root
+            validationMode="onBlur"
+            validate={(value) => {
+              return value === 1 ? 'error' : null;
+            }}
+          >
+            <NumberFieldBase.Root required>
+              <NumberFieldBase.Input data-testid="input" />
+            </NumberFieldBase.Root>
+            <Field.Error data-testid="error" />
+          </Field.Root>
+        ));
+
+        const input = screen.getByTestId('input');
+        expect(input).not.to.have.attribute('aria-invalid');
+
+        fireEvent.change(input, { target: { value: '1' } });
+        expect(input).not.to.have.attribute('aria-invalid');
+        fireEvent.blur(input);
+        expect(input).to.have.attribute('aria-invalid', 'true');
+        // revalidation
+        fireEvent.change(input, { target: { value: '2' } });
+        expect(input).not.to.have.attribute('aria-invalid');
+        expect(screen.queryByTestId('error')).to.equal(null);
+      });
     });
 
-    it('prop: validationMode=onBlur', async () => {
+    // Chromium shows a native validation popup when stepMismatch occurs that blocks the test
+    it.skipIf(!isJSDOM)('prevents form submission when the value does not match the step', () => {
+      const handleSubmit = spy();
       render(() => (
-        <Field.Root
-          validationMode="onBlur"
-          validate={(value) => {
-            return value === 1 ? 'error' : null;
-          }}
-        >
-          <NumberFieldBase.Root>
+        <form onSubmit={handleSubmit}>
+          <NumberFieldBase.Root name="quantity" defaultValue={0} min={0} step={0.1}>
             <NumberFieldBase.Input data-testid="input" />
           </NumberFieldBase.Root>
-          <Field.Error data-testid="error" />
-        </Field.Root>
+          <button type="submit">submit</button>
+        </form>
       ));
 
       const input = screen.getByTestId('input');
 
-      expect(input).not.to.have.attribute('aria-invalid');
+      input.focus();
 
-      fireEvent.input(input, { target: { value: '1' } });
-      fireEvent.blur(input);
+      fireEvent.change(input, { target: { value: '0.11' } });
+      fireEvent.click(screen.getByText('submit'));
 
-      expect(input).to.have.attribute('aria-invalid', 'true');
+      expect(handleSubmit.callCount).to.equal(0);
+
+      fireEvent.change(input, { target: { value: '0.1' } });
+      fireEvent.click(screen.getByText('submit'));
+
+      expect(handleSubmit.callCount).to.equal(1);
+      expect(new FormData(handleSubmit.firstCall.args[0].target).get('quantity')).to.equal('0.1');
+    });
+
+    it('prevents Form/Field submission when the value does not match the step', () => {
+      const handleSubmit = spy();
+      render(() => (
+        <Form onFormSubmit={handleSubmit}>
+          <Field.Root name="quantity">
+            <NumberFieldBase.Root defaultValue={0} min={0} step={0.1}>
+              <NumberFieldBase.Input data-testid="input" />
+            </NumberFieldBase.Root>
+            <Field.Error match="stepMismatch" data-testid="error">
+              step mismatch
+            </Field.Error>
+          </Field.Root>
+          <button type="submit">submit</button>
+        </Form>
+      ));
+
+      const input = screen.getByTestId('input');
+
+      input.focus();
+
+      expect(screen.queryByTestId('error')).to.equal(null);
+
+      fireEvent.change(input, { target: { value: '0.11' } });
+      fireEvent.click(screen.getByText('submit'));
+
+      expect(handleSubmit.callCount).to.equal(0);
+      expect(screen.getByTestId('error')).to.have.text('step mismatch');
+
+      fireEvent.change(input, { target: { value: '0.1' } });
+      fireEvent.click(screen.getByText('submit'));
+
+      expect(handleSubmit.callCount).to.equal(1);
+      expect(handleSubmit.firstCall.args[0].quantity).to.equal(0.1);
     });
 
     it('disables the input when disabled=true', async () => {
@@ -883,6 +1626,213 @@ describe('<NumberField />', () => {
       render(() => <NumberField />);
       const input = screen.getByRole('textbox');
       expect(input).to.have.attribute('inputmode', 'numeric');
+    });
+  });
+
+  describe('integration: exotic inputs and IME', () => {
+    it('parses Persian digits and separators via change events', () => {
+      const onValueChange = spy();
+      function App() {
+        const [value, setValue] = createSignal<number | null>(null);
+        return (
+          <NumberField
+            value={value()}
+            onValueChange={(v) => {
+              onValueChange(v);
+              setValue(v);
+            }}
+          />
+        );
+      }
+      render(() => <App />);
+
+      const input = screen.getByRole('textbox');
+      // ۱۲٫۳۴ => 12.34
+      fireEvent.change(input, { target: { value: '۱۲٫۳۴' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(12.34);
+    });
+
+    it('parses Persian digits with Arabic group/decimal separators', () => {
+      const onValueChange = spy();
+      function App() {
+        const [value, setValue] = createSignal<number | null>(null);
+        return (
+          <NumberField
+            value={value()}
+            onValueChange={(v) => {
+              onValueChange(v);
+              setValue(v);
+            }}
+          />
+        );
+      }
+      render(() => <App />);
+
+      const input = screen.getByRole('textbox');
+      // ۱۲٬۳۴۵٫۶۷ => 12345.67
+      fireEvent.change(input, { target: { value: '۱۲٬۳۴۵٫۶۷' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(12345.67);
+    });
+
+    it('parses fullwidth digits and punctuation', () => {
+      const onValueChange = spy();
+      function App() {
+        const [value, setValue] = createSignal<number | null>(null);
+        return (
+          <NumberField
+            value={value()}
+            onValueChange={(v) => {
+              onValueChange(v);
+              setValue(v);
+            }}
+          />
+        );
+      }
+
+      render(() => <App />);
+
+      const input = screen.getByRole('textbox');
+
+      fireEvent.change(input, { target: { value: '１，２３４．５６' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(1234.56);
+    });
+
+    it('parses percent and permille signs in exotic forms when formatted as percent', () => {
+      const onValueChange = spy();
+      function App() {
+        const [value, setValue] = createSignal<number | null>(null);
+        return (
+          <NumberField
+            value={value()}
+            format={{ style: 'percent' }}
+            onValueChange={(v) => {
+              onValueChange(v);
+              setValue(v);
+            }}
+          />
+        );
+      }
+
+      render(() => <App />);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: '١٢٪' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(0.12);
+
+      // reset by typing again
+      fireEvent.change(input, { target: { value: '12؉' } });
+      expect(onValueChange.callCount).to.equal(2);
+      expect(onValueChange.secondCall.args[0]).to.equal(0.012);
+    });
+
+    it('ignores percent and permille symbols when not formatted as percent', () => {
+      const onValueChange = spy();
+      render(() => <NumberField onValueChange={onValueChange} />);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: '12' } });
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(12);
+
+      fireEvent.change(input, { target: { value: '12%' } });
+      fireEvent.change(input, { target: { value: '12‰' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(input).to.have.value('12');
+    });
+
+    it('parses trailing unicode minus', async () => {
+      const onValueChange = spy();
+      function App() {
+        const [value, setValue] = createSignal<number | null>(null);
+        return (
+          <NumberField
+            value={value()}
+            onValueChange={(v) => {
+              onValueChange(v);
+              setValue(v);
+            }}
+          />
+        );
+      }
+
+      render(() => <App />);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: '1234−' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(-1234);
+    });
+
+    it('treats parentheses negatives as invalid input', () => {
+      const onValueChange = spy();
+      function App() {
+        const [value, setValue] = createSignal<number | null>(null);
+        return (
+          <NumberField
+            value={value()}
+            onValueChange={(v) => {
+              onValueChange(v);
+              setValue(v);
+            }}
+          />
+        );
+      }
+
+      render(() => <App />);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: '(1,234.5)' } });
+
+      expect(onValueChange.callCount).to.equal(0);
+      expect(input).to.have.value('');
+    });
+
+    it('collapses extra dots from mixed-locale inputs', () => {
+      const onValueChange = spy();
+      function App() {
+        const [value, setValue] = createSignal<number | null>(null);
+        return (
+          <NumberField
+            value={value()}
+            onValueChange={(v) => {
+              onValueChange(v);
+              setValue(v);
+            }}
+          />
+        );
+      }
+
+      render(() => <App />);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: '1.234.567.89' } });
+
+      expect(onValueChange.callCount).to.equal(1);
+      expect(onValueChange.firstCall.args[0]).to.equal(1234567.89);
+    });
+
+    it('allows composition key events (IME) without preventing default', () => {
+      render(() => <NumberField />);
+
+      const input = screen.getByRole('textbox');
+
+      input.focus();
+
+      const preventDefaultSpy = spy();
+
+      // 229 indicates a composition key event
+      fireEvent.keyDown(input, { which: 229, preventDefault: preventDefaultSpy });
+      expect(preventDefaultSpy).to.have.property('callCount', 0);
     });
   });
 

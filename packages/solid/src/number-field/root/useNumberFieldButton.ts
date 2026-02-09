@@ -1,4 +1,8 @@
 import { access, type MaybeAccessor } from '../../solid-helpers';
+import {
+  createChangeEventDetails,
+  createGenericEventDetails,
+} from '../../utils/createBaseUIEventDetails';
 import type { HTMLProps } from '../../utils/types';
 import type { Timeout } from '../../utils/useTimeout';
 import {
@@ -8,30 +12,30 @@ import {
   TOUCH_TIMEOUT,
 } from '../utils/constants';
 import { parseNumber } from '../utils/parse';
-import type { EventWithOptionalKeyState } from '../utils/types';
+import type {
+  Direction,
+  EventWithOptionalKeyState,
+  IncrementValueParameters,
+} from '../utils/types';
+import type { NumberFieldRoot } from './NumberFieldRoot';
 
-export function useNumberFieldButton(
-  params: useNumberFieldButton.Parameters,
-): useNumberFieldButton.ReturnValue {
+export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
   const disabled = () => access(params.disabled);
   const id = () => access(params.id);
   const inputValue = () => access(params.inputValue);
   const isIncrement = () => access(params.isIncrement);
   const locale = () => access(params.locale);
-  const maxWithDefault = () => access(params.maxWithDefault);
-  const minWithDefault = () => access(params.minWithDefault);
   const readOnly = () => access(params.readOnly);
-  const value = () => access(params.value);
 
   let incrementDownCoordsRef = { x: 0, y: 0 };
   let isTouchingButtonRef = false;
   let ignoreClickRef = false;
   let pointerTypeRef = '' as 'mouse' | 'touch' | 'pen' | '';
 
-  const isMin = () => value() != null && value()! <= minWithDefault();
-  const isMax = () => value() != null && value()! >= maxWithDefault();
+  const pressReason: NumberFieldRoot.ChangeEventReason = () =>
+    isIncrement() ? 'increment-press' : 'decrement-press';
 
-  const commitValue = (nativeEvent: MouseEvent) => {
+  function commitValue(nativeEvent: MouseEvent) {
     params.refs.allowInputSyncRef = true;
 
     // The input may be dirty but not yet blurred, so the value won't have been committed.
@@ -41,14 +45,24 @@ export function useNumberFieldButton(
       // The increment value function needs to know the current input value to increment it
       // correctly.
       params.refs.valueRef = parsedValue;
-      params.setValue(parsedValue, nativeEvent);
+      params.setValue(
+        parsedValue,
+        createChangeEventDetails<NumberFieldRoot.ChangeEventReason, { direction?: Direction }>(
+          pressReason,
+          nativeEvent,
+          undefined,
+          {
+            direction: isIncrement() ? 1 : -1,
+          },
+        ),
+      );
     }
-  };
+  }
 
   const props: HTMLProps = {
     // @ts-expect-error - disabled is not a valid attribute for HTMLProps
     get disabled() {
-      return disabled() || (isIncrement() ? isMax() : isMin());
+      return disabled();
     },
     get 'aria-readonly'() {
       return readOnly() || undefined;
@@ -88,12 +102,22 @@ export function useNumberFieldButton(
 
       const amount = params.getStepAmount(event) ?? DEFAULT_STEP;
 
-      params.incrementValue(amount, isIncrement() ? 1 : -1, undefined, event);
+      const prev = params.refs.valueRef;
+
+      params.incrementValue(amount, {
+        direction: isIncrement() ? 1 : -1,
+        event: event,
+        reason: pressReason,
+      });
+
+      const committed = params.refs.lastChangedValueRef ?? params.refs.valueRef;
+      if (committed !== prev) {
+        params.onValueCommitted(committed, createGenericEventDetails(pressReason, event));
+      }
     },
     onPointerDown(event) {
       const isMainButton = !event.button || event.button === 0;
-      const isDisabled = disabled() || (isIncrement() ? isMax() : isMin());
-      if (event.defaultPrevented || readOnly() || !isMainButton || isDisabled) {
+      if (event.defaultPrevented || readOnly() || !isMainButton || disabled()) {
         return;
       }
 
@@ -115,17 +139,30 @@ export function useNumberFieldButton(
         params.intentionalTouchCheckTimeout.start(TOUCH_TIMEOUT, () => {
           const moves = params.refs.movesAfterTouchRef;
           params.refs.movesAfterTouchRef = 0;
-          if (moves != null && moves < MAX_POINTER_MOVES_AFTER_TOUCH) {
-            ignoreClickRef = true;
+          // Only start auto-change if the touch is still pressed (prevents races
+          // with pointerup occurring before the timeout fires on quick taps).
+          const stillPressed = params.refs.isPressedRef;
+          if (stillPressed && moves != null && moves < MAX_POINTER_MOVES_AFTER_TOUCH) {
             params.startAutoChange(isIncrement(), event);
+            ignoreClickRef = true; // synthesized click should be ignored
           } else {
+            // No auto-change (simple tap or scroll gesture), allow the click handler
+            // to perform a single increment and commit.
+            ignoreClickRef = false;
             params.stopAutoChange();
           }
         });
       }
     },
+    onPointerUp(event) {
+      // Ensure we mark the press as released for touch flows even if auto-change never started,
+      // so the delayed auto-change check won’t start after a quick tap.
+      if (event.pointerType === 'touch') {
+        params.refs.isPressedRef = false;
+      }
+    },
     onPointerMove(event) {
-      const isDisabled = disabled() || readOnly() || (isIncrement() ? isMax() : isMin());
+      const isDisabled = disabled() || readOnly();
       if (isDisabled || event.pointerType !== 'touch' || !params.refs.isPressedRef) {
         return;
       }
@@ -145,12 +182,13 @@ export function useNumberFieldButton(
       }
     },
     onMouseEnter(event) {
-      const isDisabled = disabled() || readOnly() || (isIncrement() ? isMax() : isMin());
+      const isDisabled = disabled() || readOnly();
       if (
         event.defaultPrevented ||
         isDisabled ||
         !params.refs.isPressedRef ||
-        isTouchingButtonRef
+        isTouchingButtonRef ||
+        pointerTypeRef === 'touch'
       ) {
         return;
       }
@@ -176,39 +214,42 @@ export function useNumberFieldButton(
   return { props };
 }
 
-export namespace useNumberFieldButton {
-  export interface Parameters {
-    refs: {
-      inputRef: HTMLInputElement | null | undefined;
-      allowInputSyncRef: boolean | null;
-      formatOptionsRef: Intl.NumberFormatOptions | undefined;
-      valueRef: number | null;
-      isPressedRef: boolean | null;
-      movesAfterTouchRef: number | null;
-    };
-    disabled: MaybeAccessor<boolean>;
-    getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
-    id: MaybeAccessor<string | undefined>;
-    incrementValue: (
-      amount: number,
-      dir: 1 | -1,
-      currentValue?: number | null,
-      event?: Event,
-    ) => void;
-    inputValue: MaybeAccessor<string>;
-    intentionalTouchCheckTimeout: Timeout;
-    isIncrement: MaybeAccessor<boolean>;
-    locale?: MaybeAccessor<Intl.LocalesArgument | undefined>;
-    maxWithDefault: MaybeAccessor<number>;
-    minWithDefault: MaybeAccessor<number>;
-    readOnly: MaybeAccessor<boolean>;
-    setValue: (unvalidatedValue: number | null, event?: Event) => void;
-    startAutoChange: (isIncrement: boolean, event?: MouseEvent | Event) => void;
-    stopAutoChange: () => void;
-    value: MaybeAccessor<number | null>;
-  }
+export interface UseNumberFieldButtonParameters {
+  refs: {
+    inputRef: HTMLInputElement | null | undefined;
+    allowInputSyncRef: boolean | null;
+    formatOptionsRef: Intl.NumberFormatOptions | undefined;
+    valueRef: number | null;
+    isPressedRef: boolean | null;
+    movesAfterTouchRef: number | null;
+    lastChangedValueRef: number | null;
+  };
+  disabled: MaybeAccessor<boolean>;
+  getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
+  id: MaybeAccessor<string | undefined>;
+  incrementValue: (amount: number, params: IncrementValueParameters) => void;
+  inputValue: MaybeAccessor<string>;
+  intentionalTouchCheckTimeout: Timeout;
+  isIncrement: MaybeAccessor<boolean>;
+  locale?: MaybeAccessor<Intl.LocalesArgument | undefined>;
+  readOnly: MaybeAccessor<boolean>;
+  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => void;
+  startAutoChange: (isIncrement: boolean, event?: MouseEvent | Event) => void;
+  stopAutoChange: () => void;
+  onValueCommitted: (
+    value: number | null,
+    eventDetails: NumberFieldRoot.CommitEventDetails,
+  ) => void;
+}
 
-  export interface ReturnValue {
-    props: HTMLProps;
-  }
+export interface ReturnValue {
+  props: HTMLProps;
+}
+export interface UseNumberFieldButtonReturnValue {
+  props: HTMLProps;
+}
+
+export namespace useNumberFieldButton {
+  export type Parameters = UseNumberFieldButtonParameters;
+  export type ReturnValue = UseNumberFieldButtonReturnValue;
 }

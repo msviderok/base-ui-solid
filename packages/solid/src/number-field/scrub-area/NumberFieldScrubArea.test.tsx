@@ -1,12 +1,33 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
+import { isWebKit } from '@base-ui/utils/detectBrowser';
 import { NumberField } from '@msviderok/base-ui-solid/number-field';
-import { screen, waitFor } from '@solidjs/testing-library';
+import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
-import { isWebKit } from '../../utils/detectBrowser';
+import { spy } from 'sinon';
+
+// TODO (@Janpot): Contribute https://github.com/testing-library/user-event/issues/903 and
+// rely on `user.pointer()` instead.
+let currentPos = { clientX: 0, clientY: 0 };
+
+function createPointerDownEvent(elm: HTMLElement) {
+  const box = elm.getBoundingClientRect();
+  const centerX = box.left + box.width / 2;
+  const centerY = box.top + box.height / 2;
+  currentPos = { clientX: centerX, clientY: centerY };
+  return new PointerEvent('pointerdown', {
+    bubbles: true,
+    ...currentPos,
+  });
+}
 
 function createPointerMoveEvent({ movementX = 0, movementY = 0 }) {
+  currentPos = {
+    clientX: currentPos.clientX + movementX,
+    clientY: currentPos.clientY + movementY,
+  };
   return new PointerEvent('pointermove', {
     bubbles: true,
+    ...currentPos,
     movementX,
     movementY,
   });
@@ -17,7 +38,7 @@ describe('<NumberField.ScrubArea />', () => {
 
   describeConformance(NumberField.ScrubArea, () => ({
     refInstanceof: window.HTMLSpanElement,
-    render: (node, props) => render(() => <NumberField.Root>{node(props)}</NumberField.Root>),
+    render: (node, props) => render(() => <NumberField.Root>{node(props!)}</NumberField.Root>),
   }));
 
   it('has presentation role', async () => {
@@ -34,13 +55,6 @@ describe('<NumberField.ScrubArea />', () => {
     return;
   }
 
-  // `PointerEvent` isn't defined in JSDOM. This needs to be located beneath the return above.
-  const pointerDownEvent = new PointerEvent('pointerdown', {
-    bubbles: true,
-    clientX: 100,
-    clientY: 100,
-  });
-
   it('should increment or decrement the value when scrubbing with the pointer', async () => {
     render(() => (
       <NumberField.Root defaultValue={0}>
@@ -54,17 +68,51 @@ describe('<NumberField.ScrubArea />', () => {
     const scrubArea = screen.getByTestId('scrub-area');
     const input = screen.getByRole('textbox');
 
-    scrubArea.dispatchEvent(pointerDownEvent);
+    scrubArea.dispatchEvent(createPointerDownEvent(scrubArea));
     scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: -10 }));
 
-    await waitFor(() => expect(input).to.have.value('-10'));
+    expect(input).to.have.value('-10');
     scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 5 }));
 
-    await waitFor(() => expect(input).to.have.value('-5'));
+    expect(input).to.have.value('-5');
 
     scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: -2 }));
 
-    await waitFor(() => expect(input).to.have.value('-7'));
+    expect(input).to.have.value('-7');
+  });
+
+  it('calls onValueChange while scrubbing and onValueCommitted on pointerup', () => {
+    const onValueChange = spy();
+    const onValueCommitted = spy();
+
+    render(() => (
+      <NumberField.Root
+        defaultValue={0}
+        onValueChange={onValueChange}
+        onValueCommitted={onValueCommitted}
+      >
+        <NumberField.Input />
+        <NumberField.ScrubArea data-testid="scrub-area">
+          <NumberField.ScrubAreaCursor />
+        </NumberField.ScrubArea>
+      </NumberField.Root>
+    ));
+
+    const scrubArea = screen.getByTestId('scrub-area');
+
+    scrubArea.dispatchEvent(createPointerDownEvent(scrubArea));
+    scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 3 }));
+
+    // One or more changes depending on pixel sensitivity and environment
+    expect(onValueChange.callCount).to.be.greaterThan(0);
+
+    window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+
+    expect(onValueCommitted.callCount).to.equal(1);
+
+    const lastChange = onValueChange.lastCall.args[0];
+    const committed = onValueCommitted.firstCall.args[0];
+    expect(committed).to.equal(lastChange);
   });
 
   describe('prop: pixelSensitivity', () => {
@@ -81,41 +129,41 @@ describe('<NumberField.ScrubArea />', () => {
       const scrubArea = screen.getByTestId('scrub-area');
       const input = screen.getByRole('textbox');
 
-      scrubArea.dispatchEvent(pointerDownEvent);
+      scrubArea.dispatchEvent(createPointerDownEvent(scrubArea));
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: -2 }));
 
-      await waitFor(() => expect(input).to.have.value('0'));
+      expect(input).to.have.value('0');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 2 }));
 
-      await waitFor(() => expect(input).to.have.value('0'));
+      expect(input).to.have.value('0');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 1 }));
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 1 }));
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 1 }));
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 1 }));
 
-      await waitFor(() => expect(input).to.have.value('0'));
+      expect(input).to.have.value('0');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 1 }));
 
-      await waitFor(() => expect(input).to.have.value('1'));
+      expect(input).to.have.value('1');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 5 }));
 
-      await waitFor(() => expect(input).to.have.value('6'));
+      expect(input).to.have.value('6');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: -4 }));
 
-      await waitFor(() => expect(input).to.have.value('6'));
+      expect(input).to.have.value('6');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: -1 }));
 
-      await waitFor(() => expect(input).to.have.value('5'));
+      expect(input).to.have.value('5');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 5 }));
 
-      await waitFor(() => expect(input).to.have.value('10'));
+      expect(input).to.have.value('10');
     });
   });
 
@@ -133,14 +181,14 @@ describe('<NumberField.ScrubArea />', () => {
       const scrubArea = screen.getByTestId('scrub-area');
       const input = screen.getByRole('textbox');
 
-      scrubArea.dispatchEvent(pointerDownEvent);
+      scrubArea.dispatchEvent(createPointerDownEvent(scrubArea));
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementX: 10 }));
 
-      await waitFor(() => expect(input).to.have.value('10'));
+      expect(input).to.have.value('10');
 
       scrubArea.dispatchEvent(createPointerMoveEvent({ movementY: 10 }));
 
-      await waitFor(() => expect(input).to.have.value('10'));
+      expect(input).to.have.value('10');
     });
   });
 });

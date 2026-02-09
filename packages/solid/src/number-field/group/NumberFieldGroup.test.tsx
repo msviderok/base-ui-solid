@@ -8,7 +8,7 @@ describe('<NumberField.Group />', () => {
 
   describeConformance(NumberField.Group, () => ({
     refInstanceof: window.HTMLDivElement,
-    render: (node, props) => render(() => <NumberField.Root>{node(props)}</NumberField.Root>),
+    render: (node, props) => render(() => <NumberField.Root>{node(props!)}</NumberField.Root>),
   }));
 
   it('has role prop', () => {

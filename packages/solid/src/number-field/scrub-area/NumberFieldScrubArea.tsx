@@ -1,14 +1,17 @@
+import { isFirefox, isWebKit } from '@base-ui/utils/detectBrowser';
+import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
-import { isWebKit } from '../../utils/detectBrowser';
-import { ownerDocument, ownerWindow } from '../../utils/owner';
+import { createGenericEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { useTimeout } from '../../utils/useTimeout';
 import type { NumberFieldRoot } from '../root/NumberFieldRoot';
 import { useNumberFieldRootContext } from '../root/NumberFieldRootContext';
 import { DEFAULT_STEP } from '../utils/constants';
 import { getViewportRect } from '../utils/getViewportRect';
-import { styleHookMapping } from '../utils/styleHooks';
+import { stateAttributesMapping } from '../utils/stateAttributesMapping';
 import { subscribeToVisualViewportResize } from '../utils/subscribeToVisualViewportResize';
 import { NumberFieldScrubAreaContext } from './NumberFieldScrubAreaContext';
 
@@ -27,16 +30,15 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
   const direction = () => local.direction ?? 'horizontal';
   const pixelSensitivity = () => local.pixelSensitivity ?? 2;
 
-  const { state } = useNumberFieldRootContext();
-
   const {
-    isScrubbing,
-    setIsScrubbing,
+    state,
+    setIsScrubbing: setRootScrubbing,
     disabled,
     readOnly,
     incrementValue,
     getStepAmount,
     refs: numberFieldRootRefs,
+    onValueCommitted,
   } = useNumberFieldRootContext();
 
   const refs: NumberFieldScrubAreaContext['refs'] = {
@@ -49,8 +51,11 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
   // TODO: this is needed to be a react-like ref due to it being mutated in the subscribeToVisualViewportResize
   const visualScaleRef = { current: 1 };
 
+  const exitPointerLockTimeout = useTimeout();
+
   const [isTouchInput, setIsTouchInput] = createSignal(false);
   const [isPointerLockDenied, setIsPointerLockDenied] = createSignal(false);
+  const [isScrubbing, setIsScrubbing] = createSignal(false);
 
   createEffect(() => {
     if (!isScrubbing() || !refs.scrubAreaCursorRef) {
@@ -60,11 +65,11 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     subscribeToVisualViewportResize(refs.scrubAreaCursorRef, visualScaleRef);
   });
 
-  const updateCursorTransform = (x: number, y: number) => {
+  function updateCursorTransform(x: number, y: number) {
     if (refs.scrubAreaCursorRef) {
       refs.scrubAreaCursorRef.style.transform = `translate3d(${x}px,${y}px,0) scale(${1 / visualScaleRef.current})`;
     }
-  };
+  }
 
   const onScrub = ({ movementX, movementY }: PointerEvent) => {
     const virtualCursor = refs.scrubAreaCursorRef;
@@ -104,6 +109,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
 
   const onScrubbingChange = (scrubbingValue: boolean, { clientX, clientY }: PointerEvent) => {
     setIsScrubbing(scrubbingValue);
+    setRootScrubbing(scrubbingValue);
 
     const virtualCursor = refs.scrubAreaCursorRef;
     if (!virtualCursor || !scrubbingValue) {
@@ -121,21 +127,35 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
   };
 
   createEffect(function registerGlobalScrubbingEventListeners() {
-    if (!numberFieldRootRefs.inputRef || disabled() || readOnly()) {
+    // Only listen while actively scrubbing; avoids unrelated pointerup events committing.
+    if (!numberFieldRootRefs.inputRef || disabled() || readOnly() || !isScrubbing()) {
       return;
     }
 
     let cumulativeDelta = 0;
 
     function handleScrubPointerUp(event: PointerEvent) {
-      try {
-        // Avoid errors in testing environments.
-        ownerDocument(refs.scrubAreaRef).exitPointerLock();
-      } catch {
-        //
-      } finally {
-        isScrubbingRef = false;
-        onScrubbingChange(false, event);
+      function handler() {
+        try {
+          ownerDocument(refs.scrubAreaRef ?? null).exitPointerLock();
+        } catch {
+          // Ignore errors.
+        } finally {
+          isScrubbingRef = false;
+          onScrubbingChange(false, event);
+          onValueCommitted(
+            numberFieldRootRefs.lastChangedValueRef ?? numberFieldRootRefs.valueRef,
+            createGenericEventDetails(REASONS.scrub, event),
+          );
+        }
+      }
+
+      if (isFirefox) {
+        // Firefox needs a small delay here when soft-clicking as the pointer
+        // lock will not release otherwise.
+        exitPointerLockTimeout.start(20, handler);
+      } else {
+        handler();
       }
     }
 
@@ -156,7 +176,16 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
       if (Math.abs(cumulativeDelta) >= pixelSensitivity()) {
         cumulativeDelta = 0;
         const dValue = direction() === 'vertical' ? -movementY : movementX;
-        incrementValue(dValue * (getStepAmount(event) ?? DEFAULT_STEP), 1);
+        const stepAmount = getStepAmount(event) ?? DEFAULT_STEP;
+        const rawAmount = dValue * stepAmount;
+
+        if (rawAmount !== 0) {
+          incrementValue(Math.abs(rawAmount), {
+            direction: rawAmount >= 0 ? 1 : -1,
+            event,
+            reason: REASONS.scrub,
+          });
+        }
       }
     }
 
@@ -166,6 +195,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     win.addEventListener('pointermove', handleScrubPointerMove, true);
 
     onCleanup(() => {
+      exitPointerLockTimeout.clear();
       win.removeEventListener('pointerup', handleScrubPointerUp, true);
       win.removeEventListener('pointermove', handleScrubPointerMove, true);
     });
@@ -221,16 +251,27 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
           // Avoid non-deterministic errors in testing environments. This error sometimes
           // appears:
           // "The root document of this element is not valid for pointer lock."
-          await ownerDocument(refs.scrubAreaRef).body.requestPointerLock();
+          await ownerDocument(refs.scrubAreaRef ?? null).body.requestPointerLock();
           setIsPointerLockDenied(false);
         } catch (error) {
           setIsPointerLockDenied(true);
         } finally {
-          onScrubbingChange(true, event);
+          if (isScrubbingRef) {
+            onScrubbingChange(true, event);
+          }
         }
       }
     },
   };
+
+  const element = useRenderElement('span', componentProps, {
+    state,
+    ref: (el) => {
+      refs.scrubAreaRef = el;
+    },
+    props: [defaultProps, elementProps],
+    stateAttributesMapping,
+  });
 
   const contextValue: NumberFieldScrubAreaContext = {
     isScrubbing,
@@ -242,15 +283,6 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     teleportDistance: () => local.teleportDistance,
   };
 
-  const element = useRenderElement('span', componentProps, {
-    state,
-    ref: (el) => {
-      refs.scrubAreaRef = el;
-    },
-    props: [defaultProps, elementProps],
-    customStyleHookMapping: styleHookMapping,
-  });
-
   return (
     <NumberFieldScrubAreaContext.Provider value={contextValue}>
       {element()}
@@ -258,25 +290,31 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
   );
 }
 
-export namespace NumberFieldScrubArea {
-  export interface State extends NumberFieldRoot.State {}
+export interface NumberFieldScrubAreaState extends NumberFieldRoot.State {}
 
-  export interface Props extends BaseUIComponentProps<'span', State> {
-    /**
-     * Cursor movement direction in the scrub area.
-     * @default 'horizontal'
-     */
-    direction?: 'horizontal' | 'vertical';
-    /**
-     * Determines how many pixels the cursor must move before the value changes.
-     * A higher value will make scrubbing less sensitive.
-     * @default 2
-     */
-    pixelSensitivity?: number;
-    /**
-     * If specified, determines the distance that the cursor may move from the center
-     * of the scrub area before it will loop back around.
-     */
-    teleportDistance?: number;
-  }
+export interface NumberFieldScrubAreaProps extends BaseUIComponentProps<
+  'span',
+  NumberFieldScrubArea.State
+> {
+  /**
+   * Cursor movement direction in the scrub area.
+   * @default 'horizontal'
+   */
+  direction?: 'horizontal' | 'vertical';
+  /**
+   * Determines how many pixels the cursor must move before the value changes.
+   * A higher value will make scrubbing less sensitive.
+   * @default 2
+   */
+  pixelSensitivity?: number;
+  /**
+   * If specified, determines the distance that the cursor may move from the center
+   * of the scrub area before it will loop back around.
+   */
+  teleportDistance?: number | undefined;
+}
+
+export namespace NumberFieldScrubArea {
+  export type State = NumberFieldScrubAreaState;
+  export type Props = NumberFieldScrubAreaProps;
 }

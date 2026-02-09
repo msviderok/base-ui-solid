@@ -1,11 +1,12 @@
+import { mergeProps as solidMergeProps } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
-import type { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { NumberFieldRoot } from '../root/NumberFieldRoot';
 import { useNumberFieldRootContext } from '../root/NumberFieldRootContext';
 import { useNumberFieldButton } from '../root/useNumberFieldButton';
-import { styleHookMapping } from '../utils/styleHooks';
+import { stateAttributesMapping } from '../utils/stateAttributesMapping';
 
 /**
  * A stepper button that increases the field value when clicked.
@@ -14,7 +15,9 @@ import { styleHookMapping } from '../utils/styleHooks';
  * Documentation: [Base UI Number Field](https://base-ui.com/react/components/number-field)
  */
 export function NumberFieldIncrement(componentProps: NumberFieldIncrement.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, ['disabled']);
+  const [, local, elementProps] = splitComponentProps(componentProps, ['disabled', 'nativeButton']);
+  const disabledProp = () => local.disabled ?? false;
+  const nativeButton = () => local.nativeButton ?? true;
 
   const {
     disabled: contextDisabled,
@@ -25,7 +28,6 @@ export function NumberFieldIncrement(componentProps: NumberFieldIncrement.Props)
     intentionalTouchCheckTimeout,
     locale,
     maxWithDefault,
-    minWithDefault,
     readOnly,
     setValue,
     startAutoChange,
@@ -33,17 +35,16 @@ export function NumberFieldIncrement(componentProps: NumberFieldIncrement.Props)
     stopAutoChange,
     value,
     refs,
+    onValueCommitted,
   } = useNumberFieldRootContext();
 
-  const disabled = () => (local.disabled ?? false) || contextDisabled();
+  const isMax = () => value() != null && value()! >= maxWithDefault();
+  const disabled = () => disabledProp() || contextDisabled() || isMax();
 
   const { props } = useNumberFieldButton({
     isIncrement: true,
     startAutoChange,
     stopAutoChange,
-    minWithDefault,
-    maxWithDefault,
-    value,
     inputValue,
     disabled,
     readOnly,
@@ -54,22 +55,37 @@ export function NumberFieldIncrement(componentProps: NumberFieldIncrement.Props)
     intentionalTouchCheckTimeout,
     locale,
     refs,
+    onValueCommitted,
   });
 
-  const { getButtonProps, buttonRef } = useButton({ disabled });
+  const { getButtonProps, buttonRef } = useButton({
+    disabled,
+    native: nativeButton,
+    focusableWhenDisabled: true,
+  });
+
+  const buttonState = solidMergeProps(state, {
+    get disabled() {
+      return disabled();
+    },
+  });
 
   const element = useRenderElement('button', componentProps, {
-    state,
+    state: buttonState,
     ref: buttonRef,
     props: [props, elementProps, getButtonProps],
-    customStyleHookMapping: styleHookMapping,
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace NumberFieldIncrement {
-  export interface State extends NumberFieldRoot.State {}
+export interface NumberFieldIncrementState extends NumberFieldRoot.State {}
 
-  export interface Props extends BaseUIComponentProps<'button', State> {}
+export interface NumberFieldIncrementProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', NumberFieldIncrement.State> {}
+
+export namespace NumberFieldIncrement {
+  export type State = NumberFieldIncrementState;
+  export type Props = NumberFieldIncrementProps;
 }
