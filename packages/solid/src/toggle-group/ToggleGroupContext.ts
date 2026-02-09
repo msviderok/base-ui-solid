@@ -1,9 +1,15 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
+import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
+import type { BaseUIEventReasons } from '../utils/reasons';
 import type { Orientation } from '../utils/types';
 
 export interface ToggleGroupContext {
   value: Accessor<readonly any[]>;
-  setGroupValue: (newValue: string, nextPressed: boolean, event: Event) => void;
+  setGroupValue: (
+    newValue: string,
+    nextPressed: boolean,
+    eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
+  ) => void;
   disabled: Accessor<boolean>;
   orientation: Accessor<Orientation>;
 }

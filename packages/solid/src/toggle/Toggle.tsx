@@ -3,7 +3,13 @@ import { CompositeItem } from '../composite/item/CompositeItem';
 import { splitComponentProps } from '../solid-helpers';
 import { useToggleGroupContext } from '../toggle-group/ToggleGroupContext';
 import { useButton } from '../use-button/useButton';
-import type { BaseUIComponentProps } from '../utils/types';
+import {
+  type BaseUIChangeEventDetails,
+  createChangeEventDetails,
+} from '../utils/createBaseUIEventDetails';
+import { REASONS } from '../utils/reasons';
+import type { BaseUIComponentProps, NativeButtonProps } from '../utils/types';
+import { useBaseUiId } from '../utils/useBaseUiId';
 import { useControlled } from '../utils/useControlled';
 import { useRenderElement } from '../utils/useRenderElement';
 
@@ -14,23 +20,26 @@ import { useRenderElement } from '../utils/useRenderElement';
  * Documentation: [Base UI Toggle](https://base-ui.com/react/components/toggle)
  */
 export function Toggle(componentProps: Toggle.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, [
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'defaultPressed',
     'disabled',
-    'form',
+    'form', // never participates in form validation
     'onPressedChange',
     'pressed',
-    'type',
+    'type', // cannot change button type
     'value',
     'nativeButton',
   ]);
   const defaultPressedProp = () => local.defaultPressed ?? false;
   const disabledProp = () => local.disabled ?? false;
-  const value = () => local.value ?? '';
+  const pressedProp = () => local.pressed;
+  const valueProp = () => local.value;
   const nativeButton = () => local.nativeButton ?? true;
 
-  const groupContext = useToggleGroupContext();
+  // `|| undefined` handles cases, where value is falsy (i.e. "")
+  const value = useBaseUiId(() => valueProp() || undefined);
 
+  const groupContext = useToggleGroupContext();
   const groupValue = () => groupContext?.value() ?? [];
 
   const defaultPressed = () => (groupContext ? undefined : defaultPressedProp());
@@ -38,17 +47,19 @@ export function Toggle(componentProps: Toggle.Props) {
   const disabled = () => (disabledProp() || groupContext?.disabled()) ?? false;
 
   const [pressed, setPressedState] = useControlled({
-    controlled: () =>
-      groupContext && value() ? groupValue()?.indexOf(value()) > -1 : local.pressed,
+    controlled: () => (groupContext ? groupValue()?.indexOf(value()) > -1 : pressedProp()),
     default: defaultPressed,
     name: 'Toggle',
     state: 'pressed',
   });
 
-  const onPressedChange = (nextPressed: boolean, event: Event) => {
+  const onPressedChange = (nextPressed: boolean, eventDetails: Toggle.ChangeEventDetails) => {
     batch(() => {
-      groupContext?.setGroupValue?.(value(), nextPressed, event);
-      local.onPressedChange?.(nextPressed, event);
+      const val = value();
+      if (val) {
+        groupContext?.setGroupValue?.(val, nextPressed, eventDetails);
+      }
+      local.onPressedChange?.(nextPressed, eventDetails);
     });
   };
 
@@ -66,71 +77,98 @@ export function Toggle(componentProps: Toggle.Props) {
     },
   };
 
+  const props = [
+    {
+      get 'aria-pressed'() {
+        return pressed();
+      },
+      onClick(event: MouseEvent) {
+        batch(() => {
+          const nextPressed = !pressed();
+          const details = createChangeEventDetails(REASONS.none, event);
+
+          onPressedChange(nextPressed, details);
+
+          if (details.isCanceled) {
+            return;
+          }
+
+          setPressedState(nextPressed);
+        });
+      },
+    },
+    elementProps,
+    getButtonProps,
+  ];
+
   const element = useRenderElement('button', componentProps, {
+    enabled: () => !groupContext,
     state,
     ref: buttonRef,
-    props: [
-      {
-        get 'aria-pressed'() {
-          return pressed();
-        },
-        onClick(event) {
-          const nextPressed = !pressed();
-          batch(() => {
-            setPressedState(nextPressed);
-            onPressedChange(nextPressed, event);
-          });
-        },
-      },
-      elementProps,
-      getButtonProps,
-    ],
+    props,
   });
 
   return (
     <Show when={groupContext} fallback={element()}>
-      <CompositeItem render={element} />
+      <CompositeItem
+        tag="button"
+        render={renderProps.render}
+        class={renderProps.class}
+        state={state}
+        refs={[buttonRef, componentProps.ref as any]}
+        props={props}
+      />
     </Show>
   );
 }
 
-export namespace Toggle {
-  export interface State {
-    /**
-     * Whether the toggle is currently pressed.
-     */
-    pressed: boolean;
-    /**
-     * Whether the toggle should ignore user interaction.
-     */
-    disabled: boolean;
-  }
+export interface ToggleState {
+  /**
+   * Whether the toggle is currently pressed.
+   */
+  pressed: boolean;
+  /**
+   * Whether the toggle should ignore user interaction.
+   */
+  disabled: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'button', State> {
-    /**
-     * Whether the toggle button is currently pressed.
-     * This is the controlled counterpart of `defaultPressed`.
-     */
-    pressed?: boolean;
-    /**
-     * Whether the toggle button is currently pressed.
-     * This is the uncontrolled counterpart of `pressed`.
-     * @default false
-     */
-    defaultPressed?: boolean;
-    /**
-     * Callback fired when the pressed state is changed.
-     *
-     * @param {boolean} pressed The new pressed state.
-     * @param {Event} event The corresponding event that initiated the change.
-     */
-    onPressedChange?: (pressed: boolean, event: Event) => void;
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default true
-     */
-    nativeButton?: boolean;
-  }
+export interface ToggleProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', Toggle.State> {
+  /**
+   * Whether the toggle button is currently pressed.
+   * This is the controlled counterpart of `defaultPressed`.
+   */
+  pressed?: boolean;
+  /**
+   * Whether the toggle button is currently pressed.
+   * This is the uncontrolled counterpart of `pressed`.
+   * @default false
+   */
+  defaultPressed?: boolean;
+  /**
+   * Callback fired when the pressed state is changed.
+   *
+   * @param {boolean} pressed The new pressed state.
+   * @param {Event} event The corresponding event that initiated the change.
+   */
+  onPressedChange?: (pressed: boolean, eventDetails: Toggle.ChangeEventDetails) => void;
+  /**
+   * Whether the component renders a native `<button>` element when replacing it
+   * via the `render` prop.
+   * Set to `false` if the rendered element is not a button (e.g. `<div>`).
+   * @default true
+   */
+  nativeButton?: boolean;
+}
+
+export type ToggleChangeEventReason = typeof REASONS.none;
+
+export type ToggleChangeEventDetails = BaseUIChangeEventDetails<Toggle.ChangeEventReason>;
+
+export namespace Toggle {
+  export type State = ToggleState;
+  export type Props = ToggleProps;
+  export type ChangeEventReason = ToggleChangeEventReason;
+  export type ChangeEventDetails = ToggleChangeEventDetails;
 }

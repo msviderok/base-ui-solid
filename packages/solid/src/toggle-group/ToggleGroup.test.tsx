@@ -34,23 +34,22 @@ describe('<ToggleGroup />', () => {
         </ToggleGroup>
       ));
 
-      const button1 = () => screen.getAllByRole('button')[0];
-      const button2 = () => screen.getAllByRole('button')[1];
+      const [button1, button2] = screen.getAllByRole('button');
 
-      expect(button1()).to.have.attribute('aria-pressed', 'false');
-      expect(button2()).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
 
-      await user.pointer({ keys: '[MouseLeft]', target: button1() });
+      await user.pointer({ keys: '[MouseLeft]', target: button1 });
 
-      expect(button1()).to.have.attribute('aria-pressed', 'true');
-      expect(button1()).to.have.attribute('data-pressed');
-      expect(button2()).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button1).to.have.attribute('data-pressed');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
 
-      await user.pointer({ keys: '[MouseLeft]', target: button2() });
+      await user.pointer({ keys: '[MouseLeft]', target: button2 });
 
-      expect(button2()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('data-pressed');
-      expect(button1()).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('data-pressed');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
     });
 
     it('prop: defaultValue', async () => {
@@ -61,18 +60,39 @@ describe('<ToggleGroup />', () => {
         </ToggleGroup>
       ));
 
-      const button1 = () => screen.getAllByRole('button')[0];
-      const button2 = () => screen.getAllByRole('button')[1];
+      const [button1, button2] = screen.getAllByRole('button');
 
-      expect(button2()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('data-pressed');
-      expect(button1()).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('data-pressed');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
 
-      await user.pointer({ keys: '[MouseLeft]', target: button1() });
+      await user.pointer({ keys: '[MouseLeft]', target: button1 });
 
-      expect(button1()).to.have.attribute('aria-pressed', 'true');
-      expect(button1()).to.have.attribute('data-pressed');
-      expect(button2()).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button1).to.have.attribute('data-pressed');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
+    });
+
+    it('when Toggles omit value', async () => {
+      const { user } = render(() => (
+        <ToggleGroup>
+          <Toggle />
+          <Toggle value="" />
+        </ToggleGroup>
+      ));
+
+      const [button1, button2] = screen.getAllByRole('button');
+
+      expect(button2).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
+
+      await user.click(button1);
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
+
+      await user.click(button2);
+      expect(button1).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
     });
   });
 
@@ -86,24 +106,23 @@ describe('<ToggleGroup />', () => {
         </ToggleGroup>
       ));
 
-      const button1 = () => screen.getAllByRole('button')[0];
-      const button2 = () => screen.getAllByRole('button')[1];
+      const [button1, button2] = screen.getAllByRole('button');
 
-      expect(button1()).to.have.attribute('aria-pressed', 'false');
-      expect(button2()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('data-pressed');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('data-pressed');
 
       setValue(['one']);
 
-      expect(button1()).to.have.attribute('aria-pressed', 'true');
-      expect(button1()).to.have.attribute('data-pressed');
-      expect(button2()).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button1).to.have.attribute('data-pressed');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
 
       setValue(['two']);
 
-      expect(button2()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('data-pressed');
-      expect(button1()).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('data-pressed');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
     });
 
     it('prop: value', async () => {
@@ -115,18 +134,17 @@ describe('<ToggleGroup />', () => {
         </ToggleGroup>
       ));
 
-      const button1 = () => screen.getAllByRole('button')[0];
-      const button2 = () => screen.getAllByRole('button')[1];
+      const [button1, button2] = screen.getAllByRole('button');
 
-      expect(button2()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('data-pressed');
-      expect(button1()).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('data-pressed');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
 
       setValue(['one']);
 
-      expect(button1()).to.have.attribute('aria-pressed', 'true');
-      expect(button1()).to.have.attribute('data-pressed');
-      expect(button2()).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button1).to.have.attribute('data-pressed');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
     });
   });
 
@@ -178,45 +196,69 @@ describe('<ToggleGroup />', () => {
     });
   });
 
-  describe('prop: toggleMultiple', () => {
+  describe('prop: multiple', () => {
     it('multiple items can be pressed when true', async () => {
       const { user } = render(() => (
-        <ToggleGroup toggleMultiple defaultValue={['one']}>
+        <ToggleGroup multiple defaultValue={['one']}>
           <Toggle value="one" />
           <Toggle value="two" />
         </ToggleGroup>
       ));
 
-      const button1 = () => screen.getAllByRole('button')[0];
-      const button2 = () => screen.getAllByRole('button')[1];
+      const [button1, button2] = screen.getAllByRole('button');
 
-      expect(button1()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
 
-      await user.pointer({ keys: '[MouseLeft]', target: button2() });
+      await user.pointer({ keys: '[MouseLeft]', target: button2 });
 
-      expect(button1()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('aria-pressed', 'true');
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
     });
 
     it('only one item can be pressed when false', async () => {
       const { user } = render(() => (
-        <ToggleGroup toggleMultiple={false} defaultValue={['one']}>
+        <ToggleGroup multiple={false} defaultValue={['one']}>
           <Toggle value="one" />
           <Toggle value="two" />
         </ToggleGroup>
       ));
 
-      const button1 = () => screen.getAllByRole('button')[0];
-      const button2 = () => screen.getAllByRole('button')[1];
+      const [button1, button2] = screen.getAllByRole('button');
 
-      expect(button1()).to.have.attribute('aria-pressed', 'true');
-      expect(button2()).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
 
-      await user.pointer({ keys: '[MouseLeft]', target: button2() });
+      await user.pointer({ keys: '[MouseLeft]', target: button2 });
 
-      expect(button1()).to.have.attribute('aria-pressed', 'false');
-      expect(button2()).to.have.attribute('aria-pressed', 'true');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
+    });
+
+    it('when Toggles omit value', async () => {
+      const { user } = render(() => (
+        <ToggleGroup multiple>
+          <Toggle value="" />
+          <Toggle />
+        </ToggleGroup>
+      ));
+
+      const [button1, button2] = screen.getAllByRole('button');
+
+      expect(button2).to.have.attribute('aria-pressed', 'false');
+      expect(button1).to.have.attribute('aria-pressed', 'false');
+
+      await user.click(button1);
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('aria-pressed', 'false');
+
+      await user.click(button2);
+      expect(button1).to.have.attribute('aria-pressed', 'true');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
+
+      await user.click(button1);
+      expect(button1).to.have.attribute('aria-pressed', 'false');
+      expect(button2).to.have.attribute('aria-pressed', 'true');
     });
   });
 
@@ -239,44 +281,42 @@ describe('<ToggleGroup />', () => {
           </DirectionProvider>
         ));
 
-        const button1 = () => screen.getAllByRole('button')[0];
-        const button2 = () => screen.getAllByRole('button')[1];
-        const button3 = () => screen.getAllByRole('button')[2];
+        const [button1, button2, button3] = screen.getAllByRole('button');
 
         await user.keyboard('[Tab]');
 
-        expect(button1()).to.have.attribute('tabindex', '0');
-        expect(button1()).toHaveFocus();
+        expect(button1).to.have.attribute('tabindex', '0');
+        expect(button1).toHaveFocus();
 
         await user.keyboard(`[${horizontalNextKey}]`);
 
-        expect(button2()).to.have.attribute('tabindex', '0');
-        expect(button2()).toHaveFocus();
+        expect(button2).to.have.attribute('tabindex', '0');
+        expect(button2).toHaveFocus();
 
         await user.keyboard(`[${horizontalNextKey}]`);
 
-        expect(button3()).to.have.attribute('tabindex', '0');
-        expect(button3()).toHaveFocus();
+        expect(button3).to.have.attribute('tabindex', '0');
+        expect(button3).toHaveFocus();
 
         await user.keyboard(`[${verticalNextKey}]`);
 
-        expect(button1()).to.have.attribute('tabindex', '0');
-        expect(button1()).toHaveFocus();
+        expect(button1).to.have.attribute('tabindex', '0');
+        expect(button1).toHaveFocus();
 
         await user.keyboard(`[${verticalNextKey}]`);
 
-        expect(button2()).to.have.attribute('tabindex', '0');
-        expect(button2()).toHaveFocus();
+        expect(button2).to.have.attribute('tabindex', '0');
+        expect(button2).toHaveFocus();
 
         await user.keyboard(`[${horizontalPrevKey}]`);
 
-        expect(button1()).to.have.attribute('tabindex', '0');
-        expect(button1()).toHaveFocus();
+        expect(button1).to.have.attribute('tabindex', '0');
+        expect(button1).toHaveFocus();
 
         await user.keyboard(`[${verticalPrevKey}]`);
 
-        expect(button3()).to.have.attribute('tabindex', '0');
-        expect(button3()).toHaveFocus();
+        expect(button3).to.have.attribute('tabindex', '0');
+        expect(button3).toHaveFocus();
       });
     });
 
@@ -289,19 +329,19 @@ describe('<ToggleGroup />', () => {
           </ToggleGroup>
         ));
 
-        const button1 = () => screen.getAllByRole('button')[0];
+        const [button1] = screen.getAllByRole('button');
 
-        expect(button1()).to.have.attribute('aria-pressed', 'false');
+        expect(button1).to.have.attribute('aria-pressed', 'false');
 
-        button1().focus();
-
-        await user.keyboard(`[${key}]`);
-
-        expect(button1()).to.have.attribute('aria-pressed', 'true');
+        button1.focus();
 
         await user.keyboard(`[${key}]`);
 
-        expect(button1()).to.have.attribute('aria-pressed', 'false');
+        expect(button1).to.have.attribute('aria-pressed', 'true');
+
+        await user.keyboard(`[${key}]`);
+
+        expect(button1).to.have.attribute('aria-pressed', 'false');
       });
     });
   });
@@ -317,17 +357,16 @@ describe('<ToggleGroup />', () => {
         </ToggleGroup>
       ));
 
-      const button1 = () => screen.getAllByRole('button')[0];
-      const button2 = () => screen.getAllByRole('button')[1];
+      const [button1, button2] = screen.getAllByRole('button');
 
       expect(onValueChange.callCount).to.equal(0);
 
-      await user.pointer({ keys: '[MouseLeft]', target: button1() });
+      await user.pointer({ keys: '[MouseLeft]', target: button1 });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.args[0][0]).to.deep.equal(['one']);
 
-      await user.pointer({ keys: '[MouseLeft]', target: button2() });
+      await user.pointer({ keys: '[MouseLeft]', target: button2 });
 
       expect(onValueChange.callCount).to.equal(2);
       expect(onValueChange.args[1][0]).to.deep.equal(['two']);
@@ -348,19 +387,18 @@ describe('<ToggleGroup />', () => {
           </ToggleGroup>
         ));
 
-        const button1 = () => screen.getAllByRole('button')[0];
-        const button2 = () => screen.getAllByRole('button')[1];
+        const [button1, button2] = screen.getAllByRole('button');
 
         expect(onValueChange.callCount).to.equal(0);
 
-        button1().focus();
+        button1.focus();
 
         await user.keyboard(`[${key}]`);
 
         expect(onValueChange.callCount).to.equal(1);
         expect(onValueChange.args[0][0]).to.deep.equal(['one']);
 
-        button2().focus();
+        button2.focus();
 
         await user.keyboard(`[${key}]`);
 
