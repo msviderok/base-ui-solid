@@ -9,7 +9,7 @@ describe('<ScrollArea.Thumb />', () => {
     render: (node, props) =>
       render(() => (
         <ScrollArea.Root>
-          <ScrollArea.Scrollbar>{node(props)}</ScrollArea.Scrollbar>
+          <ScrollArea.Scrollbar>{node(props!)}</ScrollArea.Scrollbar>
         </ScrollArea.Root>
       )),
   }));

@@ -9,7 +9,7 @@ describe('<ScrollArea.Content />', () => {
     render: (node, props) =>
       render(() => (
         <ScrollArea.Root>
-          <ScrollArea.Viewport>{node(props)}</ScrollArea.Viewport>
+          <ScrollArea.Viewport>{node(props!)}</ScrollArea.Viewport>
         </ScrollArea.Root>
       )),
   }));

@@ -2,6 +2,9 @@ import { onCleanup, onMount } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
+import type { ScrollAreaRoot } from '../root/ScrollAreaRoot';
+import { useScrollAreaRootContext } from '../root/ScrollAreaRootContext';
+import { scrollAreaStateAttributesMapping } from '../root/stateAttributes';
 import { useScrollAreaViewportContext } from '../viewport/ScrollAreaViewportContext';
 
 /**
@@ -15,14 +18,24 @@ export function ScrollAreaContent(componentProps: ScrollAreaContent.Props) {
 
   let contentWrapperRef: HTMLDivElement | null | undefined;
 
-  const context = useScrollAreaViewportContext();
+  const { computeThumbPosition } = useScrollAreaViewportContext();
+  const { viewportState } = useScrollAreaRootContext();
 
   onMount(() => {
     if (typeof ResizeObserver === 'undefined') {
       return;
     }
 
-    const ro = new ResizeObserver(context.computeThumbPosition);
+    let hasInitialized = false;
+    const ro = new ResizeObserver(() => {
+      // ResizeObserver fires once upon observing, so we skip the initial call
+      // to avoid double-calculating the thumb position on mount.
+      if (!hasInitialized) {
+        hasInitialized = true;
+        return;
+      }
+      computeThumbPosition();
+    });
 
     if (contentWrapperRef) {
       ro.observe(contentWrapperRef);
@@ -37,6 +50,8 @@ export function ScrollAreaContent(componentProps: ScrollAreaContent.Props) {
     ref: (el) => {
       contentWrapperRef = el;
     },
+    state: viewportState,
+    stateAttributesMapping: scrollAreaStateAttributesMapping,
     props: [
       {
         role: 'presentation',
@@ -51,8 +66,14 @@ export function ScrollAreaContent(componentProps: ScrollAreaContent.Props) {
   return <>{element()}</>;
 }
 
-export namespace ScrollAreaContent {
-  export interface State {}
+export interface ScrollAreaContentState extends ScrollAreaRoot.State {}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface ScrollAreaContentProps extends BaseUIComponentProps<
+  'div',
+  ScrollAreaContent.State
+> {}
+
+export namespace ScrollAreaContent {
+  export type State = ScrollAreaContentState;
+  export type Props = ScrollAreaContentProps;
 }

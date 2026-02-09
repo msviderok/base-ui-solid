@@ -12,11 +12,11 @@ import { useScrollAreaRootContext } from '../root/ScrollAreaRootContext';
  */
 export function ScrollAreaCorner(componentProps: ScrollAreaCorner.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
-  const context = useScrollAreaRootContext();
+  const { refs, cornerSize, hiddenState } = useScrollAreaRootContext();
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      context.refs.cornerRef = el;
+      refs.cornerRef = el;
     },
     props: [
       {
@@ -25,8 +25,8 @@ export function ScrollAreaCorner(componentProps: ScrollAreaCorner.Props) {
             position: 'absolute',
             bottom: 0,
             'inset-inline-end': 0,
-            width: `${context.cornerSize.width}px`,
-            height: `${context.cornerSize.height}px`,
+            width: `${cornerSize().width}px`,
+            height: `${cornerSize().height}px`,
           };
         },
       },
@@ -34,11 +34,17 @@ export function ScrollAreaCorner(componentProps: ScrollAreaCorner.Props) {
     ],
   });
 
-  return <Show when={!context.hiddenState.cornerHidden}>{element()}</Show>;
+  return <Show when={!hiddenState().corner}>{element()}</Show>;
 }
 
-export namespace ScrollAreaCorner {
-  export interface State {}
+export interface ScrollAreaCornerState {}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface ScrollAreaCornerProps extends BaseUIComponentProps<
+  'div',
+  ScrollAreaCorner.State
+> {}
+
+export namespace ScrollAreaCorner {
+  export type State = ScrollAreaCornerState;
+  export type Props = ScrollAreaCornerProps;
 }

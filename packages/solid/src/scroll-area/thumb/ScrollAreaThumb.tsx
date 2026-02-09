@@ -15,44 +15,51 @@ import { ScrollAreaScrollbarCssVars } from '../scrollbar/ScrollAreaScrollbarCssV
 export function ScrollAreaThumb(componentProps: ScrollAreaThumb.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const rootContext = useScrollAreaRootContext();
+  const {
+    refs,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    setScrollingX,
+    setScrollingY,
+  } = useScrollAreaRootContext();
 
-  const scrollbarContext = useScrollAreaScrollbarContext();
+  const { orientation } = useScrollAreaScrollbarContext();
 
   const state: ScrollAreaThumb.State = {
     get orientation() {
-      return scrollbarContext.orientation();
+      return orientation();
     },
   };
 
   const element = useRenderElement('div', componentProps, {
-    state,
     ref: (el) => {
-      if (scrollbarContext.orientation() === 'vertical') {
-        rootContext.refs.thumbYRef = el;
+      if (orientation() === 'vertical') {
+        refs.thumbYRef = el;
       } else {
-        rootContext.refs.thumbXRef = el;
+        refs.thumbXRef = el;
       }
     },
+    state,
     props: [
       {
-        onPointerDown: rootContext.handlePointerDown,
-        onPointerMove: rootContext.handlePointerMove,
+        onPointerDown: handlePointerDown,
+        onPointerMove: handlePointerMove,
         onPointerUp(event) {
-          if (scrollbarContext.orientation() === 'vertical') {
-            rootContext.setScrollingY(false);
+          if (orientation() === 'vertical') {
+            setScrollingY(false);
           }
-          if (scrollbarContext.orientation() === 'horizontal') {
-            rootContext.setScrollingX(false);
+          if (orientation() === 'horizontal') {
+            setScrollingX(false);
           }
-          rootContext.handlePointerUp(event);
+          handlePointerUp(event);
         },
         get style(): JSX.CSSProperties {
           return {
-            ...(scrollbarContext.orientation() === 'vertical' && {
+            ...(orientation() === 'vertical' && {
               height: `var(${ScrollAreaScrollbarCssVars.scrollAreaThumbHeight})`,
             }),
-            ...(scrollbarContext.orientation() === 'horizontal' && {
+            ...(orientation() === 'horizontal' && {
               width: `var(${ScrollAreaScrollbarCssVars.scrollAreaThumbWidth})`,
             }),
           };
@@ -65,10 +72,13 @@ export function ScrollAreaThumb(componentProps: ScrollAreaThumb.Props) {
   return <>{element()}</>;
 }
 
-export namespace ScrollAreaThumb {
-  export interface State {
-    orientation: 'horizontal' | 'vertical';
-  }
+export interface ScrollAreaThumbState {
+  orientation?: 'horizontal' | 'vertical';
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface ScrollAreaThumbProps extends BaseUIComponentProps<'div', ScrollAreaThumb.State> {}
+
+export namespace ScrollAreaThumb {
+  export type State = ScrollAreaThumbState;
+  export type Props = ScrollAreaThumbProps;
 }

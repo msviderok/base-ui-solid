@@ -1,21 +1,28 @@
 'use client';
 import * as React from 'react';
+import { useStableCallback } from '@base-ui/utils/useStableCallback';
+import { useTimeout } from '@base-ui/utils/useTimeout';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { ScrollAreaRootContext } from './ScrollAreaRootContext';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { ScrollAreaRootCssVars } from './ScrollAreaRootCssVars';
-import { useEventCallback } from '../../utils/useEventCallback';
 import { SCROLL_TIMEOUT } from '../constants';
 import { getOffset } from '../utils/getOffset';
 import { ScrollAreaScrollbarDataAttributes } from '../scrollbar/ScrollAreaScrollbarDataAttributes';
 import { styleDisableScrollbar } from '../../utils/styles';
 import { useBaseUiId } from '../../utils/useBaseUiId';
-import { useTimeout } from '../../utils/useTimeout';
+import { scrollAreaStateAttributesMapping } from './stateAttributes';
+import { contains } from '../../floating-ui-react/utils';
 
-interface Size {
-  width: number;
-  height: number;
-}
+const DEFAULT_COORDS = { x: 0, y: 0 };
+const DEFAULT_SIZE = { width: 0, height: 0 };
+const DEFAULT_OVERFLOW_EDGES = { xStart: false, xEnd: false, yStart: false, yEnd: false };
+const DEFAULT_HIDDEN_STATE = { x: false, y: false, corner: false };
+
+export type HiddenState = typeof DEFAULT_HIDDEN_STATE;
+export type OverflowEdges = typeof DEFAULT_OVERFLOW_EDGES;
+export type Size = typeof DEFAULT_SIZE;
+export type Coords = typeof DEFAULT_COORDS;
 
 /**
  * Groups all parts of the scroll area.
@@ -27,17 +34,30 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
   componentProps: ScrollAreaRoot.Props,
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { render, className, ...elementProps } = componentProps;
+  const {
+    render,
+    className,
+    overflowEdgeThreshold: overflowEdgeThresholdProp,
+    ...elementProps
+  } = componentProps;
+
+  const overflowEdgeThreshold = normalizeOverflowEdgeThreshold(overflowEdgeThresholdProp);
+
+  const rootId = useBaseUiId();
+
+  const scrollYTimeout = useTimeout();
+  const scrollXTimeout = useTimeout();
 
   const [hovering, setHovering] = React.useState(false);
   const [scrollingX, setScrollingX] = React.useState(false);
   const [scrollingY, setScrollingY] = React.useState(false);
-  const [cornerSize, setCornerSize] = React.useState<Size>({ width: 0, height: 0 });
-  const [thumbSize, setThumbSize] = React.useState<Size>({ width: 0, height: 0 });
   const [touchModality, setTouchModality] = React.useState(false);
+  const [cornerSize, setCornerSize] = React.useState<Size>(DEFAULT_SIZE);
+  const [thumbSize, setThumbSize] = React.useState<Size>(DEFAULT_SIZE);
+  const [overflowEdges, setOverflowEdges] = React.useState(DEFAULT_OVERFLOW_EDGES);
+  const [hiddenState, setHiddenState] = React.useState(DEFAULT_HIDDEN_STATE);
 
-  const rootId = useBaseUiId();
-
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
   const viewportRef = React.useRef<HTMLDivElement | null>(null);
   const scrollbarYRef = React.useRef<HTMLDivElement | null>(null);
   const scrollbarXRef = React.useRef<HTMLDivElement | null>(null);
@@ -51,17 +71,9 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
   const startScrollTopRef = React.useRef(0);
   const startScrollLeftRef = React.useRef(0);
   const currentOrientationRef = React.useRef<'vertical' | 'horizontal'>('vertical');
-  const scrollYTimeout = useTimeout();
-  const scrollXTimeout = useTimeout();
-  const scrollPositionRef = React.useRef({ x: 0, y: 0 });
+  const scrollPositionRef = React.useRef(DEFAULT_COORDS);
 
-  const [hiddenState, setHiddenState] = React.useState({
-    scrollbarYHidden: false,
-    scrollbarXHidden: false,
-    cornerHidden: false,
-  });
-
-  const handleScroll = useEventCallback((scrollPosition: { x: number; y: number }) => {
+  const handleScroll = useStableCallback((scrollPosition: Coords) => {
     const offsetX = scrollPosition.x - scrollPositionRef.current.x;
     const offsetY = scrollPosition.y - scrollPositionRef.current.y;
     scrollPositionRef.current = scrollPosition;
@@ -83,7 +95,11 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
     }
   });
 
-  const handlePointerDown = useEventCallback((event: React.PointerEvent) => {
+  const handlePointerDown = useStableCallback((event: React.PointerEvent) => {
+    if (event.button !== 0) {
+      return;
+    }
+
     thumbDraggingRef.current = true;
     startYRef.current = event.clientY;
     startXRef.current = event.clientX;
@@ -103,7 +119,7 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
     }
   });
 
-  const handlePointerMove = useEventCallback((event: React.PointerEvent) => {
+  const handlePointerMove = useStableCallback((event: React.PointerEvent) => {
     if (!thumbDraggingRef.current) {
       return;
     }
@@ -163,7 +179,7 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
     }
   });
 
-  const handlePointerUp = useEventCallback((event: React.PointerEvent) => {
+  const handlePointerUp = useStableCallback((event: React.PointerEvent) => {
     thumbDraggingRef.current = false;
 
     if (thumbYRef.current && currentOrientationRef.current === 'vertical') {
@@ -174,23 +190,37 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
     }
   });
 
-  function handlePointerEnterOrMove({ pointerType }: React.PointerEvent) {
-    const isTouch = pointerType === 'touch';
+  function handleTouchModalityChange(event: React.PointerEvent) {
+    setTouchModality(event.pointerType === 'touch');
+  }
 
-    setTouchModality(isTouch);
+  function handlePointerEnterOrMove(event: React.PointerEvent) {
+    handleTouchModalityChange(event);
 
-    if (!isTouch) {
-      setHovering(true);
+    if (event.pointerType !== 'touch') {
+      const isTargetRootChild = contains(rootRef.current, event.target as Element);
+      setHovering(isTargetRootChild);
     }
   }
+
+  const state: ScrollAreaRoot.State = React.useMemo(
+    () => ({
+      hasOverflowX: !hiddenState.x,
+      hasOverflowY: !hiddenState.y,
+      overflowXStart: overflowEdges.xStart,
+      overflowXEnd: overflowEdges.xEnd,
+      overflowYStart: overflowEdges.yStart,
+      overflowYEnd: overflowEdges.yEnd,
+      cornerHidden: hiddenState.corner,
+    }),
+    [hiddenState.x, hiddenState.y, hiddenState.corner, overflowEdges],
+  );
 
   const props: HTMLProps = {
     role: 'presentation',
     onPointerEnter: handlePointerEnterOrMove,
     onPointerMove: handlePointerEnterOrMove,
-    onPointerDown({ pointerType }) {
-      setTouchModality(pointerType === 'touch');
-    },
+    onPointerDown: handleTouchModalityChange,
     onPointerLeave() {
       setHovering(false);
     },
@@ -202,8 +232,10 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
   };
 
   const element = useRenderElement('div', componentProps, {
-    ref: forwardedRef,
+    state,
+    ref: [forwardedRef, rootRef],
     props: [props, elementProps],
+    stateAttributesMapping: scrollAreaStateAttributesMapping,
   });
 
   const contextValue = React.useMemo(
@@ -225,6 +257,7 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
       hovering,
       setHovering,
       viewportRef,
+      rootRef,
       scrollbarYRef,
       scrollbarXRef,
       thumbYRef,
@@ -232,6 +265,10 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
       rootId,
       hiddenState,
       setHiddenState,
+      overflowEdges,
+      setOverflowEdges,
+      viewportState: state,
+      overflowEdgeThreshold,
     }),
     [
       handlePointerDown,
@@ -241,20 +278,17 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
       cornerSize,
       thumbSize,
       touchModality,
-      cornerRef,
       scrollingX,
       setScrollingX,
       scrollingY,
       setScrollingY,
       hovering,
       setHovering,
-      viewportRef,
-      scrollbarYRef,
-      scrollbarXRef,
-      thumbYRef,
-      thumbXRef,
       rootId,
       hiddenState,
+      overflowEdges,
+      state,
+      overflowEdgeThreshold,
     ],
   );
 
@@ -266,8 +300,61 @@ export const ScrollAreaRoot = React.forwardRef(function ScrollAreaRoot(
   );
 });
 
-export namespace ScrollAreaRoot {
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface ScrollAreaRootState {
+  /** Whether horizontal overflow is present. */
+  hasOverflowX: boolean;
+  /** Whether vertical overflow is present. */
+  hasOverflowY: boolean;
+  /** Whether there is overflow on the inline start side for the horizontal axis. */
+  overflowXStart: boolean;
+  /** Whether there is overflow on the inline end side for the horizontal axis. */
+  overflowXEnd: boolean;
+  /** Whether there is overflow on the block start side. */
+  overflowYStart: boolean;
+  /** Whether there is overflow on the block end side. */
+  overflowYEnd: boolean;
+  /** Whether the scrollbar corner is hidden. */
+  cornerHidden: boolean;
+}
 
-  export interface State {}
+export interface ScrollAreaRootProps extends BaseUIComponentProps<'div', ScrollAreaRoot.State> {
+  /**
+   * The threshold in pixels that must be passed before the overflow edge attributes are applied.
+   * Accepts a single number for all edges or an object to configure them individually.
+   * @default 0
+   */
+  overflowEdgeThreshold?:
+    | number
+    | Partial<{
+        xStart: number;
+        xEnd: number;
+        yStart: number;
+        yEnd: number;
+      }>;
+}
+
+export namespace ScrollAreaRoot {
+  export type State = ScrollAreaRootState;
+  export type Props = ScrollAreaRootProps;
+}
+
+function normalizeOverflowEdgeThreshold(
+  threshold: ScrollAreaRoot.Props['overflowEdgeThreshold'] | undefined,
+) {
+  if (typeof threshold === 'number') {
+    const value = Math.max(0, threshold);
+    return {
+      xStart: value,
+      xEnd: value,
+      yStart: value,
+      yEnd: value,
+    };
+  }
+
+  return {
+    xStart: Math.max(0, threshold?.xStart || 0),
+    xEnd: Math.max(0, threshold?.xEnd || 0),
+    yStart: Math.max(0, threshold?.yStart || 0),
+    yEnd: Math.max(0, threshold?.yEnd || 0),
+  };
 }

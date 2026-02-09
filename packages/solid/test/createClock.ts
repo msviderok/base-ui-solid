@@ -17,6 +17,11 @@ export interface Clock {
    */
   tick(timeoutMS: number): void;
   /**
+   * Tick the clock ahead `timeoutMS` milliseconds. And also flush any microtasks queued in between.
+   * @param timeoutMS
+   */
+  tickAsync(timeoutMS: number): Promise<void>;
+  /**
    * Returns true if we're running with "real" i.e. native timers.
    */
   isReal(): boolean;
@@ -86,6 +91,9 @@ function createVitestClock(
     tick(timeoutMS: number) {
       vi.advanceTimersByTime(timeoutMS);
     },
+    async tickAsync(timeoutMS: number) {
+      await vi.advanceTimersByTimeAsync(timeoutMS);
+    },
     runAll() {
       vi.runAllTimers();
     },
@@ -130,6 +138,9 @@ export function createClock(
         throw new Error(`Can't advance the real clock. Did you mean to call this on fake clock?`);
       }
       clock!.tick(timeoutMS);
+    },
+    async tickAsync(timeoutMS: number) {
+      await vi.advanceTimersByTimeAsync(timeoutMS);
     },
     runAll() {
       if (clock === null) {

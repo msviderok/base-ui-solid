@@ -1,11 +1,11 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
-import type { SetStoreFunction, Store } from 'solid-js/store';
+import type { Coords, HiddenState, OverflowEdges, ScrollAreaRoot, Size } from './ScrollAreaRoot';
 
 export interface ScrollAreaRootContext {
-  cornerSize: Store<{ width: number; height: number }>;
-  setCornerSize: SetStoreFunction<{ width: number; height: number }>;
-  thumbSize: Store<{ width: number; height: number }>;
-  setThumbSize: SetStoreFunction<{ width: number; height: number }>;
+  cornerSize: Accessor<Size>;
+  setCornerSize: Setter<Size>;
+  thumbSize: Accessor<Size>;
+  setThumbSize: Setter<Size>;
   touchModality: Accessor<boolean>;
   hovering: Accessor<boolean>;
   setHovering: Setter<boolean>;
@@ -14,6 +14,7 @@ export interface ScrollAreaRootContext {
   scrollingY: Accessor<boolean>;
   setScrollingY: Setter<boolean>;
   refs: {
+    rootRef: HTMLDivElement | null | undefined;
     viewportRef: HTMLDivElement | null | undefined;
     scrollbarYRef: HTMLDivElement | null | undefined;
     scrollbarXRef: HTMLDivElement | null | undefined;
@@ -24,16 +25,18 @@ export interface ScrollAreaRootContext {
   handlePointerDown: (event: PointerEvent) => void;
   handlePointerMove: (event: PointerEvent) => void;
   handlePointerUp: (event: PointerEvent) => void;
-  handleScroll: (scrollPosition: { x: number; y: number }) => void;
+  handleScroll: (scrollPosition: Coords) => void;
   rootId: Accessor<string | undefined>;
-  hiddenState: Store<{
-    scrollbarYHidden: boolean;
-    scrollbarXHidden: boolean;
-    cornerHidden: boolean;
-  }>;
-  setHiddenState: SetStoreFunction<{
-    scrollbarYHidden: boolean;
-    scrollbarXHidden: boolean;
+  hiddenState: Accessor<HiddenState>;
+  setHiddenState: Setter<HiddenState>;
+  overflowEdges: Accessor<OverflowEdges>;
+  setOverflowEdges: Setter<OverflowEdges>;
+  viewportState: ScrollAreaRoot.State;
+  overflowEdgeThreshold: Accessor<{
+    xStart: number;
+    xEnd: number;
+    yStart: number;
+    yEnd: number;
   }>;
 }
 

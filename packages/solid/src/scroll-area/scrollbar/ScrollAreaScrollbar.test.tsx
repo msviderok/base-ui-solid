@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance } from '#test-utils';
+import { createRenderer, describeConformance, flushMicrotasks, isJSDOM } from '#test-utils';
 import { ScrollArea } from '@msviderok/base-ui-solid/scroll-area';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { SCROLL_TIMEOUT } from '../constants';
@@ -13,7 +13,7 @@ describe('<ScrollArea.Scrollbar />', () => {
     () => ({
       refInstanceof: window.HTMLDivElement,
       render(node, props) {
-        return render(() => <ScrollArea.Root>{node(props)}</ScrollArea.Root>);
+        return render(() => <ScrollArea.Root>{node(props!)}</ScrollArea.Root>);
       },
     }),
   );
@@ -47,7 +47,7 @@ describe('<ScrollArea.Scrollbar />', () => {
     expect(verticalScrollbar).toHaveAttribute('data-scrolling', '');
     expect(horizontalScrollbar).not.toHaveAttribute('data-scrolling', '');
 
-    clock.tick(SCROLL_TIMEOUT - 1);
+    await clock.tickAsync(SCROLL_TIMEOUT - 1);
 
     expect(verticalScrollbar).toHaveAttribute('data-scrolling', '');
     expect(horizontalScrollbar).not.toHaveAttribute('data-scrolling', '');
@@ -59,19 +59,65 @@ describe('<ScrollArea.Scrollbar />', () => {
       },
     });
 
-    clock.tick(1); // vertical just finished
+    await clock.tickAsync(1); // vertical just finished
 
     expect(verticalScrollbar).not.toHaveAttribute('data-scrolling');
     expect(horizontalScrollbar).toHaveAttribute('data-scrolling');
 
-    clock.tick(SCROLL_TIMEOUT - 2); // already ticked 1ms above
+    await clock.tickAsync(SCROLL_TIMEOUT - 2); // already ticked 1ms above
 
     expect(verticalScrollbar).not.toHaveAttribute('data-scrolling');
     expect(horizontalScrollbar).toHaveAttribute('data-scrolling');
 
-    clock.tick(1);
+    await clock.tickAsync(1);
 
     expect(verticalScrollbar).not.toHaveAttribute('data-scrolling');
     expect(horizontalScrollbar).not.toHaveAttribute('data-scrolling');
+  });
+
+  describe.skipIf(isJSDOM)('data overflow attributes (scrollbars)', () => {
+    const VIEWPORT_SIZE = '200px';
+    const SCROLLABLE_CONTENT_SIZE = '1000px';
+
+    it('applies data attributes on vertical and horizontal scrollbars', async () => {
+      render(() => (
+        <ScrollArea.Root style={{ width: VIEWPORT_SIZE, height: VIEWPORT_SIZE }}>
+          <ScrollArea.Viewport data-testid="viewport" style={{ width: '100%', height: '100%' }}>
+            <div style={{ width: SCROLLABLE_CONTENT_SIZE, height: SCROLLABLE_CONTENT_SIZE }} />
+          </ScrollArea.Viewport>
+          <ScrollArea.Scrollbar orientation="vertical" data-testid="scrollbar-vertical">
+            <ScrollArea.Thumb />
+          </ScrollArea.Scrollbar>
+          <ScrollArea.Scrollbar orientation="horizontal" data-testid="scrollbar-horizontal">
+            <ScrollArea.Thumb />
+          </ScrollArea.Scrollbar>
+        </ScrollArea.Root>
+      ));
+
+      const viewport = screen.getByTestId('viewport');
+      const vScrollbar = screen.getByTestId('scrollbar-vertical');
+      const hScrollbar = screen.getByTestId('scrollbar-horizontal');
+
+      expect(vScrollbar).to.have.attribute('data-has-overflow-y');
+      expect(vScrollbar).not.to.have.attribute('data-overflow-y-start');
+      expect(vScrollbar).to.have.attribute('data-overflow-y-end');
+
+      expect(hScrollbar).to.have.attribute('data-has-overflow-x');
+      expect(hScrollbar).not.to.have.attribute('data-overflow-x-start');
+      expect(hScrollbar).to.have.attribute('data-overflow-x-end');
+
+      // Scroll to middle
+      const halfY = (viewport.scrollHeight - viewport.clientHeight) / 2;
+      const halfX = (viewport.scrollWidth - viewport.clientWidth) / 2;
+      fireEvent.scroll(viewport, {
+        target: { scrollTop: halfY, scrollLeft: halfX },
+      });
+      await flushMicrotasks();
+
+      expect(vScrollbar).to.have.attribute('data-overflow-y-start');
+      expect(vScrollbar).to.have.attribute('data-overflow-y-end');
+      expect(hScrollbar).to.have.attribute('data-overflow-x-start');
+      expect(hScrollbar).to.have.attribute('data-overflow-x-end');
+    });
   });
 });

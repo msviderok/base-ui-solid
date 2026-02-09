@@ -8,7 +8,7 @@ describe('<ScrollArea.Corner />', () => {
   describeConformance(ScrollArea.Corner, () => ({
     refInstanceof: window.HTMLDivElement,
     render(node, props) {
-      return render(() => <ScrollArea.Root>{node(props)}</ScrollArea.Root>);
+      return render(() => <ScrollArea.Root>{node(props!)}</ScrollArea.Root>);
     },
   }));
 
