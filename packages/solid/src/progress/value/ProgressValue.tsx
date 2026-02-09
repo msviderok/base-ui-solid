@@ -4,7 +4,7 @@ import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { ProgressRoot } from '../root/ProgressRoot';
 import { useProgressRootContext } from '../root/ProgressRootContext';
-import { progressStyleHookMapping } from '../root/styleHooks';
+import { progressStateAttributesMapping } from '../root/stateAttributesMapping';
 /**
  * A text label displaying the current value.
  * Renders a `<span>` element.
@@ -22,7 +22,7 @@ export function ProgressValue(componentProps: ProgressValue.Props) {
   const element = useRenderElement('span', componentProps, {
     state,
     props: [{ 'aria-hidden': true }, elementProps],
-    customStyleHookMapping: progressStyleHookMapping,
+    stateAttributesMapping: progressStateAttributesMapping,
     get children() {
       return componentProps.children?.(formattedValueArg(), value()) ?? formattedValueDisplay();
     },
@@ -31,9 +31,13 @@ export function ProgressValue(componentProps: ProgressValue.Props) {
   return <>{element()}</>;
 }
 
+export interface ProgressValueProps extends Omit<
+  BaseUIComponentProps<'span', ProgressRoot.State>,
+  'children'
+> {
+  children?: ((formattedValue: string | null, value: number | null) => JSX.Element) | null;
+}
+
 export namespace ProgressValue {
-  export interface Props
-    extends Omit<BaseUIComponentProps<'span', ProgressRoot.State>, 'children'> {
-    children?: ((formattedValue: string | null, value: number | null) => JSX.Element) | null;
-  }
+  export type Props = ProgressValueProps;
 }

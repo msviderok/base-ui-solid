@@ -7,7 +7,7 @@ describe('<Progress.Indicator />', () => {
   const { render } = createRenderer();
 
   describeConformance(Progress.Indicator, () => ({
-    render: (node, props) => render(() => <Progress.Root value={40}>{node(props)}</Progress.Root>),
+    render: (node, props) => render(() => <Progress.Root value={40}>{node(props!)}</Progress.Root>),
     refInstanceof: window.HTMLDivElement,
   }));
 

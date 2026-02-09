@@ -8,7 +8,7 @@ describe('<Progress.Value />', () => {
   const { render } = createRenderer();
 
   describeConformance(Progress.Value, () => ({
-    render: (node, props) => render(() => <Progress.Root value={40}>{node(props)}</Progress.Root>),
+    render: (node, props) => render(() => <Progress.Root value={40}>{node(props!)}</Progress.Root>),
     refInstanceof: window.HTMLSpanElement,
   }));
 
@@ -19,8 +19,9 @@ describe('<Progress.Value />', () => {
           <Progress.Value data-testid="value" />
         </Progress.Root>
       ));
+
       const value = screen.getByTestId('value');
-      expect(value).to.have.text('30%');
+      expect(value).to.have.text((0.3).toLocaleString(undefined, { style: 'percent' }));
     });
 
     it('renders a formatted value when a format is provided', async () => {
@@ -31,11 +32,13 @@ describe('<Progress.Value />', () => {
       function formatValue(v: number) {
         return new Intl.NumberFormat(undefined, format).format(v);
       }
+
       render(() => (
         <Progress.Root value={30} format={format}>
           <Progress.Value data-testid="value" />
         </Progress.Root>
       ));
+
       const value = screen.getByTestId('value');
       expect(value).to.have.text(formatValue(30));
     });

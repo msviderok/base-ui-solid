@@ -1,11 +1,11 @@
-import { onMount } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { ProgressRoot } from '../root/ProgressRoot';
 import { useProgressRootContext } from '../root/ProgressRootContext';
-import { progressStyleHookMapping } from '../root/styleHooks';
+import { progressStateAttributesMapping } from '../root/stateAttributesMapping';
 
 /**
  * An accessible label for the progress bar.
@@ -15,21 +15,19 @@ import { progressStyleHookMapping } from '../root/styleHooks';
  */
 export function ProgressLabel(componentProps: ProgressLabel.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
+  const idProp = () => local.id;
 
-  const id = useBaseUiId(() => local.id);
-  let ref!: HTMLElement;
+  const id = useBaseUiId(idProp);
 
-  const { setCodependentRefs, state } = useProgressRootContext();
+  const { setLabelId, state } = useProgressRootContext();
 
-  onMount(() => {
-    setCodependentRefs('label', { explicitId: id, ref: () => ref, id: () => local.id });
+  createEffect(() => {
+    setLabelId(id());
+    onCleanup(() => setLabelId(undefined));
   });
 
   const element = useRenderElement('span', componentProps, {
     state,
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -38,12 +36,14 @@ export function ProgressLabel(componentProps: ProgressLabel.Props) {
       },
       elementProps,
     ],
-    customStyleHookMapping: progressStyleHookMapping,
+    stateAttributesMapping: progressStateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
+export interface ProgressLabelProps extends BaseUIComponentProps<'span', ProgressRoot.State> {}
+
 export namespace ProgressLabel {
-  export interface Props extends BaseUIComponentProps<'span', ProgressRoot.State> {}
+  export type Props = ProgressLabelProps;
 }

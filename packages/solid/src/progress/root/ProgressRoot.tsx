@@ -1,11 +1,10 @@
-import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
-import { createStore } from 'solid-js/store';
-import { splitComponentProps, type CodependentRefs } from '../../solid-helpers';
+import { createMemo, createSignal, type JSX } from 'solid-js';
+import { splitComponentProps } from '../../solid-helpers';
 import { formatNumber } from '../../utils/formatNumber';
-import { BaseUIComponentProps } from '../../utils/types';
+import { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { ProgressRootContext } from './ProgressRootContext';
-import { progressStyleHookMapping } from './styleHooks';
+import { progressStateAttributesMapping } from './stateAttributesMapping';
 
 function formatValue(
   value: number | null,
@@ -48,14 +47,10 @@ export function ProgressRoot(componentProps: ProgressRoot.Props) {
   ]);
   const max = () => local.max ?? 100;
   const min = () => local.min ?? 0;
+  const getAriaValueText: typeof local.getAriaValueText = (...args) =>
+    (local.getAriaValueText ?? getDefaultAriaValueText)(...args);
 
   const [labelId, setLabelId] = createSignal<string | undefined>();
-  const [codependentRefs, setCodependentRefs] = createStore<CodependentRefs<['label']>>({});
-
-  let formatOptionsRef = local.format;
-  createEffect(() => {
-    formatOptionsRef = local.format;
-  });
 
   const status = createMemo<ProgressStatus>(() => {
     if (Number.isFinite(local.value)) {
@@ -65,7 +60,7 @@ export function ProgressRoot(componentProps: ProgressRoot.Props) {
     return 'indeterminate';
   });
 
-  const formattedValue = () => formatValue(local.value, local.locale, formatOptionsRef);
+  const formattedValue = () => formatValue(local.value, local.locale, local.format);
 
   const state: ProgressRoot.State = {
     get status() {
@@ -73,59 +68,39 @@ export function ProgressRoot(componentProps: ProgressRoot.Props) {
     },
   };
 
+  const defaultProps: HTMLProps = {
+    get 'aria-labelledby'() {
+      return labelId();
+    },
+    get 'aria-valuemax'() {
+      return max();
+    },
+    get 'aria-valuemin'() {
+      return min();
+    },
+    get 'aria-valuenow'() {
+      return local.value ?? undefined;
+    },
+    get 'aria-valuetext'() {
+      return getAriaValueText(formattedValue(), local.value);
+    },
+    role: 'progressbar',
+  };
+
   const contextValue: ProgressRootContext = {
     formattedValue,
     max,
     min,
+    setLabelId,
     state,
     status,
     value: () => local.value,
-    codependentRefs,
-    setCodependentRefs,
   };
-
-  createEffect(
-    on(
-      () => codependentRefs.label,
-      (label) => {
-        if (label) {
-          setLabelId(label.id() ?? label.explicitId());
-        }
-
-        onCleanup(() => {
-          setLabelId(undefined);
-        });
-      },
-    ),
-  );
 
   const element = useRenderElement('div', componentProps, {
     state,
-    customStyleHookMapping: progressStyleHookMapping,
-    props: [
-      {
-        role: 'progressbar',
-        get 'aria-labelledby'() {
-          return labelId();
-        },
-        get 'aria-valuemax'() {
-          return max();
-        },
-        get 'aria-valuemin'() {
-          return min();
-        },
-        get 'aria-valuenow'() {
-          return local.value ?? undefined;
-        },
-        get 'aria-valuetext'() {
-          return local.getAriaValueText
-            ? local.getAriaValueText(formattedValue(), local.value)
-            : (componentProps['aria-valuetext'] ??
-                getDefaultAriaValueText(formattedValue(), local.value));
-        },
-      },
-      elementProps,
-    ],
+    props: [defaultProps, elementProps],
+    stateAttributesMapping: progressStateAttributesMapping,
   });
 
   return (
@@ -135,42 +110,49 @@ export function ProgressRoot(componentProps: ProgressRoot.Props) {
 
 export type ProgressStatus = 'indeterminate' | 'progressing' | 'complete';
 
-export namespace ProgressRoot {
-  export type State = {
-    status: ProgressStatus;
-  };
+export interface ProgressRootState {
+  status: ProgressStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * Options to format the value.
-     */
-    format?: Intl.NumberFormatOptions;
-    /**
-     * Accepts a function which returns a string value that provides a human-readable text alternative for the current value of the progress bar.
-     * @param {string} formattedValue The component's formatted value.
-     * @param {number | null} value The component's numerical value.
-     * @returns {string}
-     */
-    getAriaValueText?: (formattedValue: string | null, value: number | null) => string;
-    /**
-     * The locale used by `Intl.NumberFormat` when formatting the value.
-     * Defaults to the user's runtime locale.
-     */
-    locale?: Intl.LocalesArgument;
-    /**
-     * The maximum value.
-     * @default 100
-     */
-    max?: number;
-    /**
-     * The minimum value.
-     * @default 0
-     */
-    min?: number;
-    /**
-     * The current value. The component is indeterminate when value is `null`.
-     * @default null
-     */
-    value: number | null;
-  }
+export interface ProgressRootProps extends BaseUIComponentProps<'div', ProgressRoot.State> {
+  /**
+   * A string value that provides a user-friendly name for `aria-valuenow`, the current value of the meter.
+   */
+  'aria-valuetext'?: JSX.AriaAttributes['aria-valuetext'];
+  /**
+   * Options to format the value.
+   */
+  format?: Intl.NumberFormatOptions;
+  /**
+   * Accepts a function which returns a string value that provides a human-readable text alternative for the current value of the progress bar.
+   * @param {string} formattedValue The component's formatted value.
+   * @param {number | null} value The component's numerical value.
+   * @returns {string}
+   */
+  getAriaValueText?: (formattedValue: string | null, value: number | null) => string;
+  /**
+   * The locale used by `Intl.NumberFormat` when formatting the value.
+   * Defaults to the user's runtime locale.
+   */
+  locale?: Intl.LocalesArgument;
+  /**
+   * The maximum value.
+   * @default 100
+   */
+  max?: number;
+  /**
+   * The minimum value.
+   * @default 0
+   */
+  min?: number;
+  /**
+   * The current value. The component is indeterminate when value is `null`.
+   * @default null
+   */
+  value: number | null;
+}
+
+export namespace ProgressRoot {
+  export type State = ProgressRootState;
+  export type Props = ProgressRootProps;
 }

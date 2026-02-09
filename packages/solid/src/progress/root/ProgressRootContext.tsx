@@ -1,6 +1,4 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
-import type { SetStoreFunction, Store } from 'solid-js/store';
-import type { CodependentRefs } from '../../solid-helpers';
 import type { ProgressRoot, ProgressStatus } from './ProgressRoot';
 
 export type ProgressRootContext = {
@@ -22,8 +20,7 @@ export type ProgressRootContext = {
   value: Accessor<number | null>;
   state: ProgressRoot.State;
   status: Accessor<ProgressStatus>;
-  codependentRefs: Store<CodependentRefs<['label']>>;
-  setCodependentRefs: SetStoreFunction<CodependentRefs<['label']>>;
+  setLabelId: (labelId: string | undefined) => void;
 };
 
 /**

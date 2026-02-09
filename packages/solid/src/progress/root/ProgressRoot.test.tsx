@@ -44,7 +44,10 @@ describe('<Progress.Root />', () => {
       expect(progressbar).to.have.attribute('aria-valuenow', '30');
       expect(progressbar).to.have.attribute('aria-valuemin', '0');
       expect(progressbar).to.have.attribute('aria-valuemax', '100');
-      expect(progressbar).to.have.attribute('aria-valuetext', '30%');
+      expect(progressbar).to.have.attribute(
+        'aria-valuetext',
+        (0.3).toLocaleString(undefined, { style: 'percent' }),
+      );
       expect(progressbar.getAttribute('aria-labelledby')).to.equal(label.getAttribute('id'));
     });
 
@@ -66,6 +69,7 @@ describe('<Progress.Root />', () => {
       function formatValue(v: number) {
         return new Intl.NumberFormat(undefined, format).format(v);
       }
+
       render(() => (
         <Progress.Root value={30} format={format}>
           <Progress.Value data-testid="value" />
@@ -74,6 +78,7 @@ describe('<Progress.Root />', () => {
           </Progress.Track>
         </Progress.Root>
       ));
+
       const value = screen.getByTestId('value');
       const progressbar = screen.getByRole('progressbar');
       expect(value).to.have.text(formatValue(30));
@@ -85,6 +90,7 @@ describe('<Progress.Root />', () => {
     it('sets the locale when formatting the value', async () => {
       // In German locale, numbers use dot as thousands separator and comma as decimal separator
       const expectedValue = new Intl.NumberFormat('de-DE').format(70.51);
+
       render(() => (
         <Progress.Root
           value={70.51}
