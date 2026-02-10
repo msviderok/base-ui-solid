@@ -21,7 +21,7 @@ describe('<Switch.Thumb />', () => {
     refInstanceof: window.HTMLSpanElement,
     render: (node, props) => {
       return render(() => (
-        <SwitchRootContext.Provider value={testContext}>{node(props)}</SwitchRootContext.Provider>
+        <SwitchRootContext.Provider value={testContext}>{node(props!)}</SwitchRootContext.Provider>
       ));
     },
   }));

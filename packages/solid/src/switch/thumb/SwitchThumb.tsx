@@ -5,7 +5,7 @@ import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { SwitchRoot } from '../root/SwitchRoot';
 import { useSwitchRootContext } from '../root/SwitchRootContext';
-import { styleHookMapping } from '../styleHooks';
+import { stateAttributesMapping } from '../stateAttributesMapping';
 
 /**
  * The movable part of the switch that indicates whether the switch is on or off.
@@ -36,15 +36,18 @@ export function SwitchThumb(componentProps: SwitchThumb.Props) {
 
   const element = useRenderElement('span', componentProps, {
     state: extendedState,
+    stateAttributesMapping,
     props: elementProps,
-    customStyleHookMapping: styleHookMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace SwitchThumb {
-  export interface Props extends BaseUIComponentProps<'span', State> {}
+export interface SwitchThumbProps extends BaseUIComponentProps<'span', SwitchThumb.State> {}
 
-  export interface State extends SwitchRoot.State {}
+export interface SwitchThumbState extends SwitchRoot.State {}
+
+export namespace SwitchThumb {
+  export type Props = SwitchThumbProps;
+  export type State = SwitchThumbState;
 }
