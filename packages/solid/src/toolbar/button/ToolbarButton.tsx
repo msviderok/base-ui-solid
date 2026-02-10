@@ -1,9 +1,7 @@
-import { createMemo } from 'solid-js';
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
-import { BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
+import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useToolbarGroupContext } from '../group/ToolbarGroupContext';
 import type { ToolbarRoot } from '../root/ToolbarRoot';
 import { useToolbarRootContext } from '../root/ToolbarRootContext';
@@ -15,7 +13,7 @@ import { useToolbarRootContext } from '../root/ToolbarRootContext';
  * Documentation: [Base UI Toolbar](https://base-ui.com/react/components/toolbar)
  */
 export function ToolbarButton(componentProps: ToolbarButton.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, [
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'disabled',
     'focusableWhenDisabled',
     'nativeButton',
@@ -24,11 +22,11 @@ export function ToolbarButton(componentProps: ToolbarButton.Props) {
   const focusableWhenDisabled = () => local.focusableWhenDisabled ?? true;
   const nativeButton = () => local.nativeButton ?? true;
 
+  const itemMetadata = { focusableWhenDisabled };
+
   const { disabled: toolbarDisabled, orientation } = useToolbarRootContext();
 
   const groupContext = useToolbarGroupContext(true);
-
-  const itemMetadata = createMemo(() => ({ focusableWhenDisabled: focusableWhenDisabled() }));
 
   const disabled = () => toolbarDisabled() || (groupContext?.disabled() ?? false) || disabledProp();
 
@@ -50,50 +48,50 @@ export function ToolbarButton(componentProps: ToolbarButton.Props) {
     },
   };
 
-  const element = useRenderElement('button', componentProps, {
-    state,
-    ref: buttonRef,
-    props: [
-      elementProps,
-      // for integrating with Menu and Select disabled states, `disabled` is
-      // intentionally duplicated even though getButtonProps includes it already
-      // TODO: follow up after https://github.com/mui/base-ui/issues/1976#issuecomment-2916905663
-      {
-        get disabled() {
-          return disabled();
+  return (
+    <CompositeItem
+      tag="button"
+      render={renderProps.render}
+      class={renderProps.class}
+      metadata={itemMetadata}
+      state={state}
+      refs={[componentProps.ref as any, buttonRef]}
+      props={[
+        elementProps,
+        // for integrating with Menu and Select disabled states, `disabled` is
+        // intentionally duplicated even though getButtonProps includes it already
+        // TODO: follow up after https://github.com/mui/base-ui/issues/1976#issuecomment-2916905663
+        {
+          get disabled() {
+            return disabled();
+          },
         },
-      },
-      getButtonProps,
-    ],
-  });
+        getButtonProps,
+      ]}
+    />
+  );
+}
 
-  return <CompositeItem<ToolbarRoot.ItemMetadata> metadata={itemMetadata} render={element} />;
+export interface ToolbarButtonState extends ToolbarRoot.State {
+  disabled: boolean;
+  focusable: boolean;
+}
+
+export interface ToolbarButtonProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', ToolbarButtonState> {
+  /**
+   * When `true` the item is disabled.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * When `true` the item remains focuseable when disabled.
+   * @default true
+   */
+  focusableWhenDisabled?: boolean;
 }
 
 export namespace ToolbarButton {
-  export interface State extends ToolbarRoot.State {
-    disabled: boolean;
-    focusable: boolean;
-  }
-
-  export interface Props
-    extends Omit<BaseUIComponentProps<'button', ToolbarRoot.State>, 'disabled'> {
-    /**
-     * When `true` the item is disabled.
-     * @default false
-     */
-    disabled?: boolean;
-    /**
-     * When `true` the item remains focuseable when disabled.
-     * @default true
-     */
-    focusableWhenDisabled?: boolean;
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default true
-     */
-    nativeButton?: boolean;
-  }
+  export type State = ToolbarButtonState;
+  export type Props = ToolbarButtonProps;
 }

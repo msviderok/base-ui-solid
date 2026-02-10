@@ -42,12 +42,14 @@ export function ToolbarGroup(componentProps: ToolbarGroup.Props) {
   );
 }
 
+export interface ToolbarGroupProps extends BaseUIComponentProps<'div', ToolbarRoot.State> {
+  /**
+   * When `true` all toolbar items in the group are disabled.
+   * @default false
+   */
+  disabled?: boolean;
+}
+
 export namespace ToolbarGroup {
-  export interface Props extends BaseUIComponentProps<'div', ToolbarRoot.State> {
-    /**
-     * When `true` all toolbar items in the group are disabled.
-     * @default false
-     */
-    disabled?: boolean;
-  }
+  export type Props = ToolbarGroupProps;
 }

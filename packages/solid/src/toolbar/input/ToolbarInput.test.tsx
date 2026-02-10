@@ -14,6 +14,7 @@ const testCompositeContext: CompositeRootContext = {
   highlightedIndex: () => 0,
   onHighlightedIndexChange: NOOP,
   highlightItemOnHover: () => false,
+  relayKeyboardEvent: NOOP,
 };
 
 const testToolbarContext: ToolbarRootContext = {
@@ -32,7 +33,7 @@ describe('<Toolbar.Input />', () => {
       return render(() => (
         <ToolbarRootContext.Provider value={testToolbarContext}>
           <CompositeRootContext.Provider value={testCompositeContext}>
-            {node(props)}
+            {node(props!)}
           </CompositeRootContext.Provider>
         </ToolbarRootContext.Provider>
       ));
@@ -70,11 +71,10 @@ describe('<Toolbar.Input />', () => {
           </Toolbar.Root>
         ));
         const input = screen.getByRole('textbox') as HTMLInputElement;
-        const button1 = () => screen.getAllByRole('button')[0];
-        const button2 = () => screen.getAllByRole('button')[1];
+        const [button1, button2] = screen.getAllByRole('button');
 
         await user.keyboard('[Tab]');
-        expect(button1()).toHaveFocus();
+        expect(button1).toHaveFocus();
 
         await user.keyboard(`[${nextKey}]`);
         expect(input).toHaveFocus();
@@ -86,7 +86,7 @@ describe('<Toolbar.Input />', () => {
         await user.keyboard(`[${ARROW_RIGHT}]`);
         await user.keyboard(`[${nextKey}]`);
 
-        expect(button2()).toHaveFocus();
+        expect(button2).toHaveFocus();
 
         await user.keyboard(`[${prevKey}]`);
         expect(input).toHaveFocus();
@@ -94,7 +94,7 @@ describe('<Toolbar.Input />', () => {
         await user.keyboard(`[${ARROW_LEFT}]`);
         await user.keyboard(`[${prevKey}]`);
 
-        expect(button1()).toHaveFocus();
+        expect(button1).toHaveFocus();
       });
     });
   });

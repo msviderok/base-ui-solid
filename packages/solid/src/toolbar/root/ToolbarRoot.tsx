@@ -1,9 +1,8 @@
-import { createMemo, createSignal } from 'solid-js';
+import { createMemo, createSignal, type Accessor } from 'solid-js';
 import type { CompositeMetadata } from '../../composite/list/CompositeList';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
 import { splitComponentProps } from '../../solid-helpers';
-import { Orientation as BaseOrientation, BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
+import { Orientation as BaseOrientation, BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { ToolbarRootContext } from './ToolbarRootContext';
 
 /**
@@ -13,15 +12,13 @@ import { ToolbarRootContext } from './ToolbarRootContext';
  * Documentation: [Base UI Toolbar](https://base-ui.com/react/components/toolbar)
  */
 export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, [
-    'cols',
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'disabled',
-    'loop',
+    'loopFocus',
     'orientation',
   ]);
-  const cols = () => local.cols ?? 1;
   const disabled = () => local.disabled ?? false;
-  const loop = () => local.loop ?? true;
+  const loopFocus = () => local.loopFocus ?? true;
   const orientation = () => local.orientation ?? 'horizontal';
 
   const [itemArray, setItemArray] = createSignal<
@@ -32,7 +29,7 @@ export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
     const output: number[] = [];
     for (const { metadata } of itemArray()) {
       const idx = metadata?.index;
-      if (idx && !metadata?.focusableWhenDisabled) {
+      if (idx && !metadata?.focusableWhenDisabled()) {
         output.push(idx);
       }
     }
@@ -54,64 +51,59 @@ export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
     },
   };
 
-  const element = useRenderElement('div', componentProps, {
-    state,
-    props: [
-      {
-        get 'aria-orientation'() {
-          return orientation();
-        },
-        role: 'toolbar',
-      },
-      elementProps,
-    ],
-  });
+  const defaultProps: HTMLProps = {
+    get 'aria-orientation'() {
+      return orientation();
+    },
+    role: 'toolbar',
+  };
 
   return (
     <ToolbarRootContext.Provider value={toolbarRootContext}>
-      <CompositeRoot<ToolbarRoot.ItemMetadata>
-        cols={cols()}
+      <CompositeRoot
+        render={renderProps.render}
+        class={renderProps.class}
+        state={state}
+        refs={[componentProps.ref as any]}
+        props={[defaultProps, elementProps]}
         disabledIndices={disabledIndices()}
-        loop={loop()}
+        loopFocus={loopFocus()}
         onMapChange={setItemArray}
         orientation={orientation()}
-        render={element}
       />
     </ToolbarRootContext.Provider>
   );
 }
 
+export interface ToolbarRootItemMetadata {
+  focusableWhenDisabled: Accessor<boolean>;
+}
+
+export type ToolbarRootOrientation = BaseOrientation;
+
+export interface ToolbarRootState {
+  disabled: boolean;
+  orientation: ToolbarRoot.Orientation;
+}
+
+export interface ToolbarRootProps extends BaseUIComponentProps<'div', ToolbarRoot.State> {
+  disabled?: boolean;
+  /**
+   * The orientation of the toolbar.
+   * @default 'horizontal'
+   */
+  orientation?: ToolbarRoot.Orientation;
+  /**
+   * If `true`, using keyboard navigation will wrap focus to the other end of the toolbar once the end is reached.
+   *
+   * @default true
+   */
+  loopFocus?: boolean;
+}
+
 export namespace ToolbarRoot {
-  export interface ItemMetadata {
-    focusableWhenDisabled: boolean;
-  }
-
-  export type Orientation = BaseOrientation;
-
-  export type State = {
-    disabled: boolean;
-    orientation: Orientation;
-  };
-
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * The number of columns. When greater than 1, the toolbar is arranged into
-     * a grid.
-     * @default 1
-     */
-    cols?: number;
-    disabled?: boolean;
-    /**
-     * The orientation of the toolbar.
-     * @type Toolbar.Root.Orientation
-     * @default 'horizontal'
-     */
-    orientation?: Orientation;
-    /**
-     * If `true`, using keyboard navigation will wrap focus to the other end of the toolbar once the end is reached.
-     *
-     * @default true
-     */
-    loop?: boolean;
-  }
+  export type ItemMetadata = ToolbarRootItemMetadata;
+  export type Orientation = ToolbarRootOrientation;
+  export type State = ToolbarRootState;
+  export type Props = ToolbarRootProps;
 }

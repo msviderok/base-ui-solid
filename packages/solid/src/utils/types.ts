@@ -73,6 +73,7 @@ export type BaseUIComponentProps<
     | keyof JSX.IntrinsicElements
     | DynamicProps<RenderFnElement>
     | ComponentRenderFn<JSX.HTMLAttributes<any>, State>
+    | ValidComponent
     | null;
   /**
    * Style applied to the element, or a function that

@@ -10,6 +10,7 @@ const testCompositeContext: CompositeRootContext = {
   highlightedIndex: () => 0,
   onHighlightedIndexChange: NOOP,
   highlightItemOnHover: () => false,
+  relayKeyboardEvent: NOOP,
 };
 
 const testToolbarContext: ToolbarRootContext = {
@@ -27,7 +28,7 @@ describe('<Toolbar.Group />', () => {
       return render(() => (
         <ToolbarRootContext.Provider value={testToolbarContext}>
           <CompositeRootContext.Provider value={testCompositeContext}>
-            {node(props)}
+            {node(props!)}
           </CompositeRootContext.Provider>
         </ToolbarRootContext.Provider>
       ));

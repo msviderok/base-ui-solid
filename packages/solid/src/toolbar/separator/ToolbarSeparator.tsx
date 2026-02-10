@@ -25,6 +25,9 @@ export function ToolbarSeparator(props: ToolbarSeparator.Props) {
   return <Separator orientation={orientation()} {...props} ref={props.ref} />;
 }
 
+export interface ToolbarSeparatorProps
+  extends BaseUIComponentProps<'div', Separator.State>, Separator.Props {}
+
 export namespace ToolbarSeparator {
-  export interface Props extends BaseUIComponentProps<'div', Separator.State>, Separator.Props {}
+  export type Props = ToolbarSeparatorProps;
 }

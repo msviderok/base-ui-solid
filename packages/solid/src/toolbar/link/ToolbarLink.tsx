@@ -1,7 +1,6 @@
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import { splitComponentProps } from '../../solid-helpers';
 import { BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
 import type { ToolbarRoot } from '../root/ToolbarRoot';
 import { useToolbarRootContext } from '../root/ToolbarRootContext';
 
@@ -18,7 +17,7 @@ const TOOLBAR_LINK_METADATA = {
  * Documentation: [Base UI Toolbar](https://base-ui.com/react/components/toolbar)
  */
 export function ToolbarLink(componentProps: ToolbarLink.Props) {
-  const [, , elementProps] = splitComponentProps(componentProps, []);
+  const [renderProps, , elementProps] = splitComponentProps(componentProps, []);
 
   const { orientation } = useToolbarRootContext();
 
@@ -28,17 +27,26 @@ export function ToolbarLink(componentProps: ToolbarLink.Props) {
     },
   };
 
-  const element = useRenderElement('a', componentProps, { state, props: elementProps });
-
   return (
-    <CompositeItem<ToolbarRoot.ItemMetadata> metadata={TOOLBAR_LINK_METADATA} render={element} />
+    <CompositeItem
+      tag="a"
+      render={renderProps.render}
+      class={renderProps.class}
+      metadata={TOOLBAR_LINK_METADATA}
+      state={state}
+      refs={[componentProps.ref as any]}
+      props={[elementProps]}
+    />
   );
 }
 
-export namespace ToolbarLink {
-  export interface State {
-    orientation: ToolbarRoot.Orientation;
-  }
+export interface ToolbarLinkState {
+  orientation: ToolbarRoot.Orientation;
+}
 
-  export interface Props extends BaseUIComponentProps<'a', State> {}
+export interface ToolbarLinkProps extends BaseUIComponentProps<'a', ToolbarLink.State> {}
+
+export namespace ToolbarLink {
+  export type State = ToolbarLinkState;
+  export type Props = ToolbarLinkProps;
 }
