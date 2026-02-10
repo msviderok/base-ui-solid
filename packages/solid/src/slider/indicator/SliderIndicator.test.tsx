@@ -6,7 +6,7 @@ describe('<Slider.Indicator />', () => {
 
   describeConformance(Slider.Indicator, () => ({
     render: (node, props) => {
-      return render(() => <Slider.Root>{node(props)}</Slider.Root>);
+      return render(() => <Slider.Root>{node(props!)}</Slider.Root>);
     },
     refInstanceof: window.HTMLDivElement,
   }));

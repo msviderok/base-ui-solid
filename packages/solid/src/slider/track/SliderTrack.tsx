@@ -3,7 +3,7 @@ import { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { SliderRoot } from '../root/SliderRoot';
 import { useSliderRootContext } from '../root/SliderRootContext';
-import { sliderStyleHookMapping } from '../root/styleHooks';
+import { sliderStateAttributesMapping } from '../root/stateAttributesMapping';
 
 /**
  * Contains the slider indicator and represents the entire range of the slider.
@@ -19,12 +19,14 @@ export function SliderTrack(componentProps: SliderTrack.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     props: [{ style: { position: 'relative' } }, elementProps],
-    customStyleHookMapping: sliderStyleHookMapping,
+    stateAttributesMapping: sliderStateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
+export interface SliderTrackProps extends BaseUIComponentProps<'div', SliderRoot.State> {}
+
 export namespace SliderTrack {
-  export interface Props extends BaseUIComponentProps<'div', SliderRoot.State> {}
+  export type Props = SliderTrackProps;
 }

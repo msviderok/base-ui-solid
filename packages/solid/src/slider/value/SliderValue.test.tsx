@@ -9,7 +9,7 @@ describe('<Slider.Value />', () => {
 
   describeConformance(Slider.Value, () => ({
     render: (node, props) => {
-      return render(() => <Slider.Root>{node(props)}</Slider.Root>);
+      return render(() => <Slider.Root>{node(props!)}</Slider.Root>);
     },
     refInstanceof: window.HTMLOutputElement,
   }));
@@ -20,6 +20,7 @@ describe('<Slider.Value />', () => {
         <Slider.Value data-testid="output" />
       </Slider.Root>
     ));
+
     const sliderValue = screen.getByTestId('output');
 
     expect(sliderValue).to.have.text('40');
@@ -31,6 +32,7 @@ describe('<Slider.Value />', () => {
         <Slider.Value data-testid="output" />
       </Slider.Root>
     ));
+
     const sliderValue = screen.getByTestId('output');
 
     expect(sliderValue).to.have.text('40 – 65');
@@ -42,6 +44,7 @@ describe('<Slider.Value />', () => {
         <Slider.Value data-testid="output" />
       </Slider.Root>
     ));
+
     const sliderValue = screen.getByTestId('output');
 
     expect(sliderValue).to.have.text('40 – 60 – 80 – 95');

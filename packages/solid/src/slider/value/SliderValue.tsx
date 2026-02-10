@@ -5,7 +5,7 @@ import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { SliderRoot } from '../root/SliderRoot';
 import { useSliderRootContext } from '../root/SliderRootContext';
-import { sliderStyleHookMapping } from '../root/styleHooks';
+import { sliderStateAttributesMapping } from '../root/stateAttributesMapping';
 
 /**
  * Displays the current value of the slider as text.
@@ -48,7 +48,6 @@ export function SliderValue(componentProps: SliderValue.Props) {
 
   const element = useRenderElement('output', componentProps, {
     state,
-    customStyleHookMapping: sliderStyleHookMapping,
     props: [
       {
         get 'aria-live'() {
@@ -60,6 +59,7 @@ export function SliderValue(componentProps: SliderValue.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: sliderStateAttributesMapping,
     get children() {
       return <>{componentProps.children?.(formattedValues(), values()) ?? defaultDisplayValue()}</>;
     },
@@ -68,11 +68,13 @@ export function SliderValue(componentProps: SliderValue.Props) {
   return <>{element()}</>;
 }
 
-export namespace SliderValue {
-  export interface Props
-    extends Omit<BaseUIComponentProps<'output', SliderRoot.State>, 'children'> {
-    children?:
-      | null
-      | ((formattedValues: readonly string[], values: readonly number[]) => JSX.Element);
-  }
+export interface SliderValueProps extends Omit<
+  BaseUIComponentProps<'output', SliderRoot.State>,
+  'children'
+> {
+  children?:
+    | null
+    | ((formattedValues: readonly string[], values: readonly number[]) => JSX.Element);
 }
+
+export namespace SliderValue {}

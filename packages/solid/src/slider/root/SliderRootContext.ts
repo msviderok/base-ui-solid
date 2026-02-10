@@ -1,6 +1,6 @@
-import { createContext, useContext, type Accessor } from 'solid-js';
+import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import type { CompositeMetadata } from '../../composite/list/CompositeList';
-import type { useFieldControlValidation } from '../../field/control/useFieldControlValidation';
+import type { UseFieldValidationReturnValue } from '../../field/root/useFieldValidation';
 import type { Orientation } from '../../utils/types';
 import type { ThumbMetadata } from '../thumb/SliderThumb';
 import type { SliderRoot } from './SliderRoot';
@@ -10,15 +10,27 @@ export interface SliderRootContext {
    * The index of the active thumb.
    */
   active: Accessor<number>;
+  /**
+   * The index of the most recently interacted thumb.
+   */
+  lastUsedThumbIndex: Accessor<number>;
   dragging: Accessor<boolean>;
   disabled: Accessor<boolean>;
-  fieldControlValidation: useFieldControlValidation.ReturnValue;
+  validation: UseFieldValidationReturnValue;
   refs: {
+    controlRef: HTMLElement | null | undefined;
     formatOptionsRef: Intl.NumberFormatOptions | undefined;
     lastChangedValueRef: number | readonly number[] | null;
+    lastChangeReasonRef: SliderRoot.ChangeEventReason;
+    pressedInputRef: HTMLInputElement | null | undefined;
+    pressedThumbCenterOffsetRef: number | null;
+    pressedThumbIndexRef: number;
+    pressedValuesRef: readonly number[] | null;
     thumbRefs: (HTMLElement | null)[];
   };
   handleInputChange: (valueInput: number, index: number, event: KeyboardEvent | InputEvent) => void;
+  indicatorPosition: Accessor<(number | undefined)[]>;
+  inset: Accessor<boolean>;
   labelId: Accessor<string | undefined>;
   /**
    * The large step value of the slider when incrementing or decrementing while the shift key is held,
@@ -43,26 +55,28 @@ export interface SliderRootContext {
    * The minimum steps between values in a range slider.
    */
   minStepsBetweenValues: Accessor<number>;
+  name: Accessor<string | undefined>;
   /**
    * Function to be called when drag ends and the pointer is released.
    */
-  onValueCommitted: (newValue: number | readonly number[], event: Event) => void;
+  onValueCommitted: (
+    newValue: number | readonly number[],
+    data: SliderRoot.CommitEventDetails,
+  ) => void;
   /**
    * The component orientation.
    * @default 'horizontal'
    */
   orientation: Accessor<Orientation>;
-  /**
-   * Whether the slider is a range slider.
-   */
-  range: Accessor<boolean>;
-  registerFieldControlRef: (element: Element | null | undefined) => void;
-  setActive: (active: number) => void;
+  renderBeforeHydration: Accessor<boolean>;
+  registerFieldControlRef: (element: HTMLElement | null | undefined) => void;
+  setActive: (index: number) => void;
   setDragging: (dragging: boolean) => void;
+  setIndicatorPosition: Setter<(number | undefined)[]>;
   /**
    * Callback fired when dragging and invokes onValueChange.
    */
-  setValue: (newValue: number | number[], activeThumb: number, event: Event) => void;
+  setValue: (newValue: number | number[], details?: SliderRoot.ChangeEventDetails) => void;
   state: SliderRoot.State;
   /**
    * The step increment of the slider when incrementing or decrementing. It will snap
@@ -70,7 +84,7 @@ export interface SliderRootContext {
    * @default 1
    */
   step: Accessor<number>;
-  tabIndex: Accessor<number | null>;
+  thumbCollisionBehavior: Accessor<'push' | 'swap' | 'none'>;
   thumbArray: Accessor<
     Array<{ element: Element; metadata: CompositeMetadata<ThumbMetadata> | null }>
   >;
