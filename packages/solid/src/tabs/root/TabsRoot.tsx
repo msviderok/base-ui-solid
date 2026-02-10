@@ -1,15 +1,17 @@
-import { batch, createSignal } from 'solid-js';
+import { batch, createEffect, createMemo, createSignal } from 'solid-js';
 import type { CompositeMetadata } from '../../composite/list/CompositeList';
 import { CompositeList } from '../../composite/list/CompositeList';
 import { useDirection } from '../../direction-provider/DirectionContext';
 import { splitComponentProps } from '../../solid-helpers';
+import { type BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import type { Orientation as BaseOrientation, BaseUIComponentProps } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TabsPanel } from '../panel/TabsPanel';
 import type { TabsTab } from '../tab/TabsTab';
 import { TabsRootContext } from './TabsRootContext';
-import { tabsStyleHookMapping } from './styleHooks';
+import { tabsStateAttributesMapping } from './stateAttributesMapping';
 
 /**
  * Groups the tabs and the corresponding panels.
@@ -24,22 +26,29 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
     'orientation',
     'value',
   ]);
+  const defaultValueProp = () => local.defaultValue ?? 0;
   const orientation = () => local.orientation ?? 'horizontal';
+  const valueProp = () => local.value;
 
   const direction = useDirection();
 
+  // Track whether the user explicitly provided a `defaultValue` prop.
+  // Used to determine if we should honor a disabled tab selection.
+  const hasExplicitDefaultValueProp = () => Object.hasOwn(componentProps, 'defaultValue');
+
   const tabPanelRefs: (HTMLElement | null | undefined)[] = [];
+  const [mountedTabPanels, setMountedTabPanels] = createSignal<
+    Record<TabsTab.Value | number, string>
+  >({});
 
   const [value, setValue] = useControlled({
-    controlled: () => local.value,
-    default: () => local.defaultValue ?? 0,
+    controlled: valueProp,
+    default: defaultValueProp,
     name: 'Tabs',
     state: 'value',
   });
 
-  const [tabPanelArray, setTabPanelArray] = createSignal<
-    Array<{ element: Element; metadata: CompositeMetadata<TabsPanel.Metadata> | null }>
-  >([]);
+  const isControlled = () => valueProp() !== undefined;
   const [tabArray, setTabArray] = createSignal<
     Array<{ element: Element; metadata: CompositeMetadata<TabsTab.Metadata> | null }>
   >([]);
@@ -47,65 +56,53 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
   const [tabActivationDirection, setTabActivationDirection] =
     createSignal<TabsTab.ActivationDirection>('none');
 
-  const onValueChange = (
-    newValue: TabsTab.Value,
-    activationDirection: TabsTab.ActivationDirection,
-    event: Event | undefined,
-  ) => {
+  const onValueChange = (newValue: TabsTab.Value, eventDetails: TabsRoot.ChangeEventDetails) => {
     batch(() => {
+      local.onValueChange?.(newValue, eventDetails);
+
+      if (eventDetails.isCanceled) {
+        return;
+      }
+
       setValue(newValue);
-      setTabActivationDirection(activationDirection);
-      local.onValueChange?.(newValue, event);
+      setTabActivationDirection(eventDetails.activationDirection);
+    });
+  };
+
+  const registerMountedTabPanel = (panelValue: TabsTab.Value | number, panelId: string) => {
+    setMountedTabPanels((prev) => {
+      if (prev[panelValue] === panelId) {
+        return prev;
+      }
+
+      return { ...prev, [panelValue]: panelId };
+    });
+  };
+
+  const unregisterMountedTabPanel = (panelValue: TabsTab.Value | number, panelId: string) => {
+    setMountedTabPanels((prev) => {
+      if (!prev[panelValue] || prev[panelValue] !== panelId) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      delete next[panelValue];
+      return next;
     });
   };
 
   // get the `id` attribute of <Tabs.Panel> to set as the value of `aria-controls` on <Tabs.Tab>
-  const getTabPanelIdByTabValueOrIndex = (tabValue: TabsTab.Value | undefined, index: number) => {
-    if (tabValue === undefined && index < 0) {
-      return undefined;
-    }
-
-    for (const { metadata: tabPanelMetadata } of tabPanelArray()) {
-      // find by tabValue
-      if (tabValue !== undefined && tabPanelMetadata && tabValue === tabPanelMetadata?.value) {
-        return tabPanelMetadata.id;
-      }
-
-      // find by index
-      if (tabValue === undefined && tabPanelMetadata?.index && tabPanelMetadata?.index === index) {
-        return tabPanelMetadata.id;
-      }
-    }
-
-    return undefined;
+  const getTabPanelIdByValue = (tabValue: TabsTab.Value) => {
+    return mountedTabPanels()[tabValue];
   };
 
   // get the `id` attribute of <Tabs.Tab> to set as the value of `aria-labelledby` on <Tabs.Panel>
-  const getTabIdByPanelValueOrIndex = (tabPanelValue: TabsTab.Value | undefined, index: number) => {
-    if (tabPanelValue === undefined && index < 0) {
-      return undefined;
-    }
-
+  const getTabIdByPanelValue = (tabPanelValue: TabsTab.Value) => {
     for (const { metadata: tabMetadata } of tabArray()) {
-      // find by tabPanelValue
-      if (
-        tabPanelValue !== undefined &&
-        index > -1 &&
-        tabPanelValue === (tabMetadata?.value ?? tabMetadata?.index ?? undefined)
-      ) {
-        return tabMetadata?.id;
-      }
-
-      // find by index
-      if (
-        tabPanelValue === undefined &&
-        index > -1 &&
-        index === (tabMetadata?.value ?? tabMetadata?.index ?? undefined)
-      ) {
+      if (tabPanelValue === tabMetadata?.value) {
         return tabMetadata?.id;
       }
     }
-
     return undefined;
   };
 
@@ -129,14 +126,69 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
   const tabsContextValue: TabsRootContext = {
     direction,
     getTabElementBySelectedValue,
-    getTabIdByPanelValueOrIndex,
-    getTabPanelIdByTabValueOrIndex,
+    getTabIdByPanelValue,
+    getTabPanelIdByValue,
     onValueChange,
     orientation,
+    registerMountedTabPanel,
     setTabArray,
+    unregisterMountedTabPanel,
     tabActivationDirection,
     value,
   };
+
+  const selectedTabMetadata = createMemo(() => {
+    for (const { metadata: tabMetadata } of tabArray()) {
+      if (tabMetadata != null && tabMetadata.value === value()) {
+        return tabMetadata;
+      }
+    }
+    return undefined;
+  });
+
+  // Find the first non-disabled tab value.
+  // Used as a fallback when the current selection is disabled or missing.
+  const firstEnabledTabValue = createMemo(() => {
+    for (const { metadata: tabMetadata } of tabArray()) {
+      if (tabMetadata != null && !tabMetadata.disabled) {
+        return tabMetadata.value;
+      }
+    }
+    return undefined;
+  });
+
+  // Automatically switch to the first enabled tab when:
+  // - The current selection is disabled (and wasn't explicitly set via defaultValue)
+  // - The current selection is missing (tab was removed from DOM)
+  // Falls back to null if all tabs are disabled.
+  createEffect(() => {
+    if (isControlled() || tabArray().length === 0) {
+      return;
+    }
+
+    const selectionIsDisabled = selectedTabMetadata()?.disabled;
+    const selectionIsMissing = selectedTabMetadata() == null && value() !== null;
+
+    const shouldHonorExplicitDefaultSelection =
+      hasExplicitDefaultValueProp() && selectionIsDisabled && value() === defaultValueProp();
+
+    if (shouldHonorExplicitDefaultSelection) {
+      return;
+    }
+
+    if (!selectionIsDisabled && !selectionIsMissing) {
+      return;
+    }
+
+    const fallbackValue = firstEnabledTabValue() ?? null;
+
+    if (value() === fallbackValue) {
+      return;
+    }
+
+    setValue(fallbackValue);
+    setTabActivationDirection('none');
+  });
 
   const state: TabsRoot.State = {
     get orientation() {
@@ -150,58 +202,58 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     props: elementProps,
-    customStyleHookMapping: tabsStyleHookMapping,
+    stateAttributesMapping: tabsStateAttributesMapping,
   });
 
   return (
     <TabsRootContext.Provider value={tabsContextValue}>
-      <CompositeList<TabsPanel.Metadata>
-        refs={{ elements: tabPanelRefs }}
-        onMapChange={setTabPanelArray}
-      >
+      <CompositeList<TabsPanel.Metadata> refs={{ elements: tabPanelRefs }}>
         {element()}
       </CompositeList>
     </TabsRootContext.Provider>
   );
 }
 
+export type TabsRootOrientation = BaseOrientation;
+
+export interface TabsRootState {
+  orientation: TabsRoot.Orientation;
+  tabActivationDirection: TabsTab.ActivationDirection;
+}
+
+export interface TabsRootProps extends BaseUIComponentProps<'div', TabsRoot.State> {
+  /**
+   * The value of the currently active `Tab`. Use when the component is controlled.
+   * When the value is `null`, no Tab will be active.
+   */
+  value?: TabsTab.Value;
+  /**
+   * The default value. Use when the component is not controlled.
+   * When the value is `null`, no Tab will be active.
+   * @default 0
+   */
+  defaultValue?: TabsTab.Value;
+  /**
+   * The component orientation (layout flow direction).
+   * @default 'horizontal'
+   */
+  orientation?: TabsRoot.Orientation;
+  /**
+   * Callback invoked when new value is being set.
+   */
+  onValueChange?: (value: TabsTab.Value, eventDetails: TabsRoot.ChangeEventDetails) => void;
+}
+
+export type TabsRootChangeEventReason = typeof REASONS.none;
+export type TabsRootChangeEventDetails = BaseUIChangeEventDetails<
+  TabsRoot.ChangeEventReason,
+  { activationDirection: TabsTab.ActivationDirection }
+>;
+
 export namespace TabsRoot {
-  export type Orientation = BaseOrientation;
-
-  export type State = {
-    /**
-     * @type Tabs.Root.Orientation
-     */
-    orientation: Orientation;
-    /**
-     * @type Tabs.Tab.ActivationDirection
-     */
-    tabActivationDirection: TabsTab.ActivationDirection;
-  };
-
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * The value of the currently selected `Tab`. Use when the component is controlled.
-     * When the value is `null`, no Tab will be selected.
-     * @type Tabs.Tab.Value
-     */
-    value?: TabsTab.Value;
-    /**
-     * The default value. Use when the component is not controlled.
-     * When the value is `null`, no Tab will be selected.
-     * @type Tabs.Tab.Value
-     * @default 0
-     */
-    defaultValue?: TabsTab.Value;
-    /**
-     * The component orientation (layout flow direction).
-     * @type Tabs.Root.Orientation
-     * @default 'horizontal'
-     */
-    orientation?: Orientation;
-    /**
-     * Callback invoked when new value is being set.
-     */
-    onValueChange?: (value: TabsTab.Value, event?: Event) => void;
-  }
+  export type State = TabsRootState;
+  export type Props = TabsRootProps;
+  export type Orientation = TabsRootOrientation;
+  export type ChangeEventReason = TabsRootChangeEventReason;
+  export type ChangeEventDetails = TabsRootChangeEventDetails;
 }

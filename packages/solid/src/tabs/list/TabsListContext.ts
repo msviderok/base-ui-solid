@@ -1,12 +1,13 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
+import type { TabsRoot } from '../root/TabsRoot';
 
 export interface TabsListContext {
   activateOnFocus: Accessor<boolean>;
   highlightedTabIndex: Accessor<number>;
-  onTabActivation: (newValue: any, event: Event) => void;
+  onTabActivation: (newValue: any, eventDetails: TabsRoot.ChangeEventDetails) => void;
   setHighlightedTabIndex: (index: number) => void;
   refs: {
-    tabsListRef: HTMLElement | null | undefined;
+    tabsListElement: HTMLElement | null | undefined;
   };
   value: Accessor<any>;
 }

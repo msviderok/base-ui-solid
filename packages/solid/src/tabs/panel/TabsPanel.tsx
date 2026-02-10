@@ -1,10 +1,10 @@
-import { createMemo } from 'solid-js';
+import { createEffect, onCleanup, Show, type Accessor } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { tabsStyleHookMapping } from '../root/styleHooks';
+import { tabsStateAttributesMapping } from '../root/stateAttributesMapping';
 import type { TabsRoot } from '../root/TabsRoot';
 import { useTabsRootContext } from '../root/TabsRootContext';
 import type { TabsTab } from '../tab/TabsTab';
@@ -17,36 +17,30 @@ import { TabsPanelDataAttributes } from './TabsPanelDataAttributes';
  * Documentation: [Base UI Tabs](https://base-ui.com/react/components/tabs)
  */
 export function TabsPanel(componentProps: TabsPanel.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, [
-    'value',
-    'keepMounted',
-    'children',
-  ]);
+  const [, local, elementProps] = splitComponentProps(componentProps, ['value', 'keepMounted']);
   const keepMounted = () => local.keepMounted ?? false;
 
   const {
     value: selectedValue,
-    getTabIdByPanelValueOrIndex,
+    getTabIdByPanelValue,
     orientation,
     tabActivationDirection,
+    registerMountedTabPanel,
+    unregisterMountedTabPanel,
   } = useTabsRootContext();
 
   const id = useBaseUiId();
 
-  const metadata = createMemo(() => ({
-    id: id(),
-    value: local.value,
-  }));
+  const metadata = {
+    id,
+    value: () => local.value,
+  };
 
   const { setRef: setListItemRef, index } = useCompositeListItem({ metadata });
 
-  const tabPanelValue = () => local.value ?? index();
+  const hidden = () => local.value !== selectedValue();
 
-  const hidden = () => tabPanelValue() !== selectedValue();
-
-  const correspondingTabId = createMemo(() => {
-    return getTabIdByPanelValueOrIndex(local.value, index());
-  });
+  const correspondingTabId = () => getTabIdByPanelValue(local.value);
 
   const state: TabsPanel.State = {
     get hidden() {
@@ -84,37 +78,53 @@ export function TabsPanel(componentProps: TabsPanel.Props) {
       },
       elementProps,
     ],
-    customStyleHookMapping: tabsStyleHookMapping,
-    get children() {
-      return <>{hidden() && !keepMounted() ? undefined : componentProps.children}</>;
-    },
+    stateAttributesMapping: tabsStateAttributesMapping,
   });
 
-  return <>{element()}</>;
+  createEffect(() => {
+    if (hidden() && !keepMounted()) {
+      return;
+    }
+
+    const resolvedId = id();
+    if (resolvedId == null) {
+      return;
+    }
+
+    registerMountedTabPanel(local.value, resolvedId);
+    onCleanup(() => {
+      unregisterMountedTabPanel(local.value, resolvedId);
+    });
+  });
+
+  const shouldRender = () => !hidden() || keepMounted();
+
+  return <Show when={shouldRender()}>{element()}</Show>;
+}
+
+export interface TabsPanelMetadata {
+  id?: Accessor<string | undefined>;
+  value: Accessor<TabsTab.Value>;
+}
+
+export interface TabsPanelState extends TabsRoot.State {
+  hidden: boolean;
+}
+
+export interface TabsPanelProps extends BaseUIComponentProps<'div', TabsPanel.State> {
+  /**
+   * The value of the TabPanel. It will be shown when the Tab with the corresponding value is active.
+   */
+  value: TabsTab.Value;
+  /**
+   * Whether to keep the HTML element in the DOM while the panel is hidden.
+   * @default false
+   */
+  keepMounted?: boolean;
 }
 
 export namespace TabsPanel {
-  export interface Metadata {
-    id?: string;
-    value: TabsTab.Value;
-  }
-
-  export interface State extends TabsRoot.State {
-    hidden: boolean;
-  }
-
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * The value of the TabPanel. It will be shown when the Tab with the corresponding value is selected.
-     * If not provided, it will fall back to the index of the panel.
-     * It is recommended to explicitly provide it, as it's required for the tab panel to be rendered on the server.
-     * @type Tabs.Tab.Value
-     */
-    value?: TabsTab.Value;
-    /**
-     * Whether to keep the HTML element in the DOM while the panel is hidden.
-     * @default false
-     */
-    keepMounted?: boolean;
-  }
+  export type Metadata = TabsPanelMetadata;
+  export type State = TabsPanelState;
+  export type Props = TabsPanelProps;
 }

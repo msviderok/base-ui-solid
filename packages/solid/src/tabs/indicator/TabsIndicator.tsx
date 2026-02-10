@@ -7,23 +7,22 @@ import {
   Show,
   type JSX,
 } from 'solid-js';
-import { useDirection } from '../../direction-provider/DirectionContext';
 import { splitComponentProps } from '../../solid-helpers';
-import { generateId } from '../../utils/generateId';
+import { getCssDimensions } from '../../utils/getCssDimensions';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTabsListContext } from '../list/TabsListContext';
-import { tabsStyleHookMapping } from '../root/styleHooks';
+import { tabsStateAttributesMapping } from '../root/stateAttributesMapping';
 import type { TabsRoot } from '../root/TabsRoot';
 import { useTabsRootContext } from '../root/TabsRootContext';
 import type { TabsTab } from '../tab/TabsTab';
 import { script as prehydrationScript } from './prehydrationScript.min';
 import { TabsIndicatorCssVars } from './TabsIndicatorCssVars';
 
-const customStyleHookMapping = {
-  ...tabsStyleHookMapping,
-  selectedTabPosition: () => null,
-  selectedTabSize: () => null,
+const stateAttributesMapping = {
+  ...tabsStateAttributesMapping,
+  activeTabPosition: () => null,
+  activeTabSize: () => null,
 };
 
 /**
@@ -41,7 +40,6 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
 
   const { refs } = useTabsListContext();
 
-  const [instanceId] = createSignal(generateId('tab'));
   const [isMounted, setIsMounted] = createSignal(false);
   const [meta, setMeta] = createSignal({
     left: 0,
@@ -54,40 +52,54 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
   });
   const { value: activeTabValue } = useTabsRootContext();
 
-  const direction = useDirection();
-
   onMount(() => {
     setIsMounted(true);
   });
 
   createEffect(() => {
-    if (value() != null && refs.tabsListRef != null && typeof ResizeObserver !== 'undefined') {
+    if (value() != null && refs.tabsListElement != null && typeof ResizeObserver !== 'undefined') {
       const resizeObserver = new ResizeObserver(() => {
         setMeta((prev) => {
-          if (value() != null && refs.tabsListRef != null) {
-            const selectedTab = getTabElementBySelectedValue(value());
-            const tabsList = refs.tabsListRef;
+          if (value() != null && refs.tabsListElement != null) {
+            const activeTab = getTabElementBySelectedValue(value());
+            const tabsListElement = refs.tabsListElement;
 
-            if (selectedTab != null) {
-              return {
-                left: selectedTab.offsetLeft - tabsList.clientLeft,
-                right:
-                  direction() === 'ltr'
-                    ? tabsList.scrollWidth -
-                      selectedTab.offsetLeft -
-                      selectedTab.offsetWidth -
-                      tabsList.clientLeft
-                    : selectedTab.offsetLeft - tabsList.clientLeft,
-                top: selectedTab.offsetTop - tabsList.clientTop,
-                bottom:
-                  tabsList.scrollHeight -
-                  selectedTab.offsetTop -
-                  selectedTab.offsetHeight -
-                  tabsList.clientTop,
-                width: selectedTab.offsetWidth,
-                height: selectedTab.offsetHeight,
-                isTabSelected: true,
-              };
+            let left = prev.left;
+            let right = prev.right;
+            let top = prev.top;
+            let bottom = prev.bottom;
+            let width = prev.width;
+            let height = prev.height;
+
+            if (activeTab != null) {
+              const { width: computedWidth, height: computedHeight } = getCssDimensions(activeTab);
+              const { width: tabListWidth, height: tabListHeight } =
+                getCssDimensions(tabsListElement);
+              const tabRect = activeTab.getBoundingClientRect();
+              const tabsListRect = tabsListElement.getBoundingClientRect();
+              const scaleX = tabListWidth > 0 ? tabsListRect.width / tabListWidth : 1;
+              const scaleY = tabListHeight > 0 ? tabsListRect.height / tabListHeight : 1;
+              const hasNonZeroScale =
+                Math.abs(scaleX) > Number.EPSILON && Math.abs(scaleY) > Number.EPSILON;
+
+              if (hasNonZeroScale) {
+                const tabLeftDelta = tabRect.left - tabsListRect.left;
+                const tabTopDelta = tabRect.top - tabsListRect.top;
+
+                left =
+                  tabLeftDelta / scaleX + tabsListElement.scrollLeft - tabsListElement.clientLeft;
+                top = tabTopDelta / scaleY + tabsListElement.scrollTop - tabsListElement.clientTop;
+              } else {
+                left = activeTab.offsetLeft;
+                top = activeTab.offsetTop;
+              }
+
+              width = computedWidth;
+              height = computedHeight;
+              right = tabsListElement.scrollWidth - left - width;
+              bottom = tabsListElement.scrollHeight - top - height;
+
+              return { ...prev, left, right, top, bottom, width, height };
             }
           }
 
@@ -95,7 +107,7 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
         });
       });
 
-      resizeObserver.observe(refs.tabsListRef);
+      resizeObserver.observe(refs.tabsListElement);
 
       onCleanup(() => {
         resizeObserver.disconnect();
@@ -105,13 +117,13 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
     return;
   });
 
-  const selectedTabPosition = createMemo(() =>
+  const activeTabPosition = createMemo(() =>
     meta().isTabSelected
       ? { left: meta().left, right: meta().right, top: meta().top, bottom: meta().bottom }
       : null,
   );
 
-  const selectedTabSize = createMemo(() =>
+  const activeTabSize = createMemo(() =>
     meta().isTabSelected ? { width: meta().width, height: meta().height } : null,
   );
 
@@ -138,11 +150,11 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
     get orientation() {
       return orientation();
     },
-    get selectedTabPosition() {
-      return selectedTabPosition();
+    get activeTabPosition() {
+      return activeTabPosition();
     },
-    get selectedTabSize() {
-      return selectedTabSize();
+    get activeTabSize() {
+      return activeTabSize();
     },
     get tabActivationDirection() {
       return tabActivationDirection();
@@ -163,15 +175,11 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
       },
       elementProps,
       {
-        get ['data-instance-id' as string]() {
-          return !(isMounted() && renderBeforeHydration()) ? instanceId() : undefined;
-        },
-        // TODO: Fix this?
-        // // @ts-expect-error - suppressHydrationWarning is not a valid attribute for Solid
-        // suppressHydrationWarning: true,
+        // @ts-expect-error - suppressHydrationWarning is not a valid attribute for Solid
+        suppressHydrationWarning: true,
       },
     ],
-    customStyleHookMapping,
+    stateAttributesMapping,
   });
 
   return (
@@ -189,19 +197,22 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
   );
 }
 
-export namespace TabsIndicator {
-  export interface State extends TabsRoot.State {
-    selectedTabPosition: TabsTab.Position | null;
-    selectedTabSize: TabsTab.Size | null;
-    orientation: TabsRoot.Orientation;
-  }
+export interface TabsIndicatorState extends TabsRoot.State {
+  activeTabPosition: TabsTab.Position | null;
+  activeTabSize: TabsTab.Size | null;
+  orientation: TabsRoot.Orientation;
+}
 
-  export interface Props extends BaseUIComponentProps<'span', State> {
-    /**
-     * Whether to render itself before Solid hydrates.
-     * This minimizes the time that the indicator isn’t visible after server-side rendering.
-     * @default false
-     */
-    renderBeforeHydration?: boolean;
-  }
+export interface TabsIndicatorProps extends BaseUIComponentProps<'span', TabsIndicator.State> {
+  /**
+   * Whether to render itself before React hydrates.
+   * This minimizes the time that the indicator isn’t visible after server-side rendering.
+   * @default false
+   */
+  renderBeforeHydration?: boolean;
+}
+
+export namespace TabsIndicator {
+  export type State = TabsIndicatorState;
+  export type Props = TabsIndicatorProps;
 }

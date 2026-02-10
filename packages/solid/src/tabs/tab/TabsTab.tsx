@@ -1,10 +1,13 @@
-import { createEffect, createMemo } from 'solid-js';
+import { ownerDocument } from '@base-ui/utils/owner';
+import { createEffect, type Accessor } from 'solid-js';
 import { ACTIVE_COMPOSITE_ITEM } from '../../composite/constants';
 import { useCompositeItem } from '../../composite/item/useCompositeItem';
+import { activeElement, contains } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
-import { ownerDocument } from '../../utils/owner';
-import type { BaseUIComponentProps } from '../../utils/types';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
+import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTabsListContext } from '../list/TabsListContext';
@@ -25,48 +28,37 @@ export function TabsTab(componentProps: TabsTab.Props) {
     'nativeButton',
   ]);
   const disabled = () => local.disabled ?? false;
+  const idProp = () => local.id;
   const nativeButton = () => local.nativeButton ?? true;
 
-  const {
-    value: selectedTabValue,
-    getTabPanelIdByTabValueOrIndex,
-    orientation,
-  } = useTabsRootContext();
+  const { value: activeTabValue, getTabPanelIdByValue, orientation } = useTabsRootContext();
 
-  const { activateOnFocus, highlightedTabIndex, onTabActivation, setHighlightedTabIndex } =
+  const { activateOnFocus, highlightedTabIndex, onTabActivation, setHighlightedTabIndex, refs } =
     useTabsListContext();
 
-  const id = useBaseUiId(() => local.id);
+  const id = useBaseUiId(idProp);
 
-  const tabMetadata = createMemo(() => ({
-    disabled: disabled(),
-    id: id(),
-    value: local.value,
-  }));
+  const tabMetadata = {
+    disabled,
+    id,
+    value: () => local.value,
+  };
 
   const {
-    props: compositeItemProps,
-    setRef: setCompositeItemRef,
+    compositeProps,
+    setCompositeRef,
     index,
     // hook is used instead of the CompositeItem component
     // because the index is needed for Tab internals
-  } = useCompositeItem({ metadata: tabMetadata });
-
-  const tabValue = () => local.value ?? index();
-
-  // the `selected` state isn't set on the server (it relies on effects to be calculated),
-  // so we fall back to checking the `value` param with the selectedTabValue from the TabsContext
-  const selected = createMemo(() => {
-    if (local.value === undefined) {
-      return index() < 0 ? false : index() === selectedTabValue();
-    }
-
-    return local.value === selectedTabValue();
+  } = useCompositeItem<TabsTab.Metadata>({
+    metadata: tabMetadata,
   });
+
+  const active = () => local.value === activeTabValue();
 
   let isNavigatingRef = false;
 
-  // Keep the highlighted item in sync with the currently selected tab
+  // Keep the highlighted item in sync with the currently active tab
   // when the value prop changes externally (controlled mode)
   createEffect(() => {
     if (isNavigatingRef) {
@@ -74,7 +66,24 @@ export function TabsTab(componentProps: TabsTab.Props) {
       return;
     }
 
-    if (selected() && index() > -1 && highlightedTabIndex() !== index()) {
+    if (!(active() && index() > -1 && highlightedTabIndex() !== index())) {
+      return;
+    }
+
+    // If focus is currently within the tabs list, don't override the roving
+    // focus highlight. This keeps keyboard navigation relative to the focused
+    // item after an external/asynchronous selection change.
+    const listElement = refs.tabsListElement;
+    if (listElement != null) {
+      const activeEl = activeElement(ownerDocument(listElement));
+      if (activeEl && contains(listElement, activeEl)) {
+        return;
+      }
+    }
+
+    // Don't highlight disabled tabs to prevent them from interfering with keyboard navigation.
+    // Keyboard focus (tabIndex) should remain on an enabled tab even when a disabled tab is selected.
+    if (!disabled()) {
       setHighlightedTabIndex(index());
     }
   });
@@ -85,26 +94,31 @@ export function TabsTab(componentProps: TabsTab.Props) {
     focusableWhenDisabled: true,
   });
 
-  const tabPanelId = () =>
-    index() > -1 ? getTabPanelIdByTabValueOrIndex(local.value, index()) : undefined;
+  const tabPanelId = () => getTabPanelIdByValue(local.value());
 
   let isPressingRef = false;
   let isMainButtonRef = false;
 
-  const onClick = (event: MouseEvent) => {
-    if (selected() || disabled()) {
+  function onClick(event: MouseEvent) {
+    if (active() || disabled()) {
       return;
     }
 
-    onTabActivation(tabValue(), event);
-  };
+    onTabActivation(
+      local.value,
+      createChangeEventDetails(REASONS.none, event, undefined, {
+        activationDirection: 'none',
+      }),
+    );
+  }
 
-  const onFocus = (event: FocusEvent) => {
-    if (selected()) {
+  function onFocus(event: FocusEvent) {
+    if (active()) {
       return;
     }
 
-    if (index() > -1) {
+    // Only highlight enabled tabs when focused (disabled tabs remain focusable via focusableWhenDisabled).
+    if (index() > -1 && !disabled()) {
       setHighlightedTabIndex(index());
     }
 
@@ -113,15 +127,21 @@ export function TabsTab(componentProps: TabsTab.Props) {
     }
 
     if (
-      (activateOnFocus() && !isPressingRef) || // keyboard focus
-      (isPressingRef && isMainButtonRef) // focus caused by pointerdown
+      activateOnFocus() &&
+      (!isPressingRef || // keyboard or touch focus
+        (isPressingRef && isMainButtonRef)) // mouse focus
     ) {
-      onTabActivation(tabValue(), event);
+      onTabActivation(
+        local.value,
+        createChangeEventDetails(REASONS.none, event, undefined, {
+          activationDirection: 'none',
+        }),
+      );
     }
-  };
+  }
 
-  const onPointerDown = (event: PointerEvent) => {
-    if (selected() || disabled()) {
+  function onPointerDown(event: PointerEvent) {
+    if (active() || disabled()) {
       return;
     }
 
@@ -138,14 +158,14 @@ export function TabsTab(componentProps: TabsTab.Props) {
       const doc = ownerDocument(event.currentTarget as Element);
       doc.addEventListener('pointerup', handlePointerUp, { once: true });
     }
-  };
+  }
 
   const state: TabsTab.State = {
     get disabled() {
       return disabled();
     },
-    get selected() {
-      return selected();
+    get active() {
+      return active();
     },
     get orientation() {
       return orientation();
@@ -156,7 +176,7 @@ export function TabsTab(componentProps: TabsTab.Props) {
     state,
     ref: (el) => {
       buttonRef(el);
-      setCompositeItemRef(el);
+      setCompositeRef(el);
     },
     props: [
       {
@@ -165,13 +185,13 @@ export function TabsTab(componentProps: TabsTab.Props) {
           return tabPanelId();
         },
         get 'aria-selected'() {
-          return selected();
+          return active();
         },
         get id() {
           return id();
         },
         get [ACTIVE_COMPOSITE_ITEM as string]() {
-          return selected() ? '' : undefined;
+          return active() ? '' : undefined;
         },
         onClick,
         onFocus,
@@ -185,58 +205,67 @@ export function TabsTab(componentProps: TabsTab.Props) {
       },
       elementProps,
       getButtonProps,
-      compositeItemProps,
     ],
   });
 
   return <>{element()}</>;
 }
 
+export type TabsTabValue = any | null;
+
+export type TabsTabActivationDirection = 'left' | 'right' | 'up' | 'down' | 'none';
+
+export interface TabsTabPosition {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+export interface TabsTabSize {
+  width: number;
+  height: number;
+}
+
+export interface TabsTabMetadata {
+  disabled: Accessor<boolean>;
+  id: Accessor<string | undefined>;
+  value: Accessor<TabsTab.Value | undefined>;
+}
+
+export interface TabsTabState {
+  /**
+   * Whether the component should ignore user interaction.
+   */
+  disabled: boolean;
+  active: boolean;
+  orientation: TabsRoot.Orientation;
+}
+
+export interface TabsTabProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', TabsTab.State> {
+  /**
+   * The value of the Tab.
+   */
+  value: TabsTab.Value;
+  /**
+   * Whether the Tab is disabled.
+   *
+   * If a first Tab on a `<Tabs.List>` is disabled, it won't initially be selected.
+   * Instead, the next enabled Tab will be selected.
+   * However, it does not work like this during server-side rendering, as it is not known
+   * during pre-rendering which Tabs are disabled.
+   * To work around it, ensure that `defaultValue` or `value` on `<Tabs.Root>` is set to an enabled Tab's value.
+   */
+  disabled?: boolean;
+}
+
 export namespace TabsTab {
-  export type Value = any | null;
-
-  export type ActivationDirection = 'left' | 'right' | 'up' | 'down' | 'none';
-
-  export interface Position {
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
-  }
-
-  export interface Size {
-    width: number;
-    height: number;
-  }
-
-  export interface Metadata {
-    disabled: boolean;
-    id: string | undefined;
-    value: any | undefined;
-  }
-
-  export interface State {
-    /**
-     * Whether the component should ignore user interaction.
-     */
-    disabled: boolean;
-    selected: boolean;
-    orientation: TabsRoot.Orientation;
-  }
-
-  export interface Props extends BaseUIComponentProps<'button', State> {
-    /**
-     * The value of the Tab.
-     * When not specified, the value is the child position index.
-     * @type Tabs.Tab.Value
-     */
-    value?: Value;
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default true
-     */
-    nativeButton?: boolean;
-  }
+  export type Value = TabsTabValue;
+  export type ActivationDirection = TabsTabActivationDirection;
+  export type Position = TabsTabPosition;
+  export type Size = TabsTabSize;
+  export type Metadata = TabsTabMetadata;
+  export type State = TabsTabState;
+  export type Props = TabsTabProps;
 }

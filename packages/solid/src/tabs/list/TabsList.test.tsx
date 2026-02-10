@@ -8,13 +8,13 @@ describe('<Tabs.List />', () => {
 
   describeConformance(Tabs.List, () => ({
     render: (node, props) => {
-      return render(() => <Tabs.Root>{node(props)}</Tabs.Root>);
+      return render(() => <Tabs.Root>{node(props!)}</Tabs.Root>);
     },
     refInstanceof: window.HTMLDivElement,
   }));
 
   describe('accessibility attributes', () => {
-    it('sets the aria-selected attribute on the selected tab', async () => {
+    it('sets the aria-selected attribute on the active tab', async () => {
       render(() => (
         <Tabs.Root defaultValue={1}>
           <Tabs.List>

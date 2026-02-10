@@ -41,6 +41,7 @@ describe('<Tabs.Root />', () => {
           </Tabs.List>
         </Tabs.Root>
       ));
+
       expect(screen.getAllByRole('tab')).to.have.lengthOf(1);
     });
 
@@ -76,13 +77,13 @@ describe('<Tabs.Root />', () => {
           <Tabs.List>
             <Tabs.Tab value="tab-0" />
             <Tabs.Tab value="tab-1" id="explicit-tab-id-1" />
-            <Tabs.Tab />
-            <Tabs.Tab id="explicit-tab-id-3" />
+            <Tabs.Tab value="tab-2" />
+            <Tabs.Tab value="tab-3" id="explicit-tab-id-3" />
           </Tabs.List>
-          <Tabs.Panel value="tab-1" />
-          <Tabs.Panel value="tab-0" />
-          <Tabs.Panel />
-          <Tabs.Panel />
+          <Tabs.Panel value="tab-1" keepMounted />
+          <Tabs.Panel value="tab-0" keepMounted />
+          <Tabs.Panel value="tab-2" keepMounted />
+          <Tabs.Panel value="tab-3" keepMounted />
         </Tabs.Root>
       ));
 
@@ -101,13 +102,13 @@ describe('<Tabs.Root />', () => {
           <Tabs.List>
             <Tabs.Tab value="tab-0" />
             <Tabs.Tab value="tab-1" id="explicit-tab-id-1" />
-            <Tabs.Tab />
-            <Tabs.Tab id="explicit-tab-id-3" />
+            <Tabs.Tab value="tab-2" />
+            <Tabs.Tab value="tab-3" id="explicit-tab-id-3" />
           </Tabs.List>
-          <Tabs.Panel value="tab-1" />
-          <Tabs.Panel value="tab-0" />
-          <Tabs.Panel />
-          <Tabs.Panel />
+          <Tabs.Panel value="tab-1" keepMounted />
+          <Tabs.Panel value="tab-0" keepMounted />
+          <Tabs.Panel value="tab-2" keepMounted />
+          <Tabs.Panel value="tab-3" keepMounted />
         </Tabs.Root>
       ));
 
@@ -118,6 +119,56 @@ describe('<Tabs.Root />', () => {
       expect(tabs[1]).to.have.attribute('aria-controls', tabPanels[0].id);
       expect(tabs[2]).to.have.attribute('aria-controls', tabPanels[2].id);
       expect(tabs[3]).to.have.attribute('aria-controls', tabPanels[3].id);
+    });
+
+    it('sets aria-controls on the first tab when no value is provided', async () => {
+      render(() => (
+        <Tabs.Root>
+          <Tabs.List>
+            <Tabs.Tab value={0} />
+            <Tabs.Tab value={1} />
+          </Tabs.List>
+          <Tabs.Panel value={0} keepMounted />
+          <Tabs.Panel value={1} keepMounted />
+        </Tabs.Root>
+      ));
+
+      const tabs = screen.getAllByRole('tab');
+      const tabPanels = screen.getAllByRole('tabpanel', { hidden: true });
+
+      expect(tabs[0]).to.have.attribute('aria-controls', tabPanels[0].id);
+      expect(tabs[1]).to.have.attribute('aria-controls', tabPanels[1].id);
+      expect(tabPanels[0]).to.have.attribute('aria-labelledby', tabs[0].id);
+      expect(tabPanels[1]).to.have.attribute('aria-labelledby', tabs[1].id);
+    });
+
+    it('syncs aria-controls to the mounted tab panel when keepMounted is false', async () => {
+      const { user } = render(() => (
+        <Tabs.Root defaultValue="tab-0">
+          <Tabs.List>
+            <Tabs.Tab value="tab-0">Tab 0</Tabs.Tab>
+            <Tabs.Tab value="tab-1">Tab 1</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value="tab-0">Panel 0</Tabs.Panel>
+          <Tabs.Panel value="tab-1">Panel 1</Tabs.Panel>
+        </Tabs.Root>
+      ));
+
+      const tabs = screen.getAllByRole('tab');
+      const [firstTabPanel] = screen.getAllByRole('tabpanel');
+
+      expect(tabs[0]).to.have.attribute('aria-controls', firstTabPanel.id);
+      expect(tabs[1]).not.to.have.attribute('aria-controls');
+
+      await user.click(tabs[1]);
+
+      await waitFor(() => {
+        const [secondTabPanel] = screen.getAllByRole('tabpanel');
+
+        expect(secondTabPanel).to.have.text('Panel 1');
+        expect(tabs[0]).not.to.have.attribute('aria-controls');
+        expect(tabs[1]).to.have.attribute('aria-controls', secondTabPanel.id);
+      });
     });
   });
 
@@ -131,6 +182,7 @@ describe('<Tabs.Root />', () => {
           </Tabs.List>
         </Tabs.Root>
       ));
+
       const tabElements = screen.getAllByRole('tab');
       expect(tabElements[0]).to.have.attribute('aria-selected', 'false');
       expect(tabElements[1]).to.have.attribute('aria-selected', 'true');
@@ -144,7 +196,7 @@ describe('<Tabs.Root />', () => {
           <Tabs.List>
             <For each={tabValues}>{(value) => <Tabs.Tab value={value} />}</For>
           </Tabs.List>
-          <For each={tabValues}>{(value) => <Tabs.Panel value={value} />}</For>
+          <For each={tabValues}>{(value) => <Tabs.Panel value={value} keepMounted />}</For>
         </Tabs.Root>
       ));
 
@@ -166,13 +218,208 @@ describe('<Tabs.Root />', () => {
     });
   });
 
+  describe('disabled tabs', () => {
+    it('should select the second tab when the first one is disabled', async () => {
+      render(() => (
+        <Tabs.Root>
+          <Tabs.List>
+            <Tabs.Tab value={0} disabled>
+              Disabled tab
+            </Tabs.Tab>
+            <Tabs.Tab value={1}>Enabled tab</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value={0} keepMounted>
+            Disabled panel
+          </Tabs.Panel>
+          <Tabs.Panel value={1} keepMounted>
+            Enabled panel
+          </Tabs.Panel>
+        </Tabs.Root>
+      ));
+
+      const [disabledTab, enabledTab] = screen.getAllByRole('tab');
+      const [disabledPanel, enabledPanel] = screen.getAllByRole('tabpanel', { hidden: true });
+
+      expect(disabledTab).to.have.attribute('aria-selected', 'false');
+      expect(enabledTab).to.have.attribute('aria-selected', 'true');
+      expect(disabledPanel).to.have.attribute('hidden');
+      expect(enabledPanel).not.to.have.attribute('hidden');
+      expect(enabledPanel).to.have.text('Enabled panel');
+    });
+
+    it('should select the third tab when first two tabs are disabled', async () => {
+      render(() => (
+        <Tabs.Root>
+          <Tabs.List>
+            <Tabs.Tab value={0} disabled data-testid="tab-0">
+              Tab 0
+            </Tabs.Tab>
+            <Tabs.Tab value={1} disabled data-testid="tab-1">
+              Tab 1
+            </Tabs.Tab>
+            <Tabs.Tab value={2} data-testid="tab-2">
+              Tab 2
+            </Tabs.Tab>
+            <Tabs.Tab value={3} data-testid="tab-3">
+              Tab 3
+            </Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value={0}>Panel 0</Tabs.Panel>
+          <Tabs.Panel value={1}>Panel 1</Tabs.Panel>
+          <Tabs.Panel value={2}>Panel 2</Tabs.Panel>
+          <Tabs.Panel value={3}>Panel 3</Tabs.Panel>
+        </Tabs.Root>
+      ));
+
+      const tabs = screen.getAllByRole('tab');
+
+      // The first non-disabled tab (tab 2) should be selected
+      expect(tabs[2]).to.have.attribute('aria-selected', 'true');
+      expect(tabs[0]).to.have.attribute('aria-selected', 'false');
+      expect(tabs[1]).to.have.attribute('aria-selected', 'false');
+      expect(tabs[3]).to.have.attribute('aria-selected', 'false');
+    });
+
+    it('should still honor explicit defaultValue even if it points to a disabled tab', async () => {
+      render(() => (
+        <Tabs.Root defaultValue={0}>
+          <Tabs.List>
+            <Tabs.Tab value={0} disabled data-testid="tab-0">
+              Tab 0
+            </Tabs.Tab>
+            <Tabs.Tab value={1} data-testid="tab-1">
+              Tab 1
+            </Tabs.Tab>
+            <Tabs.Tab value={2} data-testid="tab-2">
+              Tab 2
+            </Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value={0}>Panel 0</Tabs.Panel>
+          <Tabs.Panel value={1}>Panel 1</Tabs.Panel>
+          <Tabs.Panel value={2}>Panel 2</Tabs.Panel>
+        </Tabs.Root>
+      ));
+
+      const tabs = screen.getAllByRole('tab');
+
+      // The explicitly set disabled tab should be selected
+      expect(tabs[0]).to.have.attribute('aria-selected', 'true');
+      expect(tabs[1]).to.have.attribute('aria-selected', 'false');
+      expect(tabs[2]).to.have.attribute('aria-selected', 'false');
+    });
+
+    it('should still honor explicit value prop even if it points to a disabled tab', async () => {
+      render(() => (
+        <Tabs.Root value={0}>
+          <Tabs.List>
+            <Tabs.Tab value={0} disabled data-testid="tab-0">
+              Tab 0
+            </Tabs.Tab>
+            <Tabs.Tab value={1} data-testid="tab-1">
+              Tab 1
+            </Tabs.Tab>
+            <Tabs.Tab value={2} data-testid="tab-2">
+              Tab 2
+            </Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value={0}>Panel 0</Tabs.Panel>
+          <Tabs.Panel value={1}>Panel 1</Tabs.Panel>
+          <Tabs.Panel value={2}>Panel 2</Tabs.Panel>
+        </Tabs.Root>
+      ));
+
+      const tabs = screen.getAllByRole('tab');
+
+      // The explicitly set disabled tab should be selected
+      expect(tabs[0]).to.have.attribute('aria-selected', 'true');
+      expect(tabs[1]).to.have.attribute('aria-selected', 'false');
+      expect(tabs[2]).to.have.attribute('aria-selected', 'false');
+    });
+
+    it('does not set tabIndex=0 on disabled tabs when they are programmatically selected', async () => {
+      const [value, setValue] = createSignal(1);
+      render(() => (
+        <Tabs.Root value={value()}>
+          <Tabs.List>
+            <Tabs.Tab value={0} disabled>
+              Tab 0
+            </Tabs.Tab>
+            <Tabs.Tab value={1}>Tab 1</Tabs.Tab>
+            <Tabs.Tab value={2}>Tab 2</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value={0}>Panel 0</Tabs.Panel>
+          <Tabs.Panel value={1}>Panel 1</Tabs.Panel>
+          <Tabs.Panel value={2}>Panel 2</Tabs.Panel>
+        </Tabs.Root>
+      ));
+
+      const tabs = screen.getAllByRole('tab');
+
+      // Initially, tab 1 is selected and should be highlighted (tabIndex=0)
+      expect(tabs[1]).to.have.attribute('tabindex', '0');
+      expect(tabs[0]).to.have.attribute('tabindex', '-1');
+      expect(tabs[2]).to.have.attribute('tabindex', '-1');
+
+      // Programmatically select the disabled tab 0
+      setValue(0);
+      await flushMicrotasks();
+
+      // The disabled tab should be selected but NOT highlighted (tabIndex should remain -1)
+      expect(tabs[0]).to.have.attribute('aria-selected', 'true');
+      expect(tabs[0]).to.have.attribute('tabindex', '-1');
+
+      // The previously highlighted tab should retain the highlight
+      expect(tabs[1]).to.have.attribute('tabindex', '0');
+    });
+
+    it('does not select any tab when all tabs are disabled', async () => {
+      render(() => (
+        <Tabs.Root>
+          <Tabs.List>
+            <Tabs.Tab value={0} disabled>
+              Tab 0
+            </Tabs.Tab>
+            <Tabs.Tab value={1} disabled>
+              Tab 1
+            </Tabs.Tab>
+            <Tabs.Tab value={2} disabled>
+              Tab 2
+            </Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value={0} keepMounted>
+            Panel 0
+          </Tabs.Panel>
+          <Tabs.Panel value={1} keepMounted>
+            Panel 1
+          </Tabs.Panel>
+          <Tabs.Panel value={2} keepMounted>
+            Panel 2
+          </Tabs.Panel>
+        </Tabs.Root>
+      ));
+
+      const tabs = screen.getAllByRole('tab');
+      const panels = screen.getAllByRole('tabpanel', { hidden: true });
+
+      // No tab should be selected
+      expect(tabs[0]).to.have.attribute('aria-selected', 'false');
+      expect(tabs[1]).to.have.attribute('aria-selected', 'false');
+      expect(tabs[2]).to.have.attribute('aria-selected', 'false');
+
+      // All panels should be hidden
+      expect(panels[0]).to.have.attribute('hidden');
+      expect(panels[1]).to.have.attribute('hidden');
+      expect(panels[2]).to.have.attribute('hidden');
+    });
+  });
+
   describe('prop: onValueChange', () => {
-    it('should call onValueChange on pointerdown', async () => {
+    it('when `activateOnFocus = true` should call onValueChange on pointerdown', async () => {
       const handleChange = spy();
       const handlePointerDown = spy();
       const { user } = render(() => (
         <Tabs.Root value={0} onValueChange={handleChange}>
-          <Tabs.List>
+          <Tabs.List activateOnFocus>
             <Tabs.Tab value={0} />
             <Tabs.Tab value={1} onPointerDown={handlePointerDown} />
           </Tabs.List>
@@ -184,7 +431,7 @@ describe('<Tabs.Root />', () => {
       expect(handlePointerDown.callCount).to.equal(1);
     });
 
-    it('should call onValueChange when clicking', async () => {
+    it.skipIf(isJSDOM)('should call onValueChange when clicking', async () => {
       const handleChange = spy();
       render(() => (
         <Tabs.Root value={0} onValueChange={handleChange}>
@@ -198,6 +445,7 @@ describe('<Tabs.Root />', () => {
       fireEvent.click(screen.getAllByRole('tab')[1]);
       expect(handleChange.callCount).to.equal(1);
       expect(handleChange.firstCall.args[0]).to.equal(1);
+      expect(handleChange.firstCall.args[1].activationDirection).to.equal('right');
     });
 
     it('should not call onValueChange on non-main button clicks', async () => {
@@ -215,7 +463,7 @@ describe('<Tabs.Root />', () => {
       expect(handleChange.callCount).to.equal(0);
     });
 
-    it('should not call onValueChange when already selected', async () => {
+    it('should not call onValueChange when already active', async () => {
       const handleChange = spy();
       render(() => (
         <Tabs.Root value={0} onValueChange={handleChange}>
@@ -230,11 +478,11 @@ describe('<Tabs.Root />', () => {
       expect(handleChange.callCount).to.equal(0);
     });
 
-    it('should call onValueChange if an unselected tab gets focused', async () => {
+    it('when `activateOnFocus = true` should call onValueChange if an unactive tab gets focused', async () => {
       const handleChange = spy();
       render(() => (
         <Tabs.Root value={0} onValueChange={handleChange}>
-          <Tabs.List>
+          <Tabs.List activateOnFocus>
             <Tabs.Tab value={0} />
             <Tabs.Tab value={1} />
           </Tabs.List>
@@ -251,7 +499,7 @@ describe('<Tabs.Root />', () => {
       expect(handleChange.firstCall.args[0]).to.equal(1);
     });
 
-    it('when `activateOnFocus = false` should not call onValueChange if an unselected tab gets focused', async () => {
+    it('when `activateOnFocus = false` should not call onValueChange if an unactive tab gets focused', async () => {
       const handleChange = spy();
       render(() => (
         <Tabs.Root value={1} onValueChange={handleChange}>
@@ -297,7 +545,7 @@ describe('<Tabs.Root />', () => {
   });
 
   describe('pointer navigation', () => {
-    it('activates the clicked tab', async () => {
+    it('selects the clicked tab', async () => {
       const { user } = render(() => (
         <Tabs.Root defaultValue={0}>
           <Tabs.List activateOnFocus={false}>
@@ -305,9 +553,15 @@ describe('<Tabs.Root />', () => {
             <Tabs.Tab value={1}>Tab 2</Tabs.Tab>
             <Tabs.Tab value={2}>Tab 3</Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel>Panel 1</Tabs.Panel>
-          <Tabs.Panel>Panel 2</Tabs.Panel>
-          <Tabs.Panel>Panel 3</Tabs.Panel>
+          <Tabs.Panel value={0} keepMounted>
+            Panel 1
+          </Tabs.Panel>
+          <Tabs.Panel value={1} keepMounted>
+            Panel 2
+          </Tabs.Panel>
+          <Tabs.Panel value={2} keepMounted>
+            Panel 3
+          </Tabs.Panel>
         </Tabs.Root>
       ));
 
@@ -321,7 +575,7 @@ describe('<Tabs.Root />', () => {
       expect(panels[2]).to.have.attribute('hidden');
     });
 
-    it('does not activate the clicked disabled tab', async () => {
+    it('does not select the clicked disabled tab', async () => {
       const { user } = render(() => (
         <Tabs.Root defaultValue={0}>
           <Tabs.List activateOnFocus={false}>
@@ -331,9 +585,15 @@ describe('<Tabs.Root />', () => {
             </Tabs.Tab>
             <Tabs.Tab value={2}>Tab 3</Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel>Panel 1</Tabs.Panel>
-          <Tabs.Panel>Panel 2</Tabs.Panel>
-          <Tabs.Panel>Panel 3</Tabs.Panel>
+          <Tabs.Panel value={0} keepMounted>
+            Panel 1
+          </Tabs.Panel>
+          <Tabs.Panel value={1} keepMounted>
+            Panel 2
+          </Tabs.Panel>
+          <Tabs.Panel value={2} keepMounted>
+            Panel 3
+          </Tabs.Panel>
         </Tabs.Root>
       ));
 
@@ -368,11 +628,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={0}
                     >
-                      <Tabs.List activateOnFocus={false}>
+                      <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -380,6 +639,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [firstTab, , lastTab] = screen.getAllByRole('tab');
                 firstTab.focus();
 
@@ -399,11 +659,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={1}
                     >
-                      <Tabs.List activateOnFocus={false}>
+                      <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -411,6 +670,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [firstTab, secondTab] = screen.getAllByRole('tab');
                 secondTab.focus();
 
@@ -428,11 +688,10 @@ describe('<Tabs.Root />', () => {
                 render(() => (
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={2}
                     >
-                      <Tabs.List activateOnFocus={false}>
+                      <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} disabled />
                         <Tabs.Tab value={2} />
@@ -440,6 +699,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [, disabledTab, lastTab] = screen.getAllByRole('tab');
                 lastTab.focus();
 
@@ -452,7 +712,7 @@ describe('<Tabs.Root />', () => {
               });
             });
 
-            describe('with `activateOnFocus = true`', async () => {
+            describe('with `activateOnFocus = true`', () => {
               it('moves focus to the last tab while activating it if focus is on the first tab', async () => {
                 const handleChange = spy();
                 const handleKeyDown = spy();
@@ -460,11 +720,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={0}
                     >
-                      <Tabs.List>
+                      <Tabs.List onKeyDown={handleKeyDown} activateOnFocus>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -472,6 +731,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [firstTab, , lastTab] = screen.getAllByRole('tab');
                 firstTab.focus();
 
@@ -492,11 +752,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={1}
                     >
-                      <Tabs.List>
+                      <Tabs.List onKeyDown={handleKeyDown} activateOnFocus>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -504,6 +763,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [firstTab, secondTab] = screen.getAllByRole('tab');
                 secondTab.focus();
 
@@ -522,12 +782,8 @@ describe('<Tabs.Root />', () => {
               const handleKeyDown = spy();
               render(() => (
                 <DirectionProvider direction={direction as TextDirection}>
-                  <Tabs.Root
-                    onKeyDown={handleKeyDown}
-                    orientation={orientation as Tabs.Root.Props['orientation']}
-                    value={2}
-                  >
-                    <Tabs.List>
+                  <Tabs.Root orientation={orientation as Tabs.Root.Props['orientation']} value={2}>
+                    <Tabs.List onKeyDown={handleKeyDown}>
                       <Tabs.Tab value={0} />
                       <Tabs.Tab value={1} disabled />
                       <Tabs.Tab value={2} />
@@ -535,6 +791,7 @@ describe('<Tabs.Root />', () => {
                   </Tabs.Root>
                 </DirectionProvider>
               ));
+
               const [, disabledTab, lastTab] = screen.getAllByRole('tab');
               lastTab.focus();
 
@@ -556,11 +813,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={2}
                     >
-                      <Tabs.List activateOnFocus={false}>
+                      <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -568,6 +824,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [firstTab, , lastTab] = screen.getAllByRole('tab');
                 lastTab.focus();
 
@@ -587,11 +844,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={1}
                     >
-                      <Tabs.List activateOnFocus={false}>
+                      <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -599,6 +855,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [, secondTab, lastTab] = screen.getAllByRole('tab');
                 secondTab.focus();
 
@@ -618,11 +875,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={0}
                     >
-                      <Tabs.List activateOnFocus={false}>
+                      <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} disabled />
                         <Tabs.Tab value={2} />
@@ -630,6 +886,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [firstTab, disabledTab, thirdTab] = screen.getAllByRole('tab');
                 firstTab.focus();
 
@@ -651,15 +908,15 @@ describe('<Tabs.Root />', () => {
               it('moves focus to the first tab while activating it if focus is on the last tab', async () => {
                 const handleChange = spy();
                 const handleKeyDown = spy();
+
                 render(() => (
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={2}
                     >
-                      <Tabs.List>
+                      <Tabs.List onKeyDown={handleKeyDown} activateOnFocus>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -667,6 +924,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [firstTab, , lastTab] = screen.getAllByRole('tab');
                 lastTab.focus();
 
@@ -683,15 +941,15 @@ describe('<Tabs.Root />', () => {
               it('moves focus to the next tab while activating it', async () => {
                 const handleChange = spy();
                 const handleKeyDown = spy();
+
                 render(() => (
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={1}
                     >
-                      <Tabs.List>
+                      <Tabs.List onKeyDown={handleKeyDown} activateOnFocus>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -699,6 +957,7 @@ describe('<Tabs.Root />', () => {
                     </Tabs.Root>
                   </DirectionProvider>
                 ));
+
                 const [, secondTab, lastTab] = screen.getAllByRole('tab');
                 secondTab.focus();
 
@@ -716,15 +975,15 @@ describe('<Tabs.Root />', () => {
             it('moves focus to a disabled tab without activating it', async () => {
               const handleChange = spy();
               const handleKeyDown = spy();
+
               render(() => (
                 <DirectionProvider direction={direction as TextDirection}>
                   <Tabs.Root
                     onValueChange={handleChange}
-                    onKeyDown={handleKeyDown}
                     orientation={orientation as Tabs.Root.Props['orientation']}
                     value={0}
                   >
-                    <Tabs.List>
+                    <Tabs.List onKeyDown={handleKeyDown}>
                       <Tabs.Tab value={0} />
                       <Tabs.Tab value={1} disabled />
                       <Tabs.Tab value={2} />
@@ -732,6 +991,7 @@ describe('<Tabs.Root />', () => {
                   </Tabs.Root>
                 </DirectionProvider>
               ));
+
               const [firstTab, disabledTab, thirdTab] = screen.getAllByRole('tab');
               firstTab.focus();
 
@@ -758,11 +1018,10 @@ describe('<Tabs.Root />', () => {
                   <DirectionProvider direction={direction as TextDirection}>
                     <Tabs.Root
                       onValueChange={handleChange}
-                      onKeyDown={handleKeyDown}
                       orientation={orientation as Tabs.Root.Props['orientation']}
                       value={0}
                     >
-                      <Tabs.List>
+                      <Tabs.List onKeyDown={handleKeyDown}>
                         <Tabs.Tab value={0} />
                         <Tabs.Tab value={1} />
                         <Tabs.Tab value={2} />
@@ -798,14 +1057,15 @@ describe('<Tabs.Root />', () => {
           const handleChange = spy();
           const handleKeyDown = spy();
           render(() => (
-            <Tabs.Root onValueChange={handleChange} onKeyDown={handleKeyDown} value={2}>
-              <Tabs.List activateOnFocus={false}>
+            <Tabs.Root onValueChange={handleChange} value={2}>
+              <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                 <Tabs.Tab value={0} />
                 <Tabs.Tab value={1} />
                 <Tabs.Tab value={2} />
               </Tabs.List>
             </Tabs.Root>
           ));
+
           const [firstTab, , lastTab] = screen.getAllByRole('tab');
           lastTab.focus();
 
@@ -822,8 +1082,8 @@ describe('<Tabs.Root />', () => {
           const handleChange = spy();
           const handleKeyDown = spy();
           render(() => (
-            <Tabs.Root onValueChange={handleChange} onKeyDown={handleKeyDown} value={2}>
-              <Tabs.List>
+            <Tabs.Root onValueChange={handleChange} value={2}>
+              <Tabs.List onKeyDown={handleKeyDown} activateOnFocus>
                 <Tabs.Tab value={0} />
                 <Tabs.Tab value={1} />
                 <Tabs.Tab value={2} />
@@ -847,15 +1107,17 @@ describe('<Tabs.Root />', () => {
           it(`when \`activateOnFocus = ${activateOnFocusProp}\`, moves focus to a disabled tab without activating it`, async () => {
             const handleChange = spy();
             const handleKeyDown = spy();
+
             render(() => (
-              <Tabs.Root onKeyDown={handleKeyDown} onValueChange={handleChange} value={2}>
-                <Tabs.List activateOnFocus={activateOnFocusProp}>
+              <Tabs.Root onValueChange={handleChange} value={2}>
+                <Tabs.List activateOnFocus={activateOnFocusProp} onKeyDown={handleKeyDown}>
                   <Tabs.Tab value={0} disabled />
                   <Tabs.Tab value={1} />
                   <Tabs.Tab value={2} />
                 </Tabs.List>
               </Tabs.Root>
             ));
+
             const [disabledTab, , lastTab] = screen.getAllByRole('tab');
             lastTab.focus();
 
@@ -875,14 +1137,15 @@ describe('<Tabs.Root />', () => {
           const handleChange = spy();
           const handleKeyDown = spy();
           render(() => (
-            <Tabs.Root onValueChange={handleChange} onKeyDown={handleKeyDown} value={0}>
-              <Tabs.List activateOnFocus={false}>
+            <Tabs.Root onValueChange={handleChange} value={0}>
+              <Tabs.List activateOnFocus={false} onKeyDown={handleKeyDown}>
                 <Tabs.Tab value={0} />
                 <Tabs.Tab value={1} />
                 <Tabs.Tab value={2} />
               </Tabs.List>
             </Tabs.Root>
           ));
+
           const [firstTab, , lastTab] = screen.getAllByRole('tab');
           firstTab.focus();
 
@@ -898,15 +1161,17 @@ describe('<Tabs.Root />', () => {
         it('when `activateOnFocus = true`, moves focus to the last tab while activating it', async () => {
           const handleChange = spy();
           const handleKeyDown = spy();
+
           render(() => (
-            <Tabs.Root onValueChange={handleChange} onKeyDown={handleKeyDown} value={0}>
-              <Tabs.List>
+            <Tabs.Root onValueChange={handleChange} value={0}>
+              <Tabs.List onKeyDown={handleKeyDown} activateOnFocus>
                 <Tabs.Tab value={0} />
                 <Tabs.Tab value={1} />
                 <Tabs.Tab value={2} />
               </Tabs.List>
             </Tabs.Root>
           ));
+
           const [firstTab, , lastTab] = screen.getAllByRole('tab');
           firstTab.focus();
 
@@ -924,9 +1189,10 @@ describe('<Tabs.Root />', () => {
           it(`when \`activateOnFocus = ${activateOnFocusProp}\`, moves focus to a disabled tab without activating it`, async () => {
             const handleChange = spy();
             const handleKeyDown = spy();
+
             render(() => (
-              <Tabs.Root onKeyDown={handleKeyDown} onValueChange={handleChange} value={0}>
-                <Tabs.List activateOnFocus={activateOnFocusProp}>
+              <Tabs.Root onValueChange={handleChange} value={0}>
+                <Tabs.List activateOnFocus={activateOnFocusProp} onKeyDown={handleKeyDown}>
                   <Tabs.Tab value={0} />
                   <Tabs.Tab value={1} />
                   <Tabs.Tab value={2} disabled />
@@ -971,8 +1237,8 @@ describe('<Tabs.Root />', () => {
       render(() => (
         <Tabs.Root data-testid="root">
           <Tabs.List>
-            <Tabs.Tab />
-            <Tabs.Tab />
+            <Tabs.Tab value={0} />
+            <Tabs.Tab value={1} />
           </Tabs.List>
         </Tabs.Root>
       ));
@@ -994,8 +1260,8 @@ describe('<Tabs.Root />', () => {
       render(() => (
         <Tabs.Root data-testid="root" orientation="vertical">
           <Tabs.List>
-            <Tabs.Tab style={{ display: 'block' }} />
-            <Tabs.Tab style={{ display: 'block' }} />
+            <Tabs.Tab value={0} style={{ display: 'block' }} />
+            <Tabs.Tab value={1} style={{ display: 'block' }} />
           </Tabs.List>
         </Tabs.Root>
       ));
@@ -1101,34 +1367,73 @@ describe('<Tabs.Root />', () => {
     });
   });
 
-  it('updates the highlighted index when value changes externally', async () => {
-    const [value, setValue] = createSignal(0);
-    render(() => (
-      <Tabs.Root value={value()}>
-        <Tabs.List activateOnFocus={false}>
-          <Tabs.Tab value={0} />
-          <Tabs.Tab value={1} />
-          <Tabs.Tab value={2} />
-        </Tabs.List>
-      </Tabs.Root>
-    ));
+  describe('highlight synchronization on external value change relative to focus', () => {
+    it('when focus is outside the tablist, highlight follows the new active tab (tabIndex=0 moves)', async () => {
+      const [value, setValue] = createSignal(0);
+      render(() => (
+        <Tabs.Root value={value()}>
+          <Tabs.List activateOnFocus={false}>
+            <Tabs.Tab value={0} />
+            <Tabs.Tab value={1} />
+            <Tabs.Tab value={2} />
+          </Tabs.List>
+        </Tabs.Root>
+      ));
 
-    const [firstTab, secondTab, thirdTab] = screen.getAllByRole('tab');
+      const [firstTab, secondTab, thirdTab] = screen.getAllByRole('tab');
 
-    expect(firstTab.tabIndex).to.equal(0);
+      expect(firstTab.tabIndex).to.equal(0);
 
-    setValue(2);
-    await flushMicrotasks();
+      setValue(2);
+      await flushMicrotasks();
 
-    expect(firstTab.tabIndex).to.equal(-1);
-    expect(secondTab.tabIndex).to.equal(-1);
-    expect(thirdTab.tabIndex).to.equal(0);
+      expect(firstTab.tabIndex).to.equal(-1);
+      expect(secondTab.tabIndex).to.equal(-1);
+      expect(thirdTab.tabIndex).to.equal(0);
 
-    setValue(1);
-    await flushMicrotasks();
+      setValue(1);
+      await flushMicrotasks();
 
-    expect(firstTab.tabIndex).to.equal(-1);
-    expect(secondTab.tabIndex).to.equal(0);
-    expect(thirdTab.tabIndex).to.equal(-1);
+      expect(firstTab.tabIndex).to.equal(-1);
+      expect(secondTab.tabIndex).to.equal(0);
+      expect(thirdTab.tabIndex).to.equal(-1);
+    });
+
+    it('when focus is inside the tablist, highlight stays put on external change and arrow keys continue from the focused tab', async () => {
+      const [value, setValue] = createSignal(0);
+      render(() => (
+        <Tabs.Root value={value()}>
+          <Tabs.List activateOnFocus={false}>
+            <Tabs.Tab value={0}>Tab 1</Tabs.Tab>
+            <Tabs.Tab value={1}>Tab 2</Tabs.Tab>
+            <Tabs.Tab value={2}>Tab 3</Tabs.Tab>
+          </Tabs.List>
+        </Tabs.Root>
+      ));
+
+      const [firstTab, secondTab, thirdTab] = screen.getAllByRole('tab');
+
+      firstTab.focus();
+      expect(firstTab).to.have.property('tabIndex', 0);
+
+      setValue(2);
+      await flushMicrotasks();
+
+      // Highlight should not change (still on first tab), but selection did
+      expect(firstTab.tabIndex).to.equal(0);
+      expect(secondTab.tabIndex).to.equal(-1);
+      expect(thirdTab.tabIndex).to.equal(-1);
+      expect(firstTab).to.have.attribute('aria-selected', 'false');
+      expect(thirdTab).to.have.attribute('aria-selected', 'true');
+
+      // Arrow navigation should continue from the highlighted tab
+      fireEvent.keyDown(firstTab, { key: 'ArrowRight' });
+      await flushMicrotasks();
+
+      expect(secondTab).toHaveFocus();
+      // Selection remains the externally-set tab since activateOnFocus=false
+      expect(thirdTab).to.have.attribute('aria-selected', 'true');
+      expect(secondTab).to.have.attribute('aria-selected', 'false');
+    });
   });
 });

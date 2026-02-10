@@ -7,14 +7,16 @@ describe('<Tabs.Tab />', () => {
   describeConformance(
     (props) => <Tabs.Tab {...props} ref={props.ref} value="1" />,
     () => ({
+      refInstanceof: window.HTMLButtonElement,
+      testComponentPropWith: 'button',
+      button: true,
       render: (node, props) => {
         return render(() => (
           <Tabs.Root>
-            <Tabs.List>{node(props)}</Tabs.List>
+            <Tabs.List>{node(props!)}</Tabs.List>
           </Tabs.Root>
         ));
       },
-      refInstanceof: window.HTMLButtonElement,
     }),
   );
 });

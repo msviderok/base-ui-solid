@@ -1,23 +1,22 @@
 'use client';
 import * as React from 'react';
-import { generateId } from '../../utils/generateId';
-import { useForcedRerendering } from '../../utils/useForcedRerendering';
+import { useForcedRerendering } from '@base-ui/utils/useForcedRerendering';
+import { useOnMount } from '@base-ui/utils/useOnMount';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { useOnMount } from '../../utils/useOnMount';
+import { getCssDimensions } from '../../utils/getCssDimensions';
 import type { BaseUIComponentProps } from '../../utils/types';
-import { useDirection } from '../../direction-provider/DirectionContext';
 import type { TabsRoot } from '../root/TabsRoot';
 import { useTabsRootContext } from '../root/TabsRootContext';
-import { tabsStyleHookMapping } from '../root/styleHooks';
+import { tabsStateAttributesMapping } from '../root/stateAttributesMapping';
 import { useTabsListContext } from '../list/TabsListContext';
 import type { TabsTab } from '../tab/TabsTab';
 import { script as prehydrationScript } from './prehydrationScript.min';
 import { TabsIndicatorCssVars } from './TabsIndicatorCssVars';
 
-const customStyleHookMapping = {
-  ...tabsStyleHookMapping,
-  selectedTabPosition: () => null,
-  selectedTabSize: () => null,
+const stateAttributesMapping = {
+  ...tabsStateAttributesMapping,
+  activeTabPosition: () => null,
+  activeTabSize: () => null,
 };
 
 /**
@@ -35,25 +34,20 @@ export const TabsIndicator = React.forwardRef(function TabIndicator(
   const { getTabElementBySelectedValue, orientation, tabActivationDirection, value } =
     useTabsRootContext();
 
-  const { tabsListRef } = useTabsListContext();
+  const { tabsListElement } = useTabsListContext();
 
-  const [instanceId] = React.useState(() => generateId('tab'));
   const [isMounted, setIsMounted] = React.useState(false);
   const { value: activeTabValue } = useTabsRootContext();
-
-  const direction = useDirection();
 
   useOnMount(() => setIsMounted(true));
 
   const rerender = useForcedRerendering();
 
   React.useEffect(() => {
-    if (value != null && tabsListRef.current != null && typeof ResizeObserver !== 'undefined') {
-      const resizeObserver = new ResizeObserver(() => {
-        rerender();
-      });
+    if (value != null && tabsListElement != null && typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(rerender);
 
-      resizeObserver.observe(tabsListRef.current);
+      resizeObserver.observe(tabsListElement);
 
       return () => {
         resizeObserver.disconnect();
@@ -61,7 +55,7 @@ export const TabsIndicator = React.forwardRef(function TabIndicator(
     }
 
     return undefined;
-  }, [value, tabsListRef, rerender]);
+  }, [value, tabsListElement, rerender]);
 
   let left = 0;
   let right = 0;
@@ -72,32 +66,39 @@ export const TabsIndicator = React.forwardRef(function TabIndicator(
 
   let isTabSelected = false;
 
-  if (value != null && tabsListRef.current != null) {
-    const selectedTab = getTabElementBySelectedValue(value);
-    const tabsList = tabsListRef.current;
+  if (value != null && tabsListElement != null) {
+    const activeTab = getTabElementBySelectedValue(value);
     isTabSelected = true;
 
-    if (selectedTab != null) {
-      left = selectedTab.offsetLeft - tabsList.clientLeft;
-      right =
-        direction === 'ltr'
-          ? tabsList.scrollWidth -
-            selectedTab.offsetLeft -
-            selectedTab.offsetWidth -
-            tabsList.clientLeft
-          : selectedTab.offsetLeft - tabsList.clientLeft;
-      top = selectedTab.offsetTop - tabsList.clientTop;
-      bottom =
-        tabsList.scrollHeight -
-        selectedTab.offsetTop -
-        selectedTab.offsetHeight -
-        tabsList.clientTop;
-      width = selectedTab.offsetWidth;
-      height = selectedTab.offsetHeight;
+    if (activeTab != null) {
+      const { width: computedWidth, height: computedHeight } = getCssDimensions(activeTab);
+      const { width: tabListWidth, height: tabListHeight } = getCssDimensions(tabsListElement);
+      const tabRect = activeTab.getBoundingClientRect();
+      const tabsListRect = tabsListElement.getBoundingClientRect();
+      const scaleX = tabListWidth > 0 ? tabsListRect.width / tabListWidth : 1;
+      const scaleY = tabListHeight > 0 ? tabsListRect.height / tabListHeight : 1;
+      const hasNonZeroScale =
+        Math.abs(scaleX) > Number.EPSILON && Math.abs(scaleY) > Number.EPSILON;
+
+      if (hasNonZeroScale) {
+        const tabLeftDelta = tabRect.left - tabsListRect.left;
+        const tabTopDelta = tabRect.top - tabsListRect.top;
+
+        left = tabLeftDelta / scaleX + tabsListElement.scrollLeft - tabsListElement.clientLeft;
+        top = tabTopDelta / scaleY + tabsListElement.scrollTop - tabsListElement.clientTop;
+      } else {
+        left = activeTab.offsetLeft;
+        top = activeTab.offsetTop;
+      }
+
+      width = computedWidth;
+      height = computedHeight;
+      right = tabsListElement.scrollWidth - left - width;
+      bottom = tabsListElement.scrollHeight - top - height;
     }
   }
 
-  const selectedTabPosition = React.useMemo(
+  const activeTabPosition = React.useMemo(
     () =>
       isTabSelected
         ? {
@@ -110,7 +111,7 @@ export const TabsIndicator = React.forwardRef(function TabIndicator(
     [left, right, top, bottom, isTabSelected],
   );
 
-  const selectedTabSize = React.useMemo(
+  const activeTabSize = React.useMemo(
     () =>
       isTabSelected
         ? {
@@ -141,11 +142,11 @@ export const TabsIndicator = React.forwardRef(function TabIndicator(
   const state: TabsIndicator.State = React.useMemo(
     () => ({
       orientation,
-      selectedTabPosition,
-      selectedTabSize,
+      activeTabPosition,
+      activeTabSize,
       tabActivationDirection,
     }),
-    [orientation, selectedTabPosition, selectedTabSize, tabActivationDirection],
+    [orientation, activeTabPosition, activeTabSize, tabActivationDirection],
   );
 
   const element = useRenderElement('span', componentProps, {
@@ -159,13 +160,10 @@ export const TabsIndicator = React.forwardRef(function TabIndicator(
       },
       elementProps,
       {
-        ['data-instance-id' as string]: !(isMounted && renderBeforeHydration)
-          ? instanceId
-          : undefined,
         suppressHydrationWarning: true,
       },
     ],
-    customStyleHookMapping,
+    stateAttributesMapping,
   });
 
   if (activeTabValue == null) {
@@ -186,19 +184,22 @@ export const TabsIndicator = React.forwardRef(function TabIndicator(
   );
 });
 
-export namespace TabsIndicator {
-  export interface State extends TabsRoot.State {
-    selectedTabPosition: TabsTab.Position | null;
-    selectedTabSize: TabsTab.Size | null;
-    orientation: TabsRoot.Orientation;
-  }
+export interface TabsIndicatorState extends TabsRoot.State {
+  activeTabPosition: TabsTab.Position | null;
+  activeTabSize: TabsTab.Size | null;
+  orientation: TabsRoot.Orientation;
+}
 
-  export interface Props extends BaseUIComponentProps<'span', State> {
-    /**
-     * Whether to render itself before React hydrates.
-     * This minimizes the time that the indicator isn’t visible after server-side rendering.
-     * @default false
-     */
-    renderBeforeHydration?: boolean;
-  }
+export interface TabsIndicatorProps extends BaseUIComponentProps<'span', TabsIndicator.State> {
+  /**
+   * Whether to render itself before React hydrates.
+   * This minimizes the time that the indicator isn’t visible after server-side rendering.
+   * @default false
+   */
+  renderBeforeHydration?: boolean;
+}
+
+export namespace TabsIndicator {
+  export type State = TabsIndicatorState;
+  export type Props = TabsIndicatorProps;
 }
