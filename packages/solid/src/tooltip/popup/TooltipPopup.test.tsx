@@ -12,7 +12,7 @@ describe('<Tooltip.Popup />', () => {
       return render(() => (
         <Tooltip.Root open>
           <Tooltip.Portal>
-            <Tooltip.Positioner>{node(props)}</Tooltip.Positioner>
+            <Tooltip.Positioner>{node(props!)}</Tooltip.Positioner>
           </Tooltip.Portal>
         </Tooltip.Root>
       ));

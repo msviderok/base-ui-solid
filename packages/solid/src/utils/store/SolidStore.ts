@@ -51,11 +51,11 @@ export class SolidStore<
    */
   public useSyncedValue<Key extends keyof State, Value extends State[Key]>(
     key: keyof State,
-    value: Value,
+    value: MaybeAccessor<Value>,
   ) {
     createEffect(() => {
-      if (this.state[key] !== value) {
-        this.set(key, value);
+      if (this.state[key] !== access(value)) {
+        this.set(key, access(value));
       }
     });
   }
@@ -69,11 +69,11 @@ export class SolidStore<
    */
   public useSyncedValueWithCleanup<Key extends KeysAllowingUndefined<State>>(
     key: Key,
-    value: State[Key],
+    value: MaybeAccessor<State[Key]>,
   ) {
     createEffect(() => {
-      if (this.state[key] !== value) {
-        this.set(key, value);
+      if (this.state[key] !== access(value)) {
+        this.set(key, access(value));
       }
 
       onCleanup(() => {
@@ -104,7 +104,7 @@ export class SolidStore<
   public useControlledProp<Key extends keyof State, Value extends State[Key]>(
     key: keyof State,
     controlled: MaybeAccessor<Value | undefined>,
-    defaultValue: Value,
+    defaultValue: MaybeAccessor<Value>,
   ): void {
     const isControlled = () => access(controlled) !== undefined;
 
@@ -126,8 +126,8 @@ export class SolidStore<
         // First time initialization
         this.controlledValues.set(key, isControlled());
 
-        if (!isControlled() && !Object.is(this.state[key], defaultValue)) {
-          this.setState(key as any, defaultValue);
+        if (!isControlled() && !Object.is(this.state[key], access(defaultValue))) {
+          this.setState(key as any, access(defaultValue));
         }
       }
     });

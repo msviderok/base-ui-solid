@@ -17,8 +17,9 @@ import {
  */
 export function useTriggerRegistration<State extends PopupStoreState<any>>(
   idProp: MaybeAccessor<string | undefined>,
-  store: SolidStore<State, PopupStoreContext<any>, PopupStoreSelectors>,
+  storeProp: MaybeAccessor<SolidStore<State, PopupStoreContext<any>, PopupStoreSelectors>>,
 ) {
+  const store = () => access(storeProp);
   // Keep track of the currently registered element to unregister it on unmount or id change.
   let registeredElementIdRef = null as string | null;
 
@@ -29,13 +30,13 @@ export function useTriggerRegistration<State extends PopupStoreState<any>>(
     }
 
     if (registeredElementIdRef != null) {
-      store.context.triggerElements.delete(registeredElementIdRef);
+      store().context.triggerElements.delete(registeredElementIdRef);
       registeredElementIdRef = null;
     }
 
     if (element != null) {
       registeredElementIdRef = access(id);
-      store.context.triggerElements.add(access(id), element);
+      store().context.triggerElements.add(access(id), element);
     }
   };
 }
@@ -49,24 +50,25 @@ export function useTriggerRegistration<State extends PopupStoreState<any>>(
  * @param stateUpdates An object with state updates to apply when the trigger is active.
  */
 export function useTriggerDataForwarding<State extends PopupStoreState<any>>(
-  triggerId: string | undefined,
-  triggerElement: Element | null | undefined,
-  store: SolidStore<State, PopupStoreContext<any>, typeof popupStoreSelectors>,
+  triggerId: MaybeAccessor<string | undefined>,
+  triggerElement: MaybeAccessor<Element | null | undefined>,
+  storeProp: MaybeAccessor<SolidStore<State, PopupStoreContext<any>, typeof popupStoreSelectors>>,
   stateUpdates: Omit<Partial<State>, 'activeTriggerId' | 'activeTriggerElement'>,
 ) {
-  const isMountedByThisTrigger = store.useState('isMountedByTrigger', triggerId);
+  const store = () => access(storeProp);
+  const isMountedByThisTrigger = () => store().useState('isMountedByTrigger', access(triggerId))();
 
   const baseRegisterTrigger = useTriggerRegistration(triggerId, store);
 
   const registerTrigger = (element: Element | null | undefined) => {
     baseRegisterTrigger(element);
 
-    if (element != null && store.select('open') && store.select('activeTriggerId') == null) {
+    if (element != null && store().select('open') && store().select('activeTriggerId') == null) {
       // This runs when popup is open, but no active trigger is set.
       // It can happen when using controlled mode and the trigger is mounted after opening or if `triggerId` prop is not set explicitly.
       // In such cases the first trigger to run this code becomes the active trigger (store.select('activeTriggerId') should not return null after that).
       // This is mostly for compatibility with contained triggers where no explicit `triggerId` was required in controlled mode.
-      store.update({
+      store().update({
         activeTriggerId: triggerId,
         activeTriggerElement: element,
         ...stateUpdates,
@@ -76,8 +78,8 @@ export function useTriggerDataForwarding<State extends PopupStoreState<any>>(
 
   createEffect(() => {
     if (isMountedByThisTrigger()) {
-      store.update({
-        activeTriggerElement: triggerElement,
+      store().update({
+        activeTriggerElement: access(triggerElement),
         ...stateUpdates,
       } as Partial<State>);
     }
@@ -101,15 +103,20 @@ export type PayloadChildRenderFunction<Payload> = (arg: {
  * @param store The Store instance managing the popup state.
  */
 export function useImplicitActiveTrigger<State extends PopupStoreState<any>>(
-  store: SolidStore<State, PopupStoreContext<any>, typeof popupStoreSelectors>,
+  storeProp: MaybeAccessor<SolidStore<State, PopupStoreContext<any>, typeof popupStoreSelectors>>,
 ) {
-  const open = store.useState('open');
+  const store = () => access(storeProp);
+  const open = () => store().useState('open')();
   createEffect(() => {
-    if (open() && !store.select('activeTriggerId') && store.context.triggerElements.size === 1) {
-      const iteratorResult = store.context.triggerElements.entries().next();
+    if (
+      open() &&
+      !store().select('activeTriggerId') &&
+      store().context.triggerElements.size === 1
+    ) {
+      const iteratorResult = store().context.triggerElements.entries().next();
       if (!iteratorResult.done) {
         const [implicitTriggerId, implicitTriggerElement] = iteratorResult.value;
-        store.update({
+        store().update({
           activeTriggerId: implicitTriggerId,
           activeTriggerElement: implicitTriggerElement,
         } as Partial<State>);
@@ -131,31 +138,34 @@ export function useImplicitActiveTrigger<State extends PopupStoreState<any>>(
  */
 export function useOpenStateTransitions<State extends PopupStoreState<any>>(
   openProp: MaybeAccessor<boolean>,
-  store: SolidStore<State, PopupStoreContext<any>, typeof popupStoreSelectors>,
+  storeProp: MaybeAccessor<SolidStore<State, PopupStoreContext<any>, typeof popupStoreSelectors>>,
   onUnmount?: () => void,
 ) {
   const open = () => access(openProp);
+  const store = () => access(storeProp);
   const { mounted, setMounted, transitionStatus } = useTransitionStatus(open);
 
-  store.useSyncedValues({ mounted, transitionStatus } as Partial<State>);
+  createEffect(() => {
+    store().useSyncedValues({ mounted, transitionStatus } as Partial<State>);
+  });
 
   const forceUnmount = () => {
     setMounted(false);
-    store.update({
+    store().update({
       activeTriggerId: null,
       activeTriggerElement: null,
       mounted: false,
     } as Partial<State>);
     onUnmount?.();
-    store.context.onOpenChangeComplete?.(false);
+    store().context.onOpenChangeComplete?.(false);
   };
 
-  const preventUnmountingOnClose = store.useState('preventUnmountingOnClose');
+  const preventUnmountingOnClose = () => store().useState('preventUnmountingOnClose')();
 
   useOpenChangeComplete({
     enabled: !preventUnmountingOnClose(),
     open,
-    ref: store.context.popupRef,
+    ref: store().context.refs.popupRef,
     onComplete() {
       if (!open()) {
         forceUnmount();

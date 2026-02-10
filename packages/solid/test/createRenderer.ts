@@ -55,3 +55,7 @@ export function createRenderer(globalOptions: CreateRendererOptions = {}): BaseU
     },
   };
 }
+
+export function randomStringValue() {
+  return Math.random().toString(36).substring(2, 15);
+}

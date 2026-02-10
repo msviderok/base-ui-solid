@@ -18,6 +18,7 @@ import {
   shift,
   size,
   useFloating,
+  type Accessorify,
   type AutoUpdateOptions,
   type FloatingContext,
   type FloatingRootContext,
@@ -541,20 +542,18 @@ export interface UseAnchorPositioningSharedParameters {
    * An element to position the popup against.
    * By default, the popup will be positioned against the trigger.
    */
-  anchor?: MaybeAccessor<
-    Element | null | VirtualElement | (() => Element | VirtualElement | null) | undefined
-  >;
+  anchor?: Element | null | VirtualElement | (() => Element | VirtualElement | null);
   /**
    * Determines which CSS `position` property to use.
    * @default 'absolute'
    */
-  positionMethod?: MaybeAccessor<'absolute' | 'fixed' | undefined>;
+  positionMethod?: 'absolute' | 'fixed';
   /**
    * Which side of the anchor element to align the popup against.
    * May automatically change to avoid collisions.
    * @default 'bottom'
    */
-  side?: MaybeAccessor<Side | undefined>;
+  side?: Side;
   /**
    * Distance between the anchor and the popup in pixels.
    * Also accepts a function that returns the distance to read the dimensions of the anchor
@@ -579,12 +578,12 @@ export interface UseAnchorPositioningSharedParameters {
    *
    * @default 0
    */
-  sideOffset?: MaybeAccessor<number | OffsetFunction | undefined>;
+  sideOffset?: number | OffsetFunction;
   /**
    * How to align the popup relative to the specified side.
    * @default 'center'
    */
-  align?: MaybeAccessor<Align | undefined>;
+  align?: Align;
   /**
    * Additional offset along the alignment axis in pixels.
    * Also accepts a function that returns the offset to read the dimensions of the anchor
@@ -609,35 +608,35 @@ export interface UseAnchorPositioningSharedParameters {
    *
    * @default 0
    */
-  alignOffset?: MaybeAccessor<number | OffsetFunction | undefined>;
+  alignOffset?: number | OffsetFunction;
   /**
    * An element or a rectangle that delimits the area that the popup is confined to.
    * @default 'clipping-ancestors'
    */
-  collisionBoundary?: MaybeAccessor<Boundary | undefined>;
+  collisionBoundary?: Boundary;
   /**
    * Additional space to maintain from the edge of the collision boundary.
    * @default 5
    */
-  collisionPadding?: MaybeAccessor<Padding | undefined>;
+  collisionPadding?: Padding;
   /**
    * Whether to maintain the popup in the viewport after
    * the anchor element was scrolled out of view.
    * @default false
    */
-  sticky?: MaybeAccessor<boolean | undefined>;
+  sticky?: boolean;
   /**
    * Minimum distance to maintain between the arrow and the edges of the popup.
    *
    * Use it to prevent the arrow element from hanging out of the rounded corners of a popup.
    * @default 5
    */
-  arrowPadding?: MaybeAccessor<number | undefined>;
+  arrowPadding?: number;
   /**
    *Whether to disable the popup from tracking any layout shift of its positioning anchor.
    * @default false
    */
-  disableAnchorTracking?: MaybeAccessor<boolean | undefined>;
+  disableAnchorTracking?: boolean;
   /**
    * Determines how to handle collisions when positioning the popup.
    *
@@ -653,10 +652,13 @@ export interface UseAnchorPositioningSharedParameters {
    * ```
    *
    */
-  collisionAvoidance?: MaybeAccessor<CollisionAvoidance | undefined>;
+  collisionAvoidance?: CollisionAvoidance;
 }
 
-export interface UseAnchorPositioningParameters extends useAnchorPositioning.SharedParameters {
+export interface UseAnchorPositioningParameters extends Accessorify<
+  useAnchorPositioning.SharedParameters,
+  'maybeAccessor'
+> {
   keepMounted?: MaybeAccessor<boolean | undefined>;
   trackCursorAxis?: MaybeAccessor<'none' | 'x' | 'y' | 'both' | undefined>;
   floatingRootContext?: FloatingRootContext;

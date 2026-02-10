@@ -11,7 +11,7 @@ describe('<Tooltip.Arrow />', () => {
         <Tooltip.Root open>
           <Tooltip.Portal>
             <Tooltip.Positioner>
-              <Tooltip.Popup>{node(props)}</Tooltip.Popup>
+              <Tooltip.Popup>{node(props!)}</Tooltip.Popup>
             </Tooltip.Positioner>
           </Tooltip.Portal>
         </Tooltip.Root>

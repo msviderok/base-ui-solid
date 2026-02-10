@@ -146,11 +146,15 @@ interface UseDelayGroupReturn {
  * @internal
  */
 export function useDelayGroup(
-  context: FloatingRootContext | FloatingContext,
-  optionsProp: UseDelayGroupOptions,
+  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
+  optionsProp: MaybeAccessor<UseDelayGroupOptions>,
 ): UseDelayGroupReturn {
+  const context = () => access(contextProp);
   const options = mergeProps({ open: false }, optionsProp);
-  const store = () => ('rootStore' in context ? context.rootStore : context);
+  const store = () => {
+    const ctx = context();
+    return 'rootStore' in ctx ? ctx.rootStore : ctx;
+  };
   const floatingId = () => store().state.floatingId;
   const enabled = () => access(options.enabled) ?? true;
   const open = () => access(options.open);

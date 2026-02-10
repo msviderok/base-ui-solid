@@ -1,7 +1,10 @@
 import { mergeProps as solidMergeProps, type JSX } from 'solid-js';
 import type { Padding, VirtualElement } from '../../floating-ui-solid';
+import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
+import { adaptiveOrigin } from '../../utils/adaptiveOriginMiddleware';
 import { POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import {
@@ -35,7 +38,7 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
     'collisionPadding',
     'arrowPadding',
     'sticky',
-    'trackAnchor',
+    'disableAnchorTracking',
     'collisionAvoidance',
   ]);
   const positionMethod = () => local.positionMethod ?? 'absolute';
@@ -47,12 +50,20 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
   const collisionPadding = () => local.collisionPadding ?? 5;
   const arrowPadding = () => local.arrowPadding ?? 5;
   const sticky = () => local.sticky ?? false;
-  const trackAnchor = () => local.trackAnchor ?? true;
+  const disableAnchorTracking = () => local.disableAnchorTracking ?? false;
   const collisionAvoidance = () => local.collisionAvoidance ?? POPUP_COLLISION_AVOIDANCE;
 
-  const { open, setPositionerElement, mounted, floatingRootContext, trackCursorAxis, hoverable } =
-    useTooltipRootContext();
+  const store = useTooltipRootContext();
   const keepMounted = useTooltipPortalContext();
+
+  const open = store.useState('open');
+  const mounted = store.useState('mounted');
+  const trackCursorAxis = store.useState('trackCursorAxis');
+  const disableHoverablePopup = store.useState('disableHoverablePopup');
+  const floatingRootContext = store.select('floatingRootContext');
+  const instantType = store.useState('instantType');
+  const transitionStatus = store.useState('transitionStatus');
+  const hasViewport = store.useState('hasViewport');
 
   const positioning = useAnchorPositioning({
     anchor: () => local.anchor,
@@ -67,9 +78,10 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
     collisionPadding,
     sticky,
     arrowPadding,
-    trackAnchor,
+    disableAnchorTracking,
     keepMounted,
     collisionAvoidance,
+    adaptiveOrigin: () => (hasViewport() ? adaptiveOrigin : undefined),
   });
 
   const defaultProps: HTMLProps = {
@@ -80,7 +92,7 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
     get style() {
       const hiddenStyles: JSX.CSSProperties = {};
 
-      if (!open() || trackCursorAxis() === 'both' || !hoverable()) {
+      if (!open() || trackCursorAxis() === 'both' || disableHoverablePopup()) {
         hiddenStyles['pointer-events'] = 'none';
       }
 
@@ -91,20 +103,21 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
     },
   };
 
-  const positioner = solidMergeProps(positioning, { props: defaultProps });
-
   const state: TooltipPositioner.State = {
     get open() {
       return open();
     },
     get side() {
-      return positioner.side();
+      return positioning.side();
     },
     get align() {
-      return positioner.align();
+      return positioning.align();
     },
     get anchorHidden() {
-      return positioner.anchorHidden();
+      return positioning.anchorHidden();
+    },
+    get instant() {
+      return trackCursorAxis() !== 'none' ? 'tracking-cursor' : instantType();
     },
   };
 
@@ -113,19 +126,21 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
     side: () => state.side,
     align: () => state.align,
     anchorHidden: () => state.anchorHidden,
-    arrowRef: () => positioner.refs.arrowRef(),
-    // eslint-disable-next-line solid/reactivity
-    setArrowRef: positioner.refs.setArrowRef,
-    arrowStyles: () => positioner.arrowStyles(),
-    arrowUncentered: () => positioner.arrowUncentered(),
+    arrowRef: () => positioning.refs.arrowRef(),
+    setArrowRef: positioning.refs.setArrowRef,
+    arrowStyles: () => positioning.arrowStyles(),
+    arrowUncentered: () => positioning.arrowUncentered(),
   };
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: setPositionerElement,
-    // eslint-disable-next-line solid/reactivity
-    props: [positioner.props, elementProps],
-    customStyleHookMapping: popupStateMapping,
+    ref: store.useStateSetter('positionerElement'),
+    props: [
+      defaultProps,
+      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
+      elementProps,
+    ],
+    stateAttributesMapping: popupStateMapping,
   });
 
   return (
@@ -135,96 +150,33 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
   );
 }
 
-export namespace TooltipPositioner {
-  export interface State {
-    /**
-     * Whether the tooltip is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    anchorHidden: boolean;
-  }
+export interface TooltipPositionerState {
+  /**
+   * Whether the tooltip is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  anchorHidden: boolean;
+  /**
+   * Whether CSS transitions should be disabled.
+   */
+  instant: string | undefined;
+}
 
-  export interface Props
-    extends BaseUIComponentProps<'div', State>,
-      Omit<useAnchorPositioning.SharedParameters, 'side'> {
-    /**
-     * Which side of the anchor element to align the popup against.
-     * May automatically change to avoid collisions.
-     * @default 'top'
-     */
-    side?: Side;
-    /**
-     * An element to position the popup against.
-     * By default, the popup will be positioned against the trigger.
-     */
-    anchor?: Element | null | VirtualElement | (() => Element | VirtualElement | null) | undefined;
-    /**
-     * Determines which CSS `position` property to use.
-     * @default 'absolute'
-     */
-    positionMethod?: 'absolute' | 'fixed';
-    /**
-     * Distance between the anchor and the popup in pixels.
-     * Also accepts a function that returns the distance to read the dimensions of the anchor
-     * and positioner elements, along with its side and alignment.
-     *
-     * - `data.anchor`: the dimensions of the anchor element with properties `width` and `height`.
-     * - `data.positioner`: the dimensions of the positioner element with properties `width` and `height`.
-     * - `data.side`: which side of the anchor element the positioner is aligned against.
-     * - `data.align`: how the positioner is aligned relative to the specified side.
-     * @default 0
-     */
-    sideOffset?: number | OffsetFunction;
-    /**
-     * How to align the popup relative to the specified side.
-     * @default 'center'
-     */
-    align?: 'start' | 'end' | 'center';
-    /**
-     * Additional offset along the alignment axis in pixels.
-     * Also accepts a function that returns the offset to read the dimensions of the anchor
-     * and positioner elements, along with its side and alignment.
-     *
-     * - `data.anchor`: the dimensions of the anchor element with properties `width` and `height`.
-     * - `data.positioner`: the dimensions of the positioner element with properties `width` and `height`.
-     * - `data.side`: which side of the anchor element the positioner is aligned against.
-     * - `data.align`: how the positioner is aligned relative to the specified side.
-     * @default 0
-     */
-    alignOffset?: number | OffsetFunction;
-    /**
-     * An element or a rectangle that delimits the area that the popup is confined to.
-     * @default 'clipping-ancestors'
-     */
-    collisionBoundary?: Boundary;
-    /**
-     * Additional space to maintain from the edge of the collision boundary.
-     * @default 5
-     */
-    collisionPadding?: Padding;
-    /**
-     * Whether to maintain the popup in the viewport after
-     * the anchor element was scrolled out of view.
-     * @default false
-     */
-    sticky?: boolean;
-    /**
-     * Minimum distance to maintain between the arrow and the edges of the popup.
-     *
-     * Use it to prevent the arrow element from hanging out of the rounded corners of a popup.
-     * @default 5
-     */
-    arrowPadding?: number;
-    /**
-     * Whether the popup tracks any layout shift of its positioning anchor.
-     * @default true
-     */
-    trackAnchor?: boolean;
-    /**
-     * Determines how to handle collisions when positioning the popup.
-     */
-    collisionAvoidance?: CollisionAvoidance;
-  }
+export interface TooltipPositionerProps
+  extends
+    BaseUIComponentProps<'div', TooltipPositioner.State>,
+    Omit<useAnchorPositioning.SharedParameters, 'side'> {
+  /**
+   * Which side of the anchor element to align the popup against.
+   * May automatically change to avoid collisions.
+   * @default 'top'
+   */
+  side?: Side;
+}
+
+export namespace TooltipPositioner {
+  export type State = TooltipPositionerState;
+  export type Props = TooltipPositionerProps;
 }

@@ -1,8 +1,10 @@
+import { useHoverFloatingInteraction } from '../../floating-ui-solid';
+import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
-import { DISABLED_TRANSITIONS_STYLE } from '../../utils/constants';
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
@@ -11,7 +13,7 @@ import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import { useTooltipPositionerContext } from '../positioner/TooltipPositionerContext';
 import { useTooltipRootContext } from '../root/TooltipRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<TooltipPopup.State> = {
+const stateAttributesMapping: StateAttributesMapping<TooltipPopup.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -25,18 +27,31 @@ const customStyleHookMapping: CustomStyleHookMapping<TooltipPopup.State> = {
 export function TooltipPopup(componentProps: TooltipPopup.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { open, instantType, transitionStatus, popupProps, refs, onOpenChangeComplete } =
-    useTooltipRootContext();
+  const store = useTooltipRootContext();
   const { side, align } = useTooltipPositionerContext();
+
+  const open = store.useState('open');
+  const instantType = store.useState('instantType');
+  const transitionStatus = store.useState('transitionStatus');
+  const popupProps = store.useState('popupProps');
+  const floatingContext = store.select('floatingRootContext');
 
   useOpenChangeComplete({
     open,
-    ref: () => refs.popupRef,
+    ref: store.context.refs.popupRef,
     onComplete() {
       if (open()) {
-        onOpenChangeComplete?.(true);
+        store.context.onOpenChangeComplete?.(true);
       }
     },
+  });
+
+  const disabled = store.useState('disabled');
+  const closeDelay = store.useState('closeDelay');
+
+  useHoverFloatingInteraction(floatingContext, {
+    enabled: !disabled,
+    closeDelay,
   });
 
   const state: TooltipPopup.State = {
@@ -60,34 +75,34 @@ export function TooltipPopup(componentProps: TooltipPopup.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      refs.popupRef = el;
+      store.context.refs.popupRef = el;
+      store.useStateSetter('popupElement')(el);
     },
     props: [
       popupProps,
-      {
-        get style() {
-          return transitionStatus() === 'starting' ? DISABLED_TRANSITIONS_STYLE.style : undefined;
-        },
-      },
+      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
       elementProps,
     ],
-    customStyleHookMapping,
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace TooltipPopup {
-  export interface State {
-    /**
-     * Whether the tooltip is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    instant: 'delay' | 'focus' | 'dismiss' | undefined;
-    transitionStatus: TransitionStatus;
-  }
+export interface TooltipPopupState {
+  /**
+   * Whether the tooltip is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  instant: 'delay' | 'focus' | 'dismiss' | undefined;
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface TooltipPopupProps extends BaseUIComponentProps<'div', TooltipPopup.State> {}
+
+export namespace TooltipPopup {
+  export type State = TooltipPopupState;
+  export type Props = TooltipPopupProps;
 }

@@ -1,6 +1,6 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Tooltip } from '@msviderok/base-ui-solid/tooltip';
-import { screen } from '@solidjs/testing-library';
+import { screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 
 function Trigger(props: Tooltip.Trigger.Props) {
@@ -15,7 +15,7 @@ describe('<Tooltip.Positioner />', () => {
     render(node, props) {
       return render(() => (
         <Tooltip.Root open>
-          <Tooltip.Portal>{node(props)}</Tooltip.Portal>
+          <Tooltip.Portal>{node(props!)}</Tooltip.Portal>
         </Tooltip.Root>
       ));
     },
@@ -44,9 +44,10 @@ describe('<Tooltip.Positioner />', () => {
         </Tooltip.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX}px, ${baselineY + sideOffset}px)`,
-      );
+      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+        x: baselineX,
+        y: baselineY + sideOffset,
+      });
     });
 
     it('offsets the side when a function is specified', async () => {
@@ -64,9 +65,10 @@ describe('<Tooltip.Positioner />', () => {
         </Tooltip.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX}px, ${baselineY + popupWidth + anchorWidth}px)`,
-      );
+      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+        x: baselineX,
+        y: baselineY + popupWidth + anchorWidth,
+      });
     });
 
     it('can read the latest side inside sideOffset', async () => {
@@ -157,9 +159,10 @@ describe('<Tooltip.Positioner />', () => {
         </Tooltip.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX + alignOffset}px, ${baselineY}px)`,
-      );
+      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+        x: baselineX + alignOffset,
+        y: baselineY,
+      });
     });
 
     it('offsets the align when a function is specified', async () => {
@@ -177,9 +180,10 @@ describe('<Tooltip.Positioner />', () => {
         </Tooltip.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX + popupWidth}px, ${baselineY}px)`,
-      );
+      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+        x: baselineX + popupWidth,
+        y: baselineY,
+      });
     });
 
     it('can read the latest side inside alignOffset', async () => {
@@ -253,6 +257,42 @@ describe('<Tooltip.Positioner />', () => {
 
       // correctly flips the side in the browser
       expect(side).to.equal('inline-end');
+    });
+  });
+
+  it.skipIf(isJSDOM)('uses transform positioning without Viewport', async () => {
+    render(() => (
+      <Tooltip.Root open>
+        <Trigger style={triggerStyle}>Trigger</Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Positioner data-testid="positioner">
+            <Tooltip.Popup style={popupStyle}>Popup</Tooltip.Popup>
+          </Tooltip.Positioner>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    ));
+
+    const positioner = screen.getByTestId('positioner');
+    expect(positioner.style.transform).not.to.equal('');
+  });
+
+  it.skipIf(isJSDOM)('uses top/left positioning with Viewport', async () => {
+    render(() => (
+      <Tooltip.Root open>
+        <Trigger style={triggerStyle}>Trigger</Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Positioner data-testid="positioner">
+            <Tooltip.Popup style={popupStyle}>
+              <Tooltip.Viewport>Popup</Tooltip.Viewport>
+            </Tooltip.Popup>
+          </Tooltip.Positioner>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    ));
+
+    const positioner = screen.getByTestId('positioner');
+    await waitFor(() => {
+      expect(positioner.style.transform).to.equal('');
     });
   });
 });

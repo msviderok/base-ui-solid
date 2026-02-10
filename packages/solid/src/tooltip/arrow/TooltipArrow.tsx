@@ -4,6 +4,7 @@ import type { BaseUIComponentProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTooltipPositionerContext } from '../positioner/TooltipPositionerContext';
+import { useTooltipRootContext } from '../root/TooltipRootContext';
 
 /**
  * Displays an element positioned against the tooltip anchor.
@@ -13,6 +14,9 @@ import { useTooltipPositionerContext } from '../positioner/TooltipPositionerCont
  */
 export function TooltipArrow(componentProps: TooltipArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
+  const store = useTooltipRootContext();
+
+  const instantType = store.useState('instantType');
 
   const { open, setArrowRef, side, align, arrowUncentered, arrowStyles } =
     useTooltipPositionerContext();
@@ -30,6 +34,9 @@ export function TooltipArrow(componentProps: TooltipArrow.Props) {
     get uncentered() {
       return arrowUncentered();
     },
+    get instant() {
+      return instantType();
+    },
   };
 
   const element = useRenderElement('div', componentProps, {
@@ -44,22 +51,26 @@ export function TooltipArrow(componentProps: TooltipArrow.Props) {
       },
       elementProps,
     ],
-    customStyleHookMapping: popupStateMapping,
+    stateAttributesMapping: popupStateMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace TooltipArrow {
-  export interface State {
-    /**
-     * Whether the tooltip is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    uncentered: boolean;
-  }
+export interface TooltipArrowState {
+  /**
+   * Whether the tooltip is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  uncentered: boolean;
+  instant: 'delay' | 'focus' | 'dismiss' | undefined;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface TooltipArrowProps extends BaseUIComponentProps<'div', TooltipArrow.State> {}
+
+export namespace TooltipArrow {
+  export type State = TooltipArrowState;
+  export type Props = TooltipArrowProps;
 }
