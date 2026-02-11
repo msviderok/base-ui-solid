@@ -10,9 +10,10 @@ describe('<Popover.Title />', () => {
     render: (node, props) =>
       render(() => (
         <Popover.Root open>
+          <Popover.Trigger>Trigger</Popover.Trigger>
           <Popover.Portal>
             <Popover.Positioner>
-              <Popover.Popup>{node(props)}</Popover.Popup>
+              <Popover.Popup>{node(props!)}</Popover.Popup>
             </Popover.Positioner>
           </Popover.Portal>
         </Popover.Root>
@@ -23,6 +24,7 @@ describe('<Popover.Title />', () => {
   it('labels the popup element with its id', async () => {
     render(() => (
       <Popover.Root open>
+        <Popover.Trigger>Trigger</Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner>
             <Popover.Popup>

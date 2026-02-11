@@ -1,14 +1,15 @@
 import { type JSX } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
-import { type CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { type StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { REASONS } from '../../utils/reasons';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import { usePopoverRootContext } from '../root/PopoverRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<PopoverBackdrop.State> = {
+const stateAttributesMapping: StateAttributesMapping<PopoverBackdrop.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -22,7 +23,12 @@ const customStyleHookMapping: CustomStyleHookMapping<PopoverBackdrop.State> = {
 export function PopoverBackdrop(props: PopoverBackdrop.Props) {
   const [, , elementProps] = splitComponentProps(props, []);
 
-  const { open, mounted, transitionStatus, openReason } = usePopoverRootContext();
+  const { store } = usePopoverRootContext();
+
+  const open = store.useState('open');
+  const mounted = store.useState('mounted');
+  const transitionStatus = store.useState('transitionStatus');
+  const openReason = store.useState('openChangeReason');
 
   const state: PopoverBackdrop.State = {
     get open() {
@@ -35,7 +41,9 @@ export function PopoverBackdrop(props: PopoverBackdrop.Props) {
 
   const element = useRenderElement('div', props, {
     state,
-    customStyleHookMapping,
+    ref: (el) => {
+      store.context.refs.backdropRef = el;
+    },
     props: [
       {
         role: 'presentation',
@@ -44,7 +52,7 @@ export function PopoverBackdrop(props: PopoverBackdrop.Props) {
         },
         get style(): JSX.CSSProperties {
           return {
-            'pointer-events': openReason() === 'trigger-hover' ? 'none' : undefined,
+            'pointer-events': openReason() === REASONS.triggerHover ? 'none' : undefined,
             'user-select': 'none',
             '-webkit-user-select': 'none',
           };
@@ -52,19 +60,23 @@ export function PopoverBackdrop(props: PopoverBackdrop.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace PopoverBackdrop {
-  export interface State {
-    /**
-     * Whether the popover is currently open.
-     */
-    open: boolean;
-    transitionStatus: TransitionStatus;
-  }
+export interface PopoverBackdropState {
+  /**
+   * Whether the popover is currently open.
+   */
+  open: boolean;
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface PopoverBackdropProps extends BaseUIComponentProps<'div', PopoverBackdrop.State> {}
+
+export namespace PopoverBackdrop {
+  export type State = PopoverBackdropState;
+  export type Props = PopoverBackdropProps;
 }

@@ -7,22 +7,26 @@ describe('<Popover.Close />', () => {
   const { render } = createRenderer();
 
   describeConformance(Popover.Close, () => ({
+    refInstanceof: window.HTMLButtonElement,
+    testComponentPropWith: 'button',
+    button: true,
+
     render: (node, props) =>
       render(() => (
         <Popover.Root open>
           <Popover.Portal>
             <Popover.Positioner>
-              <Popover.Popup>{node(props)}</Popover.Popup>
+              <Popover.Popup>{node(props!)}</Popover.Popup>
             </Popover.Positioner>
           </Popover.Portal>
         </Popover.Root>
       )),
-    refInstanceof: window.HTMLButtonElement,
   }));
 
   it('should close popover when clicked', async () => {
     render(() => (
       <Popover.Root defaultOpen>
+        <Popover.Trigger>Trigger</Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner>
             <Popover.Popup>

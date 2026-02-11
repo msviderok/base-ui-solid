@@ -64,7 +64,9 @@ function getTabbableNearElement(referenceElement: Element | null | undefined, di
   return list[nextIndex];
 }
 
-export function getTabbableAfterElement(referenceElement: Element | null): FocusableElement | null {
+export function getTabbableAfterElement(
+  referenceElement: Element | null | undefined,
+): FocusableElement | null {
   return getTabbableNearElement(referenceElement, 1);
 }
 

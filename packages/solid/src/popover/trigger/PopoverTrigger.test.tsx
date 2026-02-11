@@ -1,6 +1,6 @@
 import { createRenderer, describeConformance, flushMicrotasks, isJSDOM } from '#test-utils';
 import { Popover } from '@msviderok/base-ui-solid/popover';
-import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
+import { cleanup, fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 
@@ -8,8 +8,10 @@ describe('<Popover.Trigger />', () => {
   const { render } = createRenderer();
 
   describeConformance(Popover.Trigger, () => ({
-    render: (node, props) => render(() => <Popover.Root open>{node(props)}</Popover.Root>),
     refInstanceof: window.HTMLButtonElement,
+    testComponentPropWith: 'button',
+    button: true,
+    render: (node, props) => render(() => <Popover.Root open>{node(props!)}</Popover.Root>),
   }));
 
   describe('prop: disabled', () => {
@@ -33,7 +35,7 @@ describe('<Popover.Trigger />', () => {
       expect(screen.queryByText('Content')).to.equal(null);
 
       await user.keyboard('[Tab]');
-      expect(document.activeElement).to.not.equal(trigger);
+      expect(document.activeElement).not.to.equal(trigger);
     });
 
     it('custom element', async () => {
@@ -57,7 +59,7 @@ describe('<Popover.Trigger />', () => {
       expect(screen.queryByText('Content')).to.equal(null);
 
       await user.keyboard('[Tab]');
-      expect(document.activeElement).to.not.equal(trigger);
+      expect(document.activeElement).not.to.equal(trigger);
     });
   });
 
@@ -79,7 +81,8 @@ describe('<Popover.Trigger />', () => {
 
     it('should have the data-popup-open but not the data-pressed attribute when open by hover', async () => {
       const { user } = render(() => (
-        <Popover.Root openOnHover delay={0}>
+        <Popover.Root>
+          <Popover.Trigger openOnHover delay={0} />
           <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
@@ -99,7 +102,8 @@ describe('<Popover.Trigger />', () => {
 
     it('should not have the data-popup-open and data-pressed attributes when open by click when `openOnHover=true` and `delay=0`', async () => {
       const { user } = render(() => (
-        <Popover.Root delay={0} openOnHover>
+        <Popover.Root>
+          <Popover.Trigger delay={0} openOnHover />
           <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
@@ -120,7 +124,8 @@ describe('<Popover.Trigger />', () => {
 
     it('should have the data-popup-open and data-pressed attributes when open by click when `openOnHover=true`', async () => {
       const { user } = render(() => (
-        <Popover.Root openOnHover>
+        <Popover.Root>
+          <Popover.Trigger openOnHover />
           <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
@@ -147,7 +152,8 @@ describe('<Popover.Trigger />', () => {
 
     it('does not close the popover if the user clicks too quickly', async () => {
       renderFakeTimers(() => (
-        <Popover.Root delay={0} openOnHover>
+        <Popover.Root>
+          <Popover.Trigger delay={0} openOnHover />
           <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
@@ -170,7 +176,8 @@ describe('<Popover.Trigger />', () => {
 
     it('closes the popover if the user clicks patiently', async () => {
       renderFakeTimers(() => (
-        <Popover.Root delay={0} openOnHover>
+        <Popover.Root>
+          <Popover.Trigger delay={0} openOnHover />
           <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
@@ -193,7 +200,8 @@ describe('<Popover.Trigger />', () => {
 
     it('sticks if the user clicks impatiently', async () => {
       renderFakeTimers(() => (
-        <Popover.Root delay={0} openOnHover>
+        <Popover.Root>
+          <Popover.Trigger delay={0} openOnHover />
           <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
@@ -221,7 +229,8 @@ describe('<Popover.Trigger />', () => {
 
     it('does not stick if the user clicks patiently', async () => {
       renderFakeTimers(() => (
-        <Popover.Root delay={0} openOnHover>
+        <Popover.Root>
+          <Popover.Trigger delay={0} openOnHover />
           <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
@@ -243,10 +252,43 @@ describe('<Popover.Trigger />', () => {
       expect(trigger).not.to.have.attribute('data-popup-open');
     });
 
+    it('sticks when clicked before the hover delay completes', async () => {
+      renderFakeTimers(() => (
+        <Popover.Root>
+          <Popover.Trigger openOnHover delay={300}>
+            Open
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Positioner>
+              <Popover.Popup>Content</Popover.Popup>
+            </Popover.Positioner>
+          </Popover.Portal>
+        </Popover.Root>
+      ));
+
+      const trigger = screen.getByRole('button');
+
+      fireEvent.mouseEnter(trigger);
+      fireEvent.mouseMove(trigger);
+
+      clock.tick(100);
+
+      // User clicks impatiently to open
+      fireEvent.click(trigger);
+
+      expect(trigger).to.have.attribute('data-popup-open');
+
+      fireEvent.mouseLeave(trigger);
+
+      expect(trigger).to.have.attribute('data-popup-open');
+    });
+
     it('should keep the popover open when re-hovered and clicked within the patient threshold', async () => {
       render(() => (
-        <Popover.Root openOnHover delay={100}>
-          <Popover.Trigger>Open</Popover.Trigger>
+        <Popover.Root>
+          <Popover.Trigger openOnHover delay={100}>
+            Open
+          </Popover.Trigger>
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup>Content</Popover.Popup>
@@ -276,7 +318,7 @@ describe('<Popover.Trigger />', () => {
     });
   });
 
-  it.skipIf(!isJSDOM)(
+  it.skipIf(isJSDOM)(
     'should toggle closed with Enter or Space when rendering a <div>',
     async () => {
       const { user } = render(() => (
@@ -328,6 +370,8 @@ describe('<Popover.Trigger />', () => {
 
       await user.keyboard('[Space]');
       expect(screen.queryByText('Content')).to.equal(null);
+
+      cleanup();
     },
   );
 });

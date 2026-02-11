@@ -1,4 +1,4 @@
-import { onMount } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -14,24 +14,18 @@ import { usePopoverRootContext } from '../root/PopoverRootContext';
 export function PopoverDescription(componentProps: PopoverDescription.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { setCodependentRefs } = usePopoverRootContext();
+  const { store } = usePopoverRootContext();
 
   const id = useBaseUiId(() => elementProps.id);
 
-  let ref: HTMLElement;
-
-  onMount(() => {
-    setCodependentRefs('description', {
-      explicitId: id,
-      ref: () => ref,
-      id: () => elementProps.id,
+  createEffect(() => {
+    store.set('descriptionElementId', id());
+    onCleanup(() => {
+      store.set('descriptionElementId', undefined);
     });
   });
 
   const element = useRenderElement('p', componentProps, {
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -45,8 +39,14 @@ export function PopoverDescription(componentProps: PopoverDescription.Props) {
   return <>{element()}</>;
 }
 
-export namespace PopoverDescription {
-  export interface State {}
+export interface PopoverDescriptionState {}
 
-  export interface Props extends BaseUIComponentProps<'p', State> {}
+export interface PopoverDescriptionProps extends BaseUIComponentProps<
+  'p',
+  PopoverDescription.State
+> {}
+
+export namespace PopoverDescription {
+  export type State = PopoverDescriptionState;
+  export type Props = PopoverDescriptionProps;
 }

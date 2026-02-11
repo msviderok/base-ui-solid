@@ -1,4 +1,4 @@
-import { onMount } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -14,20 +14,18 @@ import { usePopoverRootContext } from '../root/PopoverRootContext';
 export function PopoverTitle(componentProps: PopoverTitle.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { setCodependentRefs } = usePopoverRootContext();
+  const { store } = usePopoverRootContext();
 
   const id = useBaseUiId(() => elementProps.id);
 
-  let ref: HTMLElement;
-
-  onMount(() => {
-    setCodependentRefs('title', { explicitId: id, ref: () => ref, id: () => elementProps.id });
+  createEffect(() => {
+    store.set('titleElementId', id());
+    onCleanup(() => {
+      store.set('titleElementId', undefined);
+    });
   });
 
   const element = useRenderElement('h2', componentProps, {
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -41,9 +39,14 @@ export function PopoverTitle(componentProps: PopoverTitle.Props) {
   return <>{element()}</>;
 }
 
-export namespace PopoverTitle {
-  export interface State {}
+export interface PopoverTitleState {}
 
-  export interface Props
-    extends BaseUIComponentProps<'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', State> {}
+export interface PopoverTitleProps extends BaseUIComponentProps<
+  'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6',
+  PopoverTitle.State
+> {}
+
+export namespace PopoverTitle {
+  export type State = PopoverTitleState;
+  export type Props = PopoverTitleProps;
 }

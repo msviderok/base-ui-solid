@@ -6,14 +6,16 @@ describe('<Popover.Backdrop />', () => {
   const { render } = createRenderer();
 
   describeConformance(Popover.Backdrop, () => ({
-    render: (node, props) => render(() => <Popover.Root open>{node(props)}</Popover.Root>),
+    render: (node, props) => render(() => <Popover.Root open>{node(props!)}</Popover.Root>),
     refInstanceof: window.HTMLDivElement,
   }));
 
   it('sets `pointer-events: none` style on backdrop if opened by hover', async () => {
     const { user } = render(() => (
-      <Popover.Root delay={0} openOnHover>
-        <Popover.Trigger>Open</Popover.Trigger>
+      <Popover.Root>
+        <Popover.Trigger delay={0} openOnHover>
+          Open
+        </Popover.Trigger>
         <Popover.Portal>
           <Popover.Backdrop data-testid="backdrop" />
           <Popover.Positioner>
@@ -30,8 +32,8 @@ describe('<Popover.Backdrop />', () => {
 
   it('does not set `pointer-events: none` style on backdrop if opened by click', async () => {
     const { user } = render(() => (
-      <Popover.Root openOnHover>
-        <Popover.Trigger>Open</Popover.Trigger>
+      <Popover.Root>
+        <Popover.Trigger openOnHover>Open</Popover.Trigger>
         <Popover.Portal>
           <Popover.Backdrop data-testid="backdrop" />
           <Popover.Positioner>

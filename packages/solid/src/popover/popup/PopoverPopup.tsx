@@ -1,10 +1,14 @@
-import { createMemo } from 'solid-js';
-import { FloatingFocusManager } from '../../floating-ui-solid';
+import { isHTMLElement } from '@floating-ui/utils/dom';
+import { COMPOSITE_KEYS } from '../../composite/composite';
+import { FloatingFocusManager, useHoverFloatingInteraction } from '../../floating-ui-solid';
+import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
-import { DISABLED_TRANSITIONS_STYLE } from '../../utils/constants';
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { useToolbarRootContext } from '../../toolbar/root/ToolbarRootContext';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { REASONS } from '../../utils/reasons';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 import { InteractionType } from '../../utils/useEnhancedClickHandler';
@@ -14,7 +18,7 @@ import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import { usePopoverPositionerContext } from '../positioner/PopoverPositionerContext';
 import { usePopoverRootContext } from '../root/PopoverRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<PopoverPopup.State> = {
+const stateAttributesMapping: StateAttributesMapping<PopoverPopup.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -31,47 +35,55 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
     'finalFocus',
   ]);
 
-  const {
-    open,
-    instantType,
-    transitionStatus,
-    popupProps,
-    titleId,
-    descriptionId,
-    refs,
-    mounted,
-    openReason,
-    onOpenChangeComplete,
-    modal,
-    openMethod,
-  } = usePopoverRootContext();
+  const { store } = usePopoverRootContext();
+
   const positioner = usePopoverPositionerContext();
+  const insideToolbar = () => useToolbarRootContext(true) != null;
+
+  const open = store.useState('open');
+  const openMethod = store.useState('openMethod');
+  const instantType = store.useState('instantType');
+  const transitionStatus = store.useState('transitionStatus');
+  const popupProps = store.useState('popupProps');
+  const titleId = store.useState('titleElementId');
+  const descriptionId = store.useState('descriptionElementId');
+  const modal = store.useState('modal');
+  const mounted = store.useState('mounted');
+  const openReason = store.useState('openChangeReason');
+  const activeTriggerElement = store.useState('activeTriggerElement');
+  const floatingContext = store.useState('floatingRootContext');
 
   useOpenChangeComplete({
     open,
-    ref: () => refs.popupRef,
+    ref: store.context.refs.popupRef,
     onComplete() {
       if (open()) {
-        onOpenChangeComplete?.(true);
+        store.context.onOpenChangeComplete?.(true);
       }
     },
   });
 
-  const resolvedInitialFocus = createMemo(() => {
-    const resolved = local.initialFocus;
-    if (resolved == null) {
-      if (openMethod() === 'touch') {
-        return refs.popupRef;
-      }
-      return 0;
-    }
+  const disabled = store.useState('disabled');
+  const openOnHover = store.useState('openOnHover');
+  const closeDelay = store.useState('closeDelay');
 
-    if (typeof resolved === 'function') {
-      return resolved(openMethod() ?? '');
-    }
-
-    return resolved;
+  useHoverFloatingInteraction(floatingContext, {
+    enabled: () => openOnHover() && !disabled(),
+    closeDelay,
   });
+
+  // Default initial focus logic:
+  // If opened by touch, focus the popup element to prevent the virtual keyboard from opening
+  // (this is required for Android specifically as iOS handles this automatically).
+  function defaultInitialFocus(interactionType: InteractionType) {
+    if (interactionType === 'touch') {
+      return store.context.refs.popupRef;
+    }
+    return true;
+  }
+
+  const resolvedInitialFocus = () =>
+    local.initialFocus === undefined ? defaultInitialFocus : local.initialFocus;
 
   const state: PopoverPopup.State = {
     get open() {
@@ -92,12 +104,16 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
     },
   };
 
+  const setPopupElement = (element: HTMLElement | null | undefined) => {
+    store.set('popupElement', element);
+  };
+
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      refs.popupRef = el;
+      store.context.refs.popupRef = el;
+      setPopupElement(el);
     },
-    customStyleHookMapping,
     props: [
       popupProps,
       {
@@ -107,53 +123,80 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
         get 'aria-describedby'() {
           return descriptionId();
         },
-        get style() {
-          return transitionStatus() === 'starting' ? DISABLED_TRANSITIONS_STYLE.style : undefined;
+        onKeyDown(event) {
+          if (insideToolbar() && COMPOSITE_KEYS.has(event.key)) {
+            event.stopPropagation();
+          }
         },
       },
+      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
       elementProps,
     ],
+    stateAttributesMapping,
   });
 
   return (
     <FloatingFocusManager
-      context={positioner.context}
+      context={floatingContext()}
+      openInteractionType={openMethod()}
       modal={modal() === 'trap-focus'}
-      disabled={!mounted() || openReason() === 'trigger-hover'}
+      disabled={!mounted() || openReason() === REASONS.triggerHover}
       initialFocus={resolvedInitialFocus()}
       returnFocus={local.finalFocus}
+      restoreFocus="popup"
+      previousFocusableElement={
+        isHTMLElement(activeTriggerElement()) ? (activeTriggerElement() as HTMLElement) : undefined
+      }
+      nextFocusableElement={store.context.refs.triggerFocusTargetRef}
+      beforeContentFocusGuardRef={store.context.refs.beforeContentFocusGuardRef}
     >
       {element()}
     </FloatingFocusManager>
   );
 }
 
-export namespace PopoverPopup {
-  export interface State {
-    /**
-     * Whether the popover is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    transitionStatus: TransitionStatus;
-  }
+export interface PopoverPopupState {
+  /**
+   * Whether the popover is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * Determines the element to focus when the popover is opened.
-     * By default, the first focusable element is focused.
-     */
-    initialFocus?:
-      | HTMLElement
-      | null
-      | undefined
-      | ((interactionType: InteractionType) => HTMLElement | null | undefined);
-    /**
-    /**
-     * Determines the element to focus when the popover is closed.
-     * By default, focus returns to the trigger.
-     */
-    finalFocus?: HTMLElement | null | undefined;
-  }
+export interface PopoverPopupProps extends BaseUIComponentProps<'div', PopoverPopup.State> {
+  /**
+   * Determines the element to focus when the popover is opened.
+   *
+   * - `false`: Do not move focus.
+   * - `true`: Move focus based on the default behavior (first tabbable element or popup).
+   * - `RefObject`: Move focus to the ref element.
+   * - `function`: Called with the interaction type (`mouse`, `touch`, `pen`, or `keyboard`).
+   *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
+   */
+  initialFocus?:
+    | boolean
+    | HTMLElement
+    | null
+    | ((openType: InteractionType) => void | boolean | HTMLElement | null);
+  /**
+   * Determines the element to focus when the popover is closed.
+   *
+   * - `false`: Do not move focus.
+   * - `true`: Move focus based on the default behavior (trigger or previously focused element).
+   * - `RefObject`: Move focus to the ref element.
+   * - `function`: Called with the interaction type (`mouse`, `touch`, `pen`, or `keyboard`).
+   *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
+   */
+  finalFocus?:
+    | boolean
+    | HTMLElement
+    | null
+    | ((closeType: InteractionType) => void | boolean | HTMLElement | null);
+}
+
+export namespace PopoverPopup {
+  export type State = PopoverPopupState;
+  export type Props = PopoverPopupProps;
 }

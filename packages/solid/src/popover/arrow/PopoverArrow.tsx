@@ -15,7 +15,8 @@ import { usePopoverRootContext } from '../root/PopoverRootContext';
 export function PopoverArrow(componentProps: PopoverArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { open } = usePopoverRootContext();
+  const { store } = usePopoverRootContext();
+  const open = store.useState('open');
   const { refs, side, align, arrowUncentered, arrowStyles } = usePopoverPositionerContext();
 
   const state: PopoverArrow.State = {
@@ -36,7 +37,6 @@ export function PopoverArrow(componentProps: PopoverArrow.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: refs.setArrowRef,
-    customStyleHookMapping: popupStateMapping,
     props: [
       {
         get style() {
@@ -46,21 +46,25 @@ export function PopoverArrow(componentProps: PopoverArrow.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: popupStateMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace PopoverArrow {
-  export interface State {
-    /**
-     * Whether the popover is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    uncentered: boolean;
-  }
+export interface PopoverArrowState {
+  /**
+   * Whether the popover is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  uncentered: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface PopoverArrowProps extends BaseUIComponentProps<'div', PopoverArrow.State> {}
+
+export namespace PopoverArrow {
+  export type State = PopoverArrowState;
+  export type Props = PopoverArrowProps;
 }
