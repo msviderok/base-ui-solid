@@ -1,41 +1,22 @@
-import { createContext, useContext, type Accessor } from 'solid-js';
-import { DialogContext } from '../utils/DialogContext';
+import { createContext, useContext } from 'solid-js';
+import { DialogStore } from '../store/DialogStore';
 
-export interface DialogRootContext {
-  /**
-   * Determines whether the dialog should close on outside clicks.
-   */
-  dismissible: Accessor<boolean>;
+export interface DialogRootContext<Payload = unknown> {
+  store: DialogStore<Payload>;
 }
 
-export const DialogRootContext = createContext<DialogRootContext>();
+export const DialogRootContext = createContext<DialogRootContext | undefined>(undefined);
 
-export function useOptionalDialogRootContext() {
+export function useDialogRootContext(optional?: false): DialogRootContext;
+export function useDialogRootContext(optional: true): DialogRootContext | undefined;
+export function useDialogRootContext(optional?: boolean) {
   const dialogRootContext = useContext(DialogRootContext);
-  const dialogContext = useContext(DialogContext);
 
-  if (dialogContext === undefined && dialogRootContext === undefined) {
-    return undefined;
-  }
-
-  return {
-    ...dialogRootContext,
-    ...dialogContext,
-  };
-}
-
-export function useDialogRootContext() {
-  const dialogRootContext = useContext(DialogRootContext);
-  const dialogContext = useContext(DialogContext);
-
-  if (dialogContext === undefined) {
+  if (optional === false && dialogRootContext === undefined) {
     throw new Error(
       'Base UI: DialogRootContext is missing. Dialog parts must be placed within <Dialog.Root>.',
     );
   }
 
-  return {
-    ...dialogRootContext,
-    ...dialogContext,
-  };
+  return dialogRootContext;
 }

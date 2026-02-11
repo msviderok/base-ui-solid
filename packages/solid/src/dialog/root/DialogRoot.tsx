@@ -1,7 +1,11 @@
-import { mergeProps as solidMergeProps, type JSX } from 'solid-js';
-import { DialogContext } from '../utils/DialogContext';
-import { DialogRootContext, useOptionalDialogRootContext } from './DialogRootContext';
-import { useDialogRoot, type DialogOpenChangeReason } from './useDialogRoot';
+import { type Accessor, type JSX } from 'solid-js';
+import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { type PayloadChildRenderFunction } from '../../utils/popups';
+import { REASONS } from '../../utils/reasons';
+import { DialogHandle } from '../store/DialogHandle';
+import { DialogStore } from '../store/DialogStore';
+import { DialogRootContext, useDialogRootContext } from './DialogRootContext';
+import { useDialogRoot } from './useDialogRoot';
 
 /**
  * Groups all parts of the dialog.
@@ -9,98 +13,163 @@ import { useDialogRoot, type DialogOpenChangeReason } from './useDialogRoot';
  *
  * Documentation: [Base UI Dialog](https://base-ui.com/react/components/dialog)
  */
-export function DialogRoot(props: DialogRoot.Props) {
+export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
+  const openProp = () => props.open;
   const defaultOpen = () => props.defaultOpen ?? false;
-  const dismissible = () => props.dismissible ?? true;
+  const disablePointerDismissal = () => props.disablePointerDismissal ?? false;
   const modal = () => props.modal ?? true;
+  const triggerIdProp = () => props.triggerId;
+  const defaultTriggerIdProp = () => props.defaultTriggerId ?? null;
 
-  const parentDialogRootContext = useOptionalDialogRootContext();
-
-  const dialogRoot = useDialogRoot({
-    open: () => props.open,
-    defaultOpen,
-    // eslint-disable-next-line solid/reactivity
-    onOpenChange: props.onOpenChange,
-    modal,
-    dismissible,
-    actionsRef: () => props.actionsRef,
-    // eslint-disable-next-line solid/reactivity
-    onOpenChangeComplete: props.onOpenChangeComplete,
-    onNestedDialogClose: parentDialogRootContext?.onNestedDialogClose,
-    onNestedDialogOpen: parentDialogRootContext?.onNestedDialogOpen,
-  });
-
+  const parentDialogRootContext = useDialogRootContext(true);
   const nested = () => Boolean(parentDialogRootContext);
 
-  const dialogContextValue: DialogContext = solidMergeProps(dialogRoot, {
-    nested,
-    // eslint-disable-next-line solid/reactivity
-    onOpenChangeComplete: props.onOpenChangeComplete,
+  const store =
+    props.handle?.store ??
+    new DialogStore<Payload>({
+      get open() {
+        return openProp() ?? defaultOpen();
+      },
+      get activeTriggerId() {
+        return triggerIdProp() !== undefined ? triggerIdProp() : defaultTriggerIdProp();
+      },
+      get modal() {
+        return modal();
+      },
+      get disablePointerDismissal() {
+        return disablePointerDismissal();
+      },
+      get nested() {
+        return nested();
+      },
+    });
+
+  store.useControlledProp('open', openProp, defaultOpen);
+  store.useControlledProp('activeTriggerId', triggerIdProp, defaultTriggerIdProp);
+  store.useSyncedValues({
+    get disablePointerDismissal() {
+      return disablePointerDismissal();
+    },
+    get nested() {
+      return nested();
+    },
+    get modal() {
+      return modal();
+    },
+  });
+  store.useContextCallback('onOpenChange', props.onOpenChange);
+  store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
+
+  const payload = store.useState('payload') as Accessor<Payload | undefined>;
+
+  useDialogRoot({
+    store,
+    actionsRef: props.actionsRef,
+    parentContext: parentDialogRootContext?.store.context,
+    onOpenChange: props.onOpenChange,
+    get triggerIdProp() {
+      return triggerIdProp();
+    },
   });
 
-  const dialogRootContextValue: DialogRootContext = {
-    dismissible,
-  };
+  const contextValue: DialogRootContext<Payload> = { store };
 
   return (
-    <DialogContext.Provider value={dialogContextValue}>
-      <DialogRootContext.Provider value={dialogRootContextValue}>
-        {props.children}
-      </DialogRootContext.Provider>
-    </DialogContext.Provider>
+    <DialogRootContext.Provider value={contextValue as DialogRootContext}>
+      {typeof props.children === 'function'
+        ? props.children({ payload: payload() })
+        : props.children}
+    </DialogRootContext.Provider>
   );
 }
 
+export interface DialogRootProps<Payload = unknown> {
+  /**
+   * Whether the dialog is currently open.
+   */
+  open?: boolean;
+  /**
+   * Whether the dialog is initially open.
+   *
+   * To render a controlled dialog, use the `open` prop instead.
+   * @default false
+   */
+  defaultOpen?: boolean;
+  /**
+   * Determines if the dialog enters a modal state when open.
+   * - `true`: user interaction is limited to just the dialog: focus is trapped, document page scroll is locked, and pointer interactions on outside elements are disabled.
+   * - `false`: user interaction with the rest of the document is allowed.
+   * - `'trap-focus'`: focus is trapped inside the dialog, but document page scroll is not locked and pointer interactions outside of it remain enabled.
+   * @default true
+   */
+  modal?: boolean | 'trap-focus';
+  /**
+   * Event handler called when the dialog is opened or closed.
+   */
+  onOpenChange?: (open: boolean, eventDetails: DialogRoot.ChangeEventDetails) => void;
+  /**
+   * Event handler called after any animations complete when the dialog is opened or closed.
+   */
+  onOpenChangeComplete?: (open: boolean) => void;
+  /**
+   * Determines whether the dialog should close on outside clicks.
+   * @default false
+   */
+  disablePointerDismissal?: boolean;
+  /**
+   * A ref to imperative actions.
+   * - `unmount`: When specified, the dialog will not be unmounted when closed.
+   * Instead, the `unmount` function must be called to unmount the dialog manually.
+   * Useful when the dialog's animation is controlled by an external library.
+   * - `close`: Closes the dialog imperatively when called.
+   */
+  actionsRef?: DialogRoot.Actions;
+  /**
+   * A handle to associate the popover with a trigger.
+   * If specified, allows external triggers to control the popover's open state.
+   * Can be created with the Dialog.createHandle() method.
+   */
+  handle?: DialogHandle<Payload>;
+  /**
+   * The content of the dialog.
+   * This can be a regular React node or a render function that receives the `payload` of the active trigger.
+   */
+  children?: JSX.Element | PayloadChildRenderFunction<Payload>;
+  /**
+   * ID of the trigger that the dialog is associated with.
+   * This is useful in conjuntion with the `open` prop to create a controlled dialog.
+   * There's no need to specify this prop when the popover is uncontrolled (i.e. when the `open` prop is not set).
+   */
+  triggerId?: string | null;
+  /**
+   * ID of the trigger that the dialog is associated with.
+   * This is useful in conjunction with the `defaultOpen` prop to create an initially open dialog.
+   */
+  defaultTriggerId?: string | null;
+}
+
+export interface DialogRootActions {
+  unmount: () => void;
+  close: () => void;
+}
+
+export type DialogRootChangeEventReason =
+  | typeof REASONS.triggerPress
+  | typeof REASONS.outsidePress
+  | typeof REASONS.escapeKey
+  | typeof REASONS.closePress
+  | typeof REASONS.focusOut
+  | typeof REASONS.imperativeAction
+  | typeof REASONS.none;
+
+export type DialogRootChangeEventDetails =
+  BaseUIChangeEventDetails<DialogRoot.ChangeEventReason> & {
+    preventUnmountOnClose(): void;
+  };
+
 export namespace DialogRoot {
-  export interface Props {
-    children?: JSX.Element;
-    /**
-     * Whether the dialog is currently open.
-     */
-    open?: boolean;
-    /**
-     * Whether the dialog is initially open.
-     *
-     * To render a controlled dialog, use the `open` prop instead.
-     * @default false
-     */
-    defaultOpen?: boolean;
-    /**
-     * Determines if the dialog enters a modal state when open.
-     * - `true`: user interaction is limited to just the dialog: focus is trapped, document page scroll is locked, and pointer interactions on outside elements are disabled.
-     * - `false`: user interaction with the rest of the document is allowed.
-     * - `'trap-focus'`: focus is trapped inside the dialog, but document page scroll is not locked and pointer interactions outside of it remain enabled.
-     * @default true
-     */
-    modal?: boolean | 'trap-focus';
-    /**
-     * Event handler called when the dialog is opened or closed.
-     * @type (open: boolean, event?: Event, reason?: Dialog.Root.OpenChangeReason) => void
-     */
-    onOpenChange?: (
-      open: boolean,
-      event: Event | undefined,
-      reason: DialogOpenChangeReason | undefined,
-    ) => void;
-    /**
-     * Event handler called after any animations complete when the dialog is opened or closed.
-     */
-    onOpenChangeComplete?: (open: boolean) => void;
-    /**
-     * Determines whether the dialog should close on outside clicks.
-     * @default true
-     */
-    dismissible?: boolean;
-    /**
-     * A ref to imperative actions.
-     * - `unmount`: When specified, the dialog will not be unmounted when closed.
-     * Instead, the `unmount` function must be called to unmount the dialog manually.
-     * Useful when the dialog's animation is controlled by an external library.
-     */
-    actionsRef?: { unmount: () => void };
-  }
-
-  export type Actions = useDialogRoot.Actions;
-
-  export type OpenChangeReason = DialogOpenChangeReason;
+  export type Props<Payload = unknown> = DialogRootProps<Payload>;
+  export type Actions = DialogRootActions;
+  export type ChangeEventReason = DialogRootChangeEventReason;
+  export type ChangeEventDetails = DialogRootChangeEventDetails;
 }

@@ -1,126 +1,103 @@
-import { batch, createEffect, createSignal, on, onCleanup, onMount, type Accessor } from 'solid-js';
-import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
+import { createEffect, createMemo, createSignal, onMount } from 'solid-js';
 import {
-  FloatingRootContext,
-  useClick,
   useDismiss,
-  useFloatingRootContext,
   useInteractions,
   useRole,
-  type OpenChangeReason as FloatingUIOpenChangeReason,
+  useSyncedFloatingRootContext,
 } from '../../floating-ui-solid';
-import { getTarget } from '../../floating-ui-solid/utils';
-import { mergeProps } from '../../merge-props';
-import { access, type CodependentRefs, type MaybeAccessor } from '../../solid-helpers';
-import {
-  translateOpenChangeReason,
-  type BaseOpenChangeReason,
-} from '../../utils/translateOpenChangeReason';
-import type { BaseUIHTMLProps, HTMLProps, RequiredExcept } from '../../utils/types';
-import { useControlled } from '../../utils/useControlled';
-import { type InteractionType } from '../../utils/useEnhancedClickHandler';
-import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
+import { contains, getTarget } from '../../floating-ui-solid/utils';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { useImplicitActiveTrigger, useOpenStateTransitions } from '../../utils/popups';
+import { REASONS } from '../../utils/reasons';
 import { useOpenInteractionType } from '../../utils/useOpenInteractionType';
 import { useScrollLock } from '../../utils/useScrollLock';
-import { useTransitionStatus, type TransitionStatus } from '../../utils/useTransitionStatus';
-
-export type DialogOpenChangeReason = BaseOpenChangeReason | 'close-press';
+import { DialogStore } from '../store/DialogStore';
+import { type DialogRoot } from './DialogRoot';
 
 export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.ReturnValue {
-  const defaultOpen = () => access(params.defaultOpen);
-  const dismissible = () => access(params.dismissible);
-  const modal = () => access(params.modal);
-  const openParam = () => access(params.open);
-  const actionsRef = () => access(params.actionsRef);
+  const open = params.store.useState('open');
+  const disablePointerDismissal = params.store.useState('disablePointerDismissal');
+  const modal = params.store.useState('modal');
+  const popupElement = params.store.useState('popupElement');
 
-  const [open, setOpenUnwrapped] = useControlled({
-    controlled: openParam,
-    default: defaultOpen,
-    name: 'DialogRoot',
-    state: 'open',
+  const {
+    openMethod,
+    triggerProps,
+    reset: resetOpenInteractionType,
+  } = useOpenInteractionType(open);
+
+  useImplicitActiveTrigger(params.store);
+  const { forceUnmount } = useOpenStateTransitions(open, params.store, () => {
+    resetOpenInteractionType();
   });
 
-  const refs: useDialogRoot.ReturnValue['refs'] = {
-    popupRef: null,
-    backdropRef: null,
-    internalBackdropRef: null,
+  const createDialogEventDetails = (reason: DialogRoot.ChangeEventReason) => {
+    const details: DialogRoot.ChangeEventDetails =
+      createChangeEventDetails<DialogRoot.ChangeEventReason>(
+        reason,
+      ) as DialogRoot.ChangeEventDetails;
+    details.preventUnmountOnClose = () => {
+      params.store.set('preventUnmountingOnClose', true);
+    };
+
+    return details;
   };
 
-  const [titleElementId, setTitleElementId] = createSignal<string | undefined>();
-  const [descriptionElementId, setDescriptionElementId] = createSignal<string | undefined>();
-  const [triggerElement, setTriggerElement] = createSignal<Element | null>(null);
-  const [popupElement, setPopupElement] = createSignal<HTMLElement | null>(null);
-
-  const { transitionStatus, setMounted, mounted } = useTransitionStatus(open);
-
-  const setOpen = (
-    nextOpen: boolean,
-    event: Event | undefined,
-    reason: DialogOpenChangeReason | undefined,
-  ) => {
-    params.onOpenChange?.(nextOpen, event, reason);
-    setOpenUnwrapped(nextOpen);
+  const handleImperativeClose = () => {
+    params.store.setOpen(false, createDialogEventDetails(REASONS.imperativeAction));
   };
-
-  const handleUnmount = () => {
-    setMounted(false);
-    params.onOpenChangeComplete?.(false);
-  };
-
-  useOpenChangeComplete({
-    enabled: () => !actionsRef(),
-    open,
-    ref: () => refs.popupRef,
-    onComplete() {
-      if (!open()) {
-        handleUnmount();
-      }
-    },
-  });
 
   onMount(() => {
-    if (actionsRef()) {
-      actionsRef()!.unmount = handleUnmount;
-    }
+    params.actionsRef = { unmount: forceUnmount, close: handleImperativeClose };
   });
 
-  const handleFloatingUIOpenChange = (
-    nextOpen: boolean,
-    event: Event | undefined,
-    reason: FloatingUIOpenChangeReason | undefined,
-  ) => {
-    setOpen(nextOpen, event, translateOpenChangeReason(reason));
-  };
-
-  const context = useFloatingRootContext({
-    elements: { reference: triggerElement, floating: popupElement },
-    open,
-    onOpenChange: handleFloatingUIOpenChange,
+  const floatingRootContext = useSyncedFloatingRootContext({
+    popupStore: params.store,
+    onOpenChange: params.store.setOpen,
+    treatPopupAsFloatingElement: true,
+    noEmit: true,
   });
 
   const [ownNestedOpenDialogs, setOwnNestedOpenDialogs] = createSignal(0);
   const isTopmost = () => ownNestedOpenDialogs() === 0;
 
-  const role = useRole(context);
-  const click = useClick(context);
-  const dismiss = useDismiss(context, {
-    outsidePressEvent: 'mousedown',
+  const role = useRole(floatingRootContext);
+  const dismiss = useDismiss(floatingRootContext, {
+    outsidePressEvent() {
+      if (params.store.context.refs.internalBackdropRef || params.store.context.refs.backdropRef) {
+        return 'intentional';
+      }
+      // Ensure `aria-hidden` on outside elements is removed immediately
+      // on outside press when trapping focus.
+      return {
+        mouse: modal() === 'trap-focus' ? 'sloppy' : 'intentional',
+        touch: 'sloppy',
+      };
+    },
     outsidePress(event) {
-      if (event.button !== 0) {
+      // For mouse events, only accept left button (button 0)
+      // For touch events, a single touch is equivalent to left button
+      if ('button' in event && event.button !== 0) {
+        return false;
+      }
+      if ('touches' in event && event.touches.length !== 1) {
         return false;
       }
       const target = getTarget(event) as Element | null;
-      if (isTopmost() && dismissible()) {
-        const backdrop = target as HTMLDivElement | null;
+      if (isTopmost() && !disablePointerDismissal()) {
+        const eventTarget = target as Element | null;
         // Only close if the click occurred on the dialog's owning backdrop.
         // This supports multiple modal dialogs that aren't nested in the React tree:
         // https://github.com/mui/base-ui/issues/1320
         if (modal()) {
-          return backdrop
-            ? refs.internalBackdropRef === backdrop || refs.backdropRef === backdrop
-            : false;
+          return params.store.context.refs.internalBackdropRef ||
+            params.store.context.refs.backdropRef
+            ? params.store.context.refs.internalBackdropRef === eventTarget ||
+                params.store.context.refs.backdropRef === eventTarget ||
+                (contains(eventTarget, popupElement()) &&
+                  !eventTarget?.hasAttribute('data-base-ui-portal'))
+            : true;
         }
-
         return true;
       }
       return false;
@@ -130,249 +107,68 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
 
   useScrollLock({
     enabled: () => open() && modal() === true,
-    mounted,
-    open,
     referenceElement: popupElement,
   });
 
-  const { getReferenceProps, getFloatingProps } = useInteractions([role, click, dismiss]);
+  const { getReferenceProps, getFloatingProps, getTriggerProps } = useInteractions([role, dismiss]);
 
-  createEffect(() => {
-    if (params.onNestedDialogOpen && open()) {
-      params.onNestedDialogOpen(ownNestedOpenDialogs());
-    }
-
-    if (params.onNestedDialogClose && !open()) {
-      params.onNestedDialogClose();
-    }
-
-    onCleanup(() => {
-      if (params.onNestedDialogClose && open()) {
-        params.onNestedDialogClose();
-      }
-    });
+  // Listen for nested open/close events on this store to maintain the count
+  params.store.useContextCallback('onNestedDialogOpen', (ownChildrenCount) => {
+    setOwnNestedOpenDialogs(ownChildrenCount + 1);
   });
 
-  const handleNestedDialogOpen = (ownChildrenCount: number) => {
-    setOwnNestedOpenDialogs(ownChildrenCount + 1);
-  };
-
-  const handleNestedDialogClose = () => {
+  params.store.useContextCallback('onNestedDialogClose', () => {
     setOwnNestedOpenDialogs(0);
-  };
+  });
 
-  const { openMethod, triggerProps } = useOpenInteractionType(open);
+  // Notify parent of our open/close state using parent callbacks, if any
+  createEffect(() => {
+    if (params.parentContext?.onNestedDialogOpen && open()) {
+      params.parentContext.onNestedDialogOpen(ownNestedOpenDialogs());
+    }
+    if (params.parentContext?.onNestedDialogClose && !open()) {
+      params.parentContext.onNestedDialogClose();
+    }
+    return () => {
+      if (params.parentContext?.onNestedDialogClose && open()) {
+        params.parentContext.onNestedDialogClose();
+      }
+    };
+  });
 
-  // const dialogTriggerProps = createMemo(() => getReferenceProps(triggerProps));
+  const activeTriggerProps = createMemo(() => getReferenceProps(triggerProps));
+  const inactiveTriggerProps = createMemo(() => getTriggerProps(triggerProps));
 
-  const [codependentRefs, setCodependentRefs] = createStore<
-    useDialogRoot.ReturnValue['codependentRefs']
-  >({});
+  const popupProps = createMemo(() => getFloatingProps());
 
-  createEffect(
-    on([() => codependentRefs.title, () => codependentRefs.description], ([title, description]) => {
-      batch(() => {
-        if (title) {
-          setTitleElementId(title.explicitId());
-        }
-        if (description) {
-          setDescriptionElementId(description.explicitId());
-        }
-      });
-      onCleanup(() => {
-        setTitleElementId(undefined);
-        setDescriptionElementId(undefined);
-      });
-    }),
-  );
-
-  return {
-    modal,
-    setOpen,
-    open,
-    titleElementId,
-    descriptionElementId,
-    onNestedDialogOpen: handleNestedDialogOpen,
-    onNestedDialogClose: handleNestedDialogClose,
-    nestedOpenDialogCount: ownNestedOpenDialogs,
-    openMethod,
-    mounted,
-    transitionStatus,
-    triggerProps: (otherProps) => mergeProps(otherProps, getReferenceProps(triggerProps)),
-    getPopupProps: (otherProps) => mergeProps(otherProps, getFloatingProps),
-    setTriggerElement,
-    setPopupElement,
-    refs,
-    floatingRootContext: context,
-    codependentRefs,
-    setCodependentRefs,
-  } satisfies useDialogRoot.ReturnValue;
+  params.store.useSyncedValues({
+    get openMethod() {
+      return openMethod();
+    },
+    activeTriggerProps,
+    inactiveTriggerProps,
+    popupProps,
+    floatingRootContext,
+    get nestedOpenDialogCount() {
+      return ownNestedOpenDialogs();
+    },
+  });
 }
 
+export interface UseDialogRootSharedParameters {}
+
+export interface UseDialogRootParameters {
+  store: DialogStore<any>;
+  actionsRef?: DialogRoot.Props['actionsRef'];
+  parentContext?: DialogStore<unknown>['context'];
+  onOpenChange: DialogRoot.Props['onOpenChange'];
+  triggerIdProp?: string | null;
+}
+
+export type UseDialogRootReturnValue = void;
+
 export namespace useDialogRoot {
-  export interface SharedParameters {
-    /**
-     * Whether the dialog is currently open.
-     */
-    open?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Whether the dialog is initially open.
-     *
-     * To render a controlled dialog, use the `open` prop instead.
-     * @default false
-     */
-    defaultOpen?: MaybeAccessor<boolean | undefined>;
-    /**
-     * Determines if the dialog enters a modal state when open.
-     * - `true`: user interaction is limited to just the dialog: focus is trapped, document page scroll is locked, and pointer interactions on outside elements are disabled.
-     * - `false`: user interaction with the rest of the document is allowed.
-     * - `'trap-focus'`: focus is trapped inside the dialog, but document page scroll is not locked and pointer interactions outside of it remain enabled.
-     * @default true
-     */
-    modal?: MaybeAccessor<boolean | 'trap-focus' | undefined>;
-    /**
-     * Event handler called when the dialog is opened or closed.
-     * @type (open: boolean, event?: Event, reason?: Dialog.Root.OpenChangeReason) => void
-     */
-    onOpenChange?: (
-      open: boolean,
-      event: Event | undefined,
-      reason: DialogOpenChangeReason | undefined,
-    ) => void;
-    /**
-     * Event handler called after any animations complete when the dialog is opened or closed.
-     */
-    onOpenChangeComplete?: (open: boolean) => void;
-    /**
-     * Determines whether the dialog should close on outside clicks.
-     * @default true
-     */
-    dismissible?: MaybeAccessor<boolean | undefined>;
-    /**
-     * A ref to imperative actions.
-     * - `unmount`: When specified, the dialog will not be unmounted when closed.
-     * Instead, the `unmount` function must be called to unmount the dialog manually.
-     * Useful when the dialog's animation is controlled by an external library.
-     */
-    actionsRef?: MaybeAccessor<{ unmount: () => void } | undefined>;
-  }
-
-  export interface Parameters
-    extends RequiredExcept<
-      SharedParameters,
-      'open' | 'onOpenChange' | 'onOpenChangeComplete' | 'actionsRef'
-    > {
-    /**
-     * Callback to invoke when a nested dialog is opened.
-     */
-    onNestedDialogOpen?: (ownChildrenCount: number) => void;
-    /**
-     * Callback to invoke when a nested dialog is closed.
-     */
-    onNestedDialogClose?: () => void;
-    /**
-     * A ref to imperative actions.
-     */
-    actionsRef?: MaybeAccessor<Actions | undefined>;
-  }
-
-  export interface ReturnValue {
-    /**
-     * The id of the description element associated with the dialog.
-     */
-    descriptionElementId: Accessor<string | undefined>;
-    /**
-     * Whether the dialog enters a modal state when open.
-     */
-    modal: Accessor<boolean | 'trap-focus' | undefined>;
-    /**
-     * Number of nested dialogs that are currently open.
-     */
-    nestedOpenDialogCount: Accessor<number>;
-    /**
-     * Callback to invoke when a nested dialog is closed.
-     */
-    onNestedDialogClose?: () => void;
-    /**
-     * Callback to invoke when a nested dialog is opened.
-     */
-    onNestedDialogOpen?: (ownChildrenCount: number) => void;
-    /**
-     * Event handler called when the dialog is opened or closed.
-     */
-    setOpen: (
-      open: boolean,
-      event: Event | undefined,
-      reason: DialogOpenChangeReason | undefined,
-    ) => void;
-    /**
-     * Whether the dialog is currently open.
-     */
-    open: Accessor<boolean>;
-    /**
-     * Determines what triggered the dialog to open.
-     */
-    openMethod: Accessor<InteractionType | null>;
-    /**
-     * The id of the title element associated with the dialog.
-     */
-    titleElementId: Accessor<string | undefined>;
-    /**
-     * Determines if the dialog should be mounted.
-     */
-    mounted: Accessor<boolean>;
-    /**
-     * The transition status of the dialog.
-     */
-    transitionStatus: Accessor<TransitionStatus>;
-    /**
-     * Resolver for the Trigger element's props.
-     */
-    triggerProps: (externalProps: HTMLProps | BaseUIHTMLProps) => BaseUIHTMLProps;
-    /**
-     * Resolver for the Popup element's props.
-     */
-    getPopupProps: (externalProps: HTMLProps | BaseUIHTMLProps) => BaseUIHTMLProps;
-    /**
-     * Callback to register the Trigger element DOM node.
-     */
-    setTriggerElement: (element: Element | null | undefined) => void;
-    /**
-     * Callback to register the Popup element DOM node.
-     */
-    setPopupElement: (element: HTMLElement | null | undefined) => void;
-    /**
-     * Refs to the dialog elements.
-     */
-    refs: {
-      /**
-       * The ref to the Popup element.
-       */
-      popupRef: HTMLElement | null | undefined;
-      /**
-       * A ref to the backdrop element.
-       */
-      backdropRef: HTMLDivElement | null | undefined;
-      /**
-       * A ref to the internal backdrop element.
-       */
-      internalBackdropRef: HTMLDivElement | null | undefined;
-    };
-    /**
-     * The Floating UI root context.
-     */
-    floatingRootContext: FloatingRootContext;
-    /**
-     * Codependent refs.
-     */
-    codependentRefs: Store<CodependentRefs<['title', 'description']>>;
-    /**
-     * Callback to set the codependent refs.
-     */
-    setCodependentRefs: SetStoreFunction<CodependentRefs<['title', 'description']>>;
-  }
-
-  export interface Actions {
-    unmount: () => void;
-  }
+  export type SharedParameters = UseDialogRootSharedParameters;
+  export type Parameters = UseDialogRootParameters;
+  export type ReturnValue = UseDialogRootReturnValue;
 }

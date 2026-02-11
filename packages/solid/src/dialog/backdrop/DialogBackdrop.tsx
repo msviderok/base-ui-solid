@@ -1,13 +1,13 @@
 import { splitComponentProps } from '../../solid-helpers';
-import { type CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { type StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import { type BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { type TransitionStatus } from '../../utils/useTransitionStatus';
 import { useDialogRootContext } from '../root/DialogRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<DialogBackdrop.State> = {
+const stateAttributesMapping: StateAttributesMapping<DialogBackdrop.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -19,8 +19,13 @@ const customStyleHookMapping: CustomStyleHookMapping<DialogBackdrop.State> = {
  * Documentation: [Base UI Dialog](https://base-ui.com/react/components/dialog)
  */
 export function DialogBackdrop(componentProps: DialogBackdrop.Props) {
-  const [, , elementProps] = splitComponentProps(componentProps, []);
-  const { open, nested, mounted, transitionStatus, refs } = useDialogRootContext();
+  const [, local, elementProps] = splitComponentProps(componentProps, ['forceRender']);
+  const { store } = useDialogRootContext();
+
+  const open = store.useState('open');
+  const nested = store.useState('nested');
+  const mounted = store.useState('mounted');
+  const transitionStatus = store.useState('transitionStatus');
 
   const state: DialogBackdrop.State = {
     get open() {
@@ -34,9 +39,9 @@ export function DialogBackdrop(componentProps: DialogBackdrop.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      refs.backdropRef = el;
+      store.context.refs.backdropRef = el;
     },
-    customStyleHookMapping,
+    stateAttributesMapping,
     props: [
       {
         get hidden() {
@@ -50,20 +55,29 @@ export function DialogBackdrop(componentProps: DialogBackdrop.Props) {
       },
       elementProps,
     ],
-    enabled: () => !nested(),
+    enabled: () => local.forceRender || !nested(),
   });
 
   return <>{element()}</>;
 }
 
-export namespace DialogBackdrop {
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface DialogBackdropProps extends BaseUIComponentProps<'div', DialogBackdrop.State> {
+  /**
+   * Whether the backdrop is forced to render even when nested.
+   * @default false
+   */
+  forceRender?: boolean;
+}
 
-  export interface State {
-    /**
-     * Whether the dialog is currently open.
-     */
-    open: boolean;
-    transitionStatus: TransitionStatus;
-  }
+export interface DialogBackdropState {
+  /**
+   * Whether the dialog is currently open.
+   */
+  open: boolean;
+  transitionStatus: TransitionStatus;
+}
+
+export namespace DialogBackdrop {
+  export type Props = DialogBackdropProps;
+  export type State = DialogBackdropState;
 }

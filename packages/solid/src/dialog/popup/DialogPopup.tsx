@@ -1,10 +1,9 @@
+import { COMPOSITE_KEYS } from '../../composite/composite';
 import { FloatingFocusManager } from '../../floating-ui-solid';
-import { access, splitComponentProps } from '../../solid-helpers';
-import { type CustomStyleHookMapping } from '../../utils/getStyleHookProps';
-import { inertValue } from '../../utils/inertValue';
-import { InternalBackdrop } from '../../utils/InternalBackdrop';
+import { splitComponentProps } from '../../solid-helpers';
+import { type StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import { type BaseUIComponentProps } from '../../utils/types';
 import { InteractionType } from '../../utils/useEnhancedClickHandler';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
@@ -13,13 +12,12 @@ import { type TransitionStatus } from '../../utils/useTransitionStatus';
 import { useDialogRootContext } from '../root/DialogRootContext';
 import { DialogPopupCssVars } from './DialogPopupCssVars';
 import { DialogPopupDataAttributes } from './DialogPopupDataAttributes';
-import { useDialogPopup } from './useDialogPopup';
 
-const customStyleHookMapping: CustomStyleHookMapping<DialogPopup.State> = {
+const stateAttributesMapping: StateAttributesMapping<DialogPopup.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
   nestedDialogOpen(value) {
-    return access(value) ? { [DialogPopupDataAttributes.nestedDialogOpen]: '' } : null;
+    return value ? { [DialogPopupDataAttributes.nestedDialogOpen]: '' } : null;
   },
 };
 
@@ -35,45 +33,43 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
     'initialFocus',
   ]);
 
-  const {
-    descriptionElementId,
-    dismissible,
-    floatingRootContext,
-    getPopupProps,
-    modal,
-    mounted,
-    nested,
-    nestedOpenDialogCount,
-    setOpen,
-    open,
-    openMethod,
-    refs,
-    setPopupElement,
-    titleElementId,
-    transitionStatus,
-    onOpenChangeComplete,
-  } = useDialogRootContext();
+  const { store } = useDialogRootContext();
+
+  const descriptionElementId = store.useState('descriptionElementId');
+  const disablePointerDismissal = store.useState('disablePointerDismissal');
+  const floatingRootContext = store.useState('floatingRootContext');
+  const rootPopupProps = store.useState('popupProps');
+  const modal = store.useState('modal');
+  const mounted = store.useState('mounted');
+  const nested = store.useState('nested');
+  const nestedOpenDialogCount = store.useState('nestedOpenDialogCount');
+  const open = store.useState('open');
+  const openMethod = store.useState('openMethod');
+  const titleElementId = store.useState('titleElementId');
+  const transitionStatus = store.useState('transitionStatus');
+  const role = store.useState('role');
 
   useOpenChangeComplete({
     open,
-    ref: () => refs.popupRef,
+    ref: store.context.refs.popupRef,
     onComplete() {
       if (open()) {
-        onOpenChangeComplete?.(true);
+        store.context.onOpenChangeComplete?.(true);
       }
     },
   });
+  // Default initial focus logic:
+  // If opened by touch, focus the popup element to prevent the virtual keyboard from opening
+  // (this is required for Android specifically as iOS handles this automatically).
+  function defaultInitialFocus(interactionType: InteractionType) {
+    if (interactionType === 'touch') {
+      return store.context.refs.popupRef;
+    }
+    return true;
+  }
 
-  const { popupProps, resolvedInitialFocus, dialogPopupRef } = useDialogPopup({
-    descriptionElementId,
-    initialFocus: local.initialFocus,
-    modal,
-    mounted,
-    setOpen,
-    openMethod,
-    setPopupElement,
-    titleElementId,
-  });
+  const resolvedInitialFocus = () =>
+    local.initialFocus === undefined ? defaultInitialFocus : local.initialFocus;
 
   const nestedDialogOpen = () => nestedOpenDialogCount() > 0;
 
@@ -94,14 +90,27 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: (el) => {
-      refs.popupRef = el;
-      dialogPopupRef(el);
-    },
     props: [
-      getPopupProps,
-      popupProps,
+      rootPopupProps,
       {
+        get 'aria-labelledby'() {
+          return titleElementId() ?? undefined;
+        },
+        get 'aria-describedby'() {
+          return descriptionElementId() ?? undefined;
+        },
+        get role() {
+          return role();
+        },
+        tabIndex: -1,
+        get hidden() {
+          return !mounted();
+        },
+        onKeyDown(event: KeyboardEvent) {
+          if (COMPOSITE_KEYS.has(event.key)) {
+            event.stopPropagation();
+          }
+        },
         get style() {
           return {
             [DialogPopupCssVars.nestedDialogs]: nestedOpenDialogCount(),
@@ -110,27 +119,24 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
       },
       elementProps,
     ],
-    customStyleHookMapping,
+    ref: (el) => {
+      store.context.refs.popupRef = el;
+      store.useStateSetter('popupElement')(el);
+    },
+    stateAttributesMapping,
   });
 
   return (
     <>
-      {mounted() && modal() === true && (
-        <InternalBackdrop
-          managed
-          inert={inertValue(!open())}
-          ref={(el) => {
-            refs.internalBackdropRef = el;
-          }}
-        />
-      )}
       <FloatingFocusManager
-        context={floatingRootContext}
+        context={floatingRootContext()}
+        openInteractionType={openMethod()}
         disabled={!mounted()}
-        closeOnFocusOut={dismissible?.()}
+        closeOnFocusOut={!disablePointerDismissal()}
         initialFocus={resolvedInitialFocus()}
         returnFocus={local.finalFocus}
         modal={modal() !== false}
+        restoreFocus="popup"
       >
         {element()}
       </FloatingFocusManager>
@@ -138,37 +144,56 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
   );
 }
 
-export namespace DialogPopup {
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * Determines the element to focus when the dialog is opened.
-     * By default, the first focusable element is focused.
-     */
-    initialFocus?:
-      | HTMLElement
-      | null
-      | undefined
-      | ((interactionType: InteractionType) => HTMLElement | null | undefined);
-    /**
-     * Determines the element to focus when the dialog is closed.
-     * By default, focus returns to the trigger.
-     */
-    finalFocus?: HTMLElement | null | undefined;
-  }
+export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopup.State> {
+  /**
+   * Determines the element to focus when the dialog is opened.
+   *
+   * - `false`: Do not move focus.
+   * - `true`: Move focus based on the default behavior (first tabbable element or popup).
+   * - `RefObject`: Move focus to the ref element.
+   * - `function`: Called with the interaction type (`mouse`, `touch`, `pen`, or `keyboard`).
+   *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
+   */
+  initialFocus?:
+    | boolean
+    | HTMLElement
+    | null
+    | undefined
+    | ((openType: InteractionType) => boolean | HTMLElement | null | void);
+  /**
+   * Determines the element to focus when the dialog is closed.
+   *
+   * - `false`: Do not move focus.
+   * - `true`: Move focus based on the default behavior (trigger or previously focused element).
+   * - `RefObject`: Move focus to the ref element.
+   * - `function`: Called with the interaction type (`mouse`, `touch`, `pen`, or `keyboard`).
+   *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
+   */
+  finalFocus?:
+    | boolean
+    | HTMLElement
+    | null
+    | undefined
+    | ((closeType: InteractionType) => boolean | HTMLElement | null | void);
+}
 
-  export interface State {
-    /**
-     * Whether the dialog is currently open.
-     */
-    open: boolean;
-    transitionStatus: TransitionStatus;
-    /**
-     * Whether the dialog is nested within a parent dialog.
-     */
-    nested: boolean;
-    /**
-     * Whether the dialog has nested dialogs open.
-     */
-    nestedDialogOpen: boolean;
-  }
+export interface DialogPopupState {
+  /**
+   * Whether the dialog is currently open.
+   */
+  open: boolean;
+  transitionStatus: TransitionStatus;
+  /**
+   * Whether the dialog is nested within a parent dialog.
+   */
+  nested: boolean;
+  /**
+   * Whether the dialog has nested dialogs open.
+   */
+  nestedDialogOpen: boolean;
+}
+
+export namespace DialogPopup {
+  export type Props = DialogPopupProps;
+  export type State = DialogPopupState;
 }

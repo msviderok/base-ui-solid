@@ -1,4 +1,3 @@
-import { onMount } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -13,20 +12,14 @@ import { useDialogRootContext } from '../root/DialogRootContext';
  */
 export function DialogDescription(componentProps: DialogDescription.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
-  const { setCodependentRefs } = useDialogRootContext();
+  const idProp = () => local.id;
+  const { store } = useDialogRootContext();
 
-  const id = useBaseUiId(() => local.id);
+  const id = useBaseUiId(idProp);
 
-  let ref: HTMLElement;
-
-  onMount(() => {
-    setCodependentRefs('description', { explicitId: id, ref: () => ref, id: () => local.id });
-  });
+  store.useSyncedValueWithCleanup('descriptionElementId', id);
 
   const element = useRenderElement('p', componentProps, {
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -40,8 +33,14 @@ export function DialogDescription(componentProps: DialogDescription.Props) {
   return <>{element()}</>;
 }
 
-export namespace DialogDescription {
-  export interface Props extends BaseUIComponentProps<'p', State> {}
+export interface DialogDescriptionProps extends BaseUIComponentProps<
+  'p',
+  DialogDescription.State
+> {}
 
-  export interface State {}
+export interface DialogDescriptionState {}
+
+export namespace DialogDescription {
+  export type Props = DialogDescriptionProps;
+  export type State = DialogDescriptionState;
 }

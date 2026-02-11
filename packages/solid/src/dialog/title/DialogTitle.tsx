@@ -1,4 +1,3 @@
-import { onMount } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { type BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -13,19 +12,14 @@ import { useDialogRootContext } from '../root/DialogRootContext';
  */
 export function DialogTitle(componentProps: DialogTitle.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
-  const { setCodependentRefs } = useDialogRootContext();
+  const idProp = () => local.id;
+  const { store } = useDialogRootContext();
 
-  const id = useBaseUiId(() => local.id);
-  let ref: HTMLElement;
+  const id = useBaseUiId(idProp);
 
-  onMount(() => {
-    setCodependentRefs('title', { explicitId: id, ref: () => ref, id: () => local.id });
-  });
+  store.useSyncedValueWithCleanup('titleElementId', id);
 
   const element = useRenderElement('h2', componentProps, {
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -39,8 +33,11 @@ export function DialogTitle(componentProps: DialogTitle.Props) {
   return <>{element()}</>;
 }
 
-export namespace DialogTitle {
-  export interface Props extends BaseUIComponentProps<'h2', State> {}
+export interface DialogTitleProps extends BaseUIComponentProps<'h2', DialogTitle.State> {}
 
-  export interface State {}
+export interface DialogTitleState {}
+
+export namespace DialogTitle {
+  export type Props = DialogTitleProps;
+  export type State = DialogTitleState;
 }

@@ -9,11 +9,13 @@ describe('<Dialog.Close />', () => {
 
   describeConformance(Dialog.Close, () => ({
     refInstanceof: window.HTMLButtonElement,
+    testComponentPropWith: 'button',
+    button: true,
     render: (node, props) =>
       render(() => (
         <Dialog.Root open modal={false}>
           <Dialog.Portal>
-            <Dialog.Popup>{node(props)}</Dialog.Popup>
+            <Dialog.Popup>{node(props!)}</Dialog.Popup>
           </Dialog.Portal>
         </Dialog.Root>
       )),
