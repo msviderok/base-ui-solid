@@ -6,14 +6,16 @@ describe('<PreviewCard.Backdrop />', () => {
   const { render } = createRenderer();
 
   describeConformance(PreviewCard.Backdrop, () => ({
-    render: (node, props) => render(() => <PreviewCard.Root open>{node(props)}</PreviewCard.Root>),
+    render: (node, props) => render(() => <PreviewCard.Root open>{node(props!)}</PreviewCard.Root>),
     refInstanceof: window.HTMLDivElement,
   }));
 
   it('sets `pointer-events: none` style', async () => {
     const { user } = render(() => (
-      <PreviewCard.Root delay={0} closeDelay={0}>
-        <PreviewCard.Trigger>Open</PreviewCard.Trigger>
+      <PreviewCard.Root>
+        <PreviewCard.Trigger delay={0} closeDelay={0}>
+          Open
+        </PreviewCard.Trigger>
         <PreviewCard.Portal>
           <PreviewCard.Backdrop data-testid="backdrop" />
           <PreviewCard.Positioner>

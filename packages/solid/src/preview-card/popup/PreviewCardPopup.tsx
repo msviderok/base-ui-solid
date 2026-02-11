@@ -1,8 +1,9 @@
+import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
-import { DISABLED_TRANSITIONS_STYLE } from '../../utils/constants';
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
@@ -11,7 +12,7 @@ import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import { usePreviewCardPositionerContext } from '../positioner/PreviewCardPositionerContext';
 import { usePreviewCardRootContext } from '../root/PreviewCardContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<PreviewCardPopup.State> = {
+const stateAttributesMapping: StateAttributesMapping<PreviewCardPopup.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -59,31 +60,33 @@ export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
     ref: (el) => {
       refs.popupRef = el;
     },
-    customStyleHookMapping,
     props: [
       popupProps,
-      {
-        get style() {
-          return transitionStatus() === 'starting' ? DISABLED_TRANSITIONS_STYLE.style : undefined;
-        },
-      },
+      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
       elementProps,
     ],
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace PreviewCardPopup {
-  export interface State {
-    /**
-     * Whether the preview card is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    transitionStatus: TransitionStatus;
-  }
+export interface PreviewCardPopupState {
+  /**
+   * Whether the preview card is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface PreviewCardPopupProps extends BaseUIComponentProps<
+  'div',
+  PreviewCardPopup.State
+> {}
+
+export namespace PreviewCardPopup {
+  export type State = PreviewCardPopupState;
+  export type Props = PreviewCardPopupProps;
 }

@@ -36,7 +36,6 @@ export function PreviewCardArrow(componentProps: PreviewCardArrow.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: refs.setArrowRef,
-    customStyleHookMapping: popupStateMapping,
     props: [
       {
         get style() {
@@ -46,21 +45,28 @@ export function PreviewCardArrow(componentProps: PreviewCardArrow.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: popupStateMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace PreviewCardArrow {
-  export interface State {
-    /**
-     * Whether the preview card is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    uncentered: boolean;
-  }
+export interface PreviewCardArrowState {
+  /**
+   * Whether the preview card is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  uncentered: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface PreviewCardArrowProps extends BaseUIComponentProps<
+  'div',
+  PreviewCardArrow.State
+> {}
+
+export namespace PreviewCardArrow {
+  export type State = PreviewCardArrowState;
+  export type Props = PreviewCardArrowProps;
 }

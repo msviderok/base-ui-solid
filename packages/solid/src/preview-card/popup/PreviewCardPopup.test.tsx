@@ -11,7 +11,7 @@ describe('<Popover.Popup />', () => {
       render(() => (
         <PreviewCard.Root open>
           <PreviewCard.Portal>
-            <PreviewCard.Positioner>{node(props)}</PreviewCard.Positioner>
+            <PreviewCard.Positioner>{node(props!)}</PreviewCard.Positioner>
           </PreviewCard.Portal>
         </PreviewCard.Root>
       )),

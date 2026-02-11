@@ -14,7 +14,7 @@ describe('<PreviewCard.Positioner />', () => {
     render: (node, props) =>
       render(() => (
         <PreviewCard.Root open>
-          <PreviewCard.Portal>{node(props)}</PreviewCard.Portal>
+          <PreviewCard.Portal>{node(props!)}</PreviewCard.Portal>
         </PreviewCard.Root>
       )),
     refInstanceof: window.HTMLDivElement,

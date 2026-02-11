@@ -1,13 +1,13 @@
 import { splitComponentProps } from '../../solid-helpers';
-import { type CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { type StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import { usePreviewCardRootContext } from '../root/PreviewCardContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<PreviewCardBackdrop.State> = {
+const stateAttributesMapping: StateAttributesMapping<PreviewCardBackdrop.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -34,7 +34,6 @@ export function PreviewCardBackdrop(componentProps: PreviewCardBackdrop.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    customStyleHookMapping,
     props: [
       {
         role: 'presentation',
@@ -49,19 +48,26 @@ export function PreviewCardBackdrop(componentProps: PreviewCardBackdrop.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace PreviewCardBackdrop {
-  export interface State {
-    /**
-     * Whether the preview card is currently open.
-     */
-    open: boolean;
-    transitionStatus: TransitionStatus;
-  }
+export interface PreviewCardBackdropState {
+  /**
+   * Whether the preview card is currently open.
+   */
+  open: boolean;
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface PreviewCardBackdropProps extends BaseUIComponentProps<
+  'div',
+  PreviewCardBackdrop.State
+> {}
+
+export namespace PreviewCardBackdrop {
+  export type State = PreviewCardBackdropState;
+  export type Props = PreviewCardBackdropProps;
 }

@@ -1,11 +1,12 @@
+import * as React from 'react';
 import { PreviewCard } from '@base-ui/react/preview-card';
 import { createRenderer, describeConformance } from '#test-utils';
 
-describe('<PreviewCard.Trigger />', () => {
+describe('<PreviewCard.Portal />', () => {
   const { render } = createRenderer();
 
-  describeConformance(<PreviewCard.Trigger />, () => ({
-    refInstanceof: window.HTMLAnchorElement,
+  describeConformance(<PreviewCard.Portal keepMounted />, () => ({
+    refInstanceof: window.HTMLDivElement,
     render(node) {
       return render(<PreviewCard.Root open>{node}</PreviewCard.Root>);
     },

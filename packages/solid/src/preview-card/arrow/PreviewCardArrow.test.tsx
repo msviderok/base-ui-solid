@@ -10,7 +10,7 @@ describe('<PreviewCard.Arrow />', () => {
         <PreviewCard.Root open>
           <PreviewCard.Portal>
             <PreviewCard.Positioner>
-              <PreviewCard.Popup>{node(props)}</PreviewCard.Popup>
+              <PreviewCard.Popup>{node(props!)}</PreviewCard.Popup>
             </PreviewCard.Positioner>
           </PreviewCard.Portal>
         </PreviewCard.Root>

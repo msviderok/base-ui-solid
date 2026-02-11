@@ -1,17 +1,20 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
 import type { FloatingRootContext } from '../../floating-ui-solid';
-import type { BaseOpenChangeReason as OpenChangeReason } from '../../utils/translateOpenChangeReason';
 import type { BaseUIHTMLProps, HTMLProps } from '../../utils/types';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
+import type { PreviewCardRoot } from './PreviewCardRoot';
+
+export interface PreviewCardTriggerDelayConfig {
+  delay?: number;
+  closeDelay?: number;
+}
 
 export interface PreviewCardRootContext {
   open: Accessor<boolean>;
-  setOpen: (open: boolean, event: Event | undefined, reason: OpenChangeReason | undefined) => void;
+  setOpen: (open: boolean, eventDetails: PreviewCardRoot.ChangeEventDetails) => void;
   setTriggerElement: (el: Element | null | undefined) => void;
   positionerElement: Accessor<HTMLElement | null | undefined>;
   setPositionerElement: (el: HTMLElement | null | undefined) => void;
-  delay: Accessor<number>;
-  closeDelay: Accessor<number>;
   mounted: Accessor<boolean>;
   setMounted: (mounted: boolean) => void;
   triggerProps: (externalProps: HTMLProps | BaseUIHTMLProps) => BaseUIHTMLProps;
@@ -23,6 +26,7 @@ export interface PreviewCardRootContext {
     popupRef: HTMLElement | null | undefined;
   };
   onOpenChangeComplete: ((open: boolean) => void) | undefined;
+  writeDelayRefs: (config: PreviewCardTriggerDelayConfig) => void;
 }
 
 export const PreviewCardRootContext = createContext<PreviewCardRootContext | undefined>(undefined);
