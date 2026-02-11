@@ -1,5 +1,6 @@
+import * as React from 'react';
 import { expectType } from '#test-utils';
-import { AlertDialog } from '@msviderok/base-ui-solid/alert-dialog';
+import { AlertDialog } from '@base-ui/react/alert-dialog';
 
 const numberPayloadHandle = AlertDialog.createHandle<number>();
 
@@ -11,8 +12,8 @@ const rootWithDirectChildren = (
 
 const rootWithFunctionChildren = (
   <AlertDialog.Root handle={numberPayloadHandle}>
-    {(data) => {
-      expectType<number | undefined, typeof data.payload>(data.payload);
+    {({ payload }) => {
+      expectType<number | undefined, typeof payload>(payload);
       return null;
     }}
   </AlertDialog.Root>
