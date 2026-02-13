@@ -8,9 +8,10 @@ describe('<Select.Trigger />', () => {
   const { render } = createRenderer();
 
   describeConformance(Select.Trigger, () => ({
-    refInstanceof: window.HTMLDivElement,
+    refInstanceof: window.HTMLButtonElement,
+    button: true,
     render(node, props) {
-      return render(() => <Select.Root open>{node(props)}</Select.Root>);
+      return render(() => <Select.Root open>{node(props!)}</Select.Root>);
     },
   }));
 
@@ -37,7 +38,7 @@ describe('<Select.Trigger />', () => {
 
       await user.keyboard('[Tab]');
 
-      expect(expect(document.activeElement)).to.not.equal(trigger);
+      expect(expect(document.activeElement)).not.to.equal(trigger);
     });
 
     it('does not toggle the popup when disabled', async () => {
@@ -69,6 +70,95 @@ describe('<Select.Trigger />', () => {
     });
   });
 
+  describe('placeholder state', () => {
+    it('should have the data-placeholder attribute when provided `null` value', async () => {
+      render(() => (
+        <Select.Root value={null}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Item value="a">a</Select.Item>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger');
+      const value = screen.getByTestId('value');
+
+      expect(trigger).to.have.attribute('data-placeholder');
+      expect(value).to.have.attribute('data-placeholder');
+    });
+
+    it('should have the data-placeholder attribute when provided custom property with `itemToStringValue`', async () => {
+      const shippingMethods = [
+        { id: '', name: 'Default' },
+        { id: 'standard', name: 'Standard' },
+        { id: 'express', name: 'Express' },
+        { id: 'overnight', name: 'Overnight' },
+      ];
+
+      render(() => (
+        <Select.Root
+          defaultValue={shippingMethods[0]}
+          itemToStringValue={(item) => item.id}
+          itemToStringLabel={(item) => item.name}
+        >
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger');
+      const value = screen.getByTestId('value');
+
+      expect(trigger).to.have.attribute('data-placeholder');
+      expect(value).to.have.attribute('data-placeholder');
+      expect(value.textContent).to.equal('Default');
+    });
+
+    it('should have the data-placeholder attribute when provided { value: null }', async () => {
+      const fonts = [{ label: 'Select font', value: null }];
+
+      render(() => (
+        <Select.Root items={fonts}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger');
+      const value = screen.getByTestId('value');
+
+      expect(trigger).to.have.attribute('data-placeholder');
+      expect(value).to.have.attribute('data-placeholder');
+      expect(value.textContent).to.equal('Select font');
+    });
+
+    it('should not have the data-placeholder attribute when provided a value', async () => {
+      render(() => (
+        <Select.Root defaultValue="a">
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger');
+      const value = screen.getByTestId('value');
+
+      expect(trigger).not.to.have.attribute('data-placeholder');
+      expect(value).not.to.have.attribute('data-placeholder');
+    });
+  });
+
   describe('style hooks', () => {
     it('should have the data-popup-open and data-pressed attributes when open', async () => {
       render(() => (
@@ -83,6 +173,19 @@ describe('<Select.Trigger />', () => {
 
       expect(trigger).to.have.attribute('data-popup-open');
       expect(trigger).to.have.attribute('data-pressed');
+    });
+  });
+
+  describe('prop: required', () => {
+    it('sets aria-required attribute when required', async () => {
+      render(() => (
+        <Select.Root required>
+          <Select.Trigger data-testid="trigger" />
+        </Select.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger');
+      expect(trigger).to.have.attribute('aria-required', 'true');
     });
   });
 });

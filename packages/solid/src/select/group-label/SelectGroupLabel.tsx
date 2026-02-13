@@ -1,4 +1,4 @@
-import { createRenderEffect } from 'solid-js';
+import { createEffect } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -13,12 +13,13 @@ import { useSelectGroupContext } from '../group/SelectGroupContext';
  */
 export function SelectGroupLabel(componentProps: SelectGroupLabel.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
+  const idProp = () => local.id;
 
   const { setLabelId } = useSelectGroupContext();
 
-  const id = useBaseUiId(() => local.id);
+  const id = useBaseUiId(idProp);
 
-  createRenderEffect(() => {
+  createEffect(() => {
     setLabelId(id());
   });
 
@@ -36,8 +37,14 @@ export function SelectGroupLabel(componentProps: SelectGroupLabel.Props) {
   return <>{element()}</>;
 }
 
-export namespace SelectGroupLabel {
-  export interface State {}
+export interface SelectGroupLabelState {}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface SelectGroupLabelProps extends BaseUIComponentProps<
+  'div',
+  SelectGroupLabel.State
+> {}
+
+export namespace SelectGroupLabel {
+  export type State = SelectGroupLabelState;
+  export type Props = SelectGroupLabelProps;
 }

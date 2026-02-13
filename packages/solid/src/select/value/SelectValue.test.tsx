@@ -3,7 +3,7 @@ import { Select } from '@msviderok/base-ui-solid/select';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { createSignal } from 'solid-js';
+import { createSignal, For } from 'solid-js';
 
 describe('<Select.Value />', () => {
   const { render } = createRenderer();
@@ -11,7 +11,7 @@ describe('<Select.Value />', () => {
   describeConformance(Select.Value, () => ({
     refInstanceof: window.HTMLSpanElement,
     render(node, props) {
-      return render(() => <Select.Root open>{node(props)}</Select.Root>);
+      return render(() => <Select.Root open>{node(props!)}</Select.Root>);
     },
   }));
 
@@ -258,7 +258,7 @@ describe('<Select.Value />', () => {
       expect(screen.getByTestId('value')).to.have.text('unknown');
     });
 
-    it('supports ReactNode labels in items array', async () => {
+    it('supports JSX.Element labels in items array', async () => {
       const items = [
         { value: 'bold', label: <strong>Bold Text</strong> },
         { value: 'italic', label: <em>Italic Text</em> },
@@ -271,6 +271,115 @@ describe('<Select.Value />', () => {
       ));
 
       expect(screen.getByTestId('value').querySelector('strong')).to.have.text('Bold Text');
+    });
+
+    it('is not stale after being updated', async () => {
+      function App() {
+        const [value, setValue] = createSignal<string | null>('a');
+        const [items, setItems] = createSignal([
+          { value: 'a', label: 'a' },
+          { value: 'b', label: 'b' },
+        ]);
+
+        function updateItems() {
+          setItems([
+            { value: 'a', label: 'a new' },
+            { value: 'b', label: 'b new' },
+            { value: 'c', label: 'c' },
+          ]);
+        }
+
+        return (
+          <div>
+            <button onClick={updateItems}>update</button>
+            <button onClick={() => setValue('c')}>select c</button>
+            <Select.Root value={value()} onValueChange={setValue} items={items()}>
+              <Select.Trigger>
+                <Select.Value data-testid="value" />
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner>
+                  <Select.Popup>
+                    <For each={items()}>
+                      {(item) => <Select.Item value={item.value}>{item.label}</Select.Item>}
+                    </For>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </div>
+        );
+      }
+
+      const { user } = render(() => <App />);
+
+      expect(screen.getByTestId('value')).to.have.text('a');
+
+      await user.click(screen.getByRole('button', { name: 'update' }));
+
+      expect(screen.getByTestId('value')).to.have.text('a new');
+
+      await user.click(screen.getByRole('button', { name: 'select c' }));
+
+      expect(screen.getByTestId('value')).to.have.text('c');
+    });
+  });
+
+  describe('prop: itemToStringLabel', () => {
+    it('uses custom itemToStringLabel function', async () => {
+      const items = [
+        { country: 'United States', code: 'US' },
+        { country: 'Canada', code: 'CA' },
+      ];
+
+      render(() => (
+        <Select.Root
+          value={items[1]}
+          itemToStringLabel={(i: any) => i.country}
+          itemToStringValue={(i: any) => i.code}
+        >
+          <Select.Trigger>
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <For each={items}>{(it) => <Select.Item value={it}>{it.country}</Select.Item>}</For>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      ));
+
+      expect(screen.getByTestId('value')).to.have.text('Canada');
+    });
+
+    it('falls back to label/value properties when functions are not provided', async () => {
+      const items = [
+        { label: 'United States', value: 'US' },
+        { label: 'Canada', value: 'CA' },
+      ];
+
+      render(() => (
+        <Select.Root name="country" value={items[1]}>
+          <Select.Trigger>
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <For each={items}>{(it) => <Select.Item value={it}>{it.label}</Select.Item>}</For>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      ));
+
+      const hiddenInput = screen.getByRole('textbox', {
+        hidden: true,
+      });
+      expect(hiddenInput).to.have.value('CA');
+      expect(hiddenInput).to.have.attribute('name', 'country');
     });
   });
 
@@ -344,5 +453,151 @@ describe('<Select.Value />', () => {
 
     await user.click(screen.getByRole('button', { name: 'null' }));
     expect(screen.getByTestId('value')).to.have.text('initial');
+  });
+
+  describe('prop: multiple', () => {
+    it('displays comma-separated labels for multiple values with items object', async () => {
+      const items = {
+        sans: 'Sans-serif',
+        serif: 'Serif',
+        mono: 'Monospace',
+      };
+
+      render(() => (
+        <Select.Root value={['sans', 'serif']} items={items} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      expect(screen.getByTestId('value')).to.have.text('Sans-serif, Serif');
+    });
+
+    it('displays comma-separated labels for multiple values with items array', async () => {
+      const items = [
+        { value: 'serif', label: 'Serif' },
+        { value: 'mono', label: 'Monospace' },
+      ];
+
+      render(() => (
+        <Select.Root value={['serif', 'mono']} items={items} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      expect(screen.getByTestId('value')).to.have.text('Serif, Monospace');
+    });
+
+    it('supports ReactNode labels for multiple selections', async () => {
+      const items = [
+        { value: 'bold', label: <strong>Bold Text</strong> },
+        { value: 'italic', label: <em>Italic Text</em> },
+      ];
+
+      render(() => (
+        <Select.Root value={['bold', 'italic']} items={items} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      const value = screen.getByTestId('value');
+      expect(value.querySelector('strong')).to.have.text('Bold Text');
+      expect(value.querySelector('em')).to.have.text('Italic Text');
+      expect(value).to.have.text('Bold Text, Italic Text');
+    });
+
+    it('falls back to raw values when no items are provided', async () => {
+      render(() => (
+        <Select.Root value={['serif', 'mono']} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      expect(screen.getByTestId('value')).to.have.text('serif, mono');
+    });
+
+    it('displays single value when only one value is selected in multiple mode', async () => {
+      render(() => (
+        <Select.Root value={['sans']} multiple>
+          <Select.Value data-testid="value" />
+        </Select.Root>
+      ));
+
+      expect(screen.getByTestId('value')).to.have.text('sans');
+    });
+
+    it('displays empty when no values are selected in multiple mode', async () => {
+      render(() => (
+        <Select.Root value={[]} multiple>
+          <Select.Value data-testid="value" />
+        </Select.Root>
+      ));
+
+      expect(screen.getByTestId('value')).to.have.text('');
+    });
+
+    it('children function receives array of values in multiple mode', async () => {
+      const children = spy();
+      const items = {
+        sans: 'Sans-serif',
+        serif: 'Serif',
+      };
+
+      render(() => (
+        <Select.Root value={['sans', 'serif']} items={items} multiple>
+          <Select.Value>
+            {(values) => {
+              children(values);
+              return `Selected: ${Array.isArray(values) ? values.join(' + ') : values}`;
+            }}
+          </Select.Value>
+        </Select.Root>
+      ));
+
+      expect(children.firstCall.firstArg).to.deep.equal(['sans', 'serif']);
+      expect(screen.getByText('Selected: sans + serif')).not.to.equal(null);
+    });
+
+    it('children prop takes precedence over items in multiple mode', async () => {
+      const items = {
+        sans: 'Sans-serif',
+        serif: 'Serif',
+      };
+
+      render(() => (
+        <Select.Root value={['sans', 'serif']} items={items} multiple>
+          <Select.Value data-testid="value">Custom Multiple Text</Select.Value>
+        </Select.Root>
+      ));
+
+      expect(screen.getByTestId('value')).to.have.text('Custom Multiple Text');
+    });
+
+    it('defaults to empty array when no value is provided', async () => {
+      const renderValue = spy();
+
+      render(() => (
+        <Select.Root multiple>
+          <Select.Value>{renderValue}</Select.Value>
+        </Select.Root>
+      ));
+
+      expect(renderValue.firstCall.firstArg).to.deep.equal([]);
+    });
   });
 });

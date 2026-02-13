@@ -6,6 +6,8 @@ export interface SelectItemContext {
     indexRef: number;
     textRef: HTMLElement | null | undefined;
   };
+  selectedByFocus: Accessor<boolean>;
+  hasRegistered: Accessor<boolean>;
 }
 
 export const SelectItemContext = createContext<SelectItemContext | undefined>(undefined);

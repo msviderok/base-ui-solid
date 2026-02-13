@@ -1,6 +1,6 @@
 import { type JSX, Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -21,7 +21,7 @@ export function SelectItemIndicator(componentProps: SelectItemIndicator.Props) {
 
   let indicatorRef = null as HTMLSpanElement | null | undefined;
 
-  const { mounted, transitionStatus, setMounted } = useTransitionStatus(selected);
+  const { transitionStatus, setMounted } = useTransitionStatus(selected);
 
   const state: SelectItemIndicator.State = {
     get selected() {
@@ -50,33 +50,31 @@ export function SelectItemIndicator(componentProps: SelectItemIndicator.Props) {
       indicatorRef = el;
     },
     customStyleHookMapping: transitionStatusMapping,
-    props: [
-      {
-        get hidden() {
-          return !mounted();
-        },
-        'aria-hidden': true,
-      },
-      elementProps,
-    ],
-    children: () => componentProps.children ?? '✔️',
+    props: [{ 'aria-hidden': true }, elementProps],
+    stateAttributesMapping: transitionStatusMapping,
+    get children() {
+      return <>{componentProps.children ?? '✔️'}</>;
+    },
   });
 
   return <Show when={shouldRender()}>{element()}</Show>;
 }
 
-export namespace SelectItemIndicator {
-  export interface Props extends BaseUIComponentProps<'span', State> {
-    children?: JSX.Element;
-    /**
-     * Whether to keep the HTML element in the DOM when the item is not selected.
-     * @default false
-     */
-    keepMounted?: boolean;
-  }
+export interface SelectItemIndicatorState {
+  selected: boolean;
+  transitionStatus: TransitionStatus;
+}
 
-  export interface State {
-    selected: boolean;
-    transitionStatus: TransitionStatus;
-  }
+export interface SelectItemIndicatorProps extends BaseUIComponentProps<
+  'span',
+  SelectItemIndicator.State
+> {
+  children?: JSX.Element;
+  /** Whether to keep the HTML element in the DOM when the item is not selected. */
+  keepMounted?: boolean;
+}
+
+export namespace SelectItemIndicator {
+  export type State = SelectItemIndicatorState;
+  export type Props = SelectItemIndicatorProps;
 }

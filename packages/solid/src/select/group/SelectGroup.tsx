@@ -34,8 +34,10 @@ export function SelectGroup(componentProps: SelectGroup.Props) {
   );
 }
 
-export namespace SelectGroup {
-  export interface State {}
+export interface SelectGroupState {}
+export interface SelectGroupProps extends BaseUIComponentProps<'div', SelectGroup.State> {}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export namespace SelectGroup {
+  export type State = SelectGroupState;
+  export type Props = SelectGroupProps;
 }

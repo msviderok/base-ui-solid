@@ -9,7 +9,7 @@ describe('<Select.Arrow />', () => {
     render(node, props) {
       return render(() => (
         <Select.Root open>
-          <Select.Positioner alignItemWithTrigger={false}>{node(props)}</Select.Positioner>
+          <Select.Positioner alignItemWithTrigger={false}>{node(props!)}</Select.Positioner>
         </Select.Root>
       ));
     },

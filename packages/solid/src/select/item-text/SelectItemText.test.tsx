@@ -10,7 +10,7 @@ describe('<Select.ItemText />', () => {
       return render(() => (
         <Select.Root open>
           <Select.Positioner>
-            <Select.Item value="">{node(props)}</Select.Item>
+            <Select.Item value="">{node(props!)}</Select.Item>
           </Select.Positioner>
         </Select.Root>
       ));

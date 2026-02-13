@@ -6,14 +6,18 @@ import {
 import { mergeProps } from '../../merge-props/mergeProps';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { isMouseWithinBounds } from '../../utils/isMouseWithinBounds';
-import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
+import { compareItemEquality, removeItem } from '../../utils/itemEquality';
+import { REASONS } from '../../utils/reasons';
+import type { BaseUIComponentProps, HTMLProps, NonNativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { useTimeout } from '../../utils/useTimeout';
 import { useSelectRootContext } from '../root/SelectRootContext';
 import { SelectItemContext } from './SelectItemContext';
 
 /**
- * An individual option in the select menu.
+ * An individual option in the select popup.
  * Renders a `<div>` element.
  *
  * Documentation: [Base UI Select](https://base-ui.com/react/components/select)
@@ -51,16 +55,20 @@ export function SelectItem(componentProps: SelectItem.Props) {
     getItemProps,
     setOpen,
     setValue,
-    registerSelectedItem,
-    highlightTimeout,
+    multiple,
+    highlightItemOnHover,
     refs: rootRefs,
   } = useSelectRootContext();
 
-  const highlighted = () => selectors.isActive(listItem.index());
-  const selected = () => selectors.isSelected([listItem.index(), value()]);
-  const rootValue = () => store.value;
+  const highlightTimeout = useTimeout();
 
-  const hasRegistered = () => listItem.index() !== -1;
+  const highlighted = () => store.useState('isActive', listItem.index())();
+  const selected = () => store.useState('isSelected', listItem.index(), value())();
+  const selectedByFocus = () => store.useState('isSelectedByFocus', listItem.index())();
+  const isItemEqualToValue = store.useState('isItemEqualToValue');
+
+  const index = listItem.index;
+  const hasRegistered = () => index() !== -1;
 
   createEffect(() => {
     if (!hasRegistered()) {
@@ -77,8 +85,19 @@ export function SelectItem(componentProps: SelectItem.Props) {
   });
 
   createEffect(() => {
-    if (hasRegistered() && value() === rootValue()) {
-      registerSelectedItem(listItem.index());
+    if (!hasRegistered()) {
+      return;
+    }
+
+    const selectedValue = store.state.value;
+
+    let candidate = selectedValue;
+    if (multiple() && Array.isArray(selectedValue()) && selectedValue().length > 0) {
+      candidate = selectedValue[selectedValue.length - 1];
+    }
+
+    if (candidate !== undefined && compareItemEquality(candidate, value(), isItemEqualToValue())) {
+      store.set('selectedIndex', index());
     }
   });
 
@@ -98,8 +117,8 @@ export function SelectItem(componentProps: SelectItem.Props) {
     const props = getItemProps({ active: highlighted(), selected: selected() });
     // With our custom `focusItemOnHover` implementation, this interferes with the logic and can
     // cause the index state to be stuck when leaving the select popup.
-    delete props.onFocus;
-    delete props.id;
+    props.onFocus = undefined;
+    props.id = undefined;
     return props;
   });
 
@@ -115,37 +134,49 @@ export function SelectItem(componentProps: SelectItem.Props) {
 
   function commitSelection(event: MouseEvent) {
     batch(() => {
-      setValue(value(), event);
-      setOpen(false, event, 'item-press');
+      const selectedValue = store.state.value;
+      if (multiple()) {
+        const currentValue = Array.isArray(selectedValue) ? selectedValue : [];
+        const nextValue = selected()
+          ? removeItem(currentValue, value(), isItemEqualToValue())
+          : [...currentValue, value()];
+        setValue(nextValue, createChangeEventDetails(REASONS.itemPress, event));
+      } else {
+        setValue(value(), createChangeEventDetails(REASONS.itemPress, event));
+        setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
+      }
     });
   }
 
   const defaultProps: HTMLProps = {
-    get 'aria-disabled'() {
-      return disabled() || undefined;
+    role: 'option',
+    get 'aria-selected'() {
+      return selected();
     },
     get tabIndex() {
       return highlighted() ? 0 : -1;
     },
     onFocus() {
-      setStore('activeIndex', refs.indexRef);
+      store.set('activeIndex', index());
     },
     onMouseEnter() {
-      if (!rootRefs.keyboardActiveRef && store.selectedIndex === null) {
-        setStore('activeIndex', refs.indexRef);
+      if (!rootRefs.keyboardActiveRef && store.state.selectedIndex === null) {
+        store.set('activeIndex', index());
       }
     },
     onMouseMove() {
-      setStore('activeIndex', refs.indexRef);
+      if (highlightItemOnHover()) {
+        store.set('activeIndex', index());
+      }
     },
     onMouseLeave(event) {
-      if (rootRefs.keyboardActiveRef || isMouseWithinBounds(event)) {
+      if (!highlightItemOnHover() || rootRefs.keyboardActiveRef || isMouseWithinBounds(event)) {
         return;
       }
 
       highlightTimeout.start(0, () => {
-        if (store.activeIndex === refs.indexRef) {
-          setStore('activeIndex', null);
+        if (store.state.activeIndex === index()) {
+          store.set('activeIndex', null);
         }
       });
     },
@@ -153,13 +184,11 @@ export function SelectItem(componentProps: SelectItem.Props) {
       rootRefs.selectionRef = {
         allowSelectedMouseUp: false,
         allowUnselectedMouseUp: false,
-        allowSelect: true,
       };
     },
     onKeyDown(event) {
-      rootRefs.selectionRef.allowSelect = true;
       lastKeyRef = event.key;
-      setStore('activeIndex', refs.indexRef);
+      store.set('activeIndex', index());
     },
     onClick(event) {
       didPointerDownRef = false;
@@ -177,10 +206,8 @@ export function SelectItem(componentProps: SelectItem.Props) {
         return;
       }
 
-      if (rootRefs.selectionRef.allowSelect) {
-        lastKeyRef = null;
-        commitSelection(event);
-      }
+      lastKeyRef = null;
+      commitSelection(event);
     },
     onPointerEnter(event) {
       pointerTypeRef = event.pointerType as 'mouse' | 'touch' | 'pen';
@@ -211,17 +238,8 @@ export function SelectItem(componentProps: SelectItem.Props) {
         return;
       }
 
-      if (rootRefs.selectionRef.allowSelect || !selected()) {
-        commitSelection(event);
-      }
-
-      rootRefs.selectionRef.allowSelect = true;
+      commitSelection(event);
     },
-  };
-
-  const contextValue: SelectItemContext = {
-    selected,
-    refs,
   };
 
   const element = useRenderElement('div', componentProps, {
@@ -233,48 +251,53 @@ export function SelectItem(componentProps: SelectItem.Props) {
     props: [(props) => mergeProps(props, rootProps()), defaultProps, elementProps, getButtonProps],
   });
 
+  const contextValue: SelectItemContext = {
+    selected,
+    refs,
+    selectedByFocus,
+    hasRegistered,
+  };
+
   return <SelectItemContext.Provider value={contextValue}>{element()}</SelectItemContext.Provider>;
 }
 
-export namespace SelectItem {
-  export interface State {
-    /**
-     * Whether the item should ignore user interaction.
-     */
-    disabled: boolean;
-    /**
-     * Whether the item is selected.
-     */
-    selected: boolean;
-    /**
-     * Whether the item is highlighted.
-     */
-    highlighted: boolean;
-  }
+export interface SelectItemState {
+  /**
+   * Whether the item should ignore user interaction.
+   */
+  disabled: boolean;
+  /**
+   * Whether the item is selected.
+   */
+  selected: boolean;
+  /**
+   * Whether the item is highlighted.
+   */
+  highlighted: boolean;
+}
 
-  export interface Props extends Omit<BaseUIComponentProps<'div', State>, 'id'> {
-    children?: JSX.Element;
-    /**
-     * A unique value that identifies this select item.
-     * @default null
-     */
-    value?: any;
-    /**
-     * Whether the component should ignore user interaction.
-     * @default false
-     */
-    disabled?: boolean;
-    /**
-     * Overrides the text label to use on the trigger when this item is selected
-     * and when the item is matched during keyboard text navigation.
-     */
-    label?: string;
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default false
-     */
-    nativeButton?: boolean;
-  }
+export interface SelectItemProps
+  extends NonNativeButtonProps, Omit<BaseUIComponentProps<'div', SelectItem.State>, 'id'> {
+  children?: JSX.Element;
+  /**
+   * A unique value that identifies this select item.
+   * @default null
+   */
+  value?: any;
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * Specifies the text label to use when the item is matched during keyboard text navigation.
+   *
+   * Defaults to the item text content if not provided.
+   */
+  label?: string;
+}
+
+export namespace SelectItem {
+  export type State = SelectItemState;
+  export type Props = SelectItemProps;
 }

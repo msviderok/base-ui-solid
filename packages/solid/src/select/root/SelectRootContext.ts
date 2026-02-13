@@ -1,11 +1,10 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
 import type { SetStoreFunction, Store } from 'solid-js/store';
-import type { useFieldControlValidation } from '../../field/control/useFieldControlValidation';
-import { useFloatingRootContext, type FloatingRootContext } from '../../floating-ui-solid';
+import type { UseFieldValidationReturnValue } from '../../field/root/useFieldValidation';
+import { type FloatingEvents, type FloatingRootContext } from '../../floating-ui-solid';
 import type { HTMLProps } from '../../utils/types';
-import type { Timeout } from '../../utils/useTimeout';
 import type { SelectStore } from '../store';
-import type { SelectOpenChangeReason } from './useSelectRoot';
+import type { SelectRoot } from './SelectRoot';
 
 export interface SelectRootContext {
   store: Store<SelectStore>;
@@ -18,38 +17,35 @@ export interface SelectRootContext {
   disabled: Accessor<boolean>;
   readOnly: Accessor<boolean>;
   required: Accessor<boolean>;
-  setValue: (nextValue: any, event?: Event) => void;
-  setOpen: (
-    open: boolean,
-    event: Event | undefined,
-    reason: SelectOpenChangeReason | undefined,
-  ) => void;
+  multiple: Accessor<boolean>;
+  highlightItemOnHover: Accessor<boolean>;
+  setValue: (nextValue: any, eventDetails: SelectRoot.ChangeEventDetails) => void;
+  setOpen: (open: boolean, eventDetails: SelectRoot.ChangeEventDetails) => void;
   refs: {
     listRef: Array<HTMLElement | null | undefined>;
     popupRef: HTMLDivElement | null | undefined;
+    scrollHandlerRef: ((el: HTMLDivElement) => void) | null;
+    scrollArrowsMountedCountRef: number;
     valueRef: HTMLSpanElement | null | undefined;
     valuesRef: Array<any>;
     labelsRef: Array<string | null>;
     typingRef: boolean;
-    selectedItemTextRef: HTMLSpanElement | null | undefined;
-    keyboardActiveRef: boolean;
-    alignItemWithTriggerActiveRef: boolean;
     selectionRef: {
       allowUnselectedMouseUp: boolean;
       allowSelectedMouseUp: boolean;
-      allowSelect: boolean;
     };
+    selectedItemTextRef: HTMLSpanElement | null | undefined;
+    keyboardActiveRef: boolean;
+    alignItemWithTriggerActiveRef: boolean;
+    initialValueRef: any;
   };
+  handleScrollArrowVisibility: () => void;
   getItemProps: (
     props?: HTMLProps & { active?: boolean; selected?: boolean },
   ) => Record<string, unknown>; // PREVENT_COMMIT
-  events: ReturnType<typeof useFloatingRootContext>['events'];
-
-  fieldControlValidation: ReturnType<typeof useFieldControlValidation>;
-  registerSelectedItem: (index: number) => void;
+  events: FloatingEvents;
+  validation: UseFieldValidationReturnValue;
   onOpenChangeComplete?: (open: boolean) => void;
-
-  highlightTimeout: Timeout;
 }
 
 export const SelectRootContext = createContext<SelectRootContext | null>(null);

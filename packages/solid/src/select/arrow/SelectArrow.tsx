@@ -1,21 +1,21 @@
 import { Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useSelectPositionerContext } from '../positioner/SelectPositionerContext';
 import { useSelectRootContext } from '../root/SelectRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<SelectArrow.State> = {
+const stateAttributesMapping: StateAttributesMapping<SelectArrow.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
 
 /**
- * Displays an element positioned against the select menu anchor.
+ * Displays an element positioned against the select popup anchor.
  * Renders a `<div>` element.
  *
  * Documentation: [Base UI Select](https://base-ui.com/react/components/select)
@@ -54,22 +54,25 @@ export function SelectArrow(componentProps: SelectArrow.Props) {
       },
       elementProps,
     ],
-    customStyleHookMapping,
+    stateAttributesMapping,
   });
 
   return <Show when={alignItemWithTriggerActive() === false}>{element()}</Show>;
 }
 
-export namespace SelectArrow {
-  export interface State {
-    /**
-     * Whether the select menu is currently open.
-     */
-    open: boolean;
-    side: Side | 'none';
-    align: Align;
-    uncentered: boolean;
-  }
+export interface SelectArrowState {
+  /**
+   * Whether the select popup is currently open.
+   */
+  open: boolean;
+  side: Side | 'none';
+  align: Align;
+  uncentered: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface SelectArrowProps extends BaseUIComponentProps<'div', SelectArrow.State> {}
+
+export namespace SelectArrow {
+  export type State = SelectArrowState;
+  export type Props = SelectArrowProps;
 }

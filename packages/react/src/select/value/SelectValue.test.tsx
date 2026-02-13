@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Select } from '@base-ui-components/react/select';
+import { Select } from '@base-ui/react/select';
 import { spy } from 'sinon';
 import { expect } from 'chai';
 import { fireEvent, flushMicrotasks, screen } from '@mui/internal-test-utils';
@@ -272,6 +272,125 @@ describe('<Select.Value />', () => {
 
       expect(screen.getByTestId('value').querySelector('strong')).to.have.text('Bold Text');
     });
+
+    it('is not stale after being updated', async () => {
+      function App() {
+        const [value, setValue] = React.useState<string | null>('a');
+        const [items, setItems] = React.useState([
+          { value: 'a', label: 'a' },
+          { value: 'b', label: 'b' },
+        ]);
+
+        function updateItems() {
+          setItems([
+            { value: 'a', label: 'a new' },
+            { value: 'b', label: 'b new' },
+            { value: 'c', label: 'c' },
+          ]);
+        }
+
+        return (
+          <div>
+            <button onClick={updateItems}>update</button>
+            <button onClick={() => setValue('c')}>select c</button>
+            <Select.Root value={value} onValueChange={setValue} items={items}>
+              <Select.Trigger>
+                <Select.Value data-testid="value" />
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner>
+                  <Select.Popup>
+                    {items.map((item) => (
+                      <Select.Item key={item.value} value={item.value}>
+                        {item.label}
+                      </Select.Item>
+                    ))}
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </div>
+        );
+      }
+
+      const { user } = await render(<App />);
+
+      expect(screen.getByTestId('value')).to.have.text('a');
+
+      await user.click(screen.getByRole('button', { name: 'update' }));
+
+      expect(screen.getByTestId('value')).to.have.text('a new');
+
+      await user.click(screen.getByRole('button', { name: 'select c' }));
+
+      expect(screen.getByTestId('value')).to.have.text('c');
+    });
+  });
+
+  describe('prop: itemToStringLabel', () => {
+    it('uses custom itemToStringLabel function', async () => {
+      const items = [
+        { country: 'United States', code: 'US' },
+        { country: 'Canada', code: 'CA' },
+      ];
+
+      await render(
+        <Select.Root
+          value={items[1]}
+          itemToStringLabel={(i: any) => i.country}
+          itemToStringValue={(i: any) => i.code}
+        >
+          <Select.Trigger>
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                {items.map((it) => (
+                  <Select.Item key={it.code} value={it}>
+                    {it.country}
+                  </Select.Item>
+                ))}
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      );
+
+      expect(screen.getByTestId('value')).to.have.text('Canada');
+    });
+
+    it('falls back to label/value properties when functions are not provided', async () => {
+      const items = [
+        { label: 'United States', value: 'US' },
+        { label: 'Canada', value: 'CA' },
+      ];
+
+      await render(
+        <Select.Root name="country" value={items[1]}>
+          <Select.Trigger>
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                {items.map((it) => (
+                  <Select.Item key={it.value} value={it}>
+                    {it.label}
+                  </Select.Item>
+                ))}
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      );
+
+      const hiddenInput = screen.getByRole('textbox', {
+        hidden: true,
+      });
+      expect(hiddenInput).to.have.value('CA');
+      expect(hiddenInput).to.have.attribute('name', 'country');
+    });
   });
 
   describe('children prop takes precedence over items', () => {
@@ -344,5 +463,151 @@ describe('<Select.Value />', () => {
 
     await user.click(screen.getByRole('button', { name: 'null' }));
     expect(screen.getByTestId('value')).to.have.text('initial');
+  });
+
+  describe('prop: multiple', () => {
+    it('displays comma-separated labels for multiple values with items object', async () => {
+      const items = {
+        sans: 'Sans-serif',
+        serif: 'Serif',
+        mono: 'Monospace',
+      };
+
+      await render(
+        <Select.Root value={['sans', 'serif']} items={items} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>,
+      );
+
+      expect(screen.getByTestId('value')).to.have.text('Sans-serif, Serif');
+    });
+
+    it('displays comma-separated labels for multiple values with items array', async () => {
+      const items = [
+        { value: 'serif', label: 'Serif' },
+        { value: 'mono', label: 'Monospace' },
+      ];
+
+      await render(
+        <Select.Root value={['serif', 'mono']} items={items} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>,
+      );
+
+      expect(screen.getByTestId('value')).to.have.text('Serif, Monospace');
+    });
+
+    it('supports ReactNode labels for multiple selections', async () => {
+      const items = [
+        { value: 'bold', label: <strong>Bold Text</strong> },
+        { value: 'italic', label: <em>Italic Text</em> },
+      ];
+
+      await render(
+        <Select.Root value={['bold', 'italic']} items={items} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>,
+      );
+
+      const value = screen.getByTestId('value');
+      expect(value.querySelector('strong')).to.have.text('Bold Text');
+      expect(value.querySelector('em')).to.have.text('Italic Text');
+      expect(value).to.have.text('Bold Text, Italic Text');
+    });
+
+    it('falls back to raw values when no items are provided', async () => {
+      await render(
+        <Select.Root value={['serif', 'mono']} multiple>
+          <Select.Trigger>
+            <span data-testid="value">
+              <Select.Value />
+            </span>
+          </Select.Trigger>
+        </Select.Root>,
+      );
+
+      expect(screen.getByTestId('value')).to.have.text('serif, mono');
+    });
+
+    it('displays single value when only one value is selected in multiple mode', async () => {
+      await render(
+        <Select.Root value={['sans']} multiple>
+          <Select.Value data-testid="value" />
+        </Select.Root>,
+      );
+
+      expect(screen.getByTestId('value')).to.have.text('sans');
+    });
+
+    it('displays empty when no values are selected in multiple mode', async () => {
+      await render(
+        <Select.Root value={[]} multiple>
+          <Select.Value data-testid="value" />
+        </Select.Root>,
+      );
+
+      expect(screen.getByTestId('value')).to.have.text('');
+    });
+
+    it('children function receives array of values in multiple mode', async () => {
+      const children = spy();
+      const items = {
+        sans: 'Sans-serif',
+        serif: 'Serif',
+      };
+
+      await render(
+        <Select.Root value={['sans', 'serif']} items={items} multiple>
+          <Select.Value>
+            {(values) => {
+              children(values);
+              return `Selected: ${Array.isArray(values) ? values.join(' + ') : values}`;
+            }}
+          </Select.Value>
+        </Select.Root>,
+      );
+
+      expect(children.firstCall.firstArg).to.deep.equal(['sans', 'serif']);
+      expect(screen.getByText('Selected: sans + serif')).not.to.equal(null);
+    });
+
+    it('children prop takes precedence over items in multiple mode', async () => {
+      const items = {
+        sans: 'Sans-serif',
+        serif: 'Serif',
+      };
+
+      await render(
+        <Select.Root value={['sans', 'serif']} items={items} multiple>
+          <Select.Value data-testid="value">Custom Multiple Text</Select.Value>
+        </Select.Root>,
+      );
+
+      expect(screen.getByTestId('value')).to.have.text('Custom Multiple Text');
+    });
+
+    it('defaults to empty array when no value is provided', async () => {
+      const renderValue = spy();
+
+      await render(
+        <Select.Root multiple>
+          <Select.Value>{renderValue}</Select.Value>
+        </Select.Root>,
+      );
+
+      expect(renderValue.firstCall.firstArg).to.deep.equal([]);
+    });
   });
 });

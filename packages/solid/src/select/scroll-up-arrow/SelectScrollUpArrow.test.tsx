@@ -11,7 +11,7 @@ describe('<Select.ScrollUpArrow />', () => {
       render(node, props) {
         return render(() => (
           <Select.Root open>
-            <Select.Positioner>{node(props)}</Select.Positioner>
+            <Select.Positioner>{node(props!)}</Select.Positioner>
           </Select.Root>
         ));
       },

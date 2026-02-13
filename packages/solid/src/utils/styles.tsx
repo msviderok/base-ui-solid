@@ -1,3 +1,5 @@
+import { onCleanup, onMount } from 'solid-js';
+
 export const STYLE_TAG_ID = 'disable-scrollbar';
 const DISABLE_SCROLLBAR_CLASS_NAME = 'base-ui-disable-scrollbar';
 
@@ -14,4 +16,18 @@ export const styleDisableScrollbar = {
 
     return style;
   },
+};
+
+export const useStyleDisableScrollbar = () => {
+  onMount(() => {
+    if (!document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {
+      const el = styleDisableScrollbar.element();
+      document.head.appendChild(el);
+      onCleanup(() => {
+        if (document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {
+          document.head.removeChild(el);
+        }
+      });
+    }
+  });
 };

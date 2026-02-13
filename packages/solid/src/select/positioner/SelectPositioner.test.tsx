@@ -4,7 +4,7 @@ import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 
 function Trigger(props: Select.Trigger.Props) {
-  return <Select.Trigger {...props} ref={props.ref} render="div" />;
+  return <Select.Trigger {...props} ref={props.ref} />;
 }
 
 describe('<Select.Positioner />', () => {
@@ -15,7 +15,7 @@ describe('<Select.Positioner />', () => {
     render(node, props) {
       return render(() => (
         <Select.Root open>
-          <Select.Portal>{node(props)}</Select.Portal>
+          <Select.Portal>{node(props!)}</Select.Portal>
         </Select.Root>
       ));
     },

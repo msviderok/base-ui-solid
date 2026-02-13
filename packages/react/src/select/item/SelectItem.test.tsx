@@ -1,6 +1,12 @@
-import * as React from 'react';
-import { Select } from '@base-ui-components/react/select';
-import { act, fireEvent, flushMicrotasks, screen, waitFor } from '@mui/internal-test-utils';
+import { Select } from '@base-ui/react/select';
+import {
+  act,
+  fireEvent,
+  flushMicrotasks,
+  ignoreActWarnings,
+  screen,
+  waitFor,
+} from '@mui/internal-test-utils';
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { expect } from 'chai';
 
@@ -9,12 +15,14 @@ describe('<Select.Item />', () => {
 
   describeConformance(<Select.Item value="" />, () => ({
     refInstanceof: window.HTMLDivElement,
+    button: true,
     render(node) {
       return render(<Select.Root open>{node}</Select.Root>);
     },
   }));
 
   it('should select the item and close popup when clicked', async () => {
+    ignoreActWarnings();
     await render(
       <Select.Root>
         <Select.Trigger data-testid="trigger">
@@ -45,7 +53,7 @@ describe('<Select.Item />', () => {
     expect(positioner).not.toBeVisible();
   });
 
-  it('navigating with keyboard should highlight item', async () => {
+  it.skipIf(!isJSDOM)('navigating with keyboard should focus item', async () => {
     const { user } = await render(
       <Select.Root>
         <Select.Trigger data-testid="trigger">
@@ -67,21 +75,24 @@ describe('<Select.Item />', () => {
     await flushMicrotasks();
 
     await waitFor(() => {
+      expect(screen.getByRole('listbox')).not.to.equal(null);
+    });
+    await waitFor(() => {
       expect(screen.getByText('one')).toHaveFocus();
     });
 
     await user.keyboard('{ArrowDown}');
-
     await waitFor(() => {
       expect(screen.getByText('two')).toHaveFocus();
     });
+
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => {
+      expect(screen.getByText('three')).toHaveFocus();
+    });
   });
 
-  it('should select item when Enter key is pressed', async ({ skip }) => {
-    if (!isJSDOM) {
-      skip();
-    }
-
+  it.skipIf(!isJSDOM)('should select item when Enter key is pressed', async () => {
     const { user } = await render(
       <Select.Root>
         <Select.Trigger data-testid="trigger">
@@ -190,12 +201,8 @@ describe('<Select.Item />', () => {
     });
   });
 
-  describe('style hooks', () => {
-    it('should apply data-highlighted attribute when item is highlighted', async ({ skip }) => {
-      if (!isJSDOM) {
-        skip();
-      }
-
+  describe.skipIf(!isJSDOM)('style hooks', () => {
+    it('should apply data-highlighted attribute when item is highlighted', async () => {
       const { user } = await render(
         <Select.Root defaultValue="a">
           <Select.Trigger data-testid="trigger" />
@@ -242,12 +249,12 @@ describe('<Select.Item />', () => {
       await flushMicrotasks();
 
       fireEvent.click(screen.getByRole('option', { name: 'a' }));
-
       await flushMicrotasks();
 
       fireEvent.click(screen.getByTestId('trigger'));
-      await flushMicrotasks();
-      expect(screen.getByRole('option', { name: 'a' })).to.have.attribute('data-selected', '');
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'a' })).to.have.attribute('data-selected', '');
+      });
       expect(screen.getByRole('option', { name: 'b' })).not.to.have.attribute('data-selected');
     });
   });

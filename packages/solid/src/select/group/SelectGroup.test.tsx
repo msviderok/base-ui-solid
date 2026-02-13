@@ -9,7 +9,7 @@ describe('<Select.Group />', () => {
   describeConformance(Select.Group, () => ({
     refInstanceof: window.HTMLDivElement,
     render(node, props) {
-      return render(() => <Select.Root open>{node(props)}</Select.Root>);
+      return render(() => <Select.Root open>{node(props!)}</Select.Root>);
     },
   }));
 

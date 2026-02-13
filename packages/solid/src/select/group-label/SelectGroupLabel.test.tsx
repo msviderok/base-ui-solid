@@ -9,7 +9,7 @@ describe('<Select.GroupLabel />', () => {
     render(node, props) {
       return render(() => (
         <Select.Root open>
-          <Select.Group>{node(props)}</Select.Group>
+          <Select.Group>{node(props!)}</Select.Group>
         </Select.Root>
       ));
     },

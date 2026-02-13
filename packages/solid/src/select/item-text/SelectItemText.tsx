@@ -13,25 +13,25 @@ import { useSelectRootContext } from '../root/SelectRootContext';
  */
 export function SelectItemText(componentProps: SelectItemText.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
-  let ref = null as HTMLElement | null | undefined;
+  let localRef = null as HTMLElement | null | undefined;
 
-  const { selected, refs } = useSelectItemContext();
+  const { selectedByFocus, hasRegistered, refs: itemRefs } = useSelectItemContext();
   const { refs: rootRefs } = useSelectRootContext();
 
   createEffect(
-    on(selected, () => {
+    on([selectedByFocus, hasRegistered], () => {
       const hasNoSelectedItemText =
         rootRefs.selectedItemTextRef === null || !rootRefs.selectedItemTextRef?.isConnected;
-      if (selected() || (hasNoSelectedItemText && refs.indexRef === 0)) {
-        rootRefs.selectedItemTextRef = ref;
+      if (selectedByFocus() || (hasNoSelectedItemText && itemRefs.indexRef === 0)) {
+        rootRefs.selectedItemTextRef = localRef;
       }
     }),
   );
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      ref = el;
-      refs.textRef = el;
+      localRef = el;
+      itemRefs.textRef = el;
     },
     props: elementProps,
   });
@@ -39,8 +39,11 @@ export function SelectItemText(componentProps: SelectItemText.Props) {
   return <>{element()}</>;
 }
 
-export namespace SelectItemText {
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface SelectItemTextState {}
 
-  export interface State {}
+export interface SelectItemTextProps extends BaseUIComponentProps<'div', SelectItemText.State> {}
+
+export namespace SelectItemText {
+  export type State = SelectItemTextState;
+  export type Props = SelectItemTextProps;
 }

@@ -1,10 +1,9 @@
 import * as React from 'react';
-import type { Timeout } from '../../utils/useTimeout';
-import { useFloatingRootContext, type FloatingRootContext } from '../../floating-ui-react';
+import { type FloatingEvents, type FloatingRootContext } from '../../floating-ui-react';
 import type { SelectStore } from '../store';
-import type { useFieldControlValidation } from '../../field/control/useFieldControlValidation';
+import type { UseFieldValidationReturnValue } from '../../field/root/useFieldValidation';
 import type { HTMLProps } from '../../utils/types';
-import type { SelectOpenChangeReason } from './useSelectRoot';
+import type { SelectRoot } from './SelectRoot';
 
 export interface SelectRootContext {
   store: SelectStore;
@@ -12,18 +11,19 @@ export interface SelectRootContext {
   disabled: boolean;
   readOnly: boolean;
   required: boolean;
-  setValue: (nextValue: any, event?: Event) => void;
-  setOpen: (
-    open: boolean,
-    event: Event | undefined,
-    reason: SelectOpenChangeReason | undefined,
-  ) => void;
+  multiple: boolean;
+  highlightItemOnHover: boolean;
+  setValue: (nextValue: any, eventDetails: SelectRoot.ChangeEventDetails) => void;
+  setOpen: (open: boolean, eventDetails: SelectRoot.ChangeEventDetails) => void;
   listRef: React.MutableRefObject<Array<HTMLElement | null>>;
   popupRef: React.MutableRefObject<HTMLDivElement | null>;
+  scrollHandlerRef: React.MutableRefObject<((el: HTMLDivElement) => void) | null>;
+  handleScrollArrowVisibility: () => void;
+  scrollArrowsMountedCountRef: React.RefObject<number>;
   getItemProps: (
     props?: HTMLProps & { active?: boolean; selected?: boolean },
   ) => Record<string, unknown>; // PREVENT_COMMIT
-  events: ReturnType<typeof useFloatingRootContext>['events'];
+  events: FloatingEvents;
   valueRef: React.MutableRefObject<HTMLSpanElement | null>;
   valuesRef: React.MutableRefObject<Array<any>>;
   labelsRef: React.MutableRefObject<Array<string | null>>;
@@ -31,15 +31,13 @@ export interface SelectRootContext {
   selectionRef: React.MutableRefObject<{
     allowUnselectedMouseUp: boolean;
     allowSelectedMouseUp: boolean;
-    allowSelect: boolean;
   }>;
   selectedItemTextRef: React.MutableRefObject<HTMLSpanElement | null>;
-  fieldControlValidation: ReturnType<typeof useFieldControlValidation>;
-  registerSelectedItem: (index: number) => void;
+  validation: UseFieldValidationReturnValue;
   onOpenChangeComplete?: (open: boolean) => void;
   keyboardActiveRef: React.MutableRefObject<boolean>;
   alignItemWithTriggerActiveRef: React.RefObject<boolean>;
-  highlightTimeout: Timeout;
+  initialValueRef: React.MutableRefObject<any>;
 }
 
 export const SelectRootContext = React.createContext<SelectRootContext | null>(null);

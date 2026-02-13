@@ -13,7 +13,7 @@ describe('<Select.ItemIndicator />', () => {
             <Select.Value />
           </Select.Trigger>
           <Select.Positioner>
-            <Select.Item>{node(props)}</Select.Item>
+            <Select.Item>{node(props!)}</Select.Item>
           </Select.Positioner>
         </Select.Root>
       ));

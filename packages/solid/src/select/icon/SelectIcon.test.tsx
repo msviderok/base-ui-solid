@@ -7,7 +7,7 @@ describe('<Select.Icon />', () => {
   describeConformance(Select.Icon, () => ({
     refInstanceof: window.HTMLSpanElement,
     render(node, props) {
-      return render(() => <Select.Root open>{node(props)}</Select.Root>);
+      return render(() => <Select.Root open>{node(props!)}</Select.Root>);
     },
   }));
 });
