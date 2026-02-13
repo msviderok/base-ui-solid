@@ -1,8 +1,9 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
+import type { MenuRoot } from '../root/MenuRoot';
 
 export interface MenuRadioGroupContext {
   value: Accessor<any>;
-  setValue: (newValue: any, event: Event) => void;
+  setValue: (newValue: any, eventDetails: MenuRoot.ChangeEventDetails) => void;
   disabled: Accessor<boolean>;
 }
 

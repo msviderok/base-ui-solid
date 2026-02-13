@@ -32,13 +32,16 @@ export function MenuGroup(componentProps: MenuGroup.Props) {
   return <MenuGroupContext.Provider value={context}>{element()}</MenuGroupContext.Provider>;
 }
 
-export namespace MenuGroup {
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * The content of the component.
-     */
-    children?: JSX.Element;
-  }
+export interface MenuGroupProps extends BaseUIComponentProps<'div', MenuGroup.State> {
+  /**
+   * The content of the component.
+   */
+  children?: JSX.Element;
+}
 
-  export interface State {}
+export interface MenuGroupState {}
+
+export namespace MenuGroup {
+  export type Props = MenuGroupProps;
+  export type State = MenuGroupState;
 }

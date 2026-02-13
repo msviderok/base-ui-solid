@@ -15,8 +15,9 @@ import { useMenuRootContext } from '../root/MenuRootContext';
 export function MenuArrow(componentProps: MenuArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { open } = useMenuRootContext();
+  const { store } = useMenuRootContext();
   const { refs, side, align, arrowUncentered, arrowStyles } = useMenuPositionerContext();
+  const open = store.useState('open');
 
   const state: MenuArrow.State = {
     get open() {
@@ -34,9 +35,9 @@ export function MenuArrow(componentProps: MenuArrow.Props) {
   };
 
   const element = useRenderElement('div', componentProps, {
-    state,
     ref: refs.setArrowRef,
-    customStyleHookMapping: popupStateMapping,
+    stateAttributesMapping: popupStateMapping,
+    state,
     props: [
       {
         'aria-hidden': true,
@@ -51,16 +52,19 @@ export function MenuArrow(componentProps: MenuArrow.Props) {
   return <>{element()}</>;
 }
 
-export namespace MenuArrow {
-  export interface State {
-    /**
-     * Whether the menu is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    uncentered: boolean;
-  }
+export interface MenuArrowState {
+  /**
+   * Whether the menu is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  uncentered: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface MenuArrowProps extends BaseUIComponentProps<'div', MenuArrow.State> {}
+
+export namespace MenuArrow {
+  export type State = MenuArrowState;
+  export type Props = MenuArrowProps;
 }

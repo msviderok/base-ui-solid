@@ -1,6 +1,5 @@
 import { createContext, useContext, type Accessor, type JSX, type Setter } from 'solid-js';
-import type { FloatingContext } from '../../floating-ui-solid';
-import type { Side } from '../../utils/useAnchorPositioning';
+import type { Align, Side } from '../../utils/useAnchorPositioning';
 
 export interface MenuPositionerContext {
   /**
@@ -10,21 +9,23 @@ export interface MenuPositionerContext {
   /**
    * How to align the popup relative to the specified side.
    */
-  align: Accessor<'start' | 'end' | 'center'>;
+  align: Accessor<Align>;
   refs: {
     arrowRef: Accessor<Element | null | undefined>;
     setArrowRef: Setter<Element | null | undefined>;
   };
   arrowUncentered: Accessor<boolean>;
   arrowStyles: Accessor<JSX.CSSProperties>;
-  floatingContext: FloatingContext;
+  nodeId: Accessor<string | undefined>;
 }
 
 export const MenuPositionerContext = createContext<MenuPositionerContext>();
 
-export function useMenuPositionerContext() {
+export function useMenuPositionerContext(optional?: false): MenuPositionerContext;
+export function useMenuPositionerContext(optional: true): MenuPositionerContext | undefined;
+export function useMenuPositionerContext(optional?: boolean) {
   const context = useContext(MenuPositionerContext);
-  if (context === undefined) {
+  if (context === undefined && !optional) {
     throw new Error(
       'Base UI: MenuPositionerContext is missing. MenuPositioner parts must be placed within <Menu.Positioner>.',
     );

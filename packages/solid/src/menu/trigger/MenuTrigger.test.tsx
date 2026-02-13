@@ -10,8 +10,10 @@ describe('<Menu.Trigger />', () => {
   const { render } = createRenderer();
   const user = userEvent.setup();
   describeConformance(Menu.Trigger, () => ({
-    render: (node, props) => render(() => <Menu.Root open>{node(props)}</Menu.Root>),
     refInstanceof: window.HTMLButtonElement,
+    testComponentPropWith: 'button',
+    button: true,
+    render: (node, props) => render(() => <Menu.Root open>{node(props!)}</Menu.Root>),
   }));
 
   describe('prop: disabled', () => {
@@ -136,11 +138,11 @@ describe('<Menu.Trigger />', () => {
     it('has the aria-expanded=true attribute when open', async () => {
       render(() => (
         <Menu.Root open>
-          <Menu.Trigger />
+          <Menu.Trigger>Toggle</Menu.Trigger>
         </Menu.Root>
       ));
 
-      const button = screen.getByRole('button');
+      const button = screen.getByRole('button', { name: 'Toggle' });
       expect(button).to.have.attribute('aria-expanded', 'true');
     });
   });
@@ -169,8 +171,8 @@ describe('<Menu.Trigger />', () => {
 
     it('does not close the menu if the user clicks too quickly', async () => {
       renderFakeTimers(() => (
-        <Menu.Root delay={0} openOnHover>
-          <Menu.Trigger />
+        <Menu.Root>
+          <Menu.Trigger delay={0} openOnHover />
         </Menu.Root>
       ));
       const trigger = screen.getByRole('button');
@@ -186,8 +188,8 @@ describe('<Menu.Trigger />', () => {
 
     it('closes the menu if the user clicks patiently', async () => {
       renderFakeTimers(() => (
-        <Menu.Root delay={0} openOnHover>
-          <Menu.Trigger />
+        <Menu.Root>
+          <Menu.Trigger delay={0} openOnHover />
           <Menu.Portal>
             <Menu.Positioner>
               <Menu.Popup />
@@ -209,8 +211,8 @@ describe('<Menu.Trigger />', () => {
 
     it('sticks if the user clicks impatiently', async () => {
       renderFakeTimers(() => (
-        <Menu.Root delay={0} openOnHover>
-          <Menu.Trigger />
+        <Menu.Root>
+          <Menu.Trigger delay={0} openOnHover />
         </Menu.Root>
       ));
 
@@ -232,8 +234,8 @@ describe('<Menu.Trigger />', () => {
 
     it('does not stick if the user clicks patiently', async () => {
       renderFakeTimers(() => (
-        <Menu.Root delay={0} openOnHover>
-          <Menu.Trigger />
+        <Menu.Root>
+          <Menu.Trigger delay={0} openOnHover />
           <Menu.Portal>
             <Menu.Positioner>
               <Menu.Popup />
@@ -254,10 +256,43 @@ describe('<Menu.Trigger />', () => {
       expect(trigger).not.to.have.attribute('data-popup-open');
     });
 
+    it('sticks when clicked before the hover delay completes', async () => {
+      renderFakeTimers(() => (
+        <Menu.Root>
+          <Menu.Trigger openOnHover delay={300}>
+            Open
+          </Menu.Trigger>
+          <Menu.Portal>
+            <Menu.Positioner>
+              <Menu.Popup>Content</Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
+      ));
+
+      const trigger = screen.getByRole('button');
+
+      fireEvent.mouseEnter(trigger);
+      fireEvent.mouseMove(trigger);
+
+      clock.tick(100);
+
+      // User clicks impatiently to open
+      fireEvent.click(trigger);
+
+      expect(trigger).to.have.attribute('data-popup-open');
+
+      fireEvent.mouseLeave(trigger);
+
+      expect(trigger).to.have.attribute('data-popup-open');
+    });
+
     it('should keep the menu open when re-hovered and clicked within the patient threshold', async () => {
       render(() => (
-        <Menu.Root openOnHover delay={100}>
-          <Menu.Trigger>Open</Menu.Trigger>
+        <Menu.Root>
+          <Menu.Trigger openOnHover delay={100}>
+            Open
+          </Menu.Trigger>
           <Menu.Portal>
             <Menu.Positioner>
               <Menu.Popup>Content</Menu.Popup>

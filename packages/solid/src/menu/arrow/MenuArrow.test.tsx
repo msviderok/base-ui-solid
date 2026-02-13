@@ -11,7 +11,7 @@ describe('<Menu.Arrow />', () => {
         <Menu.Root open>
           <Menu.Portal>
             <Menu.Positioner>
-              <Menu.Popup>{node(props)}</Menu.Popup>
+              <Menu.Popup>{node(props!)}</Menu.Popup>
             </Menu.Positioner>
           </Menu.Portal>
         </Menu.Root>

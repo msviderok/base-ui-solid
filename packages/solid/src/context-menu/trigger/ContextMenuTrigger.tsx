@@ -1,7 +1,12 @@
+import { ownerDocument } from '@base-ui/utils/owner';
 import { onCleanup, onMount } from 'solid-js';
 import { contains, getTarget, stopEvent } from '../../floating-ui-solid/utils';
+import { useMenuRootContext } from '../../menu/root/MenuRootContext';
+import { findRootOwnerId } from '../../menu/utils/findRootOwnerId';
 import { splitComponentProps } from '../../solid-helpers';
-import { ownerDocument } from '../../utils/owner';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping';
+import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTimeout } from '../../utils/useTimeout';
@@ -18,7 +23,10 @@ const LONG_PRESS_DELAY = 500;
 export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { anchor, refs } = useContextMenuRootContext(false);
+  const { anchor, refs, rootId } = useContextMenuRootContext(false);
+
+  const { store } = useMenuRootContext(false);
+  const open = store.useState('open');
 
   let triggerRef = null as HTMLDivElement | null | undefined;
   let touchPositionRef = null as { x: number; y: number } | null;
@@ -26,8 +34,10 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   const longPressTimeout = useTimeout();
   const allowMouseUpTimeout = useTimeout();
 
-  const handleLongPress = (x: number, y: number, event: Event) => {
+  function handleLongPress(x: number, y: number, event: MouseEvent | TouchEvent) {
     const isTouchEvent = event.type.startsWith('touch');
+
+    refs.initialCursorPointRef = { x, y };
 
     anchor.getBoundingClientRect = () => {
       return DOMRect.fromRect({
@@ -39,18 +49,18 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
     };
 
     allowMouseUpRef = false;
-    refs.actionsRef?.setOpen(true, event);
+    refs.actionsRef?.setOpen(true, createChangeEventDetails(REASONS.triggerPress, event));
 
     allowMouseUpTimeout.start(LONG_PRESS_DELAY, () => {
       allowMouseUpRef = true;
     });
-  };
+  }
 
-  const handleContextMenu = (event: MouseEvent) => {
+  function handleContextMenu(event: MouseEvent) {
     refs.allowMouseUpTriggerRef = true;
     stopEvent(event);
     handleLongPress(event.clientX, event.clientY, event);
-    const doc = ownerDocument(triggerRef);
+    const doc = ownerDocument(triggerRef as Element);
 
     doc.addEventListener(
       'mouseup',
@@ -64,17 +74,23 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
         allowMouseUpTimeout.clear();
         allowMouseUpRef = false;
 
-        if (contains(refs.positionerRef, getTarget(mouseEvent) as Element | null)) {
+        const mouseUpTarget = getTarget(mouseEvent) as Element | null;
+
+        if (contains(refs.positionerRef, mouseUpTarget)) {
           return;
         }
 
-        refs.actionsRef?.setOpen(false, mouseEvent, 'cancel-open');
+        if (rootId() && mouseUpTarget && findRootOwnerId(mouseUpTarget) === rootId()) {
+          return;
+        }
+
+        refs.actionsRef?.setOpen(false, createChangeEventDetails(REASONS.cancelOpen, mouseEvent));
       },
       { once: true },
     );
-  };
+  }
 
-  const handleTouchStart = (event: TouchEvent) => {
+  function handleTouchStart(event: TouchEvent) {
     refs.allowMouseUpTriggerRef = false;
     if (event.touches.length === 1) {
       event.stopPropagation();
@@ -86,9 +102,9 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
         }
       });
     }
-  };
+  }
 
-  const handleTouchMove = (event: TouchEvent) => {
+  function handleTouchMove(event: TouchEvent) {
     if (longPressTimeout.isStarted() && touchPositionRef && event.touches.length === 1) {
       const touch = event.touches[0];
       const moveThreshold = 10;
@@ -100,7 +116,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
         longPressTimeout.clear();
       }
     }
-  };
+  }
 
   const handleTouchEnd = () => {
     longPressTimeout.clear();
@@ -120,14 +136,21 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   }
 
   onMount(() => {
-    const doc = ownerDocument(triggerRef);
+    const doc = ownerDocument(triggerRef ?? null);
     doc.addEventListener('contextmenu', handleDocumentContextMenu);
     onCleanup(() => {
       doc.removeEventListener('contextmenu', handleDocumentContextMenu);
     });
   });
 
+  const state: ContextMenuTrigger.State = {
+    get open() {
+      return open();
+    },
+  };
+
   const element = useRenderElement('div', componentProps, {
+    state,
     ref: (el) => {
       triggerRef = el;
     },
@@ -144,13 +167,25 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: pressableTriggerOpenStateMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace ContextMenuTrigger {
-  export interface State {}
+export type ContextMenuTriggerState = {
+  /**
+   * Whether the context menu is currently open.
+   */
+  open: boolean;
+};
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface ContextMenuTriggerProps extends BaseUIComponentProps<
+  'div',
+  ContextMenuTrigger.State
+> {}
+
+export namespace ContextMenuTrigger {
+  export type State = ContextMenuTriggerState;
+  export type Props = ContextMenuTriggerProps;
 }

@@ -3,6 +3,7 @@ import { type MenuRoot } from '../menu/root/MenuRoot';
 
 export interface MenubarContext {
   modal: Accessor<boolean>;
+  disabled: Accessor<boolean>;
   contentElement: Accessor<HTMLElement | null | undefined>;
   setContentElement: (element: HTMLElement | null | undefined) => void;
   hasSubmenuOpen: Accessor<boolean>;

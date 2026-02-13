@@ -14,7 +14,7 @@ describe('<Menu.GroupLabel />', () => {
   describeConformance(Menu.GroupLabel, () => ({
     render: (node, props) =>
       render(() => (
-        <MenuGroupContext.Provider value={testContext}>{node(props)}</MenuGroupContext.Provider>
+        <MenuGroupContext.Provider value={testContext}>{node(props!)}</MenuGroupContext.Provider>
       )),
     refInstanceof: window.HTMLDivElement,
   }));

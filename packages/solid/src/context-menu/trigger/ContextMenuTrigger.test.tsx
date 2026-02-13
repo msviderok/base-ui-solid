@@ -5,13 +5,17 @@ import { expect } from 'chai';
 import { spy } from 'sinon';
 
 describe('<ContextMenu.Trigger />', () => {
-  const { render, clock } = createRenderer();
+  const { render, clock } = createRenderer({
+    clockOptions: {
+      shouldAdvanceTime: true,
+    },
+  });
 
   clock.withFakeTimers();
 
   describeConformance(ContextMenu.Trigger, () => ({
     refInstanceof: window.HTMLDivElement,
-    render: (node, props) => render(() => <ContextMenu.Root>{node(props)}</ContextMenu.Root>),
+    render: (node, props) => render(() => <ContextMenu.Root>{node(props!)}</ContextMenu.Root>),
   }));
 
   it('should open menu on right click (context menu event)', async () => {
@@ -31,6 +35,25 @@ describe('<ContextMenu.Trigger />', () => {
     await flushMicrotasks();
 
     expect(screen.queryByRole('menu')).not.to.equal(null);
+  });
+
+  it('adds open state attributes', async () => {
+    const { user } = render(() => (
+      <ContextMenu.Root defaultOpen>
+        <ContextMenu.Trigger data-testid="trigger">Right click me</ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Positioner>
+            <ContextMenu.Popup />
+          </ContextMenu.Positioner>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
+    ));
+
+    const trigger = screen.getByTestId('trigger');
+    expect(trigger).to.have.attribute('data-popup-open', '');
+
+    await user.keyboard('{Escape}');
+    expect(trigger).to.not.have.attribute('data-popup-open');
   });
 
   it('should call onOpenChange when menu is opened via right click', async () => {
@@ -219,7 +242,7 @@ describe('<ContextMenu.Trigger />', () => {
     expect(screen.queryByTestId('inner-menu')).not.to.equal(null);
     expect(screen.queryByTestId('outer-menu')).to.equal(null);
 
-    fireEvent.mouseDown(document.body);
+    fireEvent.pointerDown(document.body, { pointerType: 'mouse' });
     await flushMicrotasks();
 
     expect(screen.queryByTestId('inner-menu')).to.equal(null);

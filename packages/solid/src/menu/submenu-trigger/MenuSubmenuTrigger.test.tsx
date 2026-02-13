@@ -11,10 +11,12 @@ describe('<Menu.SubmenuTrigger />', () => {
 
   describeConformance(Menu.Trigger, () => ({
     refInstanceof: window.HTMLButtonElement,
+    testComponentPropWith: 'button',
+    button: true,
     render: (node, props) =>
       render(() => (
         <Menu.Root open>
-          <Menu.SubmenuRoot>{node(props)}</Menu.SubmenuRoot>
+          <Menu.SubmenuRoot>{node(props!)}</Menu.SubmenuRoot>
         </Menu.Root>
       )),
   }));
@@ -23,6 +25,7 @@ describe('<Menu.SubmenuTrigger />', () => {
     return (
       <DirectionProvider direction={props.direction}>
         <Menu.Root open>
+          <Menu.Trigger>Open menu</Menu.Trigger>
           <Menu.Portal>
             <Menu.Positioner>
               <Menu.Popup>

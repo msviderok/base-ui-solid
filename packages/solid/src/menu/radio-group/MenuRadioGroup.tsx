@@ -1,8 +1,9 @@
-import { batch, type JSX } from 'solid-js';
+import { type JSX } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
-import { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
+import type { MenuRoot } from '../root/MenuRoot';
 import { MenuRadioGroupContext } from './MenuRadioGroupContext';
 
 /**
@@ -26,11 +27,14 @@ export function MenuRadioGroup(componentProps: MenuRadioGroup.Props) {
     name: 'MenuRadioGroup',
   });
 
-  const setValue = (newValue: any, event: Event) => {
-    batch(() => {
-      setValueUnwrapped(newValue);
-      local.onValueChange?.(newValue, event);
-    });
+  const setValue = (newValue: any, eventDetails: MenuRadioGroup.ChangeEventDetails) => {
+    local.onValueChange?.(newValue, eventDetails);
+
+    if (eventDetails.isCanceled) {
+      return;
+    }
+
+    setValueUnwrapped(newValue);
   };
 
   const state: MenuRadioGroup.State = {
@@ -63,39 +67,45 @@ export function MenuRadioGroup(componentProps: MenuRadioGroup.Props) {
   );
 }
 
-export namespace MenuRadioGroup {
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * The content of the component.
-     */
-    children?: JSX.Element;
-    /**
-     * The controlled value of the radio item that should be currently selected.
-     *
-     * To render an uncontrolled radio group, use the `defaultValue` prop instead.
-     */
-    value?: any;
-    /**
-     * The uncontrolled value of the radio item that should be initially selected.
-     *
-     * To render a controlled radio group, use the `value` prop instead.
-     */
-    defaultValue?: any;
-    /**
-     * Function called when the selected value changes.
-     *
-     * @default () => {}
-     */
-    onValueChange?: (value: any, event: Event) => void;
-    /**
-     * Whether the component should ignore user interaction.
-     *
-     * @default false
-     */
-    disabled?: boolean;
-  }
+export interface MenuRadioGroupProps extends BaseUIComponentProps<'div', MenuRadioGroup.State> {
+  /**
+   * The content of the component.
+   */
+  children?: JSX.Element;
+  /**
+   * The controlled value of the radio item that should be currently selected.
+   *
+   * To render an uncontrolled radio group, use the `defaultValue` prop instead.
+   */
+  value?: any;
+  /**
+   * The uncontrolled value of the radio item that should be initially selected.
+   *
+   * To render a controlled radio group, use the `value` prop instead.
+   */
+  defaultValue?: any;
+  /**
+   * Function called when the selected value changes.
+   */
+  onValueChange?: (value: any, eventDetails: MenuRadioGroup.ChangeEventDetails) => void;
+  /**
+   * Whether the component should ignore user interaction.
+   *
+   * @default false
+   */
+  disabled?: boolean;
+}
 
-  export type State = {
-    disabled: boolean;
-  };
+export type MenuRadioGroupState = {
+  disabled: boolean;
+};
+
+export type MenuRadioGroupChangeEventReason = MenuRoot.ChangeEventReason;
+export type MenuRadioGroupChangeEventDetails = MenuRoot.ChangeEventDetails;
+
+export namespace MenuRadioGroup {
+  export type Props = MenuRadioGroupProps;
+  export type State = MenuRadioGroupState;
+  export type ChangeEventReason = MenuRadioGroupChangeEventReason;
+  export type ChangeEventDetails = MenuRadioGroupChangeEventDetails;
 }

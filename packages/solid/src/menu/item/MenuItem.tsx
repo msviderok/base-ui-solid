@@ -1,10 +1,10 @@
-import { type JSX } from 'solid-js';
+import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
+import type { JSX } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
-import { useFloatingTree } from '../../floating-ui-solid';
-import { splitComponentProps } from '../../solid-helpers';
-import type { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps, NonNativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { useMenuPositionerContext } from '../positioner/MenuPositionerContext';
 import { useMenuRootContext } from '../root/MenuRootContext';
 import { REGULAR_ITEM, useMenuItem } from './useMenuItem';
 
@@ -16,33 +16,37 @@ import { REGULAR_ITEM, useMenuItem } from './useMenuItem';
  */
 export function MenuItem(componentProps: MenuItem.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, [
-    'closeOnClick',
-    'disabled',
     'id',
     'label',
     'nativeButton',
+    'disabled',
+    'closeOnClick',
   ]);
-  const closeOnClick = () => local.closeOnClick ?? true;
-  const disabled = () => local.disabled ?? false;
+  const idProp = () => local.id;
   const nativeButton = () => local.nativeButton ?? false;
+  const disabled = () => local.disabled ?? false;
+  const closeOnClick = () => local.closeOnClick ?? true;
 
-  const listItem = useCompositeListItem({ label: () => local.label });
+  const listItem = useCompositeListItem({
+    get label() {
+      return local.label;
+    },
+  });
+  const menuPositionerContext = useMenuPositionerContext(true);
+  const id = useBaseUiId(idProp);
 
-  const { itemProps, activeIndex, allowMouseUpTriggerRef, typingRef } = useMenuRootContext();
-  const id = useBaseUiId(() => local.id);
-
-  const highlighted = () => listItem.index() === activeIndex();
-  const { events: menuEvents } = useFloatingTree()!;
+  const { store } = useMenuRootContext();
+  const highlighted = () => store.useState('isActive', listItem.index())();
+  const itemProps = store.useState('itemProps');
 
   const { getItemProps, setItemRef } = useMenuItem({
     closeOnClick,
     disabled,
     highlighted,
     id,
-    menuEvents,
-    allowMouseUpTriggerRef,
-    typingRef,
+    store,
     nativeButton,
+    nodeId: () => menuPositionerContext?.nodeId(),
     itemMetadata: REGULAR_ITEM,
   });
 
@@ -57,51 +61,57 @@ export function MenuItem(componentProps: MenuItem.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
+    get props() {
+      return [itemProps(), elementProps, getItemProps];
+    },
     ref: (el) => {
       setItemRef(el);
       listItem.setRef(el);
     },
-    props: [itemProps, elementProps, getItemProps],
   });
 
   return <>{element()}</>;
 }
 
-export namespace MenuItem {
-  export interface State {
-    /**
-     * Whether the item should ignore user interaction.
-     */
-    disabled: boolean;
-    /**
-     * Whether the item is highlighted.
-     */
-    highlighted: boolean;
-  }
+export interface MenuItemState {
+  /**
+   * Whether the item should ignore user interaction.
+   */
+  disabled: boolean;
+  /**
+   * Whether the item is highlighted.
+   */
+  highlighted: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    children?: JSX.Element;
-    /**
-     * Whether the component should ignore user interaction.
-     * @default false
-     */
-    disabled?: boolean;
-    /**
-     * Overrides the text label to use when the item is matched during keyboard text navigation.
-     */
-    label?: string;
-    /**
-     * Whether to close the menu when the item is clicked.
-     *
-     * @default true
-     */
-    closeOnClick?: boolean;
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default false
-     */
-    nativeButton?: boolean;
-  }
+export interface MenuItemProps
+  extends NonNativeButtonProps, BaseUIComponentProps<'div', MenuItem.State> {
+  /**
+   * The click handler for the menu item.
+   */
+  onClick?: JSX.EventHandlerUnion<HTMLElement, MouseEvent>;
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * Overrides the text label to use when the item is matched during keyboard text navigation.
+   */
+  label?: string;
+  /**
+   * @ignore
+   */
+  id?: string;
+  /**
+   * Whether to close the menu when the item is clicked.
+   *
+   * @default true
+   */
+  closeOnClick?: boolean;
+}
+
+export namespace MenuItem {
+  export type State = MenuItemState;
+  export type Props = MenuItemProps;
 }

@@ -13,6 +13,7 @@ export { MenuRadioGroup as RadioGroup } from './radio-group/MenuRadioGroup';
 export { MenuRadioItemIndicator as RadioItemIndicator } from './radio-item-indicator/MenuRadioItemIndicator';
 export { MenuRadioItem as RadioItem } from './radio-item/MenuRadioItem';
 export { MenuRoot as Root } from './root/MenuRoot';
+export { createMenuHandle as createHandle, MenuHandle as Handle } from './store/MenuHandle';
 export { MenuSubmenuRoot as SubmenuRoot } from './submenu-root/MenuSubmenuRoot';
 export { MenuSubmenuTrigger as SubmenuTrigger } from './submenu-trigger/MenuSubmenuTrigger';
 export { MenuTrigger as Trigger } from './trigger/MenuTrigger';

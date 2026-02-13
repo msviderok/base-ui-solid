@@ -7,13 +7,15 @@ describe('<Menu.Backdrop />', () => {
 
   describeConformance(Menu.Backdrop, () => ({
     refInstanceof: window.HTMLDivElement,
-    render: (node, props) => render(() => <Menu.Root open>{node(props)}</Menu.Root>),
+    render: (node, props) => render(() => <Menu.Root open>{node(props!)}</Menu.Root>),
   }));
 
   it('sets `pointer-events: none` style on backdrop if opened by hover', async () => {
     const { user } = render(() => (
-      <Menu.Root delay={0} openOnHover>
-        <Menu.Trigger>Open</Menu.Trigger>
+      <Menu.Root open>
+        <Menu.Trigger delay={0} openOnHover>
+          Open
+        </Menu.Trigger>
         <Menu.Portal>
           <Menu.Backdrop data-testid="backdrop" />
           <Menu.Positioner>
@@ -30,8 +32,8 @@ describe('<Menu.Backdrop />', () => {
 
   it('does not set `pointer-events: none` style on backdrop if opened by click', async () => {
     const { user } = render(() => (
-      <Menu.Root delay={0}>
-        <Menu.Trigger>Open</Menu.Trigger>
+      <Menu.Root open>
+        <Menu.Trigger delay={0}>Open</Menu.Trigger>
         <Menu.Portal>
           <Menu.Backdrop data-testid="backdrop" />
           <Menu.Positioner>

@@ -18,7 +18,7 @@ describe('<Menu.RadioItemIndicator />', () => {
               <Menu.Positioner>
                 <Menu.Popup>
                   <Menu.RadioGroup>
-                    <Menu.RadioItem value="">{node(props)}</Menu.RadioItem>
+                    <Menu.RadioItem value="">{node(props!)}</Menu.RadioItem>
                   </Menu.RadioGroup>
                 </Menu.Popup>
               </Menu.Positioner>

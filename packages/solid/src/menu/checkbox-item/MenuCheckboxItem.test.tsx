@@ -15,7 +15,7 @@ describe('<Menu.CheckboxItem />', () => {
   clock.withFakeTimers();
 
   describeConformance(Menu.CheckboxItem, () => ({
-    render: (node, props) => render(() => <Menu.Root open>{node(props)}</Menu.Root>),
+    render: (node, props) => render(() => <Menu.Root open>{node(props!)}</Menu.Root>),
     refInstanceof: window.HTMLDivElement,
   }));
 

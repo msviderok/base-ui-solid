@@ -1,15 +1,16 @@
 import type { JSX } from 'solid-js';
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext';
 import { splitComponentProps } from '../../solid-helpers';
-import { type CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import { type StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { REASONS } from '../../utils/reasons';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import { useMenuRootContext } from '../root/MenuRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<MenuBackdrop.State> = {
+const stateAttributesMapping: StateAttributesMapping<MenuBackdrop.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -23,7 +24,12 @@ const customStyleHookMapping: CustomStyleHookMapping<MenuBackdrop.State> = {
 export function MenuBackdrop(componentProps: MenuBackdrop.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { open, mounted, transitionStatus, lastOpenChangeReason } = useMenuRootContext();
+  const { store } = useMenuRootContext();
+  const open = store.useState('open');
+  const mounted = store.useState('mounted');
+  const transitionStatus = store.useState('transitionStatus');
+  const lastOpenChangeReason = store.useState('lastOpenChangeReason');
+
   const contextMenuContext = useContextMenuRootContext();
 
   const state: MenuBackdrop.State = {
@@ -42,7 +48,7 @@ export function MenuBackdrop(componentProps: MenuBackdrop.Props) {
         contextMenuContext.refs.backdropRef = el;
       }
     },
-    customStyleHookMapping,
+    stateAttributesMapping,
     props: [
       {
         role: 'presentation',
@@ -51,7 +57,7 @@ export function MenuBackdrop(componentProps: MenuBackdrop.Props) {
         },
         get style(): JSX.CSSProperties {
           return {
-            'pointer-events': lastOpenChangeReason() === 'trigger-hover' ? 'none' : undefined,
+            'pointer-events': lastOpenChangeReason() === REASONS.triggerHover ? 'none' : undefined,
             'user-select': 'none',
             '-webkit-user-select': 'none',
           };
@@ -64,14 +70,17 @@ export function MenuBackdrop(componentProps: MenuBackdrop.Props) {
   return <>{element()}</>;
 }
 
-export namespace MenuBackdrop {
-  export interface State {
-    /**
-     * Whether the menu is currently open.
-     */
-    open: boolean;
-    transitionStatus: TransitionStatus;
-  }
+export interface MenuBackdropState {
+  /**
+   * Whether the menu is currently open.
+   */
+  open: boolean;
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface MenuBackdropProps extends BaseUIComponentProps<'div', MenuBackdrop.State> {}
+
+export namespace MenuBackdrop {
+  export type State = MenuBackdropState;
+  export type Props = MenuBackdropProps;
 }

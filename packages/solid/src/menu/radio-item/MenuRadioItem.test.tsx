@@ -28,7 +28,7 @@ describe('<Menu.RadioItem />', () => {
         render(() => (
           <Menu.Root open>
             <MenuRadioGroupContext.Provider value={testRadioGroupContext}>
-              {node(props)}
+              {node(props!)}
             </MenuRadioGroupContext.Provider>
           </Menu.Root>
         )),
@@ -228,17 +228,18 @@ describe('<Menu.RadioItem />', () => {
       ));
 
       const trigger = screen.getByRole('button', { name: 'Open' });
-      trigger.focus();
-
-      await user.keyboard('{Enter}');
+      await user.click(trigger);
 
       const item = screen.getByRole('menuitemradio');
       await user.click(item);
 
-      trigger.focus();
+      await user.click(trigger); // close the menu
 
-      await user.keyboard('{Enter}');
-      await user.keyboard('{Enter}');
+      await waitFor(() => {
+        expect(screen.queryByRole('menu')).to.equal(null);
+      });
+
+      await user.click(trigger); // reopen the menu
 
       const itemAfterReopen = await screen.findByRole('menuitemradio');
       expect(itemAfterReopen).to.have.attribute('aria-checked', 'true');
@@ -336,44 +337,43 @@ describe('<Menu.RadioItem />', () => {
         </Menu.Root>
       ));
 
-      const item1 = () => screen.getAllByRole('menuitemradio')[0];
-      const item2 = () => screen.getAllByRole('menuitemradio')[1];
+      const [item1, item2] = screen.getAllByRole('menuitemradio');
 
-      expect(item1()).to.have.attribute('data-disabled');
-      expect(item2()).to.have.attribute('data-disabled');
+      expect(item1).to.have.attribute('data-disabled');
+      expect(item2).to.have.attribute('data-disabled');
 
-      item1().focus();
-      expect(item1()).toHaveFocus();
+      item1.focus();
+      expect(item1).toHaveFocus();
 
-      fireEvent.keyDown(item1(), { key: 'Enter' });
+      fireEvent.keyDown(item1, { key: 'Enter' });
       expect(handleKeyDown.callCount).to.equal(0);
       expect(handleClick.callCount).to.equal(0);
       expect(handleValueChange.callCount).to.equal(0);
 
-      fireEvent.keyUp(item1(), { key: 'Space' });
+      fireEvent.keyUp(item1, { key: 'Space' });
       expect(handleKeyDown.callCount).to.equal(0);
       expect(handleClick.callCount).to.equal(0);
       expect(handleValueChange.callCount).to.equal(0);
 
-      fireEvent.click(item1());
+      fireEvent.click(item1);
       expect(handleClick.callCount).to.equal(0);
       expect(handleValueChange.callCount).to.equal(0);
 
-      fireEvent.keyDown(item1(), { key: 'ArrowDown' });
+      fireEvent.keyDown(item1, { key: 'ArrowDown' });
       expect(handleKeyDown.callCount).to.equal(0);
-      expect(item2()).toHaveFocus();
+      expect(item2).toHaveFocus();
 
-      fireEvent.keyDown(item2(), { key: 'Enter' });
-      expect(handleKeyDown.callCount).to.equal(0);
-      expect(handleClick.callCount).to.equal(0);
-      expect(handleValueChange.callCount).to.equal(0);
-
-      fireEvent.keyUp(item2(), { key: 'Space' });
+      fireEvent.keyDown(item2, { key: 'Enter' });
       expect(handleKeyDown.callCount).to.equal(0);
       expect(handleClick.callCount).to.equal(0);
       expect(handleValueChange.callCount).to.equal(0);
 
-      fireEvent.click(item2());
+      fireEvent.keyUp(item2, { key: 'Space' });
+      expect(handleKeyDown.callCount).to.equal(0);
+      expect(handleClick.callCount).to.equal(0);
+      expect(handleValueChange.callCount).to.equal(0);
+
+      fireEvent.click(item2);
       expect(handleClick.callCount).to.equal(0);
       expect(handleValueChange.callCount).to.equal(0);
     });
@@ -415,40 +415,41 @@ describe('<Menu.RadioItem />', () => {
       </Menu.Root>
     ));
 
-    const item1 = () => screen.getAllByRole('menuitemradio')[0];
-    const item2 = () => screen.getAllByRole('menuitemradio')[1];
+    const [item1, item2] = screen.getAllByRole('menuitemradio');
 
-    expect(item1()).to.have.attribute('data-disabled');
-    expect(item2()).to.not.have.attribute('data-disabled');
+    expect(item1).to.have.attribute('data-disabled');
+    expect(item2).to.not.have.attribute('data-disabled');
 
-    item1().focus();
-    expect(item1()).toHaveFocus();
+    item1.focus();
+    expect(item1).toHaveFocus();
 
-    fireEvent.keyDown(item1(), { key: 'Enter' });
+    fireEvent.keyDown(item1, { key: 'Enter' });
     expect(handleKeyDown.callCount).to.equal(0);
     expect(handleClick.callCount).to.equal(0);
     expect(handleValueChange.callCount).to.equal(0);
 
-    fireEvent.keyUp(item1(), { key: 'Space' });
+    fireEvent.keyUp(item1, { key: 'Space' });
     expect(handleKeyDown.callCount).to.equal(0);
     expect(handleClick.callCount).to.equal(0);
     expect(handleValueChange.callCount).to.equal(0);
 
-    fireEvent.click(item1());
+    fireEvent.click(item1);
     expect(handleClick.callCount).to.equal(0);
     expect(handleValueChange.callCount).to.equal(0);
 
-    fireEvent.keyDown(item1(), { key: 'ArrowDown' });
+    fireEvent.keyDown(item1, { key: 'ArrowDown' });
     expect(handleKeyDown.callCount).to.equal(0);
-    expect(item2()).toHaveFocus();
+    expect(item2).toHaveFocus();
 
-    fireEvent.keyDown(item2(), { key: 'Enter' });
+    fireEvent.keyDown(item2, { key: 'Enter' });
     expect(handleKeyDown.callCount).to.equal(1);
     expect(handleClick.callCount).to.equal(1);
     expect(handleValueChange.callCount).to.equal(1);
     expect(handleValueChange.args[0][0]).to.equal('two');
 
-    fireEvent.keyDown(item2(), { key: 'ArrowDown' });
-    expect(item1()).toHaveFocus();
+    fireEvent.keyDown(item2, { key: 'ArrowDown' });
+    await waitFor(() => {
+      expect(item1).toHaveFocus();
+    });
   });
 });

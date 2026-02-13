@@ -1,5 +1,5 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
-import type { BaseOpenChangeReason } from '../../utils/translateOpenChangeReason';
+import type { ContextMenuRoot } from './ContextMenuRoot';
 
 export interface ContextMenuRootContext {
   anchor: { getBoundingClientRect: () => DOMRect };
@@ -8,9 +8,10 @@ export interface ContextMenuRootContext {
     internalBackdropRef: HTMLDivElement | null | undefined;
     positionerRef: HTMLElement | null | undefined;
     actionsRef: {
-      setOpen: (nextOpen: boolean, event?: Event, reason?: BaseOpenChangeReason) => void;
+      setOpen: (nextOpen: boolean, eventDetails: ContextMenuRoot.ChangeEventDetails) => void;
     } | null;
     allowMouseUpTriggerRef: boolean;
+    initialCursorPointRef: { x: number; y: number } | null;
   };
   rootId: Accessor<string | undefined>;
 }

@@ -1,11 +1,10 @@
-import { access, type MaybeAccessor } from '../../solid-helpers';
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import { MenuCheckboxItemDataAttributes } from '../checkbox-item/MenuCheckboxItemDataAttributes';
 
-export const itemMapping: CustomStyleHookMapping<{ checked: MaybeAccessor<boolean> }> = {
+export const itemMapping: StateAttributesMapping<{ checked: boolean }> = {
   checked(value): Record<string, string> {
-    if (access(value)) {
+    if (value) {
       return {
         [MenuCheckboxItemDataAttributes.checked]: '',
       };

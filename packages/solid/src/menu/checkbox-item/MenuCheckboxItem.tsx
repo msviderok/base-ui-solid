@@ -1,14 +1,18 @@
-import { batch, type JSX } from 'solid-js';
+'use client';
+import { useControlled } from '@base-ui/utils/useControlled';
+import type { JSX } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
-import { useFloatingTree } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
-import type { BaseUIComponentProps } from '../../utils/types';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
+import type { BaseUIComponentProps, NonNativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
-import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { REGULAR_ITEM, useMenuItem } from '../item/useMenuItem';
+import { useMenuPositionerContext } from '../positioner/MenuPositionerContext';
+import type { MenuRoot } from '../root/MenuRoot';
 import { useMenuRootContext } from '../root/MenuRootContext';
-import { itemMapping } from '../utils/styleHookMapping';
+import { itemMapping } from '../utils/stateAttributesMapping';
 import { MenuCheckboxItemContext } from './MenuCheckboxItemContext';
 
 /**
@@ -21,28 +25,31 @@ export function MenuCheckboxItem(componentProps: MenuCheckboxItem.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, [
     'id',
     'label',
-    'closeOnClick',
     'nativeButton',
+    'disabled',
+    'closeOnClick',
     'checked',
     'defaultChecked',
     'onCheckedChange',
-    'disabled',
   ]);
-  const closeOnClick = () => local.closeOnClick ?? false;
+  const idProp = () => local.id;
   const nativeButton = () => local.nativeButton ?? false;
   const disabled = () => local.disabled ?? false;
+  const closeOnClick = () => local.closeOnClick ?? false;
+  const checkedProp = () => local.checked ?? false;
+  const defaultChecked = () => local.defaultChecked;
 
   const listItem = useCompositeListItem({ label: () => local.label });
+  const menuPositionerContext = useMenuPositionerContext(true);
+  const id = useBaseUiId(idProp);
 
-  const { itemProps, activeIndex, allowMouseUpTriggerRef, typingRef } = useMenuRootContext();
-  const id = useBaseUiId(() => local.id);
-
-  const highlighted = () => listItem.index() === activeIndex();
-  const { events: menuEvents } = useFloatingTree()!;
+  const { store } = useMenuRootContext();
+  const highlighted = () => store.useState('isActive', listItem.index())();
+  const itemProps = store.useState('itemProps');
 
   const [checked, setChecked] = useControlled({
-    controlled: () => local.checked,
-    default: () => local.defaultChecked,
+    controlled: checkedProp,
+    default: () => defaultChecked() ?? false,
     name: 'MenuCheckboxItem',
     state: 'checked',
   });
@@ -52,10 +59,9 @@ export function MenuCheckboxItem(componentProps: MenuCheckboxItem.Props) {
     disabled,
     highlighted,
     id,
-    menuEvents,
-    allowMouseUpTriggerRef,
-    typingRef,
+    store,
     nativeButton,
+    nodeId: () => menuPositionerContext?.nodeId(),
     itemMetadata: REGULAR_ITEM,
   });
 
@@ -71,99 +77,121 @@ export function MenuCheckboxItem(componentProps: MenuCheckboxItem.Props) {
     },
   };
 
-  const context: MenuCheckboxItemContext = {
-    checked,
-    highlighted,
+  const contextValue: MenuCheckboxItemContext = {
     disabled,
+    highlighted,
+    checked,
+  };
+
+  const handleClick = (event: MouseEvent) => {
+    const details = {
+      ...createChangeEventDetails(REASONS.itemPress, event),
+      preventUnmountOnClose: () => {},
+    };
+
+    local.onCheckedChange?.(!checked(), details);
+
+    if (details.isCanceled) {
+      return;
+    }
+
+    setChecked(() => !checked());
   };
 
   const element = useRenderElement('div', componentProps, {
     state,
+    stateAttributesMapping: itemMapping,
+    get props() {
+      return [
+        itemProps(),
+        {
+          role: 'menuitemcheckbox',
+          get 'aria-checked'() {
+            return checked();
+          },
+          onClick: handleClick,
+        },
+        elementProps,
+        getItemProps,
+      ];
+    },
     ref: (el) => {
       setItemRef(el);
       listItem.setRef(el);
     },
-    customStyleHookMapping: itemMapping,
-    props: [
-      itemProps,
-      {
-        role: 'menuitemcheckbox',
-        get 'aria-checked'() {
-          return checked();
-        },
-        onClick: (event) => {
-          const nextChecked = !checked();
-          batch(() => {
-            setChecked(nextChecked);
-            local.onCheckedChange?.(nextChecked, event);
-          });
-        },
-      },
-      elementProps,
-      getItemProps,
-    ],
   });
 
   return (
-    <MenuCheckboxItemContext.Provider value={context}>{element()}</MenuCheckboxItemContext.Provider>
+    <MenuCheckboxItemContext.Provider value={contextValue}>
+      {element()}
+    </MenuCheckboxItemContext.Provider>
   );
 }
 
-export namespace MenuCheckboxItem {
-  export type State = {
-    /**
-     * Whether the checkbox item should ignore user interaction.
-     */
-    disabled: boolean;
-    /**
-     * Whether the checkbox item is currently highlighted.
-     */
-    highlighted: boolean;
-    /**
-     * Whether the checkbox item is currently ticked.
-     */
-    checked: boolean;
-  };
+export type MenuCheckboxItemState = {
+  /**
+   * Whether the checkbox item should ignore user interaction.
+   */
+  disabled: boolean;
+  /**
+   * Whether the checkbox item is currently highlighted.
+   */
+  highlighted: boolean;
+  /**
+   * Whether the checkbox item is currently ticked.
+   */
+  checked: boolean;
+};
 
-  export interface Props extends BaseUIComponentProps<'div', State> {
-    /**
-     * Whether the checkbox item is currently ticked.
-     *
-     * To render an uncontrolled checkbox item, use the `defaultChecked` prop instead.
-     */
-    checked?: boolean;
-    /**
-     * Whether the checkbox item is initially ticked.
-     *
-     * To render a controlled checkbox item, use the `checked` prop instead.
-     * @default false
-     */
-    defaultChecked?: boolean;
-    /**
-     * Event handler called when the checkbox item is ticked or unticked.
-     */
-    onCheckedChange?: (checked: boolean, event: Event) => void;
-    children?: JSX.Element;
-    /**
-     * Whether the component should ignore user interaction.
-     * @default false
-     */
-    disabled?: boolean;
-    /**
-     * Overrides the text label to use when the item is matched during keyboard text navigation.
-     */
-    label?: string;
-    /**
-     * Whether to close the menu when the item is clicked.
-     * @default false
-     */
-    closeOnClick?: boolean;
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default false
-     */
-    nativeButton?: boolean;
-  }
+export interface MenuCheckboxItemProps
+  extends NonNativeButtonProps, BaseUIComponentProps<'div', MenuCheckboxItem.State> {
+  /**
+   * Whether the checkbox item is currently ticked.
+   *
+   * To render an uncontrolled checkbox item, use the `defaultChecked` prop instead.
+   */
+  checked?: boolean;
+  /**
+   * Whether the checkbox item is initially ticked.
+   *
+   * To render a controlled checkbox item, use the `checked` prop instead.
+   * @default false
+   */
+  defaultChecked?: boolean;
+  /**
+   * Event handler called when the checkbox item is ticked or unticked.
+   */
+  onCheckedChange?: (checked: boolean, eventDetails: MenuCheckboxItem.ChangeEventDetails) => void;
+  /**
+   * The click handler for the menu item.
+   */
+  onClick?: JSX.EventHandlerUnion<HTMLDivElement, MouseEvent>;
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * Overrides the text label to use when the item is matched during keyboard text navigation.
+   */
+  label?: string;
+  /**
+   * @ignore
+   */
+  id?: string;
+  /**
+   * Whether to close the menu when the item is clicked.
+   * @default false
+   */
+  closeOnClick?: boolean;
+}
+
+export type MenuCheckboxItemChangeEventReason = MenuRoot.ChangeEventReason;
+export type MenuCheckboxItemChangeEventDetails = MenuRoot.ChangeEventDetails;
+
+export namespace MenuCheckboxItem {
+  export type State = MenuCheckboxItemState;
+  export type Props = MenuCheckboxItemProps;
+  export type ChangeEventReason = MenuCheckboxItemChangeEventReason;
+  export type ChangeEventDetails = MenuCheckboxItemChangeEventDetails;
 }

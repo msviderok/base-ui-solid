@@ -16,8 +16,9 @@ describe('<Menu.Item />', () => {
   clock.withFakeTimers();
 
   describeConformance(Menu.Item, () => ({
-    render: (node, props) => render(() => <Menu.Root open>{node(props)}</Menu.Root>),
     refInstanceof: window.HTMLDivElement,
+    button: true,
+    render: (node, props) => render(() => <Menu.Root open>{node(props!)}</Menu.Root>),
   }));
 
   it('calls the onClick handler when clicked', async () => {

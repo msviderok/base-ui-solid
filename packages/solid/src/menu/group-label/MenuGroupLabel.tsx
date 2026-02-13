@@ -1,4 +1,4 @@
-import { createRenderEffect, onCleanup } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -13,16 +13,17 @@ import { useMenuGroupRootContext } from '../group/MenuGroupContext';
  */
 export function MenuGroupLabel(componentProps: MenuGroupLabel.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
-  const id = useBaseUiId(() => local.id);
+  const idProp = () => local.id;
+
+  const id = useBaseUiId(idProp);
 
   const { setLabelId } = useMenuGroupRootContext();
 
-  createRenderEffect(() => {
+  createEffect(() => {
     setLabelId(id());
-  });
-
-  onCleanup(() => {
-    setLabelId(undefined);
+    onCleanup(() => {
+      setLabelId(undefined);
+    });
   });
 
   const element = useRenderElement('div', componentProps, {
@@ -40,8 +41,11 @@ export function MenuGroupLabel(componentProps: MenuGroupLabel.Props) {
   return <>{element()}</>;
 }
 
-export namespace MenuGroupLabel {
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface MenuGroupLabelProps extends BaseUIComponentProps<'div', MenuGroupLabel.State> {}
 
-  export interface State {}
+export interface MenuGroupLabelState {}
+
+export namespace MenuGroupLabel {
+  export type Props = MenuGroupLabelProps;
+  export type State = MenuGroupLabelState;
 }

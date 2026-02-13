@@ -4,7 +4,7 @@ import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
 import { useMenuRadioItemContext } from '../radio-item/MenuRadioItemContext';
-import { itemMapping } from '../utils/styleHookMapping';
+import { itemMapping } from '../utils/stateAttributesMapping';
 
 /**
  * Indicates whether the radio item is selected.
@@ -52,7 +52,7 @@ export function MenuRadioItemIndicator(componentProps: MenuRadioItemIndicator.Pr
     ref: (el) => {
       indicatorRef = el;
     },
-    customStyleHookMapping: itemMapping,
+    stateAttributesMapping: itemMapping,
     enabled: () => keepMounted() || item.checked(),
     props: [{ 'aria-hidden': true }, elementProps],
   });
@@ -60,25 +60,31 @@ export function MenuRadioItemIndicator(componentProps: MenuRadioItemIndicator.Pr
   return <>{element()}</>;
 }
 
-export namespace MenuRadioItemIndicator {
-  export interface Props extends BaseUIComponentProps<'span', State> {
-    /**
-     * Whether to keep the HTML element in the DOM when the radio item is inactive.
-     * @default false
-     */
-    keepMounted?: boolean;
-  }
+export interface MenuRadioItemIndicatorProps extends BaseUIComponentProps<
+  'span',
+  MenuRadioItemIndicator.State
+> {
+  /**
+   * Whether to keep the HTML element in the DOM when the radio item is inactive.
+   * @default false
+   */
+  keepMounted?: boolean;
+}
 
-  export interface State {
-    /**
-     * Whether the radio item is currently selected.
-     */
-    checked: boolean;
-    /**
-     * Whether the component should ignore user interaction.
-     */
-    disabled: boolean;
-    highlighted: boolean;
-    transitionStatus: TransitionStatus;
-  }
+export interface MenuRadioItemIndicatorState {
+  /**
+   * Whether the radio item is currently selected.
+   */
+  checked: boolean;
+  /**
+   * Whether the component should ignore user interaction.
+   */
+  disabled: boolean;
+  highlighted: boolean;
+  transitionStatus: TransitionStatus;
+}
+
+export namespace MenuRadioItemIndicator {
+  export type Props = MenuRadioItemIndicatorProps;
+  export type State = MenuRadioItemIndicatorState;
 }

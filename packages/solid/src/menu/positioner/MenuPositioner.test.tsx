@@ -7,7 +7,7 @@ import { createSignal } from 'solid-js';
 import { afterEach } from 'vitest';
 
 function Trigger(props: Menu.Trigger.Props) {
-  return <Menu.Trigger {...props} ref={props.ref} render="div" />;
+  return <Menu.Trigger {...props} ref={props.ref} render="div" nativeButton={false} />;
 }
 
 describe('<Menu.Positioner />', () => {
@@ -17,7 +17,7 @@ describe('<Menu.Positioner />', () => {
     render: (node, props) =>
       render(() => (
         <Menu.Root open>
-          <Menu.Portal>{node(props)}</Menu.Portal>
+          <Menu.Portal>{node(props!)}</Menu.Portal>
         </Menu.Root>
       )),
     refInstanceof: window.HTMLDivElement,

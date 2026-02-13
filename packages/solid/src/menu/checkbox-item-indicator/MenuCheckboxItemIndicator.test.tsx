@@ -21,7 +21,7 @@ describe('<Menu.CheckboxItemIndicator />', () => {
             <Menu.Portal>
               <Menu.Positioner>
                 <Menu.Popup>
-                  <Menu.CheckboxItem>{node(props)}</Menu.CheckboxItem>
+                  <Menu.CheckboxItem>{node(props!)}</Menu.CheckboxItem>
                 </Menu.Popup>
               </Menu.Positioner>
             </Menu.Portal>
