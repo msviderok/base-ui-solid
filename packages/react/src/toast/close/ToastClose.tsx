@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import type { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useToastRootContext } from '../root/ToastRootContext';
 import { useToastContext } from '../provider/ToastProviderContext';
 import { useButton } from '../../use-button/useButton';
@@ -18,8 +18,10 @@ export const ToastClose = React.forwardRef(function ToastClose(
 ) {
   const { render, className, disabled, nativeButton = true, ...elementProps } = componentProps;
 
-  const { close } = useToastContext();
+  const { close, expanded } = useToastContext();
   const { toast } = useToastRootContext();
+
+  const [hasFocus, setHasFocus] = React.useState(false);
 
   const { getButtonProps, buttonRef } = useButton({
     disabled,
@@ -38,8 +40,15 @@ export const ToastClose = React.forwardRef(function ToastClose(
     state,
     props: [
       {
+        'aria-hidden': !expanded && !hasFocus,
         onClick() {
           close(toast.id);
+        },
+        onFocus() {
+          setHasFocus(true);
+        },
+        onBlur() {
+          setHasFocus(false);
         },
       },
       elementProps,
@@ -50,21 +59,17 @@ export const ToastClose = React.forwardRef(function ToastClose(
   return element;
 });
 
-export namespace ToastClose {
-  export interface State {
-    /**
-     * The type of the toast.
-     */
-    type: string | undefined;
-  }
+export interface ToastCloseState {
+  /**
+   * The type of the toast.
+   */
+  type: string | undefined;
+}
 
-  export interface Props extends BaseUIComponentProps<'button', State> {
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default true
-     */
-    nativeButton?: boolean;
-  }
+export interface ToastCloseProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', ToastClose.State> {}
+
+export namespace ToastClose {
+  export type State = ToastCloseState;
+  export type Props = ToastCloseProps;
 }

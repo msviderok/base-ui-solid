@@ -1,11 +1,16 @@
-import { batch, createEffect, createMemo, createSignal, onCleanup, type JSX } from 'solid-js';
+import { generateId } from '@base-ui/utils/generateId';
+import { ownerDocument } from '@base-ui/utils/owner';
+import { batch, createEffect, createSignal, onCleanup, type JSX } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { activeElement, contains } from '../../floating-ui-solid/utils';
-import { generateId } from '../../utils/generateId';
-import { ownerDocument } from '../../utils/owner';
 import { useTimeout, type Timeout } from '../../utils/useTimeout';
-import { createToastManager, type ToastManagerEvent } from '../createToastManager';
-import { ToastObject, useToastManager } from '../useToastManager';
+import type { ToastManager, ToastManagerEvent } from '../createToastManager';
+import type {
+  ToastManagerAddOptions,
+  ToastManagerPromiseOptions,
+  ToastManagerUpdateOptions,
+  ToastObject,
+} from '../useToastManager';
 import { isFocusVisible } from '../utils/focusVisible';
 import { resolvePromiseOptions } from '../utils/resolvePromiseOptions';
 import { ToastContext } from './ToastProviderContext';
@@ -48,24 +53,17 @@ export function ToastProvider(props: ToastProvider.Props) {
     }
   });
 
-  // It's not possible to stack a smaller height toast onto a larger height toast, but
-  // the reverse is possible. For simplicity, we'll enforce the expanded state if the
-  // toasts aren't all the same height.
-  const hasDifferingHeights = createMemo(() => {
-    const heights = toasts.list.map((t) => t.height).filter((h) => h !== 0);
-    return heights.length > 0 && new Set(heights).size > 1;
-  });
+  const expanded = () => hovering() || focused();
 
+  const timersRef = new Map<string, TimerInfo>();
   const refs: ToastContext<any>['refs'] = {
     viewportRef: null,
     windowFocusedRef: true,
   };
-
-  const timersRef = new Map<string, TimerInfo>();
   let isPausedRef = false;
 
-  const handleFocusManagement = (toastId: string) => {
-    const activeEl = activeElement(ownerDocument(refs.viewportRef));
+  function handleFocusManagement(toastId: string) {
+    const activeEl = activeElement(ownerDocument(refs.viewportRef ?? null));
     if (!refs.viewportRef || !contains(refs.viewportRef, activeEl) || !isFocusVisible(activeEl)) {
       return;
     }
@@ -100,7 +98,7 @@ export function ToastProvider(props: ToastProvider.Props) {
     } else {
       prevFocusElement()?.focus({ preventScroll: true });
     }
-  };
+  }
 
   const pauseTimers = () => {
     if (isPausedRef) {
@@ -209,7 +207,7 @@ export function ToastProvider(props: ToastProvider.Props) {
     });
   };
 
-  const add = <Data extends object>(toast: useToastManager.AddOptions<Data>): string => {
+  const add = <Data extends object>(toast: ToastManagerAddOptions<Data>): string => {
     const id = toast.id || generateId('toast');
     const toastToAdd: ToastObject<Data> = {
       ...toast,
@@ -254,7 +252,7 @@ export function ToastProvider(props: ToastProvider.Props) {
 
   const update = <Data extends object, K extends keyof ToastObject<Data>>(
     id: string,
-    updates: useToastManager.UpdateOptions<Data>,
+    updates: ToastManagerUpdateOptions<Data>,
   ) => {
     setToasts(
       'list',
@@ -270,7 +268,7 @@ export function ToastProvider(props: ToastProvider.Props) {
 
   const promise = <Value, Data extends object>(
     promiseValue: Promise<Value>,
-    options: useToastManager.PromiseOptions<Value, Data>,
+    options: ToastManagerPromiseOptions<Value, Data>,
   ): Promise<Value> => {
     // Create a loading toast (which does not auto-dismiss).
     const loadingOptions = resolvePromiseOptions(options.loading);
@@ -283,12 +281,16 @@ export function ToastProvider(props: ToastProvider.Props) {
 
     const onSuccess = (result: Value) => {
       batch(() => {
+        const successOptions = resolvePromiseOptions(options.success, result);
         update(id, {
-          ...resolvePromiseOptions(options.success, result),
+          ...successOptions,
           type: 'success',
         });
 
-        scheduleTimer(id, timeout(), cb);
+        const successTimeout = successOptions.timeout ?? timeout();
+        if (successTimeout > 0) {
+          scheduleTimer(id, successTimeout, cb);
+        }
 
         if (hovering() || focused() || !refs.windowFocusedRef) {
           pauseTimers();
@@ -298,12 +300,16 @@ export function ToastProvider(props: ToastProvider.Props) {
     };
     const onError = (error: any) => {
       batch(() => {
+        const errorOptions = resolvePromiseOptions(options.error, error);
         update(id, {
-          ...resolvePromiseOptions(options.error, error),
+          ...errorOptions,
           type: 'error',
         });
 
-        scheduleTimer(id, timeout(), cb);
+        const errorTimeout = errorOptions.timeout ?? timeout();
+        if (errorTimeout > 0) {
+          scheduleTimer(id, errorTimeout, cb);
+        }
 
         if (hovering() || focused() || !refs.windowFocusedRef) {
           pauseTimers();
@@ -353,6 +359,7 @@ export function ToastProvider(props: ToastProvider.Props) {
     setHovering,
     focused,
     setFocused,
+    expanded,
     add,
     close,
     remove,
@@ -363,31 +370,32 @@ export function ToastProvider(props: ToastProvider.Props) {
     prevFocusElement,
     setPrevFocusElement,
     scheduleTimer,
-    hasDifferingHeights,
     refs,
   };
 
   return <ToastContext.Provider value={contextValue}>{props.children}</ToastContext.Provider>;
 }
 
+export interface ToastProviderProps {
+  children?: JSX.Element;
+  /**
+   * The default amount of time (in ms) before a toast is auto dismissed.
+   * A value of `0` will prevent the toast from being dismissed automatically.
+   * @default 5000
+   */
+  timeout?: number;
+  /**
+   * The maximum number of toasts that can be displayed at once.
+   * When the limit is reached, the oldest toast will be removed to make room for the new one.
+   * @default 3
+   */
+  limit?: number;
+  /**
+   * A global manager for toasts to use outside of a React component.
+   */
+  toastManager?: ToastManager;
+}
+
 export namespace ToastProvider {
-  export interface Props {
-    children?: JSX.Element;
-    /**
-     * The default amount of time (in ms) before a toast is auto dismissed.
-     * A value of `0` will prevent the toast from being dismissed automatically.
-     * @default 5000
-     */
-    timeout?: number;
-    /**
-     * The maximum number of toasts that can be displayed at once.
-     * When the limit is reached, the oldest toast will be removed to make room for the new one.
-     * @default 3
-     */
-    limit?: number;
-    /**
-     * A global manager for toasts to use outside of a React component.
-     */
-    toastManager?: createToastManager.ToastManager;
-  }
+  export type Props = ToastProviderProps;
 }

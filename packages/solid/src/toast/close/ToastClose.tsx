@@ -1,6 +1,7 @@
+import { createSignal } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button/useButton';
-import type { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useToastContext } from '../provider/ToastProviderContext';
 import { useToastRootContext } from '../root/ToastRootContext';
@@ -15,8 +16,10 @@ export function ToastClose(componentProps: ToastClose.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['disabled', 'nativeButton']);
   const nativeButton = () => local.nativeButton ?? true;
 
-  const { close } = useToastContext();
+  const { close, expanded } = useToastContext();
   const { toast } = useToastRootContext();
+
+  const [hasFocus, setHasFocus] = createSignal(false);
 
   const { getButtonProps, buttonRef } = useButton({
     disabled: () => local.disabled,
@@ -34,8 +37,17 @@ export function ToastClose(componentProps: ToastClose.Props) {
     ref: buttonRef,
     props: [
       {
+        get 'aria-hidden'() {
+          return !expanded() && !hasFocus();
+        },
         onClick() {
           close(toast().id);
+        },
+        onFocus() {
+          setHasFocus(true);
+        },
+        onBlur() {
+          setHasFocus(false);
         },
       },
       elementProps,
@@ -46,21 +58,17 @@ export function ToastClose(componentProps: ToastClose.Props) {
   return <>{element()}</>;
 }
 
-export namespace ToastClose {
-  export interface State {
-    /**
-     * The type of the toast.
-     */
-    type: string | undefined;
-  }
+export interface ToastCloseState {
+  /**
+   * The type of the toast.
+   */
+  type: string | undefined;
+}
 
-  export interface Props extends BaseUIComponentProps<'button', State> {
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default true
-     */
-    nativeButton?: boolean;
-  }
+export interface ToastCloseProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', ToastClose.State> {}
+
+export namespace ToastClose {
+  export type State = ToastCloseState;
+  export type Props = ToastCloseProps;
 }

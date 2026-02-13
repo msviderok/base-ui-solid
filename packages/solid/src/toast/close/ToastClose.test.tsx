@@ -14,11 +14,13 @@ describe('<Toast.Close />', () => {
 
   describeConformance(Toast.Close, () => ({
     refInstanceof: window.HTMLButtonElement,
+    testComponentPropWith: 'button',
+    button: true,
     render(node, props) {
       return render(() => (
         <Toast.Provider>
           <Toast.Viewport>
-            <Toast.Root toast={toast}>{node(props)}</Toast.Root>
+            <Toast.Root toast={toast}>{node(props!)}</Toast.Root>
           </Toast.Viewport>
         </Toast.Provider>
       ));
@@ -28,7 +30,7 @@ describe('<Toast.Close />', () => {
   it('closes the toast when clicked', async () => {
     const { user } = render(() => (
       <Toast.Provider>
-        <Toast.Viewport>
+        <Toast.Viewport data-testid="viewport">
           <List />
         </Toast.Viewport>
         <Button />
@@ -36,10 +38,13 @@ describe('<Toast.Close />', () => {
     ));
 
     const button = screen.getByRole('button', { name: 'add' });
+    const viewport = screen.getByTestId('viewport');
 
     await user.click(button);
 
     expect(screen.getByTestId('title')).not.to.equal(null);
+
+    viewport.focus();
 
     const closeButton = screen.getByRole('button', { name: 'close-press' });
 

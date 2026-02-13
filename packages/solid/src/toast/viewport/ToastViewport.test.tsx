@@ -10,7 +10,7 @@ describe('<Toast.Viewport />', () => {
   describeConformance(Toast.Viewport, () => ({
     refInstanceof: window.HTMLDivElement,
     render(node, props) {
-      return render(() => <Toast.Provider>{node(props)}</Toast.Provider>);
+      return render(() => <Toast.Provider>{node(props!)}</Toast.Provider>);
     },
   }));
 
@@ -96,6 +96,53 @@ describe('<Toast.Viewport />', () => {
     await user.tab();
 
     expect(button).toHaveFocus();
+  });
+
+  it('removes expanded on mouseleave when focus-visible not inside', async () => {
+    const { user } = render(() => (
+      <Toast.Provider>
+        <Toast.Viewport data-testid="viewport">
+          <List />
+        </Toast.Viewport>
+        <Button />
+      </Toast.Provider>
+    ));
+
+    const button = screen.getByRole('button', { name: 'add' });
+
+    await user.click(button);
+    const root = await screen.findByTestId('root');
+    const viewport = screen.getByTestId('viewport');
+
+    fireEvent.mouseEnter(root);
+    expect(viewport).to.have.attribute('data-expanded');
+
+    fireEvent.mouseLeave(root);
+    expect(viewport).to.not.have.attribute('data-expanded');
+  });
+
+  it('keeps expanded on mouseleave when focus-visible is inside', async () => {
+    const { user } = render(() => (
+      <Toast.Provider>
+        <Toast.Viewport data-testid="viewport">
+          <List />
+        </Toast.Viewport>
+        <Button />
+      </Toast.Provider>
+    ));
+
+    const button = screen.getByRole('button', { name: 'add' });
+    await user.click(button);
+    const root = await screen.findByTestId('root');
+    const viewport = screen.getByTestId('viewport');
+
+    await user.keyboard('{F6}');
+    await user.tab();
+
+    fireEvent.mouseEnter(root);
+    expect(viewport).to.have.attribute('data-expanded');
+    fireEvent.mouseLeave(root);
+    expect(viewport).to.have.attribute('data-expanded');
   });
 
   describe('timers', () => {

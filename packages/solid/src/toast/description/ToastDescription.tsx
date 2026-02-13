@@ -1,4 +1,4 @@
-import { onMount } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useId } from '../../utils/useId';
@@ -13,17 +13,25 @@ import { useToastRootContext } from '../root/ToastRootContext';
  * Documentation: [Base UI Toast](https://base-ui.com/react/components/toast)
  */
 export function ToastDescription(componentProps: ToastDescription.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, ['id']);
+  const [, local, elementProps] = splitComponentProps(componentProps, ['id', 'children']);
+  const idProp = () => local.id;
 
-  const { toast } = useToastRootContext();
+  const { toast, setDescriptionId } = useToastRootContext();
 
-  const id = useId(() => local.id);
-  let ref: HTMLElement;
+  const id = useId(idProp);
 
-  const { setCodependentRefs } = useToastRootContext();
+  const shouldRender = () => 'children' in local;
 
-  onMount(() => {
-    setCodependentRefs('description', { explicitId: id, ref: () => ref, id: () => local.id });
+  createEffect(() => {
+    if (!shouldRender()) {
+      return;
+    }
+
+    setDescriptionId(id());
+
+    onCleanup(() => {
+      setDescriptionId(undefined);
+    });
   });
 
   const state: ToastDescription.State = {
@@ -33,11 +41,8 @@ export function ToastDescription(componentProps: ToastDescription.Props) {
   };
 
   const element = useRenderElement('p', componentProps, {
-    enabled: () => Boolean(componentProps.children ?? toast().description),
+    enabled: shouldRender,
     state,
-    ref: (el) => {
-      ref = el;
-    },
     props: [
       {
         get id() {
@@ -47,20 +52,23 @@ export function ToastDescription(componentProps: ToastDescription.Props) {
       elementProps,
     ],
     get children() {
-      return <>{componentProps.children ?? toast().description}</>;
+      return <>{local.children ?? toast().description}</>;
     },
   });
 
   return <>{element()}</>;
 }
 
-export namespace ToastDescription {
-  export interface State {
-    /**
-     * The type of the toast.
-     */
-    type: string | undefined;
-  }
+export interface ToastDescriptionState {
+  /**
+   * The type of the toast.
+   */
+  type: string | undefined;
+}
 
-  export interface Props extends BaseUIComponentProps<'p', State> {}
+export interface ToastDescriptionProps extends BaseUIComponentProps<'p', ToastDescription.State> {}
+
+export namespace ToastDescription {
+  export type State = ToastDescriptionState;
+  export type Props = ToastDescriptionProps;
 }

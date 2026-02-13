@@ -1,14 +1,15 @@
 import { useContext, type Accessor, type JSX } from 'solid-js';
+import type { ToastPositionerProps } from './positioner/ToastPositioner';
 import { ToastContext } from './provider/ToastProviderContext';
 
 /**
  * Returns the array of toasts and methods to manage them.
  */
-export function useToastManager(): useToastManager.ReturnValue {
+export function useToastManager(): UseToastManagerReturnValue {
   const context = useContext(ToastContext);
 
   if (!context) {
-    throw new Error('Base UI: useToast must be used within <Toast.Provider>.');
+    throw new Error('Base UI: useToastManager must be used within <Toast.Provider>.');
   }
 
   const { toasts, add, close, update, promise } = context;
@@ -20,32 +21,6 @@ export function useToastManager(): useToastManager.ReturnValue {
     update,
     promise,
   };
-}
-
-export namespace useToastManager {
-  export interface ReturnValue {
-    toasts: Accessor<ToastContext<any>['toasts']['list']>;
-    add: <Data extends object>(options: AddOptions<Data>) => string;
-    close: (toastId: string) => void;
-    update: <Data extends object>(toastId: string, options: UpdateOptions<Data>) => void;
-    promise: <Value, Data extends object>(
-      promise: Promise<Value>,
-      options: PromiseOptions<Value, Data>,
-    ) => Promise<Value>;
-  }
-
-  export interface AddOptions<Data extends object>
-    extends Omit<ToastObject<Data>, 'id' | 'animation' | 'height' | 'ref' | 'limited'> {
-    id?: string;
-  }
-
-  export interface UpdateOptions<Data extends object> extends Partial<AddOptions<Data>> {}
-
-  export interface PromiseOptions<Value, Data extends object> {
-    loading: string | UpdateOptions<Data>;
-    success: string | UpdateOptions<Data> | ((result: Value) => string | UpdateOptions<Data>);
-    error: string | UpdateOptions<Data> | ((error: any) => string | UpdateOptions<Data>);
-  }
 }
 
 export interface ToastObject<Data extends object> {
@@ -60,7 +35,7 @@ export interface ToastObject<Data extends object> {
   /**
    * The title of the toast.
    */
-  title?: string;
+  title?: JSX.Element;
   /**
    * The type of the toast. Used to conditionally style the toast,
    * including conditionally rendering elements based on the type.
@@ -69,7 +44,7 @@ export interface ToastObject<Data extends object> {
   /**
    * The description of the toast.
    */
-  description?: string;
+  description?: JSX.Element;
   /**
    * The amount of time (in ms) before the toast is auto dismissed.
    * A value of `0` will prevent the toast from being dismissed automatically.
@@ -108,7 +83,55 @@ export interface ToastObject<Data extends object> {
    */
   actionProps?: JSX.HTMLAttributes<HTMLButtonElement>;
   /**
+   * The props forwarded to the toast positioner element when rendering anchored toasts.
+   */
+  positionerProps?: ToastManagerPositionerProps;
+  /**
    * Custom data for the toast.
    */
   data?: Data;
+}
+
+export interface ToastManagerPositionerProps extends Omit<
+  ToastPositionerProps,
+  'anchor' | 'toast'
+> {
+  /**
+   * An element to position the toast against.
+   */
+  anchor?: Element | null | undefined;
+}
+
+export interface UseToastManagerReturnValue {
+  toasts: Accessor<ToastContext<any>['toasts']['list']>;
+  add: <Data extends object>(options: ToastManagerAddOptions<Data>) => string;
+  close: (toastId: string) => void;
+  update: <Data extends object>(toastId: string, options: ToastManagerUpdateOptions<Data>) => void;
+  promise: <Value, Data extends object>(
+    promise: Promise<Value>,
+    options: ToastManagerPromiseOptions<Value, Data>,
+  ) => Promise<Value>;
+}
+
+export interface ToastManagerAddOptions<Data extends object> extends Omit<
+  ToastObject<Data>,
+  'id' | 'animation' | 'height' | 'ref' | 'limited'
+> {
+  id?: string;
+}
+
+export interface ToastManagerUpdateOptions<Data extends object> extends Partial<
+  ToastManagerAddOptions<Data>
+> {}
+
+export interface ToastManagerPromiseOptions<Value, Data extends object> {
+  loading: string | ToastManagerUpdateOptions<Data>;
+  success:
+    | string
+    | ToastManagerUpdateOptions<Data>
+    | ((result: Value) => string | ToastManagerUpdateOptions<Data>);
+  error:
+    | string
+    | ToastManagerUpdateOptions<Data>
+    | ((error: any) => string | ToastManagerUpdateOptions<Data>);
 }

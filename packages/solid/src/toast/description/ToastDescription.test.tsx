@@ -24,7 +24,7 @@ describe('<Toast.Description />', () => {
         return render(() => (
           <Toast.Provider>
             <Toast.Viewport>
-              <Toast.Root toast={toast}>{node(props)}</Toast.Root>
+              <Toast.Root toast={toast}>{node(props!)}</Toast.Root>
             </Toast.Viewport>
           </Toast.Provider>
         ));
@@ -49,7 +49,7 @@ describe('<Toast.Description />', () => {
     const descriptionId = descriptionElement.id;
 
     const rootElement = screen.getByTestId('root');
-    expect(rootElement).to.not.equal(null);
+    expect(rootElement).not.to.equal(null);
     expect(rootElement.getAttribute('aria-describedby')).to.equal(descriptionId);
   });
 
@@ -93,7 +93,7 @@ describe('<Toast.Description />', () => {
     await user.click(button);
 
     const titleElement = screen.getByTestId('description');
-    expect(titleElement).to.not.equal(null);
+    expect(titleElement).not.to.equal(null);
     expect(titleElement.textContent).to.equal('description');
   });
 });

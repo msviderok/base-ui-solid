@@ -20,11 +20,13 @@ describe('<Toast.Action />', () => {
     ),
     () => ({
       refInstanceof: window.HTMLButtonElement,
+      testComponentPropWith: 'button',
+      button: true,
       render(node, props) {
         return render(() => (
           <Toast.Provider>
             <Toast.Viewport>
-              <Toast.Root toast={toast}>{node(props)}</Toast.Root>
+              <Toast.Root toast={toast}>{node(props!)}</Toast.Root>
             </Toast.Viewport>
           </Toast.Provider>
         ));

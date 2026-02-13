@@ -1,13 +1,15 @@
-import { createEffect, onCleanup, type JSX } from 'solid-js';
+import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
+import { createEffect, createMemo, For, onCleanup } from 'solid-js';
 import { activeElement, contains, getTarget } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
 import { FocusGuard } from '../../utils/FocusGuard';
-import { ownerDocument, ownerWindow } from '../../utils/owner';
-import type { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { visuallyHidden } from '../../utils/visuallyHidden';
 import { useToastContext } from '../provider/ToastProviderContext';
 import { isFocusVisible } from '../utils/focusVisible';
 import { ToastViewportContext } from './ToastViewportContext';
+import { ToastViewportCssVars } from './ToastViewportCssVars';
 
 /**
  * A container viewport for toasts.
@@ -27,13 +29,19 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     refs,
     prevFocusElement,
     setPrevFocusElement,
-    hovering,
+    expanded,
     focused,
-    hasDifferingHeights,
   } = useToastContext();
 
   let handlingFocusGuardRef = false;
+  let markedReadyForMouseLeaveRef = false;
+
   const numToasts = () => toasts.list.length;
+  const frontmostHeight = () => toasts.list[0]?.height ?? 0;
+
+  const hasTransitioningToasts = createMemo(() =>
+    toasts.list.some((toast) => toast.transitionStatus === 'ending'),
+  );
 
   // Listen globally for F6 so we can force-focus the viewport.
   createEffect(() => {
@@ -48,8 +56,10 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
 
       if (event.key === 'F6' && event.target !== refs.viewportRef) {
         event.preventDefault();
-        setPrevFocusElement(activeElement(ownerDocument(refs.viewportRef)) as HTMLElement | null);
-        refs.viewportRef?.focus();
+        setPrevFocusElement(
+          activeElement(ownerDocument(refs.viewportRef ?? null)) as HTMLElement | null,
+        );
+        refs.viewportRef?.focus({ preventScroll: true });
         pauseTimers();
         setFocused(true);
       }
@@ -86,7 +96,7 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
       }
 
       const target = getTarget(event);
-      const activeEl = activeElement(ownerDocument(refs.viewportRef));
+      const activeEl = activeElement(ownerDocument(refs.viewportRef ?? null));
       if (!contains(refs.viewportRef, target as HTMLElement | null) || !isFocusVisible(activeEl)) {
         resumeTimers();
       }
@@ -103,6 +113,36 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     onCleanup(() => {
       win.removeEventListener('blur', handleWindowBlur, true);
       win.removeEventListener('focus', handleWindowFocus, true);
+    });
+  });
+
+  createEffect(() => {
+    const viewportNode = refs.viewportRef;
+    if (!viewportNode || numToasts() === 0) {
+      return;
+    }
+
+    const doc = ownerDocument(viewportNode);
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.pointerType !== 'touch') {
+        return;
+      }
+
+      const target = getTarget(event) as Element | null;
+      if (contains(viewportNode, target)) {
+        return;
+      }
+
+      resumeTimers();
+      setHovering(false);
+      setFocused(false);
+    }
+
+    doc.addEventListener('pointerdown', handlePointerDown, true);
+
+    onCleanup(() => {
+      doc.removeEventListener('pointerdown', handlePointerDown, true);
     });
   });
 
@@ -129,19 +169,34 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     }
   }
 
-  function handleMouseEnter() {
-    pauseTimers();
-    setHovering(true);
-  }
-
-  function handleMouseLeave() {
-    const activeEl = activeElement(ownerDocument(refs.viewportRef));
-    if (contains(refs.viewportRef, activeEl) && isFocusVisible(activeEl)) {
+  createEffect(() => {
+    if (!refs.windowFocusedRef || hasTransitioningToasts() || !markedReadyForMouseLeaveRef) {
       return;
     }
 
+    // Once transitions have finished, see if a mouseleave was already triggered
+    // but blocked from taking effect. If so, we can now safely resume timers and
+    // collapse the viewport.
     resumeTimers();
     setHovering(false);
+    markedReadyForMouseLeaveRef = false;
+  });
+
+  function handleMouseEnter() {
+    pauseTimers();
+    setHovering(true);
+    markedReadyForMouseLeaveRef = false;
+  }
+
+  function handleMouseLeave() {
+    if (toasts.list.some((toast) => toast.transitionStatus === 'ending')) {
+      // When swiping to dismiss, wait until the transitions have settled
+      // to avoid the viewport collapsing while the user is interacting.
+      markedReadyForMouseLeaveRef = true;
+    } else {
+      resumeTimers();
+      setHovering(false);
+    }
   }
 
   function handleFocus() {
@@ -154,16 +209,13 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
       return;
     }
 
-    // If the window was previously blurred, the focus must be visible to
-    // pause the timers, since for pointers it's unexpected that focus is
-    // considered inside the viewport at this point.
-    const activeEl = activeElement(ownerDocument(refs.viewportRef));
-    if (!refs.windowFocusedRef && !isFocusVisible(activeEl)) {
-      return;
+    // Only set focused when the active element is focus-visible.
+    // This prevents the viewport from staying expanded when clicking inside without
+    // keyboard navigation.
+    if (isFocusVisible(ownerDocument(refs.viewportRef ?? null).activeElement)) {
+      setFocused(true);
+      pauseTimers();
     }
-
-    setFocused(true);
-    pauseTimers();
   }
 
   function handleBlur(event: FocusEvent) {
@@ -175,12 +227,13 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     resumeTimers();
   }
 
-  const props: JSX.HTMLAttributes<HTMLDivElement> = {
-    role: 'region',
+  const defaultProps: HTMLProps = {
     tabIndex: -1,
-    get 'aria-label'() {
-      return `${numToasts()} notification${numToasts() !== 1 ? 's' : ''} (F6)`;
-    },
+    role: 'region',
+    'aria-live': 'polite',
+    'aria-atomic': false,
+    'aria-relevant': 'additions text',
+    'aria-label': 'Notifications',
     onMouseEnter: handleMouseEnter,
     onMouseMove: handleMouseEnter,
     onMouseLeave: handleMouseLeave,
@@ -192,26 +245,28 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
 
   const state: ToastViewport.State = {
     get expanded() {
-      return hovering() || focused() || hasDifferingHeights();
+      return expanded();
     },
   };
 
-  const contextValue = { refs };
-
-  // const children = createMemo(() => (
-  //   <>
-  //     {numToasts() > 0 && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
-  //     {componentProps.children}
-  //     {numToasts() > 0 && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
-  //   </>
-  // ));
-
   const element = useRenderElement('div', componentProps, {
-    state,
     ref: (el) => {
       refs.viewportRef = el;
     },
-    props: [props, elementProps],
+    state,
+    props: [
+      defaultProps,
+      {
+        get style() {
+          return {
+            [ToastViewportCssVars.frontmostHeight as string]: frontmostHeight()
+              ? `${frontmostHeight()}px`
+              : undefined,
+          };
+        },
+      },
+      elementProps,
+    ],
     get children() {
       return (
         <>
@@ -223,21 +278,42 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     },
   });
 
+  const contextValue = { refs };
+
+  const highPriorityToasts = createMemo(() =>
+    toasts.list.filter((toast) => toast.priority === 'high'),
+  );
+
   return (
     <ToastViewportContext.Provider value={contextValue}>
       {numToasts() > 0 && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
       {element()}
+      {!focused() && highPriorityToasts().length > 0 && (
+        <div style={visuallyHidden}>
+          <For each={highPriorityToasts()}>
+            {(toast) => (
+              <div role="alert" aria-atomic>
+                <div>{toast.title}</div>
+                <div>{toast.description}</div>
+              </div>
+            )}
+          </For>
+        </div>
+      )}
     </ToastViewportContext.Provider>
   );
 }
 
-export namespace ToastViewport {
-  export interface State {
-    /**
-     * Whether toasts are expanded in the viewport.
-     */
-    expanded: boolean;
-  }
+export interface ToastViewportState {
+  /**
+   * Whether toasts are expanded in the viewport.
+   */
+  expanded: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface ToastViewportProps extends BaseUIComponentProps<'div', ToastViewport.State> {}
+
+export namespace ToastViewport {
+  export type State = ToastViewportState;
+  export type Props = ToastViewportProps;
 }

@@ -1,7 +1,7 @@
 import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button/useButton';
-import type { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useToastRootContext } from '../root/ToastRootContext';
 
@@ -41,21 +41,17 @@ export function ToastAction(componentProps: ToastAction.Props) {
   return <>{element()}</>;
 }
 
-export namespace ToastAction {
-  export interface State {
-    /**
-     * The type of the toast.
-     */
-    type: string | undefined;
-  }
+export interface ToastActionState {
+  /**
+   * The type of the toast.
+   */
+  type: string | undefined;
+}
 
-  export interface Props extends BaseUIComponentProps<'button', State> {
-    /**
-     * Whether the component renders a native `<button>` element when replacing it
-     * via the `render` prop.
-     * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-     * @default true
-     */
-    nativeButton?: boolean;
-  }
+export interface ToastActionProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', ToastAction.State> {}
+
+export namespace ToastAction {
+  export type State = ToastActionState;
+  export type Props = ToastActionProps;
 }
