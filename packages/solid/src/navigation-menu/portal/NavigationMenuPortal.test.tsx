@@ -1,12 +1,13 @@
 import { createRenderer, describeConformance } from '#test-utils';
 import { NavigationMenu } from '@msviderok/base-ui-solid/navigation-menu';
 
-describe('<NavigationMenu.Backdrop />', () => {
+describe('<NavigationMenu.Portal />', () => {
   const { render } = createRenderer();
 
-  describeConformance(NavigationMenu.Backdrop, () => ({
+  describeConformance(NavigationMenu.Portal, () => ({
     refInstanceof: window.HTMLDivElement,
-    render: (node, props) =>
-      render(() => <NavigationMenu.Root>{node(props!)}</NavigationMenu.Root>),
+    render(node, props) {
+      return render(() => <NavigationMenu.Root value="item">{node(props!)}</NavigationMenu.Root>);
+    },
   }));
 });

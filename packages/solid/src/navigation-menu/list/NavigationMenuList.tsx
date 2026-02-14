@@ -1,19 +1,49 @@
+import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
+import { createMemo, Show } from 'solid-js';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
-import { splitComponentProps } from '../../solid-helpers';
-import type { BaseUIComponentProps } from '../../utils/types';
+import { useDismiss } from '../../floating-ui-solid';
+import { getTarget } from '../../floating-ui-solid/utils';
+import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
+import { EMPTY_OBJECT } from '../../utils/constants';
+import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useNavigationMenuRootContext } from '../root/NavigationMenuRootContext';
+import { NAVIGATION_MENU_TRIGGER_IDENTIFIER } from '../utils/constants';
+import { NavigationMenuDismissContext } from './NavigationMenuDismissContext';
 
 /**
  * Contains a list of navigation menu items.
- * Renders a `<div>` element.
+ * Renders a `<ul>` element.
  *
  * Documentation: [Base UI Navigation Menu](https://base-ui.com/react/components/navigation-menu)
  */
 export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
-  const [, , elementProps] = splitComponentProps(componentProps, []);
+  const [renderProps, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { orientation, open } = useNavigationMenuRootContext();
+  const { orientation, open, floatingRootContext, positionerElement, value, nested } =
+    useNavigationMenuRootContext();
+
+  const fallbackContext = createMemo(() => getEmptyRootContext());
+  const context = () => floatingRootContext() || fallbackContext();
+  const interactionsEnabled = () => (positionerElement() ? true : !value());
+
+  const dismiss = useDismiss(context, {
+    enabled: interactionsEnabled,
+    outsidePressEvent: 'intentional',
+    outsidePress(event) {
+      const target = getTarget(event) as HTMLElement | null;
+      const closestNavigationMenuTrigger = target?.closest(
+        `[${NAVIGATION_MENU_TRIGGER_IDENTIFIER}]`,
+      );
+      return closestNavigationMenuTrigger === null;
+    },
+  });
+
+  const dismissProps = {
+    get props() {
+      return floatingRootContext() ? dismiss() : undefined;
+    },
+  };
 
   const state: NavigationMenuList.State = {
     get open() {
@@ -21,20 +51,81 @@ export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
     },
   };
 
-  const element = useRenderElement('div', componentProps, { state, props: elementProps });
+  // `stopEventPropagation` won't stop the propagation if the end of the list is reached,
+  // but we want to block it in this case.
+  // When nested, skip this handler so arrow keys can reach the parent CompositeRoot.
+  const defaultProps: HTMLProps = {
+    get onKeyDown() {
+      if (nested()) {
+        return undefined;
+      }
+
+      return (event: KeyboardEvent) => {
+        const shouldStop =
+          (orientation() === 'horizontal' &&
+            (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) ||
+          (orientation() === 'vertical' && (event.key === 'ArrowUp' || event.key === 'ArrowDown'));
+
+        if (shouldStop) {
+          event.stopPropagation();
+        }
+      };
+    },
+  };
+
+  const props = {
+    get props() {
+      return [dismissProps.props?.floating || EMPTY_OBJECT, defaultProps, elementProps];
+    },
+  };
+
+  // When nested, skip the CompositeRoot wrapper so that triggers can participate
+  // in the parent Content's composite navigation context. Also skip the onKeyDown
+  // handler that blocks propagation so arrow keys can reach the parent CompositeRoot.
+  const element = useRenderElement('ul', componentProps, {
+    state,
+    props: props.props,
+    enabled: nested,
+  });
 
   return (
-    <CompositeRoot loop={false} orientation={orientation()} stopEventPropagation render={element} />
+    <Show
+      when={!nested()}
+      fallback={
+        <NavigationMenuDismissContext.Provider value={dismissProps.props}>
+          {element()}
+        </NavigationMenuDismissContext.Provider>
+      }
+    >
+      <NavigationMenuDismissContext.Provider value={dismissProps.props}>
+        <CompositeRoot
+          render={renderProps.render}
+          class={renderProps.class}
+          state={state}
+          refs={[componentProps.ref as any]}
+          props={props.props}
+          loopFocus={false}
+          orientation={orientation()}
+          tag="ul"
+        />
+      </NavigationMenuDismissContext.Provider>
+    </Show>
   );
 }
 
-export namespace NavigationMenuList {
-  export interface State {
-    /**
-     * If `true`, the popup is open.
-     */
-    open: boolean;
-  }
+export interface NavigationMenuListState {
+  /**
+   * If `true`, the popup is open.
+   */
+  open: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface NavigationMenuListProps extends BaseUIComponentProps<
+  'ul',
+  NavigationMenuList.State
+> {}
+
+export namespace NavigationMenuList {
+  export type State = NavigationMenuListState;
+  export type Props = NavigationMenuListProps;
 }

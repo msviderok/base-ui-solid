@@ -1,20 +1,16 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
-import type { TransitionStatus } from '../../utils/useTransitionStatus';
 
-export interface NavigationMenuItemContext {
-  value: Accessor<string | undefined>;
-  open: Accessor<boolean>;
-  mounted: Accessor<boolean>;
-  setMounted: (mounted: boolean) => void;
-  transitionStatus: Accessor<TransitionStatus | undefined>;
-  isActive: Accessor<boolean>;
+export interface NavigationMenuItemContextValue {
+  value: Accessor<any>;
 }
 
-export const NavigationMenuItemContext = createContext<NavigationMenuItemContext | undefined>();
+export const NavigationMenuItemContext = createContext<NavigationMenuItemContextValue | undefined>(
+  undefined,
+);
 
 export function useNavigationMenuItemContext() {
   const value = useContext(NavigationMenuItemContext);
-  if (value === undefined) {
+  if (!value) {
     throw new Error(
       'Base UI: NavigationMenuItem parts must be used within a <NavigationMenu.Item>.',
     );

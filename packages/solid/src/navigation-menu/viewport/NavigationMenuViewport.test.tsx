@@ -6,6 +6,7 @@ describe('<NavigationMenu.Viewport />', () => {
 
   describeConformance(NavigationMenu.Viewport, () => ({
     refInstanceof: window.HTMLDivElement,
-    render: (node, props) => render(() => <NavigationMenu.Root>{node(props)}</NavigationMenu.Root>),
+    render: (node, props) =>
+      render(() => <NavigationMenu.Root>{node(props!)}</NavigationMenu.Root>),
   }));
 });

@@ -1,5 +1,7 @@
-import { createRenderer, describeConformance } from '#test-utils';
+import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { NavigationMenu } from '@msviderok/base-ui-solid/navigation-menu';
+import { screen, waitFor } from '@solidjs/testing-library';
+import { expect } from 'chai';
 
 describe('<NavigationMenu.Link />', () => {
   const { render } = createRenderer();
@@ -8,9 +10,126 @@ describe('<NavigationMenu.Link />', () => {
     render: (node, props) =>
       render(() => (
         <NavigationMenu.Root>
-          <NavigationMenu.List>{node(props)}</NavigationMenu.List>
+          <NavigationMenu.List>{node(props!)}</NavigationMenu.List>
         </NavigationMenu.Root>
       )),
     refInstanceof: window.HTMLAnchorElement,
   }));
+
+  describe.skipIf(!isJSDOM)('prop: closeOnClick', () => {
+    it('closes the menu when clicking a link when true', async () => {
+      const { user } = render(() => (
+        <NavigationMenu.Root>
+          <NavigationMenu.List>
+            <NavigationMenu.Item value="item-1">
+              <NavigationMenu.Trigger data-testid="trigger-1">Item 1</NavigationMenu.Trigger>
+              <NavigationMenu.Content data-testid="popup-1">
+                <NavigationMenu.Link href="#link-1" closeOnClick>
+                  Link 1
+                </NavigationMenu.Link>
+              </NavigationMenu.Content>
+            </NavigationMenu.Item>
+          </NavigationMenu.List>
+
+          <NavigationMenu.Portal>
+            <NavigationMenu.Positioner>
+              <NavigationMenu.Popup>
+                <NavigationMenu.Viewport />
+              </NavigationMenu.Popup>
+            </NavigationMenu.Positioner>
+          </NavigationMenu.Portal>
+        </NavigationMenu.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger-1');
+
+      await user.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-1')).not.to.equal(null);
+      });
+      expect(trigger).to.have.attribute('aria-expanded', 'true');
+
+      const link = screen.getByRole('link', { name: 'Link 1' });
+      await user.click(link);
+
+      await waitFor(() => expect(screen.queryByTestId('popup-1')).to.equal(null));
+      expect(trigger).to.have.attribute('aria-expanded', 'false');
+    });
+
+    it('does not close the menu when clicking a link when false', async () => {
+      const { user } = render(() => (
+        <NavigationMenu.Root>
+          <NavigationMenu.List>
+            <NavigationMenu.Item value="item-1">
+              <NavigationMenu.Trigger data-testid="trigger-1">Item 1</NavigationMenu.Trigger>
+              <NavigationMenu.Content data-testid="popup-1">
+                <NavigationMenu.Link href="#link-1" closeOnClick={false}>
+                  Link 1
+                </NavigationMenu.Link>
+              </NavigationMenu.Content>
+            </NavigationMenu.Item>
+          </NavigationMenu.List>
+
+          <NavigationMenu.Portal>
+            <NavigationMenu.Positioner>
+              <NavigationMenu.Popup>
+                <NavigationMenu.Viewport />
+              </NavigationMenu.Popup>
+            </NavigationMenu.Positioner>
+          </NavigationMenu.Portal>
+        </NavigationMenu.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger-1');
+
+      await user.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-1')).not.to.equal(null);
+      });
+      expect(trigger).to.have.attribute('aria-expanded', 'true');
+
+      const link = screen.getByRole('link', { name: 'Link 1' });
+      await user.click(link);
+
+      await waitFor(() => expect(screen.queryByTestId('popup-1')).not.to.equal(null));
+      expect(trigger).to.have.attribute('aria-expanded', 'true');
+    });
+  });
+
+  describe('prop: active', () => {
+    it('when `true`, renders with aria-current="page"', async () => {
+      render(() => (
+        <NavigationMenu.Root>
+          <NavigationMenu.List>
+            <NavigationMenu.Item>
+              <NavigationMenu.Link href="#" active>
+                active
+              </NavigationMenu.Link>
+            </NavigationMenu.Item>
+          </NavigationMenu.List>
+        </NavigationMenu.Root>
+      ));
+      expect(screen.getByRole('link', { name: 'active' })).to.have.attribute(
+        'aria-current',
+        'page',
+      );
+    });
+
+    it('when `false`, does not render with aria-current="page"', async () => {
+      render(() => (
+        <NavigationMenu.Root>
+          <NavigationMenu.List>
+            <NavigationMenu.Item>
+              <NavigationMenu.Link href="#" active={false}>
+                inactive
+              </NavigationMenu.Link>
+            </NavigationMenu.Item>
+          </NavigationMenu.List>
+        </NavigationMenu.Root>
+      ));
+      expect(screen.getByRole('link', { name: 'inactive' })).not.to.have.attribute('aria-current');
+    });
+  });
 });

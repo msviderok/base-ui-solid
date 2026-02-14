@@ -9,7 +9,7 @@ describe('<NavigationMenu.Positioner />', () => {
     render: (node, props) =>
       render(() => (
         <NavigationMenu.Root value="test">
-          <NavigationMenu.Portal>{node(props)}</NavigationMenu.Portal>
+          <NavigationMenu.Portal>{node(props!)}</NavigationMenu.Portal>
         </NavigationMenu.Root>
       )),
   }));

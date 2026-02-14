@@ -1,13 +1,13 @@
 import { splitComponentProps } from '../../solid-helpers';
-import type { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import { useNavigationMenuRootContext } from '../root/NavigationMenuRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<NavigationMenuBackdrop.State> = {
+const stateAttributesMapping: StateAttributesMapping<NavigationMenuBackdrop.State> = {
   ...baseMapping,
   ...transitionStatusMapping,
 };
@@ -34,7 +34,6 @@ export function NavigationMenuBackdrop(componentProps: NavigationMenuBackdrop.Pr
 
   const element = useRenderElement('div', componentProps, {
     state,
-    customStyleHookMapping,
     props: [
       {
         role: 'presentation',
@@ -45,22 +44,29 @@ export function NavigationMenuBackdrop(componentProps: NavigationMenuBackdrop.Pr
       },
       elementProps,
     ],
+    stateAttributesMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace NavigationMenuBackdrop {
-  export interface State {
-    /**
-     * If `true`, the popup is open.
-     */
-    open: boolean;
-    /**
-     * The transition status of the popup.
-     */
-    transitionStatus: TransitionStatus;
-  }
+export interface NavigationMenuBackdropState {
+  /**
+   * If `true`, the popup is open.
+   */
+  open: boolean;
+  /**
+   * The transition status of the popup.
+   */
+  transitionStatus: TransitionStatus;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface NavigationMenuBackdropProps extends BaseUIComponentProps<
+  'div',
+  NavigationMenuBackdrop.State
+> {}
+
+export namespace NavigationMenuBackdrop {
+  export type State = NavigationMenuBackdropState;
+  export type Props = NavigationMenuBackdropProps;
 }

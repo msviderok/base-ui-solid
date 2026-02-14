@@ -9,7 +9,7 @@ describe('<NavigationMenu.Icon />', () => {
     render: (node, props) =>
       render(() => (
         <NavigationMenu.Root>
-          <NavigationMenu.Item>{node(props)}</NavigationMenu.Item>
+          <NavigationMenu.Item>{node(props!)}</NavigationMenu.Item>
         </NavigationMenu.Root>
       )),
   }));

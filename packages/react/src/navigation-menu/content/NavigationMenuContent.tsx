@@ -1,24 +1,23 @@
 'use client';
+import { inertValue } from '@base-ui/utils/inertValue';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { CompositeRoot } from '../../composite/root/CompositeRoot';
 import { FloatingNode } from '../../floating-ui-react';
-import { contains } from '../../floating-ui-react/utils';
-import type { BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
+import { contains, getTarget } from '../../floating-ui-react/utils';
+import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { popupStateMapping } from '../../utils/popupStateMapping';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
+import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
+import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
+import { TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
+import { useNavigationMenuItemContext } from '../item/NavigationMenuItemContext';
 import {
   useNavigationMenuRootContext,
   useNavigationMenuTreeContext,
 } from '../root/NavigationMenuRootContext';
-import { useNavigationMenuItemContext } from '../item/NavigationMenuItemContext';
-import { TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
-import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
-import { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
-import { CompositeRoot } from '../../composite/root/CompositeRoot';
-import { inertValue } from '../../utils/inertValue';
-import { popupStateMapping } from '../../utils/popupStateMapping';
 
-const customStyleHookMapping: CustomStyleHookMapping<NavigationMenuContent.State> = {
+const stateAttributesMapping: StateAttributesMapping<NavigationMenuContent.State> = {
   ...popupStateMapping,
   ...transitionStatusMapping,
   activationDirection(value) {
@@ -50,8 +49,9 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
     value,
     activationDirection,
     currentContentRef,
+    viewportTargetElement,
   } = useNavigationMenuRootContext();
-  const itemValue = useNavigationMenuItemContext();
+  const { value: itemValue } = useNavigationMenuItemContext();
   const nodeId = useNavigationMenuTreeContext();
 
   const open = popupMounted && value === itemValue;
@@ -61,6 +61,12 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
   const [focusInside, setFocusInside] = React.useState(false);
 
   const { mounted, setMounted, transitionStatus } = useTransitionStatus(open);
+
+  // If the popup unmounts before the content's exit animation completes, reset the internal
+  // mounted state so the next open can re-enter via `transitionStatus="starting"`.
+  if (mounted && !popupMounted) {
+    setMounted(false);
+  }
 
   useOpenChangeComplete({
     ref,
@@ -90,8 +96,12 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
     [currentContentRef],
   );
 
-  const commonProps: React.ComponentProps<'div'> = {
-    onFocus() {
+  const commonProps: HTMLProps<HTMLDivElement> = {
+    onFocus(event) {
+      const target = getTarget(event.nativeEvent) as Element | null;
+      if (target?.hasAttribute('data-base-ui-focus-guard')) {
+        return;
+      }
       setFocusInside(true);
     },
     onBlur(event) {
@@ -101,52 +111,58 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
     },
   };
 
-  const shouldRender = viewportElement !== null && mounted;
+  const defaultProps: HTMLProps =
+    !open && mounted
+      ? {
+          style: { position: 'absolute', top: 0, left: 0 },
+          inert: inertValue(!focusInside),
+          ...commonProps,
+        }
+      : commonProps;
 
-  const element = useRenderElement('div', componentProps, {
-    enabled: shouldRender,
-    state,
-    ref: [forwardedRef, ref, handleCurrentContentRef],
-    props: [
-      !open && mounted
-        ? {
-            style: { position: 'absolute', top: 0, left: 0 },
-            inert: inertValue(!focusInside),
-            ...commonProps,
-          }
-        : commonProps,
-      elementProps,
-    ],
-    customStyleHookMapping,
-  });
+  const portalContainer = viewportTargetElement || viewportElement;
+  const shouldRender = portalContainer !== null && mounted;
 
-  if (!viewportElement || !element) {
+  if (!portalContainer || !shouldRender) {
     return null;
   }
 
   return ReactDOM.createPortal(
     <FloatingNode id={nodeId}>
-      <CompositeRoot render={element} stopEventPropagation />
+      <CompositeRoot
+        render={render}
+        className={className}
+        state={state}
+        refs={[forwardedRef, ref, handleCurrentContentRef]}
+        props={[defaultProps, elementProps]}
+        stateAttributesMapping={stateAttributesMapping}
+      />
     </FloatingNode>,
-    viewportElement,
+    portalContainer,
   );
 });
 
-export namespace NavigationMenuContent {
-  export interface State {
-    /**
-     * If `true`, the component is open.
-     */
-    open: boolean;
-    /**
-     * The transition status of the component.
-     */
-    transitionStatus: TransitionStatus;
-    /**
-     * The direction of the activation.
-     */
-    activationDirection: 'left' | 'right' | 'up' | 'down' | null;
-  }
+export interface NavigationMenuContentState {
+  /**
+   * If `true`, the component is open.
+   */
+  open: boolean;
+  /**
+   * The transition status of the component.
+   */
+  transitionStatus: TransitionStatus;
+  /**
+   * The direction of the activation.
+   */
+  activationDirection: 'left' | 'right' | 'up' | 'down' | null;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface NavigationMenuContentProps extends BaseUIComponentProps<
+  'div',
+  NavigationMenuContent.State
+> {}
+
+export namespace NavigationMenuContent {
+  export type State = NavigationMenuContentState;
+  export type Props = NavigationMenuContentProps;
 }

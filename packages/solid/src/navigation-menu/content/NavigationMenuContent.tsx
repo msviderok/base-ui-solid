@@ -1,34 +1,31 @@
-import { createSignal, Show, type JSX } from 'solid-js';
+import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { createEffect, createSignal, on, Show } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
 import { FloatingNode } from '../../floating-ui-solid';
-import { contains } from '../../floating-ui-solid/utils';
-import { access, splitComponentProps } from '../../solid-helpers';
-import { CustomStyleHookMapping } from '../../utils/getStyleHookProps';
-import { inertValue } from '../../utils/inertValue';
+import { contains, getTarget } from '../../floating-ui-solid/utils';
+import { splitComponentProps } from '../../solid-helpers';
+import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/styleHookMapping';
-import type { BaseUIComponentProps } from '../../utils/types';
-import { AnimationFrame } from '../../utils/useAnimationFrame';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
+import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
-import { useRenderElement } from '../../utils/useRenderElement';
-import { TransitionStatus } from '../../utils/useTransitionStatus';
+import { TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
 import { useNavigationMenuItemContext } from '../item/NavigationMenuItemContext';
 import {
   useNavigationMenuRootContext,
   useNavigationMenuTreeContext,
 } from '../root/NavigationMenuRootContext';
 
-const customStyleHookMapping: CustomStyleHookMapping<NavigationMenuContent.State> = {
+const stateAttributesMapping: StateAttributesMapping<NavigationMenuContent.State> = {
   ...popupStateMapping,
   ...transitionStatusMapping,
   activationDirection(value) {
-    const val = access(value);
-    if (!val) {
+    if (!value) {
       return null;
     }
     return {
-      'data-activation-direction': val,
+      'data-activation-direction': value,
     };
   },
 };
@@ -41,20 +38,42 @@ const customStyleHookMapping: CustomStyleHookMapping<NavigationMenuContent.State
  * Documentation: [Base UI Navigation Menu](https://base-ui.com/react/components/navigation-menu)
  */
 export function NavigationMenuContent(componentProps: NavigationMenuContent.Props) {
-  const [, , elementProps] = splitComponentProps(componentProps, []);
+  const [renderProps, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { viewportElement, activationDirection, refs } = useNavigationMenuRootContext();
-  const { open, transitionStatus, mounted, setMounted } = useNavigationMenuItemContext();
+  const {
+    mounted: popupMounted,
+    viewportElement,
+    value,
+    activationDirection,
+    refs,
+    viewportTargetElement,
+  } = useNavigationMenuRootContext();
+  const { value: itemValue } = useNavigationMenuItemContext();
   const nodeId = useNavigationMenuTreeContext();
+
+  const open = () => popupMounted() && value() === itemValue();
 
   let ref = null as HTMLDivElement | null | undefined;
 
   const [focusInside, setFocusInside] = createSignal(false);
 
+  const { transitionStatus, setMounted, mounted } = useTransitionStatus(open);
+
+  // If the popup unmounts before the content's exit animation completes, reset the internal
+  // mounted state so the next open can re-enter via `transitionStatus="starting"`.
+  createEffect(
+    on([mounted, popupMounted], ([mountedValue, popupMountedValue]) => {
+      if (mountedValue && !popupMountedValue) {
+        setMounted(false);
+      }
+    }),
+  );
+
   useOpenChangeComplete({
     ref: () => ref,
     open,
     onComplete() {
+      // TODO: AnimationFrame for SolidJS only?
       AnimationFrame.request(() => {
         if (!open()) {
           setMounted(false);
@@ -81,69 +100,75 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
     }
   };
 
-  const shouldRender = () => viewportElement() != null && mounted();
-
-  const element = useRenderElement('div', componentProps, {
-    enabled: shouldRender,
-    state,
-    ref: (el) => {
-      ref = el;
-      handleCurrentContentRef(el);
+  const commonProps: HTMLProps<HTMLDivElement> = {
+    onFocus(event) {
+      const target = getTarget(event) as Element | null;
+      if (target?.hasAttribute('data-base-ui-focus-guard')) {
+        return;
+      }
+      setFocusInside(true);
     },
-    props: [
-      {
-        get style(): JSX.CSSProperties | undefined {
-          if (!open() && mounted()) {
-            return { position: 'absolute', top: 0, left: 0 };
+    onBlur(event) {
+      if (!contains(event.currentTarget, event.relatedTarget as any)) {
+        setFocusInside(false);
+      }
+    },
+  };
+
+  const defaultProps = {
+    get props(): HTMLProps {
+      return !open() && mounted()
+        ? {
+            style: { position: 'absolute', top: 0, left: 0 },
+            inert: !focusInside(),
+            ...commonProps,
           }
-          return undefined;
-        },
-        get inert() {
-          if (!open() && mounted()) {
-            return inertValue(!focusInside());
-          }
-          return undefined;
-        },
-        onFocus() {
-          setFocusInside(true);
-        },
-        onBlur(event) {
-          if (!contains(event.currentTarget, event.relatedTarget as Element | null | undefined)) {
-            setFocusInside(false);
-          }
-        },
-      },
-      elementProps,
-    ],
-    customStyleHookMapping,
-  });
+        : commonProps;
+    },
+  };
+
+  const portalContainer = () => viewportTargetElement() || viewportElement();
+  const shouldRender = () => portalContainer() !== null && mounted();
 
   return (
-    <Show when={shouldRender()}>
-      <Portal mount={viewportElement()!}>
+    <Show when={portalContainer() && shouldRender()}>
+      <Portal mount={portalContainer()!}>
         <FloatingNode id={nodeId?.()}>
-          <CompositeRoot stopEventPropagation render={element} />
+          <CompositeRoot
+            render={renderProps.render}
+            class={renderProps.class}
+            state={state}
+            refs={[componentProps.ref as any, ref, handleCurrentContentRef]}
+            props={[defaultProps.props, elementProps]}
+            stateAttributesMapping={stateAttributesMapping}
+          />
         </FloatingNode>
       </Portal>
     </Show>
   );
 }
 
-export namespace NavigationMenuContent {
-  export interface State {
-    /**
-     * If `true`, the component is open.
-     */
-    open: boolean;
-    /**
-     * The transition status of the component.
-     */
-    transitionStatus: TransitionStatus;
-    /**
-     * The direction of the activation.
-     */
-    activationDirection: 'left' | 'right' | 'up' | 'down' | null;
-  }
+export interface NavigationMenuContentState {
+  /**
+   * If `true`, the component is open.
+   */
+  open: boolean;
+  /**
+   * The transition status of the component.
+   */
+  transitionStatus: TransitionStatus;
+  /**
+   * The direction of the activation.
+   */
+  activationDirection: 'left' | 'right' | 'up' | 'down' | null;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface NavigationMenuContentProps extends BaseUIComponentProps<
+  'div',
+  NavigationMenuContent.State
+> {}
+
+export namespace NavigationMenuContent {
+  export type State = NavigationMenuContentState;
+  export type Props = NavigationMenuContentProps;
 }

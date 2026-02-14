@@ -36,7 +36,6 @@ export function NavigationMenuArrow(componentProps: NavigationMenuArrow.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: refs.setArrowRef,
-    customStyleHookMapping: popupStateMapping,
     props: [
       {
         get style() {
@@ -46,21 +45,28 @@ export function NavigationMenuArrow(componentProps: NavigationMenuArrow.Props) {
       },
       elementProps,
     ],
+    stateAttributesMapping: popupStateMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace NavigationMenuArrow {
-  export interface State {
-    /**
-     * Whether the popup is currently open.
-     */
-    open: boolean;
-    side: Side;
-    align: Align;
-    uncentered: boolean;
-  }
+export interface NavigationMenuArrowState {
+  /**
+   * Whether the popup is currently open.
+   */
+  open: boolean;
+  side: Side;
+  align: Align;
+  uncentered: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'div', State> {}
+export interface NavigationMenuArrowProps extends BaseUIComponentProps<
+  'div',
+  NavigationMenuArrow.State
+> {}
+
+export namespace NavigationMenuArrow {
+  export type State = NavigationMenuArrowState;
+  export type Props = NavigationMenuArrowProps;
 }

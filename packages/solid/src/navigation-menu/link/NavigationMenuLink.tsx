@@ -1,8 +1,9 @@
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import { useFloatingTree } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
-import type { BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
+import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import {
   useNavigationMenuRootContext,
   useNavigationMenuTreeContext,
@@ -16,43 +17,88 @@ import { isOutsideMenuEvent } from '../utils/isOutsideMenuEvent';
  * Documentation: [Base UI Navigation Menu](https://base-ui.com/react/components/navigation-menu)
  */
 export function NavigationMenuLink(componentProps: NavigationMenuLink.Props) {
-  const [, , elementProps] = splitComponentProps(componentProps, []);
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
+    'active',
+    'closeOnClick',
+  ]);
+  const active = () => local.active ?? false;
+  const closeOnClick = () => local.closeOnClick ?? false;
 
-  const { setValue, popupElement, refs, floatingRootContext } = useNavigationMenuRootContext();
+  const { setValue, popupElement, positionerElement, refs } = useNavigationMenuRootContext();
   const nodeId = useNavigationMenuTreeContext();
   const tree = useFloatingTree();
 
-  const element = useRenderElement('a', componentProps, {
-    props: [
-      {
-        onBlur(event) {
-          if (
-            isOutsideMenuEvent(
-              {
-                currentTarget: event.currentTarget,
-                relatedTarget: event.relatedTarget as HTMLElement | null,
-              },
-              {
-                popupElement: popupElement(),
-                rootRef: refs.rootRef,
-                tree,
-                nodeId: nodeId?.(),
-              },
-            )
-          ) {
-            setValue(null, event, undefined);
-          }
-        },
-      },
-      elementProps,
-    ],
-  });
+  const state: NavigationMenuLink.State = {
+    get active() {
+      return active();
+    },
+  };
 
-  return <CompositeItem tabIndex={undefined} render={element} />;
+  const defaultProps: HTMLProps = {
+    get 'aria-current'() {
+      return active() ? 'page' : undefined;
+    },
+    tabIndex: undefined,
+    onClick(event) {
+      if (closeOnClick()) {
+        setValue(null, createChangeEventDetails(REASONS.linkPress, event));
+      }
+    },
+    onBlur(event) {
+      const positionerEl = positionerElement();
+      const popupEl = popupElement();
+      if (
+        positionerEl &&
+        popupEl &&
+        isOutsideMenuEvent(
+          {
+            currentTarget: event.currentTarget,
+            relatedTarget: event.relatedTarget as HTMLElement | null,
+          },
+          { popupElement: popupEl, rootRef: refs.rootRef, tree, nodeId: nodeId?.() },
+        )
+      ) {
+        setValue(null, createChangeEventDetails(REASONS.focusOut, event));
+      }
+    },
+  };
+
+  return (
+    <CompositeItem
+      tag="a"
+      render={renderProps.render}
+      class={renderProps.class}
+      state={state}
+      refs={[componentProps.ref as any]}
+      props={[defaultProps, elementProps]}
+    />
+  );
+}
+
+export interface NavigationMenuLinkState {
+  /**
+   * Whether the link is the currently active page.
+   */
+  active: boolean;
+}
+
+export interface NavigationMenuLinkProps extends BaseUIComponentProps<
+  'a',
+  NavigationMenuLink.State
+> {
+  /**
+   * Whether the link is the currently active page.
+   * @default false
+   */
+  active?: boolean;
+  /**
+   * Whether to close the navigation menu when the link is clicked.
+   * @default false
+   */
+  closeOnClick?: boolean;
 }
 
 export namespace NavigationMenuLink {
-  export interface State {}
-
-  export interface Props extends BaseUIComponentProps<'a', State> {}
+  export type State = NavigationMenuLinkState;
+  export type Props = NavigationMenuLinkProps;
 }

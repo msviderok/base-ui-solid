@@ -10,7 +10,7 @@ describe('<NavigationMenu.Popup />', () => {
       render(() => (
         <NavigationMenu.Root value="test">
           <NavigationMenu.Portal>
-            <NavigationMenu.Positioner>{node(props)}</NavigationMenu.Positioner>
+            <NavigationMenu.Positioner>{node(props!)}</NavigationMenu.Positioner>
           </NavigationMenu.Portal>
         </NavigationMenu.Root>
       )),

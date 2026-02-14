@@ -26,20 +26,26 @@ export function NavigationMenuIcon(componentProps: NavigationMenuIcon.Props) {
 
   const element = useRenderElement('span', componentProps, {
     state,
-    customStyleHookMapping: triggerOpenStateMapping,
     props: [{ 'aria-hidden': true, children: '▼' }, elementProps],
+    stateAttributesMapping: triggerOpenStateMapping,
   });
 
   return <>{element()}</>;
 }
 
-export namespace NavigationMenuIcon {
-  export interface State {
-    /**
-     * Whether the navigation menu is open and the item is active.
-     */
-    open: boolean;
-  }
+export interface NavigationMenuIconState {
+  /**
+   * Whether the navigation menu is open and the item is active.
+   */
+  open: boolean;
+}
 
-  export interface Props extends BaseUIComponentProps<'span', State> {}
+export interface NavigationMenuIconProps extends BaseUIComponentProps<
+  'span',
+  NavigationMenuIcon.State
+> {}
+
+export namespace NavigationMenuIcon {
+  export type State = NavigationMenuIconState;
+  export type Props = NavigationMenuIconProps;
 }

@@ -11,7 +11,7 @@ describe('<NavigationMenu.Arrow />', () => {
         <NavigationMenu.Root value="test">
           <NavigationMenu.Portal>
             <NavigationMenu.Positioner>
-              <NavigationMenu.Popup>{node(props)}</NavigationMenu.Popup>
+              <NavigationMenu.Popup>{node(props!)}</NavigationMenu.Popup>
             </NavigationMenu.Positioner>
           </NavigationMenu.Portal>
         </NavigationMenu.Root>

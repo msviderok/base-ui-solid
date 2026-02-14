@@ -1,12 +1,12 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import type { FloatingRootContext } from '../../floating-ui-solid';
-import type { TransitionStatus } from '../../utils';
-import type { BaseOpenChangeReason } from '../../utils/translateOpenChangeReason';
+import type { TransitionStatus } from '../../utils/useTransitionStatus';
+import type { NavigationMenuRoot } from './NavigationMenuRoot';
 
 export interface NavigationMenuRootContext {
   open: Accessor<boolean>;
   value: Accessor<any>;
-  setValue: (value: any, event?: Event, reason?: BaseOpenChangeReason) => void;
+  setValue: (value: any, eventDetails: NavigationMenuRoot.ChangeEventDetails) => void;
   transitionStatus: Accessor<TransitionStatus>;
   mounted: Accessor<boolean>;
   popupElement: Accessor<HTMLElement | null | undefined>;
@@ -15,6 +15,8 @@ export interface NavigationMenuRootContext {
   setPositionerElement: Setter<HTMLElement | null | undefined>;
   viewportElement: Accessor<HTMLElement | null | undefined>;
   setViewportElement: Setter<HTMLElement | null | undefined>;
+  viewportTargetElement: Accessor<HTMLElement | null | undefined>;
+  setViewportTargetElement: Setter<HTMLElement | null | undefined>;
   activationDirection: Accessor<'left' | 'right' | 'up' | 'down' | null>;
   setActivationDirection: Setter<'left' | 'right' | 'up' | 'down' | null>;
   floatingRootContext: Accessor<FloatingRootContext | undefined>;
@@ -32,6 +34,8 @@ export interface NavigationMenuRootContext {
   delay: Accessor<number>;
   closeDelay: Accessor<number>;
   orientation: Accessor<'horizontal' | 'vertical'>;
+  viewportInert: Accessor<boolean>;
+  setViewportInert: Setter<boolean>;
 }
 
 export const NavigationMenuRootContext = createContext<NavigationMenuRootContext>();
