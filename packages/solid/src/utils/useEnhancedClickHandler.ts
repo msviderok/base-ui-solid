@@ -31,9 +31,10 @@ export function useEnhancedClickHandler(
     if ('pointerType' in event) {
       // Chrome and Edge correctly use PointerEvent
       handler(event, event.pointerType as InteractionType);
+    } else {
+      handler(event, lastClickInteractionTypeRef);
     }
 
-    handler(event, lastClickInteractionTypeRef);
     lastClickInteractionTypeRef = '';
   };
 

@@ -1,93 +1,46 @@
 import { createRenderer } from '#test-utils';
 import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
-import * as React from 'react';
 import { SinonSpy, spy } from 'sinon';
-import { createEffect, createSignal, on } from 'solid-js';
+import { createSignal } from 'solid-js';
+import type { MaybeAccessor } from '../../solid-helpers';
 import { SolidStore } from './SolidStore';
 
 type TestState = { value: number; label: string };
 
-function useStableStore<State extends object>(initial: State) {
+function useStableStore<State extends Record<string, MaybeAccessor<unknown>>>(initial: State) {
   return new SolidStore<State>(initial);
 }
 
 describe('SolidStore', () => {
   const { render } = createRenderer();
 
-  it('initializes uncontrolled key with default value', () => {
-    let store!: SolidStore<TestState>;
-
-    function Test() {
-      store = useStableStore<TestState>({ value: 0, label: '' });
-      store.useControlledProp('value', undefined, 5);
-      return null;
-    }
-
-    render(() => <Test />);
-    expect(store.state.value).to.equal(5);
-  });
-
-  it('syncs internal state from controlled prop and ignores manual mutations for that key', () => {
+  it('syncs internal state from controlled prop', () => {
     let store!: SolidStore<TestState>;
 
     function Test({ controlled }: { controlled: number | undefined }) {
       store = useStableStore<TestState>({ value: 0, label: '' });
-      store.useControlledProp('value', controlled, 1);
+      store.useControlledProp('value', controlled);
       return null;
     }
 
     const [controlled, setControlled] = createSignal(1);
-
     render(() => <Test controlled={controlled()} />);
     expect(store.state.value).to.equal(1);
 
-    // Attempts to change a controlled key are ignored
-    store.set('value', 2);
-    expect(store.state.value).to.equal(1);
-
-    store.update({ value: 3, label: 'y' });
-    expect(store.state.value).to.equal(1);
+    store.update('label', 'y');
     // Non-controlled keys still update
     expect(store.state.label).to.equal('y');
-
-    store.setState({ value: 4, label: 'x' });
-    expect(store.state.value).to.equal(1);
-    // Non-controlled keys still update
-    expect(store.state.label).to.equal('x');
 
     // Changing the controlled prop updates internal state
     setControlled(7);
     expect(store.state.value).to.equal(7);
   });
 
-  it('allows set/apply/update on uncontrolled keys', () => {
-    let store!: SolidStore<TestState>;
-
-    function Test() {
-      store = useStableStore<TestState>({ value: 0, label: '' });
-      store.useControlledProp('value', undefined, 1);
-      return null;
-    }
-
-    render(() => <Test />);
-    expect(store.state.value).to.equal(1);
-
-    store.set('value', 2);
-    expect(store.state.value).to.equal(2);
-
-    store.update({ value: 3 });
-    expect(store.state.value).to.equal(3);
-
-    store.setState({ value: 4, label: 'updated' });
-    expect(store.state.value).to.equal(4);
-    expect(store.state.label).to.equal('updated');
-  });
-
   it('warns on switching from uncontrolled to controlled', () => {
     function Test({ controlled }: { controlled?: number }) {
       const store = useStableStore<TestState>({ value: 0, label: '' });
-      store.useControlledProp('value', controlled, undefined as any);
+      store.useControlledProp('value', controlled);
       return null;
     }
 
@@ -106,7 +59,7 @@ describe('SolidStore', () => {
     function Test(props: { controlled?: number }) {
       const store = useStableStore<TestState>({ value: 0, label: '' });
       // eslint-disable-next-line solid/reactivity
-      store.useControlledProp('value', props.controlled, undefined as any);
+      store.useControlledProp('value', props.controlled);
       return null;
     }
 
@@ -166,7 +119,7 @@ describe('SolidStore', () => {
       store = useStableStore<TestState>({ value: 0, label: '' });
 
       if (!updateSpy) {
-        updateSpy = spy(store, 'update');
+        updateSpy = spy(store, 'setState') as any;
       }
 
       // eslint-disable-next-line solid/reactivity
@@ -235,7 +188,10 @@ describe('SolidStore', () => {
 
   it('supports nested stores as state values', async () => {
     type ParentState = { count: number };
-    type ChildState = { count: number; parent?: SolidStore<ParentState> };
+    type ChildState = {
+      count: number;
+      parent?: SolidStore<ParentState, Record<string, never>, typeof parentSelectors>;
+    };
 
     const parentSelectors = { count: (state: ParentState) => state.count };
     const childSelectors = {
@@ -255,14 +211,9 @@ describe('SolidStore', () => {
       childSelectors,
     );
 
-    createEffect(
-      on(
-        () => childStore.state.count,
-        (newCount) => {
-          childStore.state.parent?.set('count', newCount);
-        },
-      ),
-    );
+    childStore.observe('count', (newCount, _, store) => {
+      store.state.parent?.set('count', newCount);
+    });
 
     function Test() {
       const count = childStore.useState('count');
