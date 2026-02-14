@@ -14,6 +14,7 @@ import {
   useHover,
   useInteractions,
 } from '../../src/floating-ui-solid';
+import { getEmptyRootContext } from '../../src/floating-ui-solid/utils/getEmptyRootContext';
 
 interface SubItemProps {
   label: string;
@@ -41,6 +42,7 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
   const [local, elementProps] = splitProps(props, ['children', 'label', 'href']);
   const [open, setOpen] = createSignal(false);
   const hasChildren = () => !!local.children;
+  const fallbackContext = getEmptyRootContext();
 
   const nodeId = useFloatingNodeId();
 
@@ -52,7 +54,7 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
     placement: 'right-start',
   });
 
-  const hover = useHover(context, {
+  const hover = useHover(() => (hasChildren() ? context : fallbackContext), {
     handleClose: safePolygon(),
     enabled: hasChildren,
   });

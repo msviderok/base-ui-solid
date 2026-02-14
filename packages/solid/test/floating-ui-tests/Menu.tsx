@@ -36,6 +36,7 @@ import {
   useRole,
   useTypeahead,
 } from '../../src/floating-ui-solid';
+import { getEmptyRootContext } from '../../src/floating-ui-solid/utils/getEmptyRootContext';
 import { callEventHandler } from '../../src/solid-helpers';
 
 type MenuContextType = {
@@ -113,8 +114,10 @@ export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonEl
     ],
     whileElementsMounted: autoUpdate,
   });
+  const fallbackContext = getEmptyRootContext();
+  const hoverContext = () => (isNested && allowHover() ? context : fallbackContext);
 
-  const hover = useHover(context, {
+  const hover = useHover(hoverContext, {
     enabled: () => isNested && allowHover(),
     delay: { open: 75 },
     handleClose: safePolygon({ blockPointerEvents: true }),

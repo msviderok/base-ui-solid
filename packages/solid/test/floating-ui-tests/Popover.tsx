@@ -20,6 +20,7 @@ import {
   useRole,
 } from '../../src/floating-ui-solid';
 import type { Placement } from '../../src/floating-ui-solid/types';
+import { getEmptyRootContext } from '../../src/floating-ui-solid/utils/getEmptyRootContext';
 
 /** @internal */
 export function Main() {
@@ -130,8 +131,9 @@ function PopoverComponent(props: Props) {
   const id = createUniqueId();
   const labelId = `${id}-label`;
   const descriptionId = `${id}-description`;
+  const fallbackContext = getEmptyRootContext();
 
-  const hoverInteraction = useHover(context, {
+  const hoverInteraction = useHover(() => (hover() ? context : fallbackContext), {
     enabled: hover,
     handleClose: safePolygon({ blockPointerEvents: true }),
   });
