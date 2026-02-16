@@ -155,11 +155,13 @@ export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopu
    *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
    */
   initialFocus?:
-    | boolean
-    | HTMLElement
-    | null
-    | undefined
-    | ((openType: InteractionType) => boolean | HTMLElement | null | void);
+    | (
+        | boolean
+        | HTMLElement
+        | null
+        | ((openType: InteractionType) => boolean | HTMLElement | null | void)
+      )
+    | undefined;
   /**
    * Determines the element to focus when the dialog is closed.
    *
@@ -170,11 +172,13 @@ export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopu
    *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
    */
   finalFocus?:
-    | boolean
-    | HTMLElement
-    | null
-    | undefined
-    | ((closeType: InteractionType) => boolean | HTMLElement | null | void);
+    | (
+        | boolean
+        | HTMLElement
+        | null
+        | ((closeType: InteractionType) => boolean | HTMLElement | null | void)
+      )
+    | undefined;
 }
 
 export interface DialogPopupState {

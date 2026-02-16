@@ -83,7 +83,7 @@ export function FloatingNode(props: FloatingNodeProps): JSX.Element {
 
 export interface FloatingTreeProps {
   children?: JSX.Element;
-  externalTree?: FloatingTreeStore;
+  externalTree?: FloatingTreeStore | undefined;
 }
 
 /**

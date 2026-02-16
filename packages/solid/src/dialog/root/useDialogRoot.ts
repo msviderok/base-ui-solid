@@ -75,6 +75,10 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
       };
     },
     outsidePress(event) {
+      if (!params.store.context.refs.outsidePressEnabledRef) {
+        return false;
+      }
+
       // For mouse events, only accept left button (button 0)
       // For touch events, a single touch is equivalent to left button
       if ('button' in event && event.button !== 0) {
@@ -145,9 +149,15 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
     get openMethod() {
       return openMethod();
     },
-    activeTriggerProps,
-    inactiveTriggerProps,
-    popupProps,
+    get activeTriggerProps() {
+      return activeTriggerProps();
+    },
+    get inactiveTriggerProps() {
+      return inactiveTriggerProps();
+    },
+    get popupProps() {
+      return popupProps();
+    },
     floatingRootContext,
     get nestedOpenDialogCount() {
       return ownNestedOpenDialogs();
@@ -159,10 +169,10 @@ export interface UseDialogRootSharedParameters {}
 
 export interface UseDialogRootParameters {
   store: DialogStore<any>;
-  actionsRef?: DialogRoot.Props['actionsRef'];
-  parentContext?: DialogStore<unknown>['context'];
+  actionsRef?: DialogRoot.Props['actionsRef'] | undefined;
+  parentContext?: DialogStore<unknown>['context'] | undefined;
   onOpenChange: DialogRoot.Props['onOpenChange'];
-  triggerIdProp?: string | null;
+  triggerIdProp?: (string | null) | undefined;
 }
 
 export type UseDialogRootReturnValue = void;

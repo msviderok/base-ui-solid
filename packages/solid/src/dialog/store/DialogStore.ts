@@ -27,9 +27,10 @@ type Context = PopupStoreContext<DialogRoot.ChangeEventDetails> & {
     popupRef: HTMLElement | null | undefined;
     backdropRef: HTMLDivElement | null | undefined;
     internalBackdropRef: HTMLDivElement | null | undefined;
+    outsidePressEnabledRef: boolean;
   };
-  readonly onNestedDialogOpen?: (ownChildrenCount: number) => void;
-  readonly onNestedDialogClose?: () => void;
+  readonly onNestedDialogOpen?: ((ownChildrenCount: number) => void) | undefined;
+  readonly onNestedDialogClose?: (() => void) | undefined;
 };
 
 const selectors = {
@@ -45,11 +46,7 @@ const selectors = {
   role: (state: State<unknown>) => state.role,
 };
 
-export class DialogStore<Payload> extends SolidStore<
-  Readonly<State<Payload>>,
-  Context,
-  typeof selectors
-> {
+export class DialogStore<Payload> extends SolidStore<State<Payload>, Context, typeof selectors> {
   constructor(initialState?: Partial<State<Payload>>) {
     super(
       createInitialState<Payload>(initialState),
@@ -58,6 +55,7 @@ export class DialogStore<Payload> extends SolidStore<
           popupRef: null,
           backdropRef: null,
           internalBackdropRef: null,
+          outsidePressEnabledRef: true,
         },
         triggerElements: new PopupTriggerMap(),
         onOpenChange: undefined,
@@ -112,9 +110,8 @@ export class DialogStore<Payload> extends SolidStore<
   };
 }
 
-function createInitialState<Payload>(initialState: Partial<State<Payload>> = {}): State<Payload> {
-  return {
-    ...createInitialPopupStoreState<Payload>(),
+function createInitialState<Payload>(initialState: Partial<State<Payload>> = {}) {
+  return createInitialPopupStoreState<Payload, State<Payload>>({
     modal: true,
     disablePointerDismissal: false,
     popupElement: null,
@@ -126,5 +123,5 @@ function createInitialState<Payload>(initialState: Partial<State<Payload>> = {})
     nestedOpenDialogCount: 0,
     role: 'dialog',
     ...initialState,
-  };
+  });
 }

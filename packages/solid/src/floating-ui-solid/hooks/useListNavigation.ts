@@ -1,3 +1,4 @@
+import { ownerDocument } from '@base-ui/utils/owner';
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, on, onCleanup, type Accessor } from 'solid-js';
 import { access, type MaybeAccessor, type MaybeAccessorValue } from '../../solid-helpers';
@@ -5,13 +6,12 @@ import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { useFloatingParentNodeId, useFloatingTree } from '../components/FloatingTree';
 import { FloatingTreeStore } from '../components/FloatingTreeStore';
-import type { Dimensions, ElementProps, FloatingContext, FloatingRootContext } from '../types';
+import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import {
   activeElement,
   contains,
   createGridCellMap,
   findNonDisabledListIndex,
-  getDocument,
   getFloatingFocusElement,
   getGridCellIndexOfCorner,
   getGridCellIndices,
@@ -107,7 +107,7 @@ export interface UseListNavigationProps {
    * A callback that is called when the user navigates to a new active item,
    * passed in a new `activeIndex`.
    */
-  onNavigate?: (activeIndex: number | null, event: Event | undefined) => void;
+  onNavigate?: ((activeIndex: number | null, event: Event | undefined) => void) | undefined;
   /**
    * Whether the Hook is enabled, including all internal Effects and event
    * handlers.
@@ -118,14 +118,14 @@ export interface UseListNavigationProps {
    * The currently selected item index, which may or may not be active.
    * @default null
    */
-  selectedIndex?: MaybeAccessor<number | null | undefined>;
+  selectedIndex?: MaybeAccessor<(number | null) | undefined>;
   /**
    * Whether to focus the item upon opening the floating element. 'auto' infers
    * what to do based on the input type (keyboard vs. pointer), while a boolean
    * value will force the value.
    * @default 'auto'
    */
-  focusItemOnOpen?: MaybeAccessor<boolean | 'auto' | undefined>;
+  focusItemOnOpen?: MaybeAccessor<(boolean | 'auto') | undefined>;
   /**
    * Whether hovering an item synchronizes the focus.
    * @default true
@@ -147,7 +147,10 @@ export interface UseListNavigationProps {
    * navigating via arrow keys, specify an empty array.
    * @default undefined
    */
-  disabledIndices?: ReadonlyArray<number> | ((index?: number) => boolean | ReadonlyArray<number>);
+  disabledIndices?:
+    | ReadonlyArray<number>
+    | ((index?: number) => boolean | ReadonlyArray<number>)
+    | undefined;
   /**
    * Determines whether focus can escape the list, such that nothing is selected
    * after navigating beyond the boundary of the list. In some
@@ -175,7 +178,7 @@ export interface UseListNavigationProps {
    * This is useful when list navigation is used within a Composite,
    * as the hook can't determine the orientation of the parent list automatically.
    */
-  parentOrientation?: UseListNavigationProps['orientation'];
+  parentOrientation?: UseListNavigationProps['orientation'] | undefined;
   /**
    * Whether the direction of the floating element’s navigation is in RTL
    * layout.
@@ -197,7 +200,7 @@ export interface UseListNavigationProps {
    * The orientation in which navigation occurs.
    * @default 'vertical'
    */
-  orientation?: MaybeAccessor<'vertical' | 'horizontal' | 'both' | undefined>;
+  orientation?: MaybeAccessor<('vertical' | 'horizontal' | 'both') | undefined>;
   /**
    * Specifies how many columns the list has (i.e., it’s a grid). Use an
    * orientation of 'horizontal' (e.g. for an emoji picker/date picker, where
@@ -207,22 +210,6 @@ export interface UseListNavigationProps {
    * @default 1
    */
   cols?: MaybeAccessor<number | undefined>;
-  /**
-   * Whether to scroll the active item into view when navigating. The default
-   * value uses nearest options.
-   */
-  scrollItemIntoView?: MaybeAccessor<boolean | ScrollIntoViewOptions | undefined>;
-  /**
-   * Only for `cols > 1`, specify sizes for grid items.
-   * `{ width: 2, height: 2 }` means an item is 2 columns wide and 2 rows tall.
-   */
-  itemSizes?: MaybeAccessor<Dimensions[] | undefined>;
-  /**
-   * Only relevant for `cols > 1` and items with different sizes, specify if
-   * the grid is dense (as defined in the CSS spec for `grid-auto-flow`).
-   * @default false
-   */
-  dense?: MaybeAccessor<boolean | undefined>;
   /**
    * The id of the root component.
    */
@@ -235,7 +222,7 @@ export interface UseListNavigationProps {
   /**
    * External FlatingTree to use when the one provided by context can't be used.
    */
-  externalTree?: FloatingTreeStore;
+  externalTree?: FloatingTreeStore | undefined;
 }
 
 /**
@@ -272,9 +259,6 @@ export function useListNavigation(
   const orientation = () => access(props.orientation) ?? 'vertical';
   const parentOrientation = () => access(props.parentOrientation);
   const cols = () => access(props.cols) ?? 1;
-  const scrollItemIntoView = () => access(props.scrollItemIntoView) ?? true;
-  const itemSizes = () => access(props.itemSizes);
-  const dense = () => access(props.dense) ?? false;
   const id = () => access(props.id);
   const resetOnPointerLeave = () => access(props.resetOnPointerLeave) ?? true;
   const disabledIndices = () => props.disabledIndices;
@@ -360,21 +344,14 @@ export function useListNavigation(
         runFocus(waitedItem);
       }
 
-      const scrollIntoViewOptions = scrollItemIntoView();
       const shouldScrollIntoView =
-        scrollIntoViewOptions &&
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        item() &&
-        (forceScrollIntoView || !isPointerModalityRef);
+        item() && (forceScrollIntoView || !isPointerModalityRef);
 
       if (shouldScrollIntoView) {
         // JSDOM doesn't support `.scrollIntoView()` but it's widely supported
         // by all browsers.
-        waitedItem.scrollIntoView?.(
-          typeof scrollIntoViewOptions === 'boolean'
-            ? { block: 'nearest', inline: 'nearest' }
-            : scrollIntoViewOptions,
-        );
+        waitedItem.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
       }
     });
   };
@@ -485,7 +462,7 @@ export function useListNavigation(
     const nodes = tree.nodesRef;
     const parentNode = nodes.find((node) => node.id === parentId);
     const parent = parentNode ? access(parentNode.context)?.elements.floating() : undefined;
-    const activeEl = activeElement(getDocument(floatingElement()));
+    const activeEl = activeElement(ownerDocument(floatingElement() ?? null));
     const treeContainsActiveEl = nodes.some(
       (node) => node.context && contains(node.context.elements.floating(), activeEl),
     );
@@ -560,6 +537,7 @@ export function useListNavigation(
           return;
         }
 
+        enqueueFocus(null, { sync: true });
         indexRef = -1;
         onNavigate(event);
 
@@ -649,16 +627,14 @@ export function useListNavigation(
 
     // Grid navigation.
     if (cols() > 1) {
-      const sizes =
-        itemSizes() ||
-        Array.from({ length: listRef().length }, () => ({
-          width: 1,
-          height: 1,
-        }));
+      const sizes = Array.from({ length: listRef().length }, () => ({
+        width: 1,
+        height: 1,
+      }));
       // To calculate movements on the grid, we use hypothetical cell indices
       // as if every item was 1x1, then convert back to real indices.
 
-      const cellMap = createGridCellMap(sizes, cols(), dense());
+      const cellMap = createGridCellMap(sizes, cols(), false);
       const minGridIndex = cellMap.findIndex(
         (index) => index != null && !isListIndexDisabled(listRef(), index, disabledIndices()),
       );

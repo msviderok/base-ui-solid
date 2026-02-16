@@ -112,6 +112,53 @@ describe('mergeProps', () => {
     expect(mergedProps.style).to.equal(undefined);
   });
 
+  it('merges classes with rightmost first', () => {
+    const theirProps = {
+      class: 'external-class',
+    };
+    const ourProps = {
+      class: 'internal-class',
+    };
+    const mergedProps = mergeProps<'div'>(ourProps, theirProps);
+
+    expect(mergedProps.class).to.equal('external-class internal-class');
+  });
+
+  it('merges multiple classes', () => {
+    const mergedProps = mergeProps<'div'>(
+      {
+        class: 'class-1',
+      },
+      {
+        class: 'class-2',
+      },
+      {
+        class: 'class-3',
+      },
+    );
+
+    expect(mergedProps.class).to.equal('class-3 class-2 class-1');
+  });
+
+  it('merges classes with undefined', () => {
+    const theirProps = {
+      class: 'external-class',
+    };
+    const ourProps = {};
+
+    const mergedProps = mergeProps<'button'>(ourProps, theirProps);
+
+    expect(mergedProps.class).to.equal('external-class');
+  });
+
+  it('does not merge classes if both are undefined', () => {
+    const theirProps = {};
+    const ourProps = {};
+    const mergedProps = mergeProps<'button'>(ourProps, theirProps);
+
+    expect(mergedProps.class).to.equal(undefined);
+  });
+
   it('does not prevent internal handler if event.preventBaseUIHandler() is not called', () => {
     let ran = false;
 
@@ -220,6 +267,26 @@ describe('mergeProps', () => {
     );
 
     expect(mergedProps.title).to.equal('internal title 1');
+  });
+
+  it('sets baseUIHandlerPrevented to true after calling preventBaseUIHandler()', () => {
+    let observedFlag: boolean | undefined;
+
+    const mergedProps = mergeProps<'button'>(
+      {
+        onClick() {},
+      },
+      {
+        onClick(event) {
+          event.preventBaseUIHandler();
+          observedFlag = event.baseUIHandlerPrevented;
+        },
+      },
+    );
+
+    callEventHandler(mergedProps.onClick, new MouseEvent('click') as any);
+
+    expect(observedFlag).to.equal(true);
   });
 
   describe('props getters', () => {
@@ -410,6 +477,73 @@ describe('mergeProps', () => {
 
         dispose();
       });
+    });
+
+    it('does not automatically prevent handlers that are manually called by getter handlers', () => {
+      const log: string[] = [];
+
+      const mergedProps = mergeProps<'button'>(
+        {
+          onClick() {
+            log.push('first-handler');
+          },
+        },
+        (props) => ({
+          onClick(event: BaseUIEvent<MouseEvent>) {
+            // Call preventBaseUIHandler to signal prevention
+            event.preventBaseUIHandler();
+            log.push('getter-handler');
+            // Manually calling the previous handler - this bypasses automatic prevention!
+            callEventHandler(props.onClick, new MouseEvent('click') as any);
+          },
+        }),
+        {
+          onClick() {
+            // This handler does NOT call preventBaseUIHandler, so getter-handler runs
+            log.push('last-handler');
+          },
+        },
+      );
+
+      callEventHandler(mergedProps.onClick, new MouseEvent('click') as any);
+
+      // last-handler runs first, then getter-handler (not prevented), then getter-handler
+      // manually calls first-handler which runs despite preventBaseUIHandler being called
+      expect(log).to.deep.equal(['last-handler', 'getter-handler', 'first-handler']);
+    });
+
+    it('allows props getter handlers to check baseUIHandlerPrevented manually', () => {
+      const log: string[] = [];
+
+      const mergedProps = mergeProps<'button'>(
+        {
+          onClick() {
+            log.push('first-handler');
+          },
+        },
+        (props) => ({
+          onClick(event: BaseUIEvent<MouseEvent>) {
+            // Call preventBaseUIHandler to signal prevention
+            event.preventBaseUIHandler();
+            log.push('getter-handler');
+            // Check the flag before manually calling previous handlers - this respects prevention
+            if (!event.baseUIHandlerPrevented) {
+              callEventHandler(props.onClick, new MouseEvent('click') as any);
+            }
+          },
+        }),
+        {
+          onClick() {
+            // This handler does NOT call preventBaseUIHandler, so getter-handler runs
+            log.push('last-handler');
+          },
+        },
+      );
+
+      callEventHandler(mergedProps.onClick, new MouseEvent('click') as any);
+
+      // first-handler does NOT run because getter-handler checks the flag before calling it
+      expect(log).to.deep.equal(['last-handler', 'getter-handler']);
     });
   });
 });

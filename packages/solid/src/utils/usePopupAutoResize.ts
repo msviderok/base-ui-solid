@@ -126,11 +126,11 @@ export function usePopupAutoResize(parameters: UsePopupAutoResizeParameters) {
 
       isInitialRenderRef = false;
 
-      return () => {
+      onCleanup(() => {
         observer.disconnect();
         restoreAnchoringStylesRef();
         restoreAnchoringStylesRef = NOOP;
-      };
+      });
     }
 
     // Subsequent renders while open (when `content` changes).
@@ -149,16 +149,16 @@ export function usePopupAutoResize(parameters: UsePopupAutoResizeParameters) {
       restoreMeasurementOverridesIncludingScale();
       parameters.onMeasureLayoutComplete?.(null, newDimensions);
 
-      return () => {
+      onCleanup(() => {
         observer.disconnect();
         animationFrame.cancel();
         restoreAnchoringStylesRef();
         restoreAnchoringStylesRef = NOOP;
-      };
+      });
     }
 
     setPopupCssSize(popupEl, previousDimensions);
-    restoreMeasurementOverrides();
+    restoreMeasurementOverridesIncludingScale();
     parameters.onMeasureLayoutComplete?.(previousDimensions, newDimensions);
 
     setPositionerCssSize(positionerEl, newDimensions);
@@ -205,21 +205,20 @@ interface UsePopupAutoResizeParameters {
   /**
    * Whether the auto-resize is enabled. This function runs in an effect and can safely access refs.
    */
-  enabled?: () => boolean;
+  enabled?: (() => boolean) | undefined;
   /**
    * Callback fired immediately before measuring the dimensions of the new content.
    */
-  onMeasureLayout?: () => void;
+  onMeasureLayout?: (() => void) | undefined;
   /**
    * Callback fired after the new dimensions have been measured.
    *
    * @param previousDimensions Dimensions before the change, or `null` if this is the first measurement.
    * @param newDimensions Newly measured dimensions.
    */
-  onMeasureLayoutComplete?: (
-    previousDimensions: Dimensions | null,
-    newDimensions: Dimensions,
-  ) => void;
+  onMeasureLayoutComplete?:
+    | ((previousDimensions: Dimensions | null, newDimensions: Dimensions) => void)
+    | undefined;
 
   side: MaybeAccessor<Side>;
   direction: MaybeAccessor<'ltr' | 'rtl'>;

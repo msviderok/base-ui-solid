@@ -1,12 +1,13 @@
 import { isMac, isSafari } from '@base-ui/utils/detectBrowser';
+import { ownerDocument } from '@base-ui/utils/owner';
 import { getWindow, isElement, isHTMLElement } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, onCleanup, type Accessor } from 'solid-js';
 import { useTimeout } from '../../utils/useTimeout';
 import {
   activeElement,
   contains,
-  getDocument,
   getTarget,
+  isTargetInsideEnabledTrigger,
   isTypeableElement,
   matchesFocusVisible,
 } from '../utils';
@@ -26,13 +27,12 @@ export interface UseFocusProps {
    * handlers.
    * @default true
    */
-  enabled?: MaybeAccessor<boolean>;
+  enabled?: MaybeAccessor<boolean | undefined>;
   /**
-   * Whether the open state only changes if the focus event is considered
-   * visible (`:focus-visible` CSS selector).
-   * @default true
+   * Waits for the specified time before opening.
+   * @default undefined
    */
-  visibleOnly?: MaybeAccessor<boolean>;
+  delay?: MaybeAccessor<number | undefined>;
 }
 
 /**
@@ -52,11 +52,27 @@ export function useFocus(
   const events = () => store().context.events;
   const dataRef = () => store().context.dataRef;
   const enabled = () => access(props.enabled) ?? true;
-  const visibleOnly = () => access(props.visibleOnly) ?? true;
+  const delay = () => access(props.delay);
 
   let blockFocusRef = false;
+  // Track which reference should be blocked from re-opening after Escape/press dismissal.
+  let blockedReferenceRef = null as Element | null | undefined;
   let keyboardModalityRef = true;
   const timeout = useTimeout();
+
+  // If the reference was focused and the user left the tab/window, and the
+  // floating element was not open, the focus should be blocked when they
+  // return to the tab/window.
+  function onBlur() {
+    const currentDomReference = store().select('domReferenceElement');
+    if (
+      !store().select('open') &&
+      isHTMLElement(currentDomReference) &&
+      currentDomReference === activeElement(ownerDocument(currentDomReference))
+    ) {
+      blockFocusRef = true;
+    }
+  }
 
   createEffect(() => {
     const domReference = store().select('domReferenceElement');
@@ -65,19 +81,6 @@ export function useFocus(
     }
 
     const win = getWindow(domReference);
-
-    // If the reference was focused and the user left the tab/window, and the
-    // floating element was not open, the focus should be blocked when they
-    // return to the tab/window.
-    function onBlur() {
-      if (
-        !store().select('open') &&
-        isHTMLElement(domReference) &&
-        domReference === activeElement(getDocument(domReference))
-      ) {
-        blockFocusRef = true;
-      }
-    }
 
     function onKeyDown() {
       keyboardModalityRef = true;
@@ -106,7 +109,11 @@ export function useFocus(
 
   function onOpenChangeLocal(details: FloatingUIOpenChangeDetails) {
     if (details.reason === REASONS.triggerPress || details.reason === REASONS.escapeKey) {
-      blockFocusRef = true;
+      const referenceElement = store().select('domReferenceElement');
+      if (isElement(referenceElement)) {
+        blockedReferenceRef = referenceElement;
+        blockFocusRef = true;
+      }
     }
   }
 
@@ -124,15 +131,22 @@ export function useFocus(
   const reference = createMemo<ElementProps['reference']>(() => ({
     onMouseLeave: () => {
       blockFocusRef = false;
+      blockedReferenceRef = null;
     },
     onFocus: (event) => {
+      const focusTarget = event.currentTarget as Element;
       if (blockFocusRef) {
-        return;
+        if (blockedReferenceRef === focusTarget) {
+          return;
+        }
+
+        blockFocusRef = false;
+        blockedReferenceRef = null;
       }
 
       const target = getTarget(event);
 
-      if (visibleOnly() && isElement(target)) {
+      if (isElement(target)) {
         // Safari fails to match `:focus-visible` if focus was initially
         // outside the document.
         if (isMacSafari && !event.relatedTarget) {
@@ -144,13 +158,40 @@ export function useFocus(
         }
       }
 
-      store().setOpen(
-        true,
-        createChangeEventDetails(REASONS.triggerFocus, event, event.currentTarget as HTMLElement),
+      const movedFromOtherEnabledTrigger = isTargetInsideEnabledTrigger(
+        event.relatedTarget,
+        store().context.triggerElements,
       );
+
+      const { currentTarget } = event;
+      const delayValue = delay();
+
+      if (
+        (store().select('open') && movedFromOtherEnabledTrigger) ||
+        delayValue === 0 ||
+        delayValue === undefined
+      ) {
+        store().setOpen(
+          true,
+          createChangeEventDetails(REASONS.triggerFocus, event, currentTarget as HTMLElement),
+        );
+        return;
+      }
+
+      timeout.start(delayValue, () => {
+        if (blockFocusRef) {
+          return;
+        }
+
+        store().setOpen(
+          true,
+          createChangeEventDetails(REASONS.triggerFocus, event, currentTarget as HTMLElement),
+        );
+      });
     },
     onBlur: (event) => {
       blockFocusRef = false;
+      blockedReferenceRef = null;
       const relatedTarget = event.relatedTarget;
 
       // Hit the non-modal focus management portal guard. Focus will be
@@ -188,7 +229,8 @@ export function useFocus(
         // If the next focused element is one of the triggers, do not close
         // the floating element. The focus handler of that trigger will
         // handle the open state.
-        if (store().context.triggerElements.hasElement(event.relatedTarget as Element)) {
+        const nextFocusedElement = relatedTarget ?? activeEl;
+        if (isTargetInsideEnabledTrigger(nextFocusedElement, store().context.triggerElements)) {
           return;
         }
 

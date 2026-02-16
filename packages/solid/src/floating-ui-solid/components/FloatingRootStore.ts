@@ -1,4 +1,5 @@
 import { SolidStore } from '@msviderok/base-ui-solid/utils/store/SolidStore';
+import { createStore } from 'solid-js/store';
 import { access, type MaybeAccessor } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import type { PopupTriggerMap } from '../../utils/popups';
@@ -37,10 +38,10 @@ const selectors = {
 };
 
 interface FloatingRootStoreOptions {
-  open: MaybeAccessor<boolean>;
-  referenceElement: MaybeAccessor<ReferenceType | null | undefined>;
-  floatingElement: MaybeAccessor<HTMLElement | null | undefined>;
-  floatingId: MaybeAccessor<string | undefined>;
+  open: boolean;
+  referenceElement: ReferenceType | null | undefined;
+  floatingElement: HTMLElement | null | undefined;
+  floatingId: string | undefined;
   /** Non-reactive */
   triggerElements: PopupTriggerMap;
   /** Non-reactive */
@@ -58,27 +59,16 @@ export class FloatingRootStore extends SolidStore<
   typeof selectors
 > {
   constructor(options: FloatingRootStoreOptions) {
+    const [state, setState] = createStore<FloatingRootState>({
+      open: options.open,
+      referenceElement: options.referenceElement,
+      floatingElement: options.floatingElement,
+      floatingId: options.floatingId,
+      positionReference: options.referenceElement,
+      domReferenceElement: options.referenceElement as Element | null | undefined,
+    });
     super(
-      {
-        get open() {
-          return access(options.open);
-        },
-        get referenceElement() {
-          return access(options.referenceElement);
-        },
-        get floatingElement() {
-          return access(options.floatingElement);
-        },
-        get floatingId() {
-          return access(options.floatingId);
-        },
-        get positionReference() {
-          return access(options.referenceElement);
-        },
-        get domReferenceElement() {
-          return access(options.referenceElement) as Element | null | undefined;
-        },
-      },
+      [state, setState],
       {
         onOpenChange: options.onOpenChange,
         dataRef: {},
@@ -87,6 +77,7 @@ export class FloatingRootStore extends SolidStore<
         noEmit: options.noEmit,
         triggerElements: options.triggerElements,
       },
+      selectors,
     );
   }
 

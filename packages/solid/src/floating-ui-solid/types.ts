@@ -117,10 +117,10 @@ export interface FloatingEvents {
 }
 
 export interface ContextData {
-  openEvent?: Event;
-  floatingContext?: FloatingContext;
+  openEvent?: Event | undefined;
+  floatingContext?: FloatingContext | undefined;
   /** @deprecated use `onTypingChange` prop in `useTypeahead` */
-  typing?: boolean;
+  typing?: boolean | undefined;
   [key: string]: any;
 }
 
@@ -141,18 +141,21 @@ export interface FloatingContext extends UsePositionFloatingSharedReturn {
 export interface FloatingNodeType {
   id: string | null;
   parentId: string | null;
-  context?: FloatingContext;
+  context?: FloatingContext | undefined;
 }
 
 export type FloatingTreeType = FloatingTreeStore;
 
 export interface ElementProps {
-  reference?: JSX.HTMLAttributes<Element>;
-  floating?: JSX.HTMLAttributes<HTMLElement>;
+  reference?: JSX.HTMLAttributes<Element> | undefined;
+  floating?: JSX.HTMLAttributes<HTMLElement> | undefined;
   item?:
-    | JSX.HTMLAttributes<HTMLElement>
-    | ((props: ExtendedUserProps) => JSX.HTMLAttributes<HTMLElement>);
-  trigger?: JSX.HTMLAttributes<Element>;
+    | (
+        | JSX.HTMLAttributes<HTMLElement>
+        | ((props: ExtendedUserProps) => JSX.HTMLAttributes<HTMLElement>)
+      )
+    | undefined;
+  trigger?: JSX.HTMLAttributes<Element> | undefined;
 }
 
 export type ReferenceType = Element | VirtualElement;
@@ -172,20 +175,22 @@ export type UseFloatingReturn = Prettify<
 >;
 
 export interface UseFloatingOptions extends Omit<UsePositionOptions, 'elements'> {
-  rootContext?: FloatingRootContext;
+  rootContext?: FloatingRootContext | undefined;
   /**
    * Object of external elements as an alternative to the `refs` object setters.
    */
-  elements?: {
-    /**
-     * Externally passed reference element. Store in state.
-     */
-    reference?: MaybeAccessor<ReferenceType | null | undefined>;
-    /**
-     * Externally passed floating element. Store in state.
-     */
-    floating?: MaybeAccessor<HTMLElement | null | undefined>;
-  };
+  elements?:
+    | {
+        /**
+         * Externally passed reference element. Store in state.
+         */
+        reference?: MaybeAccessor<(ReferenceType | null) | undefined>;
+        /**
+         * Externally passed floating element. Store in state.
+         */
+        floating?: MaybeAccessor<(HTMLElement | null) | undefined>;
+      }
+    | undefined;
   /**
    * An event callback that is invoked when the floating element is opened or
    * closed.
@@ -198,7 +203,7 @@ export interface UseFloatingOptions extends Omit<UsePositionOptions, 'elements'>
   /**
    * External FlatingTree to use when the one provided by context can't be used.
    */
-  externalTree?: FloatingTreeStore;
+  externalTree?: FloatingTreeStore | undefined;
 }
 
 export type Accessorify<T, Type extends 'accessor' | 'maybeAccessor' = 'accessor'> = {

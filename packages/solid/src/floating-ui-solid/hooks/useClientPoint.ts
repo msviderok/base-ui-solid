@@ -95,17 +95,17 @@ export interface UseClientPointProps {
    * floating element is also interactive.
    * @default 'both'
    */
-  axis?: MaybeAccessor<'x' | 'y' | 'both' | undefined>;
-  /**
-   * An explicitly defined `x` client coordinate.
-   * @default null
-   */
-  x?: MaybeAccessor<number | null | undefined>;
-  /**
-   * An explicitly defined `y` client coordinate.
-   * @default null
-   */
-  y?: MaybeAccessor<number | null | undefined>;
+  axis?: MaybeAccessor<('x' | 'y' | 'both') | undefined>;
+  // /**
+  //  * An explicitly defined `x` client coordinate.
+  //  * @default null
+  //  */
+  // x?: MaybeAccessor<number | null | undefined>;
+  // /**
+  //  * An explicitly defined `y` client coordinate.
+  //  * @default null
+  //  */
+  // y?: MaybeAccessor<number | null | undefined>;
 }
 
 /**
@@ -129,8 +129,6 @@ export function useClientPoint(
 
   const enabled = () => access(props.enabled) ?? true;
   const axis = () => access(props.axis) ?? 'both';
-  const x = () => access(props.x) ?? null;
-  const y = () => access(props.y) ?? null;
 
   let initialRef = false;
 
@@ -166,10 +164,6 @@ export function useClientPoint(
   };
 
   const handleReferenceEnterOrMove = (event: MouseEvent) => {
-    if (x() != null || y() != null) {
-      return;
-    }
-
     if (!open()) {
       setReference(event.clientX, event.clientY, event.currentTarget as Element);
     }
@@ -194,7 +188,7 @@ export function useClientPoint(
   }
 
   createEffect(() => {
-    if (!openCheck() || !enabled() || x() != null || y() != null) {
+    if (!openCheck() || !enabled()) {
       return;
     }
 
@@ -222,13 +216,6 @@ export function useClientPoint(
   createEffect(() => {
     if (!enabled() && open()) {
       initialRef = true;
-    }
-  });
-
-  createEffect(() => {
-    if (enabled() && (x() != null || y() != null)) {
-      initialRef = false;
-      setReference(x(), y());
     }
   });
 

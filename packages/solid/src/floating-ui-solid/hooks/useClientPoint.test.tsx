@@ -12,12 +12,7 @@ function expectLocation({ x, y }: Coords) {
   expect(Number(screen.getByTestId('height')?.textContent)).toBe(0);
 }
 
-function App(props: {
-  enabled?: boolean;
-  point?: Coords;
-  axis?: 'both' | 'x' | 'y';
-  useTriggerProps?: boolean;
-}) {
+function App(props: { enabled?: boolean; axis?: 'both' | 'x' | 'y'; useTriggerProps?: boolean }) {
   const merged = solidMergeProps({ enabled: true }, props);
   const [isOpen, setIsOpen] = createSignal(false);
   const { refs, elements, context } = useFloating({
@@ -26,8 +21,6 @@ function App(props: {
   });
   const clientPoint = useClientPoint(context, {
     enabled: () => merged.enabled,
-    x: () => merged.point?.x,
-    y: () => merged.point?.y,
     axis: () => merged.axis,
   });
   const { getReferenceProps, getTriggerProps, getFloatingProps } = useInteractions([clientPoint]);
@@ -58,23 +51,6 @@ function App(props: {
     </>
   );
 }
-
-test('renders at explicit client point and can be updated', async () => {
-  const [point, setPoint] = createSignal({ x: 0, y: 0 });
-  render(() => <App point={point()} />);
-
-  fireEvent.click(screen.getByRole('button'));
-
-  await flushMicrotasks();
-
-  expectLocation({ x: 0, y: 0 });
-
-  setPoint({ x: 1000, y: 1000 });
-
-  await flushMicrotasks();
-
-  expectLocation({ x: 1000, y: 1000 });
-});
 
 test('updates position from trigger props', async () => {
   render(() => <App useTriggerProps />);
@@ -189,22 +165,6 @@ test('renders at mouse event coords', async () => {
       bubbles: true,
       clientX: 0,
       clientY: 0,
-    }),
-  );
-  await flushMicrotasks();
-
-  expectLocation({ x: 0, y: 0 });
-});
-
-test('ignores mouse events when explicit coords are specified', async () => {
-  render(() => <App point={{ x: 0, y: 0 }} />);
-
-  fireEvent(
-    screen.getByTestId('reference'),
-    new MouseEvent('mousemove', {
-      bubbles: true,
-      clientX: 500,
-      clientY: 500,
     }),
   );
   await flushMicrotasks();

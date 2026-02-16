@@ -517,7 +517,7 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
 
           const popoverInteractions = useInteractions([useDismiss(popover.context)]);
           const tooltipInteractions = useInteractions([
-            useFocus(tooltip.context, { visibleOnly: () => false }),
+            useFocus(tooltip.context),
             useDismiss(tooltip.context),
           ]);
 

@@ -69,6 +69,11 @@ export function DialogViewport(componentProps: DialogViewport.Props) {
         get hidden() {
           return !mounted();
         },
+        get style() {
+          return {
+            pointerEvents: !open() ? 'none' : undefined,
+          };
+        },
       },
       elementProps,
     ],

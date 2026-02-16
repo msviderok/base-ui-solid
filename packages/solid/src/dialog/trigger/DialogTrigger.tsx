@@ -19,7 +19,7 @@ import type { DialogStore } from '../store/DialogStore';
  *
  * Documentation: [Base UI Dialog](https://base-ui.com/react/components/dialog)
  */
-export function DialogTrigger(componentProps: DialogTrigger.Props) {
+export const DialogTrigger = ((componentProps: DialogTrigger.Props) => {
   const [, local, elementProps] = splitComponentProps(componentProps, [
     'render',
     'class',
@@ -102,12 +102,10 @@ export function DialogTrigger(componentProps: DialogTrigger.Props) {
   });
 
   return <>{element()}</>;
-}
+}) as DialogTrigger;
 
 export interface DialogTrigger {
-  <Payload>(
-    componentProps: DialogTriggerProps<Payload> & React.RefAttributes<HTMLElement>,
-  ): JSX.Element;
+  <Payload>(componentProps: DialogTriggerProps<Payload>): JSX.Element;
 }
 
 export interface DialogTriggerProps<Payload = unknown>
@@ -116,16 +114,16 @@ export interface DialogTriggerProps<Payload = unknown>
    * A handle to associate the trigger with a dialog.
    * Can be created with the Dialog.createHandle() method.
    */
-  handle?: DialogHandle<Payload>;
+  handle?: DialogHandle<Payload> | undefined;
   /**
    * A payload to pass to the dialog when it is opened.
    */
-  payload?: Payload;
+  payload?: Payload | undefined;
   /**
    * ID of the trigger. In addition to being forwarded to the rendered element,
    * it is also used to specify the active trigger for the dialogs in controlled mode (with the DialogRoot `triggerId` prop).
    */
-  id?: string;
+  id?: string | undefined;
 }
 
 export interface DialogTriggerState {

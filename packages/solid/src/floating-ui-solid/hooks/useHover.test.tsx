@@ -165,17 +165,6 @@ describe.skipIf(!isJSDOM)('useHover', () => {
     });
   });
 
-  test('restMs does not cause floating element to open if mouseOnly is true', async () => {
-    render(() => <App restMs={100} mouseOnly={true} />);
-
-    fireEvent.pointerDown(screen.getByRole('button'), { pointerType: 'touch' });
-    fireEvent.mouseMove(screen.getByRole('button'));
-
-    await flushMicrotasks();
-
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  });
-
   test('restMs does not reset timer for minor mouse movement', async () => {
     render(() => <App restMs={100} />);
 

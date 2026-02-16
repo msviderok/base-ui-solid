@@ -41,7 +41,10 @@ import { createAttribute } from '../utils/createAttribute';
 type FocusManagerState = null | {
   modal: boolean;
   open: boolean;
-  onOpenChange(open: boolean, data?: { reason?: string; event?: Event }): void;
+  onOpenChange(
+    open: boolean,
+    data?: { reason?: string | undefined; event?: Event | undefined },
+  ): void;
   domReference: Element | null | undefined;
   closeOnFocusOut: boolean;
 };
@@ -64,11 +67,10 @@ export const usePortalContext = () => useContext(PortalContext);
 const attr = createAttribute('portal');
 
 export interface UseFloatingPortalNodeProps {
-  ref?: Ref<HTMLDivElement>;
-  container?: HTMLElement | ShadowRoot | null;
-  componentProps?: useRenderElement.ComponentProps<any, any>;
-  elementProps?: JSX.HTMLAttributes<HTMLDivElement>;
-  elementState?: Record<string, unknown>;
+  ref?: Ref<HTMLDivElement> | undefined;
+  container?: (HTMLElement | ShadowRoot | null) | undefined;
+  componentProps?: useRenderElement.ComponentProps<any, any> | undefined;
+  elementProps?: JSX.HTMLAttributes<HTMLDivElement> | undefined;
 }
 
 export interface UseFloatingPortalNodeResult {
@@ -149,7 +151,6 @@ export function useFloatingPortalNode(
       typeof props.ref === 'function' ? props.ref(el) : (props.ref = el);
       setPortalNodeRef(el);
     },
-    state: props.elementState,
     props: [
       {
         get id() {
@@ -184,7 +185,7 @@ export function useFloatingPortalNode(
  * @internal
  */
 export function FloatingPortal(
-  componentProps: FloatingPortal.Props<any> & { renderGuards?: MaybeAccessor<boolean> },
+  componentProps: FloatingPortal.Props<any> & { renderGuards?: MaybeAccessor<boolean | undefined> },
 ): JSX.Element {
   const [, local, elementProps] = splitComponentProps(componentProps, [
     'renderGuards',
@@ -329,6 +330,6 @@ export namespace FloatingPortal {
     /**
      * A parent element to render the portal element into.
      */
-    container?: UseFloatingPortalNodeProps['container'];
+    container?: UseFloatingPortalNodeProps['container'] | undefined;
   }
 }

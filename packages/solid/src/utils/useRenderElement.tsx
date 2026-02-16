@@ -130,11 +130,11 @@ export type UseRenderElementParameters<
    * This is useful for rendering a component conditionally.
    * @default true
    */
-  enabled?: MaybeAccessor<Enabled>;
+  enabled?: MaybeAccessor<Enabled | undefined>;
   /**
    * @deprecated
    */
-  propGetter?: (externalProps: HTMLProps) => HTMLProps;
+  propGetter?: ((externalProps: HTMLProps) => HTMLProps) | undefined;
   /**
    * The ref to apply to the rendered element.
    */
@@ -145,39 +145,41 @@ export type UseRenderElementParameters<
         | undefined
         | null
         | (Ref<RenderedElementType> | undefined | null)[]
-      )[];
+      )[]
+    | undefined;
   /**
    * The state of the component.
    */
-  state?: State;
+  state?: State | undefined;
   /**
    * Intrinsic props to be spread on the rendered element.
    */
   props?:
     | RenderFunctionProps<TagName, State>
-    | Array<
+    | (
         | RenderFunctionProps<TagName, State>
         | undefined
         | ((
             props: RenderFunctionProps<TagName, State>,
           ) => RenderFunctionProps<TagName, State> | undefined | null)
-        | Array<
+        | (
             | RenderFunctionProps<TagName, State>
             | undefined
             | ((
                 props: RenderFunctionProps<TagName, State>,
               ) => RenderFunctionProps<TagName, State> | undefined | null)
-          >
-      >;
+          )[]
+      )[]
+    | undefined;
 
   /**
    * A mapping of state to `data-*` attributes.
    */
-  stateAttributesMapping?: StateAttributesMapping<State>;
+  stateAttributesMapping?: StateAttributesMapping<State> | undefined;
   /**
    * SolidJS only: The children override to render.
    */
-  children?: JSX.Element | ((...args: any[]) => JSX.Element);
+  children?: JSX.Element | ((...args: any[]) => JSX.Element) | undefined;
 };
 
 export interface UseRenderElementComponentProps<
@@ -189,29 +191,29 @@ export interface UseRenderElementComponentProps<
    * The class name to apply to the rendered element.
    * Can be a string or a function that accepts the state and returns a string.
    */
-  class?: string | ((state: State) => string | undefined);
+  class?: (string | ((state: State) => string | undefined)) | undefined;
   /**
    * The render prop or Solid element to override the default element.
    */
   render?:
+    | undefined
+    | null
     | keyof JSX.IntrinsicElements
     | DynamicProps<RenderFnElement>
-    | ComponentRenderFn<Record<string, unknown>, State>
-    | null
-    | undefined;
+    | ComponentRenderFn<Record<string, unknown>, State>;
   /**
    * The style to apply to the rendered element.
    * Can be a style object or a function that accepts the state and returns a style object.
    */
-  style?: JSX.CSSProperties | ((state: State) => JSX.CSSProperties | undefined);
+  style?: (JSX.CSSProperties | ((state: State) => JSX.CSSProperties | undefined)) | undefined;
   /**
    * The children to render.
    */
-  children?: JSX.Element | ((...args: any[]) => JSX.Element);
+  children?: JSX.Element | ((...args: any[]) => JSX.Element) | undefined;
   /**
    * The ref to apply to the rendered element.
    */
-  ref?: Ref<RenderedElementType>;
+  ref?: Ref<RenderedElementType> | undefined;
 }
 
 export namespace useRenderElement {

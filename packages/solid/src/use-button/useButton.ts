@@ -41,12 +41,19 @@ export function useButton(parameters: useButton.Parameters = {}): useButton.Retu
       if (isNativeButton()) {
         if (!isButtonTag) {
           error(
-            'A component that acts as a button was not rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is a real <button>, or set the `nativeButton` prop on the component to `false`.',
+            'A component that acts as a button expected a native <button> because the ' +
+              '`nativeButton` prop is true. Rendering a non-<button> removes native button ' +
+              'semantics, which can impact forms and accessibility. Use a real <button> in the ' +
+              '`render` prop, or set `nativeButton` to `false`.',
           );
         }
       } else if (isButtonTag) {
         error(
-          'A component that acts as a button was rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is not a real <button>, or set the `nativeButton` prop on the component to `true`.',
+          'A component that acts as a button expected a non-<button> because the `nativeButton` ' +
+            'prop is false. Rendering a <button> keeps native behavior while Base UI applies ' +
+            'non-native attributes and handlers, which can add unintended extra attributes (such ' +
+            'as `role` or `aria-disabled`). Use a non-<button> in the `render` prop, or set ' +
+            '`nativeButton` to `true`.',
         );
       }
     });
@@ -205,14 +212,14 @@ function isButtonElement(
 }
 
 interface GenericButtonProps extends HTMLProps, AdditionalButtonProps {
-  tabIndex?: number;
+  tabIndex?: number | undefined;
 }
 
 interface AdditionalButtonProps extends Partial<{
   'aria-disabled': JSX.AriaAttributes['aria-disabled'];
   disabled: boolean;
   role: JSX.AriaAttributes['role'];
-  tabIndex?: number;
+  tabIndex?: number | undefined;
 }> {}
 
 export interface UseButtonParameters {

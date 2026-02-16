@@ -25,7 +25,7 @@ export function AlertDialogRoot<Payload>(props: AlertDialogRoot.Props<Payload>) 
     props.handle?.store ??
     new DialogStore<Payload>({
       get open() {
-        return openProp() ?? defaultOpen();
+        return defaultOpen();
       },
       get activeTriggerId() {
         return triggerIdProp() !== undefined ? triggerIdProp() : defaultTriggerIdProp();

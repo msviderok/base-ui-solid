@@ -1,3 +1,4 @@
+import { ownerDocument } from '@base-ui/utils/owner';
 import { getOverflowAncestors } from '@floating-ui/dom';
 import {
   getComputedStyle,
@@ -17,7 +18,6 @@ import { FloatingTreeStore } from '../components/FloatingTreeStore';
 import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import {
   contains,
-  getDocument,
   getNodeChildren,
   getTarget,
   isEventTargetInsidePortal,
@@ -34,7 +34,7 @@ const bubbleHandlerKeys = {
 } as const;
 
 export function normalizeProp(
-  normalizable?: boolean | { escapeKey?: boolean; outsidePress?: boolean },
+  normalizable?: boolean | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined },
 ) {
   return {
     escapeKey:
@@ -83,7 +83,7 @@ export interface UseDismissProps {
    * ```
    * @default true
    */
-  outsidePress?: boolean | ((event: MouseEvent | TouchEvent) => boolean);
+  outsidePress?: boolean | ((event: MouseEvent | TouchEvent) => boolean) | undefined;
   /**
    * The type of event to use to determine an outside "press".
    * - `intentional` requires the user to click outside intentionally, firing on `pointerup` for mouse, and requiring minimal `touchmove`s for touch.
@@ -107,11 +107,13 @@ export interface UseDismissProps {
    * Determines whether event listeners bubble upwards through a tree of
    * floating elements.
    */
-  bubbles?: MaybeAccessor<boolean | { escapeKey?: boolean; outsidePress?: boolean } | undefined>;
+  bubbles?: MaybeAccessor<
+    boolean | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined } | undefined
+  >;
   /**
    * External FlatingTree to use when the one provided by context can't be used.
    */
-  externalTree?: FloatingTreeStore;
+  externalTree?: FloatingTreeStore | undefined;
 }
 
 /**
@@ -290,7 +292,9 @@ export function useDismiss(
 
     const target = getTarget(event);
     const inertSelector = `[${createAttribute('inert')}]`;
-    const markers = getDocument(floatingElement()).querySelectorAll(inertSelector);
+    const markers = ownerDocument(store().select('floatingElement') ?? null).querySelectorAll(
+      inertSelector,
+    );
 
     const triggers = store().context.triggerElements;
 
@@ -580,7 +584,7 @@ export function useDismiss(
     }
 
     const floating = floatingElement();
-    const doc = getDocument(floating);
+    const doc = ownerDocument(floating ?? null);
 
     doc.addEventListener('pointerdown', trackPointerType, true);
 

@@ -66,7 +66,7 @@ export interface FloatingDelayGroupProps {
    * This is useful if you want grouping to “last” longer than the close delay,
    * for example if there is no close delay at all.
    */
-  timeoutMs?: number;
+  timeoutMs?: number | undefined;
 }
 
 /**
@@ -114,11 +114,6 @@ export function FloatingDelayGroup(props: FloatingDelayGroupProps): JSX.Element 
 
 interface UseDelayGroupOptions {
   /**
-   * Whether delay grouping should be enabled.
-   * @default true
-   */
-  enabled?: MaybeAccessor<boolean>;
-  /**
    * Whether the trigger this hook is used in has opened the tooltip.
    */
   open: MaybeAccessor<boolean>;
@@ -156,7 +151,6 @@ export function useDelayGroup(
     return 'rootStore' in ctx ? ctx.rootStore : ctx;
   };
   const floatingId = () => store().state.floatingId;
-  const enabled = () => access(options.enabled) ?? true;
   const open = () => access(options.open);
 
   const {
@@ -185,9 +179,6 @@ export function useDelayGroup(
   }
 
   createEffect(() => {
-    if (!enabled()) {
-      return;
-    }
     if (!currentIdRef()) {
       return;
     }
@@ -214,9 +205,6 @@ export function useDelayGroup(
   });
 
   createEffect(() => {
-    if (!enabled()) {
-      return;
-    }
     if (!open()) {
       return;
     }

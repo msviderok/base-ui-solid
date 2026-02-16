@@ -1,9 +1,8 @@
 import { createEffect, createMemo, type Accessor } from 'solid-js';
 import { access, type MaybeAccessor } from '../../solid-helpers';
-import { EMPTY_ARRAY } from '../../utils/constants';
 import { useTimeout } from '../../utils/useTimeout';
 import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
-import { stopEvent } from '../utils';
+import { contains, stopEvent } from '../utils';
 
 export interface UseTypeaheadProps {
   /**
@@ -20,37 +19,27 @@ export interface UseTypeaheadProps {
   /**
    * Callback invoked with the matching index if found as the user types.
    */
-  onMatch?: (index: number) => void;
+  onMatch?: ((index: number) => void) | undefined;
   /**
    * Callback invoked with the typing state as the user types.
    */
-  onTypingChange?: (isTyping: boolean) => void;
+  onTypingChange?: ((isTyping: boolean) => void) | undefined;
   /**
    * Whether the Hook is enabled, including all internal Effects and event
    * handlers.
    * @default true
    */
-  enabled?: MaybeAccessor<boolean>;
-  /**
-   * A function that returns the matching string from the list.
-   * @default lowercase-finder
-   */
-  findMatch?: (list: Array<string | null>, typedString: string) => string | null | undefined;
+  enabled?: MaybeAccessor<boolean | undefined>;
   /**
    * The number of milliseconds to wait before resetting the typed string.
    * @default 750
    */
-  resetMs?: MaybeAccessor<number>;
-  /**
-   * An array of keys to ignore when typing.
-   * @default []
-   */
-  ignoreKeys?: MaybeAccessor<Array<string>>;
+  resetMs?: MaybeAccessor<number | undefined>;
   /**
    * The index of the selected item in the list, if available.
    * @default null
    */
-  selectedIndex?: MaybeAccessor<number | null>;
+  selectedIndex?: MaybeAccessor<(number | null) | undefined>;
 }
 
 /**
@@ -73,7 +62,6 @@ export function useTypeahead(
   const activeIndex = () => access(props.activeIndex);
   const enabled = () => access(props.enabled) ?? true;
   const resetMs = () => access(props.resetMs) ?? 750;
-  const ignoreKeys = () => access(props.ignoreKeys) ?? EMPTY_ARRAY;
   const selectedIndex = () => access(props.selectedIndex) ?? null;
 
   const timeout = useTimeout();
@@ -82,9 +70,14 @@ export function useTypeahead(
   let matchIndexRef: number | null = null;
 
   createEffect(() => {
-    if (open()) {
-      timeout.clear();
-      matchIndexRef = null;
+    if (!open() && selectedIndex() !== null) {
+      return;
+    }
+
+    timeout.clear();
+    matchIndexRef = null;
+
+    if (stringRef !== '') {
       stringRef = '';
     }
   });
@@ -114,11 +107,9 @@ export function useTypeahead(
       orderedList: Array<string | null>,
       string: string,
     ) {
-      const str = props.findMatch
-        ? props.findMatch(orderedList, string)
-        : orderedList.find(
-            (text) => text?.toLocaleLowerCase().indexOf(string.toLocaleLowerCase()) === 0,
-          );
+      const str = orderedList.find(
+        (text) => text?.toLocaleLowerCase().indexOf(string.toLocaleLowerCase()) === 0,
+      );
 
       return str ? list.indexOf(str) : -1;
     }
@@ -135,7 +126,6 @@ export function useTypeahead(
 
     if (
       listContent == null ||
-      ignoreKeys().includes(event.key) ||
       // Character key.
       event.key.length !== 1 ||
       // Modifier key.
@@ -149,6 +139,12 @@ export function useTypeahead(
     if (open() && event.key !== ' ') {
       stopEvent(event);
       setTypingChange(true);
+    }
+
+    // Capture whether this is a new typing session before mutating the string.
+    const isNewSession = stringRef === '';
+    if (isNewSession) {
+      prevIndexRef = selectedIndex() ?? activeIndex() ?? -1;
     }
 
     // Bail out if the list contains a word like "llama" or "aaron". TODO:
@@ -171,6 +167,11 @@ export function useTypeahead(
       setTypingChange(false);
     });
 
+    // Compute the starting index for this search.
+    // If this is a new typing session (string is empty), base it on the current
+    // selection/active item; otherwise continue from the last matched index.
+    const prevIndex = isNewSession ? (selectedIndex() ?? activeIndex() ?? -1) : prevIndexRef;
+
     const index = getMatchingIndex(
       listContent,
       [
@@ -189,7 +190,26 @@ export function useTypeahead(
     }
   };
 
-  const reference = createMemo<ElementProps['reference']>(() => ({ onKeyDown }));
+  const onBlur = (event: FocusEvent) => {
+    const next = event.relatedTarget as Element | null;
+    const currentDomReferenceElement = store().select('domReferenceElement');
+    const currentFloatingElement = store().select('floatingElement');
+    const withinReference = contains(currentDomReferenceElement, next);
+    const withinFloating = contains(currentFloatingElement, next);
+
+    // Keep the session if focus moves within the composite (reference <-> floating).
+    if (withinReference || withinFloating) {
+      return;
+    }
+
+    // End the current typing session when focus leaves the composite entirely.
+    timeout.clear();
+    stringRef = '';
+    prevIndexRef = matchIndexRef;
+    setTypingChange(false);
+  };
+
+  const reference = createMemo<ElementProps['reference']>(() => ({ onKeyDown, onBlur }));
 
   const floating = createMemo<ElementProps['floating']>(() => ({
     onKeyDown,
@@ -198,6 +218,7 @@ export function useTypeahead(
         setTypingChange(false);
       }
     },
+    onBlur,
   }));
 
   const returnValue = createMemo<ElementProps>(() => {

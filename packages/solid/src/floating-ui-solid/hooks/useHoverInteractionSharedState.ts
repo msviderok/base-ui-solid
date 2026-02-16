@@ -1,5 +1,5 @@
-import { createEffect } from 'solid-js';
-import { type MaybeAccessor, access } from '../../solid-helpers';
+import { onCleanup, onMount } from 'solid-js';
+import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
 import { useTimeout } from '../../utils/useTimeout';
 import type { ContextData, FloatingRootContext, SafePolygonOptions } from '../types';
 import { TYPEABLE_SELECTOR } from '../utils/constants';
@@ -12,46 +12,50 @@ export function isInteractiveElement(element: Element | null | undefined) {
   return element ? Boolean(element.closest(interactiveSelector)) : false;
 }
 
-export interface HoverInteractionSharedState {
-  pointerTypeRef: string | undefined;
-  interactedInsideRef: boolean;
-  handlerRef: ((event: MouseEvent) => void) | undefined;
-  blockMouseMoveRef: boolean;
-  performedPointerEventsMutationRef: boolean;
-  unbindMouseMoveRef: () => void;
-  restTimeoutPendingRef: boolean;
+export interface HoverInteraction {
+  pointerType: string | undefined;
+  interactedInside: boolean;
+  handler: ((event: MouseEvent) => void) | undefined;
+  blockMouseMove: boolean;
+  performedPointerEventsMutation: boolean;
+  unbindMouseMove: () => void;
+  restTimeoutPending: boolean;
   openChangeTimeout: ReturnType<typeof useTimeout>;
   restTimeout: ReturnType<typeof useTimeout>;
-  handleCloseOptionsRef: SafePolygonOptions | undefined;
+  handleCloseOptions: SafePolygonOptions | undefined;
 }
 
 type HoverContextData = ContextData & {
-  hoverInteractionState?: HoverInteractionSharedState;
+  hoverInteractionState?: HoverInteraction | undefined;
 };
 
-export function useHoverInteractionSharedState(
-  store: MaybeAccessor<FloatingRootContext>,
-): HoverInteractionSharedState {
-  const state: HoverInteractionSharedState = {
-    pointerTypeRef: undefined,
-    interactedInsideRef: false,
-    handlerRef: undefined,
-    blockMouseMoveRef: true,
-    performedPointerEventsMutationRef: false,
-    unbindMouseMoveRef: () => {},
-    restTimeoutPendingRef: false,
+export function useHoverInteractionSharedState(parameters: {
+  store: FloatingRootContext;
+}): [Store<HoverInteraction>, SetStoreFunction<HoverInteraction>] {
+  const [state, setState] = createStore<HoverInteraction>({
+    pointerType: undefined,
+    interactedInside: false,
+    handler: undefined,
+    blockMouseMove: true,
+    performedPointerEventsMutation: false,
+    unbindMouseMove: () => {},
+    restTimeoutPending: false,
     openChangeTimeout: useTimeout(),
     restTimeout: useTimeout(),
-    handleCloseOptionsRef: undefined,
-  };
+    handleCloseOptions: undefined,
+  });
 
-  createEffect(() => {
-    const data = access(store).context.dataRef as HoverContextData;
-
+  onMount(() => {
+    const data = parameters.store.context.dataRef as HoverContextData;
     if (!data.hoverInteractionState) {
       data.hoverInteractionState = state;
     }
   });
 
-  return state;
+  onCleanup(() => {
+    state.openChangeTimeout.clear();
+    state.restTimeout.clear();
+  });
+
+  return [state, setState] as const;
 }

@@ -1,7 +1,7 @@
-import * as React from 'react';
 import { ownerDocument } from '@base-ui/utils/owner';
-import { BaseUIEvent } from './types';
+import * as React from 'react';
 import { EMPTY_OBJECT } from './constants';
+import { BaseUIEvent } from './types';
 
 /**
  * Returns `click` and `mousedown` handlers that fix the behavior of triggers of popups that are toggled by different events.
@@ -46,7 +46,7 @@ export interface UseMixedToggleClickHandlerParameters {
    * Whether the mixed toggle click handler is enabled.
    * @default true
    */
-  enabled?: boolean;
+  enabled?: boolean | undefined;
   /**
    * Determines what action is performed on mousedown.
    */

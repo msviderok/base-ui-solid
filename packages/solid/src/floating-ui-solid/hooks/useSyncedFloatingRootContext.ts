@@ -13,7 +13,7 @@ export interface UseSyncedFloatingRootContextOptions<State extends PopupStoreSta
   /**
    * Whether to prevent the auto-emitted `openchange` event.
    */
-  noEmit?: boolean;
+  noEmit?: boolean | undefined;
   /**
    * Whether the Popup element is passed to Floating UI as the floating element instead of the default Positioner.
    */
@@ -64,6 +64,10 @@ export function useSyncedFloatingRootContext<State extends PopupStoreState<any>>
 
     if (isElement(ref)) {
       valuesToSync.domReferenceElement = ref;
+    }
+
+    if (store.state.positionReference === store.state.referenceElement) {
+      valuesToSync.positionReference = ref;
     }
 
     store.update(valuesToSync);

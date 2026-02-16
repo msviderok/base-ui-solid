@@ -1,5 +1,6 @@
+import { ownerDocument } from '@base-ui/utils/owner';
 import { tabbable, type FocusableElement } from 'tabbable';
-import { activeElement, contains, getDocument } from './element';
+import { activeElement, contains } from './element';
 
 export const getTabbableOptions = () =>
   ({
@@ -20,7 +21,7 @@ function getTabbableIn(container: HTMLElement, dir: 1 | -1): FocusableElement | 
     return null;
   }
 
-  const active = activeElement(getDocument(container)) as FocusableElement;
+  const active = activeElement(ownerDocument(container)) as FocusableElement;
   const index = list.indexOf(active);
   // eslint-disable-next-line no-nested-ternary
   const nextIndex = index === -1 ? (dir === 1 ? 0 : len - 1) : index + dir;
@@ -32,7 +33,8 @@ export function getNextTabbable(
   referenceElement: Element | null | undefined,
 ): FocusableElement | null {
   return (
-    getTabbableIn(getDocument(referenceElement).body, 1) || (referenceElement as FocusableElement)
+    getTabbableIn(ownerDocument(referenceElement ?? null).body, 1) ||
+    (referenceElement as FocusableElement)
   );
 }
 
@@ -40,7 +42,8 @@ export function getPreviousTabbable(
   referenceElement: Element | null | undefined,
 ): FocusableElement | null {
   return (
-    getTabbableIn(getDocument(referenceElement).body, -1) || (referenceElement as FocusableElement)
+    getTabbableIn(ownerDocument(referenceElement ?? null).body, -1) ||
+    (referenceElement as FocusableElement)
   );
 }
 
@@ -49,7 +52,7 @@ function getTabbableNearElement(referenceElement: Element | null | undefined, di
     return null;
   }
 
-  const list = tabbable(getDocument(referenceElement).body, getTabbableOptions());
+  const list = tabbable(ownerDocument(referenceElement).body, getTabbableOptions());
   const elementCount = list.length;
   if (elementCount === 0) {
     return null;

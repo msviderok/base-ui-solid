@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { render } from '@testing-library/react';
+import * as React from 'react';
 import { vi } from 'vitest';
 
 import {
@@ -130,9 +130,7 @@ describe('useInteractions', () => {
         useTypeahead(context, {
           listRef,
           activeIndex: 0,
-          ignoreKeys: [],
           onMatch: () => {},
-          findMatch: () => '',
         }),
       ]);
 

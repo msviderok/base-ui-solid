@@ -14,7 +14,7 @@ export interface FloatingUIOpenChangeDetails {
 
 export type BaseUIEvent<E extends Event> = E & {
   preventBaseUIHandler: () => void;
-  readonly baseUIHandlerPrevented?: boolean;
+  readonly baseUIHandlerPrevented?: boolean | undefined;
 };
 
 type WithPreventBaseUIHandler<T, K extends keyof T> = T[K] extends
@@ -62,7 +62,7 @@ export type BaseUIComponentProps<
    * CSS class applied to the element, or a function that
    * returns a class based on the component’s state.
    */
-  class?: string | ((state: State) => string | undefined);
+  class?: (string | ((state: State) => string | undefined)) | undefined;
   /**
    * Allows you to replace the component’s HTML element
    * with a different tag, or compose it with another component.
@@ -70,15 +70,18 @@ export type BaseUIComponentProps<
    * Accepts a `ReactElement` or a function that returns the element to render.
    */
   render?:
-    | keyof JSX.IntrinsicElements
-    | DynamicProps<RenderFnElement>
-    | ComponentRenderFn<JSX.HTMLAttributes<any>, State>
-    | null;
+    | (
+        | keyof JSX.IntrinsicElements
+        | DynamicProps<RenderFnElement>
+        | ComponentRenderFn<JSX.HTMLAttributes<any>, State>
+        | null
+      )
+    | undefined;
   /**
    * Style applied to the element, or a function that
    * returns a style object based on the component’s state.
    */
-  style?: JSX.CSSProperties | ((state: State) => JSX.CSSProperties | undefined);
+  style?: (JSX.CSSProperties | ((state: State) => JSX.CSSProperties | undefined)) | undefined;
 };
 
 export interface NativeButtonProps {
@@ -88,7 +91,7 @@ export interface NativeButtonProps {
    * Set to `false` if the rendered element is not a button (e.g. `<div>`).
    * @default true
    */
-  nativeButton?: boolean;
+  nativeButton?: boolean | undefined;
 }
 
 export interface NonNativeButtonProps {
@@ -98,7 +101,7 @@ export interface NonNativeButtonProps {
    * Set to `true` if the rendered element is a native button.
    * @default false
    */
-  nativeButton?: boolean;
+  nativeButton?: boolean | undefined;
 }
 
 /**

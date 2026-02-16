@@ -51,8 +51,8 @@ export function useFocusableWhenDisabled(
 }
 
 interface FocusableWhenDisabledProps {
-  'aria-disabled'?: boolean;
-  disabled?: boolean;
+  'aria-disabled'?: boolean | undefined;
+  disabled?: boolean | undefined;
   onKeyDown: (event: KeyboardEvent) => void;
   tabIndex: string | number;
 }

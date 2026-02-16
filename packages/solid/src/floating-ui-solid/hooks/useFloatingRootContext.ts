@@ -11,14 +11,12 @@ import type { ReferenceType } from '../types';
 export interface UseFloatingRootContextOptions {
   open?: MaybeAccessor<boolean | undefined>;
   onOpenChange?: (open: boolean, eventDetails: BaseUIChangeEventDetails<string>) => void;
-  elements?: {
-    reference?: MaybeAccessor<ReferenceType | null | undefined>;
-    floating?: MaybeAccessor<HTMLElement | null | undefined>;
-    /** Non-reactive */
-    triggers?: PopupTriggerMap;
-  };
-  /** Non-reactive. Whether to prevent the auto-emitted `openchange` event. */
-  noEmit?: boolean;
+  elements?:
+    | {
+        reference?: MaybeAccessor<(ReferenceType | null) | undefined>;
+        floating?: MaybeAccessor<(HTMLElement | null) | undefined>;
+      }
+    | undefined;
 }
 
 export function useFloatingRootContext(options: UseFloatingRootContextOptions): FloatingRootStore {
@@ -44,12 +42,10 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
     onOpenChange: options.onOpenChange,
     referenceElement: () => access(options.elements?.reference) ?? null,
     floatingElement: () => access(options.elements?.floating) ?? null,
-    triggerElements: options.elements?.triggers ?? new PopupTriggerMap(),
+    triggerElements: new PopupTriggerMap(),
     floatingId,
     nested,
-    get noEmit() {
-      return options.noEmit || false;
-    },
+    noEmit: false,
   });
 
   createEffect(() => {

@@ -1,21 +1,19 @@
 import { NOOP } from '@base-ui/utils/empty';
 import { createEffect, createMemo, createRoot, on, onCleanup, type Accessor } from 'solid-js';
-import type { SetStoreFunction, Store } from 'solid-js/store';
-import { createStore, produce } from 'solid-js/store';
+import { produce, type SetStoreFunction, type Store } from 'solid-js/store';
 import { access, type MaybeAccessor, type MaybeAccessorValue } from '../../solid-helpers';
 
 /**
  * A Store that supports controlled state keys, non-reactive values and provides utility methods for React.
  */
 export class SolidStore<
-  State extends Record<string, MaybeAccessor<unknown>>,
+  State extends object,
   Context = Record<string, never>,
   Selectors extends Record<string, SelectorFunction<State>> = Record<string, never>,
 > {
   state: Store<State>;
   setState: SetStoreFunction<State>;
-  update: SetStoreFunction<State>;
-  set: SetStoreFunction<State>;
+  set: typeof this.setState;
 
   /**
    * Creates a new ReactStore instance.
@@ -24,12 +22,14 @@ export class SolidStore<
    * @param context Non-reactive context values.
    * @param selectors Optional selectors for use with `useState`.
    */
-  constructor(state: State, context: Context = {} as Context, selectors?: Selectors) {
-    const [internalState, setInternalState] = createStore<State>(state);
-    // eslint-disable-next-line solid/reactivity
+  constructor(
+    state: [Store<State>, SetStoreFunction<State>],
+    context: Context = {} as Context,
+    selectors?: Selectors,
+  ) {
+    const [internalState, setInternalState] = state;
     this.state = internalState;
     this.setState = setInternalState;
-    this.update = setInternalState;
     this.set = setInternalState;
     this.context = context;
     this.selectors = selectors;
@@ -42,6 +42,10 @@ export class SolidStore<
 
   private selectors: Selectors | undefined;
 
+  update(statePart: Partial<State>) {
+    this.setState(statePart as any);
+  }
+
   /**
    * Synchronizes a single external value into the store.
    *
@@ -52,9 +56,9 @@ export class SolidStore<
     key: keyof State,
     value: Value,
   ) {
-    createEffect(() => {
-      this.setState(key as any, value as any);
-    });
+    createEffect(
+      on([() => access(key), () => access(value)], ([k, v]: [any, any]) => this.setState(k, v)),
+    );
   }
 
   /**
@@ -78,7 +82,9 @@ export class SolidStore<
    * Note that the while the values in `state` are updated immediately, the values returned
    * by `useState` are updated before the next render (similarly to React's `useState`).
    */
-  public useSyncedValues(statePart: Partial<State>) {
+  public useSyncedValues<Keys extends keyof State>(statePart: {
+    [Key in Keys]: MaybeAccessor<State[Key]>;
+  }) {
     if (process.env.NODE_ENV !== 'production') {
       // Check that an object with the same shape is passed on every render
       const keys = Object.keys(statePart) as Array<keyof State>;
@@ -96,16 +102,20 @@ export class SolidStore<
       });
     }
 
-    createEffect(() => {
-      this.setState(
-        produce((currentState) => {
-          // eslint-disable-next-line guard-for-in
-          for (const key in statePart) {
-            currentState[key] = statePart[key] as any;
-          }
-        }),
-      );
-    });
+    createEffect(
+      on(
+        () => statePart,
+        () =>
+          this.setState(
+            produce((currentState) => {
+              // eslint-disable-next-line guard-for-in
+              for (const key in statePart) {
+                currentState[key] = access(statePart[key]) as any;
+              }
+            }),
+          ),
+      ),
+    );
   }
 
   /**
@@ -114,14 +124,15 @@ export class SolidStore<
    */
   useControlledProp<Key extends keyof State, Value extends State[Key]>(
     key: keyof State,
-    controlled: MaybeAccessor<Value | undefined>,
+    controlledProp: MaybeAccessor<Value | undefined>,
   ): void {
-    const isControlled = () => access(controlled) !== undefined;
+    const controlled = createMemo(() => access(controlledProp));
+    const isControlled = () => controlled() !== undefined;
 
     createEffect(() => {
-      if (isControlled() && !Object.is(this.state[key], access(controlled))) {
+      if (isControlled() && !Object.is(this.state[key], controlled())) {
         // Set the internal state to match the controlled value.
-        this.setState({ ...this.state, [key]: access(controlled) });
+        this.setState({ ...this.state, [key]: controlled() });
       }
     });
 

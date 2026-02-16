@@ -26,3 +26,5 @@
   - undo toast dissappear when hovered
   - toasts don't get dismissed properly
 - Navigation menu is not changing its position on scroll
+
+- TODO: FIX IN SOLID

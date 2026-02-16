@@ -27,8 +27,9 @@ type Context = PopupStoreContext<DialogRoot.ChangeEventDetails> & {
   readonly popupRef: React.RefObject<HTMLElement | null>;
   readonly backdropRef: React.RefObject<HTMLDivElement | null>;
   readonly internalBackdropRef: React.RefObject<HTMLDivElement | null>;
-  readonly onNestedDialogOpen?: (ownChildrenCount: number) => void;
-  readonly onNestedDialogClose?: () => void;
+  readonly outsidePressEnabledRef: React.MutableRefObject<boolean>;
+  readonly onNestedDialogOpen?: ((ownChildrenCount: number) => void) | undefined;
+  readonly onNestedDialogClose?: (() => void) | undefined;
 };
 
 const selectors = {
@@ -56,6 +57,7 @@ export class DialogStore<Payload> extends ReactStore<
         popupRef: React.createRef<HTMLElement>(),
         backdropRef: React.createRef<HTMLDivElement>(),
         internalBackdropRef: React.createRef<HTMLDivElement>(),
+        outsidePressEnabledRef: { current: true },
         triggerElements: new PopupTriggerMap(),
         onOpenChange: undefined,
         onOpenChangeComplete: undefined,
