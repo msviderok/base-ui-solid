@@ -2,8 +2,8 @@
 import * as React from 'react';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { GroupCollectionProvider } from '../collection/GroupCollectionContext';
 import { ComboboxGroupContext } from './ComboboxGroupContext';
+import { GroupCollectionProvider } from '../collection/GroupCollectionContext';
 
 /**
  * Groups related items with the corresponding label.

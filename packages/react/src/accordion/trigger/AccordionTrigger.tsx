@@ -1,24 +1,24 @@
 'use client';
+import * as React from 'react';
 import { isElementDisabled } from '@base-ui/utils/isElementDisabled';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
-import * as React from 'react';
+import { triggerOpenStateMapping } from '../../utils/collapsibleOpenStateMapping';
+import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
+import { useButton } from '../../use-button';
 import { useCollapsibleRootContext } from '../../collapsible/root/CollapsibleRootContext';
 import {
   ARROW_DOWN,
-  ARROW_LEFT,
-  ARROW_RIGHT,
   ARROW_UP,
-  END,
+  ARROW_RIGHT,
+  ARROW_LEFT,
   HOME,
+  END,
   stopEvent,
 } from '../../composite/composite';
-import { useButton } from '../../use-button';
-import { triggerOpenStateMapping } from '../../utils/collapsibleOpenStateMapping';
-import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
+import { useAccordionRootContext } from '../root/AccordionRootContext';
 import type { AccordionItem } from '../item/AccordionItem';
 import { useAccordionItemContext } from '../item/AccordionItemContext';
-import { useAccordionRootContext } from '../root/AccordionRootContext';
+import { useRenderElement } from '../../utils/useRenderElement';
 
 const SUPPORTED_KEYS = new Set([ARROW_DOWN, ARROW_UP, ARROW_RIGHT, ARROW_LEFT, HOME, END]);
 

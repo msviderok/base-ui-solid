@@ -3,9 +3,9 @@ import * as React from 'react';
 import { formatNumber } from '../../utils/formatNumber';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
-import type { SliderRoot } from '../root/SliderRoot';
 import { useSliderRootContext } from '../root/SliderRootContext';
 import { sliderStateAttributesMapping } from '../root/stateAttributesMapping';
+import type { SliderRoot } from '../root/SliderRoot';
 
 /**
  * Displays the current value of the slider as text.

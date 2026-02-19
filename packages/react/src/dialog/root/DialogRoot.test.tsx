@@ -1,11 +1,11 @@
-import { createRenderer, isJSDOM, popupConformanceTests } from '#test-utils';
+import * as React from 'react';
+import { expect } from 'chai';
+import { spy } from 'sinon';
+import { act, fireEvent, screen, waitFor, flushMicrotasks } from '@mui/internal-test-utils';
 import { Dialog } from '@base-ui/react/dialog';
+import { createRenderer, isJSDOM, popupConformanceTests } from '#test-utils';
 import { Menu } from '@base-ui/react/menu';
 import { Select } from '@base-ui/react/select';
-import { act, fireEvent, flushMicrotasks, screen, waitFor } from '@mui/internal-test-utils';
-import { expect } from 'chai';
-import * as React from 'react';
-import { spy } from 'sinon';
 import { REASONS } from '../../utils/reasons';
 
 describe('<Dialog.Root />', () => {

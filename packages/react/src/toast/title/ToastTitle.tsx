@@ -1,10 +1,10 @@
 'use client';
-import { useId } from '@base-ui/utils/useId';
-import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import * as React from 'react';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import { useId } from '@base-ui/utils/useId';
 import type { BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
 import { useToastRootContext } from '../root/ToastRootContext';
+import { useRenderElement } from '../../utils/useRenderElement';
 
 /**
  * A title that labels the toast.

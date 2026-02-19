@@ -1,10 +1,10 @@
-import { createRenderer, isJSDOM } from '#test-utils';
-import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
-import { act, fireEvent, screen } from '@mui/internal-test-utils';
 import * as React from 'react';
 import { expect } from 'vitest';
-import { CompositeRoot } from '../composite/root/CompositeRoot';
+import { act, fireEvent, screen } from '@mui/internal-test-utils';
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
+import { createRenderer, isJSDOM } from '#test-utils';
 import { useButton } from './useButton';
+import { CompositeRoot } from '../composite/root/CompositeRoot';
 
 describe('useButton', () => {
   const { render, renderToString } = createRenderer();

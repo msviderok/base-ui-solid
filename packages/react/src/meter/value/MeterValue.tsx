@@ -1,9 +1,9 @@
 'use client';
 import * as React from 'react';
 import type { BaseUIComponentProps } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
-import type { MeterRoot } from '../root/MeterRoot';
 import { useMeterRootContext } from '../root/MeterRootContext';
+import type { MeterRoot } from '../root/MeterRoot';
+import { useRenderElement } from '../../utils/useRenderElement';
 
 /**
  * A text element displaying the current value.

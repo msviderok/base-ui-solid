@@ -1,7 +1,5 @@
 'use client';
-import { ownerDocument } from '@base-ui/utils/owner';
-import { useStableCallback } from '@base-ui/utils/useStableCallback';
-import { Timeout, useTimeout } from '@base-ui/utils/useTimeout';
+import * as React from 'react';
 import { getOverflowAncestors } from '@floating-ui/react-dom';
 import {
   getComputedStyle,
@@ -11,23 +9,25 @@ import {
   isLastTraversableNode,
   isWebKit,
 } from '@floating-ui/utils/dom';
-import * as React from 'react';
+import { Timeout, useTimeout } from '@base-ui/utils/useTimeout';
+import { useStableCallback } from '@base-ui/utils/useStableCallback';
+import { ownerDocument } from '@base-ui/utils/owner';
 import {
   contains,
-  getNodeChildren,
   getTarget,
   isEventTargetWithin,
   isReactEvent,
   isRootElement,
+  getNodeChildren,
 } from '../utils';
 
 /* eslint-disable no-underscore-dangle */
 
-import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
-import { REASONS } from '../../utils/reasons';
 import { useFloatingTree } from '../components/FloatingTree';
 import { FloatingTreeStore } from '../components/FloatingTreeStore';
 import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 import { createAttribute } from '../utils/createAttribute';
 
 type PressType = 'intentional' | 'sloppy';

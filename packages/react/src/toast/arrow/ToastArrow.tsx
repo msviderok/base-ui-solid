@@ -1,9 +1,9 @@
 'use client';
 import * as React from 'react';
-import type { BaseUIComponentProps } from '../../utils/types';
-import type { Align, Side } from '../../utils/useAnchorPositioning';
-import { useRenderElement } from '../../utils/useRenderElement';
 import { useToastPositionerContext } from '../positioner/ToastPositionerContext';
+import type { BaseUIComponentProps } from '../../utils/types';
+import type { Side, Align } from '../../utils/useAnchorPositioning';
+import { useRenderElement } from '../../utils/useRenderElement';
 
 /**
  * Displays an element positioned against the toast anchor.

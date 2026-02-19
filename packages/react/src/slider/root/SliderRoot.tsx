@@ -1,37 +1,37 @@
 'use client';
+import * as React from 'react';
 import { ownerDocument } from '@base-ui/utils/owner';
 import { useControlled } from '@base-ui/utils/useControlled';
-import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { warn } from '@base-ui/utils/warn';
-import * as React from 'react';
-import { CompositeList, type CompositeMetadata } from '../../composite/list/CompositeList';
-import type { FieldRoot } from '../../field/root/FieldRoot';
-import { useFieldRootContext } from '../../field/root/FieldRootContext';
-import { useField } from '../../field/useField';
-import { activeElement } from '../../floating-ui-react/utils';
-import { useFormContext } from '../../form/FormContext';
-import { useLabelableContext } from '../../labelable-provider/LabelableContext';
-import { areArraysEqual } from '../../utils/areArraysEqual';
-import { clamp } from '../../utils/clamp';
+import type { BaseUIComponentProps, Orientation } from '../../utils/types';
 import {
   createChangeEventDetails,
   createGenericEventDetails,
   type BaseUIChangeEventDetails,
   type BaseUIGenericEventDetails,
 } from '../../utils/createBaseUIEventDetails';
-import { REASONS } from '../../utils/reasons';
-import type { BaseUIComponentProps, Orientation } from '../../utils/types';
+import { useValueChanged } from '../../utils/useValueChanged';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { useValueChanged } from '../../utils/useValueChanged';
-import type { ThumbMetadata } from '../thumb/SliderThumb';
+import { clamp } from '../../utils/clamp';
+import { areArraysEqual } from '../../utils/areArraysEqual';
+import { activeElement } from '../../floating-ui-react/utils';
+import { CompositeList, type CompositeMetadata } from '../../composite/list/CompositeList';
+import type { FieldRoot } from '../../field/root/FieldRoot';
+import { useField } from '../../field/useField';
+import { useFieldRootContext } from '../../field/root/FieldRootContext';
+import { useFormContext } from '../../form/FormContext';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { asc } from '../utils/asc';
 import { getSliderValue } from '../utils/getSliderValue';
 import { validateMinimumDistance } from '../utils/validateMinimumDistance';
-import { SliderRootContext } from './SliderRootContext';
+import type { ThumbMetadata } from '../thumb/SliderThumb';
 import { sliderStateAttributesMapping } from './stateAttributesMapping';
+import { SliderRootContext } from './SliderRootContext';
+import { REASONS } from '../../utils/reasons';
 
 function getSliderChangeEventReason(
   event: React.KeyboardEvent | React.ChangeEvent,

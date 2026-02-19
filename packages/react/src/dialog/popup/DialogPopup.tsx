@@ -1,19 +1,19 @@
 'use client';
-import { InteractionType } from '@base-ui/utils/useEnhancedClickHandler';
 import * as React from 'react';
-import { COMPOSITE_KEYS } from '../../composite/composite';
+import { InteractionType } from '@base-ui/utils/useEnhancedClickHandler';
 import { FloatingFocusManager } from '../../floating-ui-react';
+import { useDialogRootContext } from '../root/DialogRootContext';
+import { useRenderElement } from '../../utils/useRenderElement';
+import { type BaseUIComponentProps } from '../../utils/types';
+import { type TransitionStatus } from '../../utils/useTransitionStatus';
 import { type StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
 import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
-import { type BaseUIComponentProps } from '../../utils/types';
-import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
-import { useRenderElement } from '../../utils/useRenderElement';
-import { type TransitionStatus } from '../../utils/useTransitionStatus';
-import { useDialogPortalContext } from '../portal/DialogPortalContext';
-import { useDialogRootContext } from '../root/DialogRootContext';
 import { DialogPopupCssVars } from './DialogPopupCssVars';
 import { DialogPopupDataAttributes } from './DialogPopupDataAttributes';
+import { useDialogPortalContext } from '../portal/DialogPortalContext';
+import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
+import { COMPOSITE_KEYS } from '../../composite/composite';
 
 const stateAttributesMapping: StateAttributesMapping<DialogPopup.State> = {
   ...baseMapping,

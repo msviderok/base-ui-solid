@@ -1,8 +1,5 @@
-import { createRenderer, isJSDOM, popupConformanceTests, wait } from '#test-utils';
-import { Dialog } from '@base-ui/react/dialog';
-import { DirectionProvider } from '@base-ui/react/direction-provider';
-import { Menu } from '@base-ui/react/menu';
-import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
+import * as React from 'react';
+import { expect } from 'chai';
 import {
   act,
   fireEvent,
@@ -11,12 +8,15 @@ import {
   screen,
   waitFor,
 } from '@mui/internal-test-utils';
+import { DirectionProvider } from '@base-ui/react/direction-provider';
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
+import { Menu } from '@base-ui/react/menu';
+import { Dialog } from '@base-ui/react/dialog';
 import userEvent from '@testing-library/user-event';
-import { expect } from 'chai';
-import * as React from 'react';
 import { spy } from 'sinon';
-import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
+import { createRenderer, isJSDOM, popupConformanceTests, wait } from '#test-utils';
 import { REASONS } from '../../utils/reasons';
+import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 
 describe('<Menu.Root />', () => {
   beforeEach(() => {

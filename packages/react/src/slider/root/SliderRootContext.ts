@@ -1,8 +1,8 @@
 'use client';
 import * as React from 'react';
+import type { Orientation } from '../../utils/types';
 import type { CompositeMetadata } from '../../composite/list/CompositeList';
 import type { UseFieldValidationReturnValue } from '../../field/root/useFieldValidation';
-import type { Orientation } from '../../utils/types';
 import type { ThumbMetadata } from '../thumb/SliderThumb';
 import type { SliderRoot } from './SliderRoot';
 

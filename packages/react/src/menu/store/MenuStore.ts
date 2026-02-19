@@ -1,8 +1,10 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
-import { createSelector, ReactStore } from '@base-ui/utils/store';
-import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import * as React from 'react';
+import { createSelector, ReactStore } from '@base-ui/utils/store';
+import { EMPTY_OBJECT } from '@base-ui/utils/empty';
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
+import { MenuParent, MenuRoot } from '../root/MenuRoot';
 import { FloatingTreeStore } from '../../floating-ui-react/components/FloatingTreeStore';
+import { HTMLProps } from '../../utils/types';
 import {
   createInitialPopupStoreState,
   PopupStoreContext,
@@ -10,8 +12,6 @@ import {
   PopupStoreState,
   PopupTriggerMap,
 } from '../../utils/popups';
-import { HTMLProps } from '../../utils/types';
-import { MenuParent, MenuRoot } from '../root/MenuRoot';
 
 export type State<Payload> = PopupStoreState<Payload> & {
   disabled: boolean;

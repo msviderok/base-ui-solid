@@ -1,12 +1,14 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { createSelector, ReactStore } from '@base-ui/utils/store';
-import { type InteractionType } from '@base-ui/utils/useEnhancedClickHandler';
-import { useOnMount } from '@base-ui/utils/useOnMount';
-import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
-import { Timeout } from '@base-ui/utils/useTimeout';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
+import { ReactStore, createSelector } from '@base-ui/utils/store';
+import { Timeout } from '@base-ui/utils/useTimeout';
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
+import { useOnMount } from '@base-ui/utils/useOnMount';
+import { type InteractionType } from '@base-ui/utils/useEnhancedClickHandler';
+import { FloatingUIOpenChangeDetails } from '../../utils/types';
+import { PopoverRoot } from './../root/PopoverRoot';
+import { REASONS } from '../../utils/reasons';
 import {
   createInitialPopupStoreState,
   PopupStoreContext,
@@ -14,9 +16,7 @@ import {
   PopupStoreState,
   PopupTriggerMap,
 } from '../../utils/popups';
-import { REASONS } from '../../utils/reasons';
-import { FloatingUIOpenChangeDetails } from '../../utils/types';
-import { PopoverRoot } from './../root/PopoverRoot';
+import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 
 export type State<Payload> = PopupStoreState<Payload> & {
   disabled: boolean;

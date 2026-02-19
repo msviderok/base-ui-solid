@@ -1,12 +1,12 @@
-import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
+import * as React from 'react';
+import { expect } from 'chai';
+import { spy } from 'sinon';
+import { act, fireEvent, screen } from '@mui/internal-test-utils';
 import { Checkbox } from '@base-ui/react/checkbox';
 import { CheckboxGroup } from '@base-ui/react/checkbox-group';
 import { Field } from '@base-ui/react/field';
 import { Form } from '@base-ui/react/form';
-import { act, fireEvent, screen } from '@mui/internal-test-utils';
-import { expect } from 'chai';
-import * as React from 'react';
-import { spy } from 'sinon';
+import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 
 describe('<Checkbox.Root />', () => {
   const { render } = createRenderer();

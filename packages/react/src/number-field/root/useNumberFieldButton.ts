@@ -1,11 +1,6 @@
 'use client';
-import type { Timeout } from '@base-ui/utils/useTimeout';
 import * as React from 'react';
-import {
-  createChangeEventDetails,
-  createGenericEventDetails,
-} from '../../utils/createBaseUIEventDetails';
-import type { HTMLProps } from '../../utils/types';
+import type { Timeout } from '@base-ui/utils/useTimeout';
 import {
   DEFAULT_STEP,
   MAX_POINTER_MOVES_AFTER_TOUCH,
@@ -13,12 +8,17 @@ import {
   TOUCH_TIMEOUT,
 } from '../utils/constants';
 import { parseNumber } from '../utils/parse';
+import {
+  createChangeEventDetails,
+  createGenericEventDetails,
+} from '../../utils/createBaseUIEventDetails';
 import type {
-  Direction,
   EventWithOptionalKeyState,
+  Direction,
   IncrementValueParameters,
 } from '../utils/types';
 import type { NumberFieldRoot } from './NumberFieldRoot';
+import type { HTMLProps } from '../../utils/types';
 
 // Treat pen as touch-like to avoid forcing the software keyboard on stylus taps.
 // Linux Chrome may emit "pen" historically for mouse usage due to a bug, but the touch path

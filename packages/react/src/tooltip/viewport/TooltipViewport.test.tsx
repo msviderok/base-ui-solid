@@ -1,8 +1,8 @@
-import { createRenderer, describeConformance, isJSDOM, waitSingleFrame } from '#test-utils';
+import * as React from 'react';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { act, ignoreActWarnings, screen, waitFor } from '@mui/internal-test-utils';
 import { expect } from 'chai';
-import * as React from 'react';
+import { createRenderer, describeConformance, isJSDOM, waitSingleFrame } from '#test-utils';
 
 describe('<Tooltip.Viewport />', () => {
   const { render } = createRenderer();
