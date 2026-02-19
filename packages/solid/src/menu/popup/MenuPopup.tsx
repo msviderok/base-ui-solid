@@ -2,7 +2,6 @@ import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { createEffect, createMemo, onCleanup, type JSX } from 'solid-js';
 import { COMPOSITE_KEYS } from '../../composite/composite';
 import { FloatingFocusManager, useHoverFloatingInteraction } from '../../floating-ui-solid';
-import { mergeProps } from '../../merge-props';
 import { useToolbarRootContext } from '../../toolbar/root/ToolbarRootContext';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
@@ -82,9 +81,18 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
   const hoverEnabled = store.useState('hoverEnabled');
   const disabled = store.useState('disabled');
 
-  useHoverFloatingInteraction(floatingContext, {
-    enabled: () => hoverEnabled() && !disabled() && !isContextMenu() && parent().type !== 'menubar',
-    closeDelay,
+  useHoverFloatingInteraction({
+    get context() {
+      return floatingContext();
+    },
+    parameters: {
+      get enabled() {
+        return hoverEnabled() && !disabled() && !isContextMenu() && parent().type !== 'menubar';
+      },
+      get closeDelay() {
+        return closeDelay();
+      },
+    },
   });
 
   const state: MenuPopup.State = {
@@ -103,7 +111,6 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
     get nested() {
       return parent().type === 'menu';
     },
-    // @ts-expect-error - instant missing from state type?
     get instant() {
       return instantType();
     },
@@ -115,23 +122,25 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
       store.context.refs.popupRef = el;
     },
     stateAttributesMapping,
-    props: [
-      (p) => mergeProps(p, popupProps()),
-      {
-        onKeyDown(event) {
-          if (insideToolbar() && COMPOSITE_KEYS.has(event.key)) {
-            event.stopPropagation();
-          }
+    get props() {
+      return [
+        popupProps(),
+        {
+          onKeyDown(event: KeyboardEvent) {
+            if (insideToolbar() && COMPOSITE_KEYS.has(event.key)) {
+              event.stopPropagation();
+            }
+          },
         },
-      },
-      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
-      elementProps,
-      {
-        get ['data-rootownerid' as string]() {
-          return rootId();
+        getDisabledMountTransitionStyles(transitionStatus()),
+        elementProps,
+        {
+          get ['data-rootownerid' as string]() {
+            return rootId();
+          },
         },
-      },
-    ],
+      ];
+    },
   });
 
   const returnFocus = createMemo(() => {
@@ -171,7 +180,7 @@ export interface MenuPopupProps extends BaseUIComponentProps<'div', MenuPopup.St
   /**
    * @ignore
    */
-  id?: string;
+  id?: string | undefined;
   /**
    * Determines the element to focus when the menu is closed.
    *
@@ -182,11 +191,13 @@ export interface MenuPopupProps extends BaseUIComponentProps<'div', MenuPopup.St
    *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
    */
   finalFocus?:
-    | boolean
-    | HTMLElement
-    | null
-    | undefined
-    | ((closeType: InteractionType) => boolean | HTMLElement | null | undefined | void);
+    | (
+        | boolean
+        | HTMLElement
+        | null
+        | ((closeType: InteractionType) => boolean | HTMLElement | null | undefined | void)
+      )
+    | undefined;
 }
 
 export type MenuPopupState = {
@@ -198,6 +209,7 @@ export type MenuPopupState = {
    */
   open: boolean;
   nested: boolean;
+  instant: 'dismiss' | 'click' | 'group' | undefined;
 };
 
 export namespace MenuPopup {

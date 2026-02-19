@@ -5,8 +5,8 @@ import { getPushedThumbValues } from './getPushedThumbValues';
 export interface ResolveThumbCollisionParams {
   behavior: ReturnType<SliderRootContext['thumbCollisionBehavior']>;
   values: readonly number[];
-  currentValues?: readonly number[] | null;
-  initialValues?: readonly number[] | null;
+  currentValues?: (readonly number[] | null) | undefined;
+  initialValues?: (readonly number[] | null) | undefined;
   pressedIndex: number;
   nextValue: number;
   min: number;

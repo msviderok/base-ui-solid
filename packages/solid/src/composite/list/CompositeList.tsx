@@ -12,7 +12,9 @@ import { access, type MaybeAccessor } from '../../solid-helpers';
 import { CompositeListContext } from './CompositeListContext';
 
 type NodeId = string;
-export type CompositeMetadata<CustomMetadata> = { index?: number | null } & CustomMetadata;
+export type CompositeMetadata<CustomMetadata> = {
+  index?: (number | null) | undefined;
+} & CustomMetadata;
 
 /**
  * Provides context for a list of items in a composite component.
@@ -181,11 +183,11 @@ export interface CompositeListProps<Metadata> {
      * A ref to the list of element labels, ordered by their index.
      * `useTypeahead`'s `listRef` prop.
      */
-    labels?: Array<string | null>;
+    labels?: Array<string | null> | undefined;
   };
-  onMapChange?: (
-    newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>,
-  ) => void;
+  onMapChange?:
+    | ((newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>) => void)
+    | undefined;
 }
 
 export namespace CompositeList {

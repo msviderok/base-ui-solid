@@ -1,6 +1,10 @@
-import { createEffect, type JSX } from 'solid-js';
-import { safePolygon, useDelayGroup, useHoverReferenceInteraction } from '../../floating-ui-solid';
-import { mergeProps } from '../../merge-props';
+import { createEffect } from 'solid-js';
+import {
+  safePolygon,
+  useDelayGroup,
+  useFocus,
+  useHoverReferenceInteraction,
+} from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
 import { useTriggerDataForwarding } from '../../utils/popups';
 import { triggerOpenStateMapping } from '../../utils/popupStateMapping';
@@ -12,13 +16,15 @@ import { useTooltipRootContext } from '../root/TooltipRootContext';
 import { TooltipHandle } from '../store/TooltipHandle';
 import type { TooltipStore } from '../store/TooltipStore';
 import { OPEN_DELAY } from '../utils/constants';
+import { TooltipTriggerDataAttributes } from './TooltipTriggerDataAttributes';
+
 /**
  * An element to attach the tooltip to.
  * Renders a `<button>` element.
  *
  * Documentation: [Base UI Tooltip](https://base-ui.com/react/components/tooltip)
  */
-export function TooltipTrigger(componentProps: TooltipTrigger.Props) {
+export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Payload>) {
   const [, local, elementProps] = splitComponentProps(componentProps, [
     'handle',
     'payload',
@@ -42,26 +48,30 @@ export function TooltipTrigger(componentProps: TooltipTrigger.Props) {
   });
 
   const thisTriggerId = useBaseUiId(idProp);
-  const isTriggerActive = () => store()?.useState('isTriggerActive', thisTriggerId())();
+  const isTriggerActive = () => store()?.useState('isTriggerActive', thisTriggerId)();
+  const isOpenedByThisTrigger = () => store()?.useState('isOpenedByTrigger', thisTriggerId)();
   const floatingRootContext = () => store()?.select('floatingRootContext');
-  const isOpenedByThisTrigger = () => store()?.useState('isOpenedByTrigger', thisTriggerId())();
 
   let triggerElementRef = null as Element | null | undefined;
 
   const delayWithDefault = () => local.delay ?? OPEN_DELAY;
   const closeDelayWithDefault = () => local.closeDelay ?? 0;
 
-  const { registerTrigger, isMountedByThisTrigger } = useTriggerDataForwarding(
-    thisTriggerId,
-    triggerElementRef,
-    store,
-    {
+  const { registerTrigger, isMountedByThisTrigger } = useTriggerDataForwarding({
+    get triggerId() {
+      return thisTriggerId();
+    },
+    triggerElement: triggerElementRef,
+    get store() {
+      return store();
+    },
+    stateUpdates: {
       payload: local.payload,
       get closeDelay() {
         return closeDelayWithDefault();
       },
     },
-  );
+  });
 
   const providerContext = useTooltipProviderContext();
   const { delayRef, isInstantPhase, hasProvider } = useDelayGroup(floatingRootContext, {
@@ -77,45 +87,57 @@ export function TooltipTrigger(componentProps: TooltipTrigger.Props) {
   const trackCursorAxis = () => store()?.useState('trackCursorAxis')();
   const disableHoverablePopup = () => store()?.useState('disableHoverablePopup')();
 
-  const hoverProps = useHoverReferenceInteraction(floatingRootContext, {
-    enabled: () => !disabled(),
-    mouseOnly: true,
-    move: false,
-    get handleClose() {
-      return !disableHoverablePopup() && trackCursorAxis() !== 'both' ? safePolygon() : null;
+  const hoverProps = useHoverReferenceInteraction({
+    get context() {
+      return floatingRootContext();
     },
-    restMs() {
-      const providerDelay = providerContext?.delay();
-      const delayRefValue = delayRef();
-      const groupOpenValue = typeof delayRefValue === 'object' ? delayRefValue.open : undefined;
+    props: {
+      get enabled() {
+        return !disabled();
+      },
+      mouseOnly: true,
+      move: false,
+      get handleClose() {
+        return !disableHoverablePopup() && trackCursorAxis() !== 'both' ? safePolygon() : null;
+      },
+      restMs() {
+        const providerDelay = providerContext?.delay();
+        const delayRefValue = delayRef();
+        const groupOpenValue = typeof delayRefValue === 'object' ? delayRefValue.open : undefined;
 
-      let computedRestMs = delayWithDefault();
-      if (hasProvider()) {
-        if (groupOpenValue !== 0) {
-          computedRestMs = local.delay ?? providerDelay ?? delayWithDefault();
-        } else {
-          computedRestMs = 0;
+        let computedRestMs = delayWithDefault();
+        if (hasProvider()) {
+          if (groupOpenValue !== 0) {
+            computedRestMs = local.delay ?? providerDelay ?? delayWithDefault();
+          } else {
+            computedRestMs = 0;
+          }
         }
-      }
 
-      return computedRestMs;
+        return computedRestMs;
+      },
+      delay() {
+        const delayRefValue = delayRef();
+        const closeValue = typeof delayRefValue === 'object' ? delayRefValue.close : undefined;
+
+        let computedCloseDelay: number | undefined = closeDelayWithDefault();
+        if (local.closeDelay == null && hasProvider()) {
+          computedCloseDelay = closeValue;
+        }
+
+        return {
+          close: computedCloseDelay,
+        };
+      },
+      triggerElementRef,
+      get isActiveTrigger() {
+        return isTriggerActive();
+      },
     },
-    delay() {
-      const delayRefValue = delayRef();
-      const closeValue = typeof delayRefValue === 'object' ? delayRefValue.close : undefined;
-
-      let computedCloseDelay: number | undefined = closeDelayWithDefault();
-      if (local.closeDelay == null && hasProvider()) {
-        computedCloseDelay = closeValue;
-      }
-
-      return {
-        close: computedCloseDelay,
-      };
-    },
-    triggerElementRef,
-    isActiveTrigger: isTriggerActive,
   });
+
+  const focusProps = () =>
+    useFocus(floatingRootContext, { enabled: () => !disabled() })().reference;
 
   const state: TooltipTrigger.State = {
     get open() {
@@ -123,29 +145,31 @@ export function TooltipTrigger(componentProps: TooltipTrigger.Props) {
     },
   };
 
-  const rootTriggerProps = () => store()?.useState('triggerProps', isMountedByThisTrigger())();
+  const rootTriggerProps = () => store()?.useState('triggerProps', isMountedByThisTrigger)();
 
   const element = useRenderElement('button', componentProps, {
     state,
     ref: [registerTrigger, triggerElementRef],
-    props: [
-      hoverProps,
-      (p) => mergeProps(p, rootTriggerProps()),
-      {
-        get id() {
-          return thisTriggerId();
+    get props() {
+      return [
+        hoverProps,
+        focusProps(),
+        rootTriggerProps(),
+        {
+          get id() {
+            return thisTriggerId();
+          },
+          get [TooltipTriggerDataAttributes.triggerDisabled]() {
+            return disabled() ? '' : undefined;
+          },
         },
-      },
-      elementProps,
-    ],
+        elementProps,
+      ];
+    },
     stateAttributesMapping: triggerOpenStateMapping,
   });
 
   return <>{element()}</>;
-}
-
-export interface TooltipTrigger {
-  <Payload>(componentProps: TooltipTrigger.Props<Payload>): JSX.Element;
 }
 
 export interface TooltipTriggerState {
@@ -162,21 +186,28 @@ export interface TooltipTriggerProps<Payload = unknown> extends BaseUIComponentP
   /**
    * A handle to associate the trigger with a tooltip.
    */
-  handle?: TooltipHandle<Payload>;
+  handle?: TooltipHandle<Payload> | undefined;
   /**
    * A payload to pass to the tooltip when it is opened.
    */
-  payload?: Payload;
+  payload?: Payload | undefined;
   /**
    * How long to wait before opening the tooltip. Specified in milliseconds.
    * @default 600
    */
-  delay?: number;
+  delay?: number | undefined;
   /**
    * How long to wait before closing the tooltip. Specified in milliseconds.
    * @default 0
    */
-  closeDelay?: number;
+  closeDelay?: number | undefined;
+  /**
+   * If `true`, the tooltip will not open when interacting with this trigger.
+   * Note that this doesn't apply the `disabled` attribute to the trigger element.
+   * If you want to disable the trigger element itself, you can pass the `disabled` prop to the trigger element via the `render` prop.
+   * @default false
+   */
+  disabled?: boolean | undefined;
 }
 
 export namespace TooltipTrigger {

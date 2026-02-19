@@ -409,6 +409,7 @@ describe.skipIf(!isJSDOM)('useToast', () => {
             <Toast.Root toast={t} data-testid="root">
               <Toast.Title data-testid="title">{t.title}</Toast.Title>
               <Toast.Description data-testid="description">{t.description}</Toast.Description>
+              <Toast.Close aria-label="close-press" />
               <span>{t.type}</span>
             </Toast.Root>
           )}
@@ -634,6 +635,53 @@ describe.skipIf(!isJSDOM)('useToast', () => {
       expect(screen.getByTestId('description')).to.have.text('loading description');
 
       await flushMicrotasks();
+    });
+
+    it('does not reopen a dismissed promise toast when it resolves', async () => {
+      let resolvePromise: (value: string) => void = () => {
+        throw new Error('Promise resolver should be assigned before resolving.');
+      };
+
+      function AddButton() {
+        const { promise } = useToastManager();
+        return (
+          <button
+            onClick={() => {
+              const pendingPromise = new Promise<string>((resolve) => {
+                resolvePromise = resolve;
+              });
+
+              promise(pendingPromise, {
+                loading: 'loading',
+                success: 'success',
+                error: 'error',
+              });
+            }}
+          >
+            add
+          </button>
+        );
+      }
+
+      render(() => (
+        <Toast.Provider>
+          <Toast.Viewport>
+            <CustomList />
+          </Toast.Viewport>
+          <AddButton />
+        </Toast.Provider>
+      ));
+
+      fireEvent.click(screen.getByRole('button', { name: 'add' }));
+
+      expect(screen.getByTestId('description')).to.have.text('loading');
+
+      fireEvent.click(screen.getByLabelText('close-press'));
+      resolvePromise('success');
+
+      await flushMicrotasks();
+
+      expect(screen.queryByTestId('root')).to.equal(null);
     });
 
     describe('timeout handling', () => {
@@ -1026,7 +1074,7 @@ describe.skipIf(!isJSDOM)('useToast', () => {
               type="button"
               onClick={() => {
                 if (idRef) {
-                  update(idRef, { title: 'updated' });
+                  update(() => idRef!, { title: 'updated' });
                 }
               }}
             >
@@ -1054,6 +1102,99 @@ describe.skipIf(!isJSDOM)('useToast', () => {
       fireEvent.click(updateButton);
 
       expect(screen.getByTestId('title')).to.have.text('updated');
+    });
+
+    it('auto-dismisses when timeout changes from 0 to a positive value', async () => {
+      function AddButton() {
+        const { add, update } = useToastManager();
+        let idRef = null as string | null;
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                idRef = add({ title: 'test', timeout: 0 });
+              }}
+            >
+              add
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (idRef) {
+                  update(() => idRef!, { timeout: 1000 });
+                }
+              }}
+            >
+              update
+            </button>
+          </>
+        );
+      }
+
+      render(() => (
+        <Toast.Provider>
+          <Toast.Viewport>
+            <CustomList />
+          </Toast.Viewport>
+          <AddButton />
+        </Toast.Provider>
+      ));
+
+      fireEvent.click(screen.getByRole('button', { name: 'add' }));
+      expect(screen.queryByTestId('root')).not.to.equal(null);
+
+      fireEvent.click(screen.getByRole('button', { name: 'update' }));
+      await tick(clock, 1000);
+
+      expect(screen.queryByTestId('root')).to.equal(null);
+    });
+
+    it('schedules a timer when updating a loading toast to a non-loading type', async () => {
+      function AddButton() {
+        const { add, update } = useToastManager();
+        let idRef = null as string | null;
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                idRef = add({ title: 'loading', type: 'loading' });
+              }}
+            >
+              add
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (idRef) {
+                  update(() => idRef!, { title: 'success', type: 'success', timeout: 1000 });
+                }
+              }}
+            >
+              update
+            </button>
+          </>
+        );
+      }
+
+      render(() => (
+        <Toast.Provider>
+          <Toast.Viewport>
+            <CustomList />
+          </Toast.Viewport>
+          <AddButton />
+        </Toast.Provider>
+      ));
+
+      fireEvent.click(screen.getByRole('button', { name: 'add' }));
+      expect(screen.getByTestId('title')).to.have.text('loading');
+
+      fireEvent.click(screen.getByRole('button', { name: 'update' }));
+      expect(screen.getByTestId('title')).to.have.text('success');
+
+      await tick(clock, 1000);
+      expect(screen.queryByTestId('root')).to.equal(null);
     });
   });
 
@@ -1091,7 +1232,7 @@ describe.skipIf(!isJSDOM)('useToast', () => {
             <button
               onClick={() => {
                 if (idRef) {
-                  close(idRef);
+                  close(idRef!);
                 }
               }}
             >

@@ -1,5 +1,6 @@
 import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { createEffect, Show, type JSX } from 'solid-js';
+import { useDirection } from '../../direction-provider/DirectionContext';
 import {
   contains,
   getNextTabbable,
@@ -10,6 +11,7 @@ import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootC
 import { FocusGuard } from '../../utils/FocusGuard';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useId } from '../../utils/useId';
+import { usePopupAutoResize } from '../../utils/usePopupAutoResize';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useNavigationMenuPositionerContext } from '../positioner/NavigationMenuPositionerContext';
 import { useNavigationMenuRootContext } from '../root/NavigationMenuRootContext';
@@ -70,6 +72,11 @@ export function NavigationMenuViewport(componentProps: NavigationMenuViewport.Pr
   const id = useId(idProp);
 
   const {
+    open,
+    mounted,
+    value,
+    popupElement,
+    positionerElement,
     setViewportElement,
     setViewportTargetElement,
     floatingRootContext,
@@ -78,7 +85,21 @@ export function NavigationMenuViewport(componentProps: NavigationMenuViewport.Pr
     setViewportInert,
   } = useNavigationMenuRootContext();
 
-  const hasPositioner = () => Boolean(useNavigationMenuPositionerContext(true));
+  const positioning = useNavigationMenuPositionerContext(true);
+  const hasPositioner = () => Boolean(positioning);
+  const direction = useDirection();
+  const enableAutoResize = () => open();
+
+  usePopupAutoResize({
+    popupElement,
+    positionerElement,
+    mounted,
+    content: value,
+    enabled: enableAutoResize,
+    side: () => positioning?.side() ?? 'bottom',
+    direction,
+  });
+
   const domReference = () =>
     (floatingRootContext() || EMPTY_ROOT_CONTEXT).useState('domReferenceElement')();
 

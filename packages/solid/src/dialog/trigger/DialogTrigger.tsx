@@ -19,7 +19,7 @@ import type { DialogStore } from '../store/DialogStore';
  *
  * Documentation: [Base UI Dialog](https://base-ui.com/react/components/dialog)
  */
-export const DialogTrigger = ((componentProps: DialogTrigger.Props) => {
+export function DialogTrigger<Payload>(componentProps: DialogTrigger.Props<Payload>) {
   const [, local, elementProps] = splitComponentProps(componentProps, [
     'render',
     'class',
@@ -46,18 +46,22 @@ export const DialogTrigger = ((componentProps: DialogTrigger.Props) => {
 
   const thisTriggerId = useBaseUiId(idProp);
   const floatingContext = () => store()?.useState('floatingRootContext')();
-  const isOpenedByThisTrigger = () => store()?.useState('isOpenedByTrigger', thisTriggerId())();
+  const isOpenedByThisTrigger = () => store()?.useState('isOpenedByTrigger', thisTriggerId)();
 
   let triggerElementRef = null as Element | null | undefined;
 
-  const { registerTrigger, isMountedByThisTrigger } = useTriggerDataForwarding(
-    thisTriggerId,
-    triggerElementRef,
-    store,
-    {
+  const { registerTrigger, isMountedByThisTrigger } = useTriggerDataForwarding({
+    get triggerId() {
+      return thisTriggerId();
+    },
+    triggerElement: triggerElementRef,
+    get store() {
+      return store();
+    },
+    stateUpdates: {
       payload: local.payload,
     },
-  );
+  });
 
   const { getButtonProps, buttonRef } = useButton({
     disabled,
@@ -77,7 +81,7 @@ export const DialogTrigger = ((componentProps: DialogTrigger.Props) => {
     },
   };
 
-  const rootTriggerProps = () => store()?.useState('triggerProps', isMountedByThisTrigger())();
+  const rootTriggerProps = () => store()?.useState('triggerProps', isMountedByThisTrigger)();
 
   const element = useRenderElement('button', componentProps, {
     state,
@@ -86,26 +90,24 @@ export const DialogTrigger = ((componentProps: DialogTrigger.Props) => {
       registerTrigger(el);
       triggerElementRef = el;
     },
-    props: [
-      (p) => mergeProps(p, localInteractionProps.getReferenceProps()),
-      rootTriggerProps,
-      {
-        [CLICK_TRIGGER_IDENTIFIER as string]: '',
-        get id() {
-          return thisTriggerId();
+    get props() {
+      return [
+        localInteractionProps.getReferenceProps(),
+        rootTriggerProps(),
+        {
+          [CLICK_TRIGGER_IDENTIFIER as string]: '',
+          get id() {
+            return thisTriggerId();
+          },
         },
-      },
-      elementProps,
-      getButtonProps,
-    ],
+        elementProps,
+        getButtonProps,
+      ];
+    },
     stateAttributesMapping: triggerOpenStateMapping,
   });
 
   return <>{element()}</>;
-}) as DialogTrigger;
-
-export interface DialogTrigger {
-  <Payload>(componentProps: DialogTriggerProps<Payload>): JSX.Element;
 }
 
 export interface DialogTriggerProps<Payload = unknown>

@@ -1,6 +1,5 @@
 import { createEffect, onCleanup, Show, mergeProps as solidMergeProps, type JSX } from 'solid-js';
 import { FloatingNode, useFloatingNodeId } from '../../floating-ui-solid';
-import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import { adaptiveOrigin } from '../../utils/adaptiveOriginMiddleware';
 import { POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
@@ -131,7 +130,7 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
       store.set('instantType', undefined);
       const ac = new AbortController();
       runOnceAnimationsFinish(() => {
-        store.set('instantType', 'trigger-change');
+        store.set('instantType', 'trigger-change' as any);
       }, ac.signal);
 
       onCleanup(() => {
@@ -164,11 +163,9 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    props: [
-      positioner.props,
-      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
-      elementProps,
-    ],
+    get props() {
+      return [positioner.props, getDisabledMountTransitionStyles(transitionStatus()), elementProps];
+    },
     ref: setPositionerElement,
     stateAttributesMapping: popupStateMapping,
   });

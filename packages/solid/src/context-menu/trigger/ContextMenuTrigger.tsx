@@ -27,6 +27,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
 
   const { store } = useMenuRootContext(false);
   const open = store.useState('open');
+  const disabled = store.useState('disabled');
 
   let triggerRef = null as HTMLDivElement | null | undefined;
   let touchPositionRef = null as { x: number; y: number } | null;
@@ -57,6 +58,9 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   }
 
   function handleContextMenu(event: MouseEvent) {
+    if (disabled()) {
+      return;
+    }
     refs.allowMouseUpTriggerRef = true;
     stopEvent(event);
     handleLongPress(event.clientX, event.clientY, event);
@@ -91,6 +95,9 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   }
 
   function handleTouchStart(event: TouchEvent) {
+    if (disabled()) {
+      return;
+    }
     refs.allowMouseUpTriggerRef = false;
     if (event.touches.length === 1) {
       event.stopPropagation();
@@ -124,6 +131,9 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   };
 
   function handleDocumentContextMenu(event: MouseEvent) {
+    if (disabled()) {
+      return;
+    }
     const target = getTarget(event);
     const targetElement = target as HTMLElement | null;
     if (

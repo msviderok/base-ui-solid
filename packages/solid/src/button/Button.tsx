@@ -1,6 +1,6 @@
 import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { useButton } from '../use-button/useButton';
-import type { BaseUIComponentProps, NativeButtonProps, NonNativeButtonProps } from '../utils/types';
+import type { BaseUIComponentProps, NativeButtonProps } from '../utils/types';
 import { useRenderElement } from '../utils/useRenderElement';
 
 /**
@@ -15,11 +15,9 @@ export function Button(componentProps: Button.Props) {
     'focusableWhenDisabled',
     'nativeButton',
   ]);
-  const disabledProp = () => local.disabled ?? false;
+  const disabled = () => local.disabled ?? false;
   const focusableWhenDisabled = () => local.focusableWhenDisabled ?? false;
   const nativeButton = () => local.nativeButton ?? true;
-
-  const disabled = () => Boolean(disabledProp());
 
   const { getButtonProps, buttonRef } = useButton({
     disabled,
@@ -49,46 +47,14 @@ export interface ButtonState {
   disabled: boolean;
 }
 
-interface ButtonCommonProps {
-  /**
-   * Whether the button should ignore user interaction.
-   */
-  disabled?: boolean;
+export interface ButtonProps
+  extends NativeButtonProps, BaseUIComponentProps<'button', ButtonState> {
   /**
    * Whether the button should be focusable when disabled.
    * @default false
    */
-  focusableWhenDisabled?: boolean;
+  focusableWhenDisabled?: boolean | undefined;
 }
-
-type NonNativeAttributeKeys =
-  | 'form'
-  | 'formAction'
-  | 'formEncType'
-  | 'formMethod'
-  | 'formNoValidate'
-  | 'formTarget'
-  | 'name'
-  | 'type'
-  | 'value';
-
-interface ButtonNativeProps
-  extends
-    NativeButtonProps,
-    ButtonCommonProps,
-    Omit<BaseUIComponentProps<'button', ButtonState>, 'disabled'> {
-  nativeButton?: true;
-}
-
-interface ButtonNonNativeProps
-  extends
-    NonNativeButtonProps,
-    ButtonCommonProps,
-    Omit<BaseUIComponentProps<'button', ButtonState>, NonNativeAttributeKeys | 'disabled'> {
-  nativeButton: false;
-}
-
-export type ButtonProps = ButtonNativeProps | ButtonNonNativeProps;
 
 export namespace Button {
   export type State = ButtonState;

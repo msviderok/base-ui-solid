@@ -9,8 +9,7 @@ import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
-
-import { useToastContext } from '../provider/ToastProviderContext';
+import { useToastProviderContext } from '../provider/ToastProviderContext';
 import type { ToastObject as ToastObjectType } from '../useToastManager';
 import { ToastRootContext } from './ToastRootContext';
 import { ToastRootCssVars } from './ToastRootCssVars';
@@ -92,19 +91,8 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
 
   const swipeEnabled = () => swipeDirections().length > 0;
 
-  const {
-    toasts,
-    focused,
-    close,
-    remove,
-    setToasts,
-    pauseTimers,
-    expanded,
-    setHovering,
-    refs: toastRefs,
-  } = useToastContext();
+  const store = useToastProviderContext();
 
-  const [renderScreenReaderContent, setRenderScreenReaderContent] = createSignal(false);
   const [currentSwipeDirection, setCurrentSwipeDirection] = createSignal<
     'up' | 'down' | 'left' | 'right' | undefined
   >(undefined);
@@ -134,22 +122,18 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
   let swipeCancelBaselineRef = { x: 0, y: 0 };
   let isFirstPointerMoveRef = false;
 
-  const domIndex = createMemo(() => toasts.list.indexOf(local.toast));
-  const visibleIndex = createMemo(() =>
-    toasts.list.filter((t) => t.transitionStatus !== 'ending').indexOf(local.toast),
-  );
-  const offsetY = createMemo(() => {
-    return toasts.list
-      .slice(0, toasts.list.indexOf(local.toast))
-      .reduce((acc, t) => acc + (t.height || 0), 0);
-  });
+  const domIndex = store.useState('toastIndex', () => local.toast.id);
+  const visibleIndex = store.useState('toastVisibleIndex', () => local.toast.id);
+  const offsetY = store.useState('toastOffsetY', () => local.toast.id);
+  const focused = store.useState('focused');
+  const expanded = store.useState('expanded');
 
   useOpenChangeComplete({
     open: () => local.toast.transitionStatus !== 'ending',
     ref: () => refs.rootRef,
     onComplete() {
       if (local.toast.transitionStatus === 'ending') {
-        remove(local.toast.id);
+        store.removeToast(() => local.toast.id);
       }
     },
   });
@@ -171,18 +155,11 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
     element.style.height = previousHeight;
 
     function update() {
-      setToasts('list', (prev) =>
-        prev.map((t) =>
-          t.id === local.toast.id
-            ? {
-                ...t,
-                ref: refs.rootRef,
-                height,
-                transitionStatus: undefined,
-              }
-            : t,
-        ),
-      );
+      store.updateToastInternal(() => local.toast.id, {
+        ref: refs.rootRef,
+        height,
+        ...(local.toast.transitionStatus === 'starting' ? { transitionStatus: undefined } : {}),
+      });
     }
     update();
   };
@@ -242,7 +219,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
     }
 
     if (event.pointerType === 'touch') {
-      pauseTimers();
+      store.pauseTimers();
     }
 
     const target = getTarget(event) as HTMLElement | null;
@@ -271,7 +248,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
       });
     }
 
-    setHovering(true);
+    store.setHovering(true);
     setIsSwiping(true);
     setIsRealSwipe(false);
     setLockedDirection(null);
@@ -458,7 +435,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
     if (shouldClose) {
       setCurrentSwipeDirection(dismissDirection);
       setDragDismissed(true);
-      close(local.toast.id);
+      store.closeToast(() => local.toast.id);
     } else {
       setDragOffset({ x: initialTransform().x, y: initialTransform().y });
       setCurrentSwipeDirection(undefined);
@@ -470,7 +447,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
       if (!refs.rootRef || !contains(refs.rootRef, activeElement(ownerDocument(refs.rootRef)))) {
         return;
       }
-      close(local.toast.id);
+      store.closeToast(() => local.toast.id);
     }
   }
 
@@ -564,13 +541,13 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
       };
     },
     // TODO: specific for SolidJS
-    onMouseEnter: () => {
-      toastRefs.viewportRef?.dispatchEvent(new Event('mouseenter'));
-    },
+    // onMouseEnter: () => {
+    //   refs.viewportRef?.dispatchEvent(new Event('mouseenter'));
+    // },
     // TODO: specific for SolidJS
-    onMouseLeave: () => {
-      toastRefs.viewportRef?.dispatchEvent(new Event('mouseleave'));
-    },
+    // onMouseLeave: () => {
+    //   refs.viewportRef?.dispatchEvent(new Event('mouseleave'));
+    // },
   };
 
   const toastRoot: ToastRootContext = {
@@ -645,7 +622,9 @@ export interface ToastRootProps extends BaseUIComponentProps<'div', ToastRoot.St
    * Direction(s) in which the toast can be swiped to dismiss.
    * @default ['down', 'right']
    */
-  swipeDirection?: 'up' | 'down' | 'left' | 'right' | ('up' | 'down' | 'left' | 'right')[];
+  swipeDirection?:
+    | ('up' | 'down' | 'left' | 'right' | ('up' | 'down' | 'left' | 'right')[])
+    | undefined;
 }
 
 export namespace ToastRoot {

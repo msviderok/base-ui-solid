@@ -39,7 +39,7 @@ export function CompositeRoot<Metadata extends {}, State extends Record<string, 
   ]);
   const mergedProps = solidMergeProps(
     {
-      refs: EMPTY_ARRAY,
+      refs: EMPTY_ARRAY as Element[],
       props: EMPTY_ARRAY,
       state: EMPTY_OBJECT,
       stopEventPropagation: true,
@@ -95,27 +95,27 @@ export interface CompositeRootProps<Metadata, State extends Record<string, any>>
   BaseUIComponentProps<'div', State>,
   'render' | 'class' | 'children'
 > {
-  props?: Array<Record<string, any> | (() => Record<string, any>)>;
-  state?: State;
-  stateAttributesMapping?: StateAttributesMapping<State>;
-  refs?: Array<HTMLElement | null | undefined>;
-  tag?: keyof JSX.IntrinsicElements;
-  orientation?: 'horizontal' | 'vertical' | 'both';
-  cols?: number;
-  loopFocus?: boolean;
-  highlightedIndex?: number;
-  onHighlightedIndexChange?: (index: number) => void;
-  itemSizes?: Dimensions[];
-  dense?: boolean;
-  enableHomeAndEndKeys?: boolean;
-  onMapChange?: (
-    newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>,
-  ) => void;
-  stopEventPropagation?: boolean;
-  rootRef?: HTMLElement | null | undefined;
-  disabledIndices?: number[];
-  modifierKeys?: ModifierKey[];
-  highlightItemOnHover?: boolean;
+  props?: Array<Record<string, any> | (() => Record<string, any>)> | undefined;
+  state?: State | undefined;
+  stateAttributesMapping?: StateAttributesMapping<State> | undefined;
+  refs?: (HTMLElement | null | undefined)[] | undefined;
+  tag?: keyof JSX.IntrinsicElements | undefined;
+  orientation?: ('horizontal' | 'vertical' | 'both') | undefined;
+  cols?: number | undefined;
+  loopFocus?: boolean | undefined;
+  highlightedIndex?: number | undefined;
+  onHighlightedIndexChange?: ((index: number) => void) | undefined;
+  itemSizes?: Dimensions[] | undefined;
+  dense?: boolean | undefined;
+  enableHomeAndEndKeys?: boolean | undefined;
+  onMapChange?:
+    | ((newMap: Array<{ element: Element; metadata: CompositeMetadata<Metadata> | null }>) => void)
+    | undefined;
+  stopEventPropagation?: boolean | undefined;
+  rootRef?: (HTMLElement | null) | undefined;
+  disabledIndices?: number[] | undefined;
+  modifierKeys?: ModifierKey[] | undefined;
+  highlightItemOnHover?: boolean | undefined;
 }
 
 export namespace CompositeRoot {

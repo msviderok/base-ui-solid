@@ -43,6 +43,57 @@ describe('<Tooltip.Viewport />', () => {
     expect(currentContainer!.textContent).to.equal('Content');
   });
 
+  it('should remount the `current` container when the active trigger changes', async () => {
+    render(() => (
+      <Tooltip.Root>
+        {(data) => (
+          <>
+            <Tooltip.Trigger payload="first" delay={0} data-testid="trigger1">
+              Trigger 1
+            </Tooltip.Trigger>
+            <Tooltip.Trigger payload="second" delay={0} data-testid="trigger2">
+              Trigger 2
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Positioner>
+                <Tooltip.Popup>
+                  <Tooltip.Viewport>
+                    {data.payload === 'first' ? (
+                      <img data-testid="payload-image-1" src="about:blank" alt="Preview 1" />
+                    ) : null}
+                    {data.payload === 'second' ? (
+                      <img data-testid="payload-image-2" src="about:blank" alt="Preview 2" />
+                    ) : null}
+                  </Tooltip.Viewport>
+                </Tooltip.Popup>
+              </Tooltip.Positioner>
+            </Tooltip.Portal>
+          </>
+        )}
+      </Tooltip.Root>
+    ));
+
+    const trigger1 = screen.getByTestId('trigger1');
+    const trigger2 = screen.getByTestId('trigger2');
+
+    await waitSingleFrame();
+    trigger1.focus();
+
+    const firstImage = await screen.findByTestId('payload-image-1');
+    const firstContainer = firstImage.closest('[data-current]');
+    expect(firstContainer).not.to.equal(null);
+
+    await waitSingleFrame();
+    trigger2.focus();
+
+    await waitFor(() => {
+      const secondImage = screen.getByTestId('payload-image-2');
+      const secondContainer = secondImage.closest('[data-current]');
+      expect(secondContainer).not.to.equal(null);
+      expect(secondContainer).not.to.equal(firstContainer);
+    });
+  });
+
   describe.skipIf(isJSDOM)('morphing containers with multiple triggers and payloads', () => {
     beforeEach(() => {
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
@@ -152,10 +203,10 @@ describe('<Tooltip.Viewport />', () => {
       });
 
       expect(document.querySelector('[data-current]')).toBeVisible();
-      expect(screen.getByText('Content 1')).toBeVisible();
+      expect(await screen.findByText('Content 1')).toBeVisible();
     });
 
-    it.skipIf(true)('should handle rapid trigger changes', async () => {
+    it('should handle rapid trigger changes', async () => {
       function TestComponent() {
         return (
           <div>

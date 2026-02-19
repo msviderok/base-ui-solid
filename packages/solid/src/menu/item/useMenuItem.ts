@@ -1,10 +1,9 @@
-import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext';
 import { mergeProps } from '../../merge-props';
 import { access, MaybeAccessor } from '../../solid-helpers';
 import { useButton } from '../../use-button';
-import { REASONS } from '../../utils/reasons';
 import { BaseUIEvent, type BaseUIHTMLProps, type HTMLProps } from '../../utils/types';
 import { MenuStore } from '../store/MenuStore';
+import { useMenuItemCommonProps } from './useMenuItemCommonProps';
 
 export const REGULAR_ITEM = {
   type: 'regular-item' as const,
@@ -20,9 +19,6 @@ export function useMenuItem(params: useMenuItem.Parameters): useMenuItem.ReturnV
   const nodeId = () => access(params.nodeId);
 
   let itemRef = null as HTMLElement | null | undefined;
-  const contextMenuContext = useContextMenuRootContext(true);
-  const isContextMenu = contextMenuContext !== undefined;
-  const { events: menuEvents } = params.store.select('floatingTreeRoot');
 
   const { getButtonProps, buttonRef } = useButton({
     disabled,
@@ -30,28 +26,30 @@ export function useMenuItem(params: useMenuItem.Parameters): useMenuItem.ReturnV
     native: nativeButton,
   });
 
+  const commonProps = useMenuItemCommonProps({
+    get closeOnClick() {
+      return closeOnClick();
+    },
+    get highlighted() {
+      return highlighted();
+    },
+    get id() {
+      return id();
+    },
+    get nodeId() {
+      return nodeId();
+    },
+    store: params.store,
+    itemRef,
+    get itemMetadata() {
+      return itemMetadata();
+    },
+  });
+
   const getItemProps = (externalProps: HTMLProps | BaseUIHTMLProps = {}) => {
     return mergeProps<'div'>([
+      commonProps,
       {
-        get id() {
-          return id();
-        },
-        role: 'menuitem',
-        get tabIndex() {
-          return highlighted() ? 0 : -1;
-        },
-        onMouseMove(event) {
-          if (!nodeId()) {
-            return;
-          }
-
-          // Inform the floating tree that a menu item within this menu was hovered/moved over
-          // so unrelated descendant submenus can be closed.
-          menuEvents.emit('itemhover', {
-            nodeId: nodeId(),
-            target: event.currentTarget,
-          });
-        },
         onMouseEnter() {
           const metadata = itemMetadata();
           if (metadata.type !== 'submenu-trigger') {
@@ -70,37 +68,6 @@ export function useMenuItem(params: useMenuItem.Parameters): useMenuItem.ReturnV
          * (for example, test MenuRadioItem#L162-L190 for "Enter" key)
          */
         onKeyDown: () => {},
-        onClick(event) {
-          if (closeOnClick()) {
-            menuEvents.emit('close', { domEvent: event, reason: REASONS.itemPress });
-          }
-        },
-        onMouseUp(event) {
-          if (contextMenuContext) {
-            const initialCursorPoint = contextMenuContext.refs.initialCursorPointRef;
-            contextMenuContext.refs.initialCursorPointRef = null;
-            if (
-              isContextMenu &&
-              initialCursorPoint &&
-              Math.abs(event.clientX - initialCursorPoint.x) <= 1 &&
-              Math.abs(event.clientY - initialCursorPoint.y) <= 1
-            ) {
-              return;
-            }
-          }
-
-          if (
-            itemRef &&
-            params.store.context.refs.allowMouseUpTriggerRef &&
-            (!isContextMenu || event.button === 2)
-          ) {
-            // This fires whenever the user clicks on the trigger, moves the cursor, and releases it over the item.
-            // We trigger the click and override the `closeOnClick` preference to always close the menu.
-            if (itemMetadata().type === 'regular-item') {
-              itemRef?.click();
-            }
-          }
-        },
       },
       externalProps,
       getButtonProps,

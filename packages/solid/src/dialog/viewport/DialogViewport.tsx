@@ -58,7 +58,7 @@ export function DialogViewport(componentProps: DialogViewport.Props) {
 
   const shouldRender = () => keepMounted() || mounted();
 
-  return useRenderElement('div', componentProps, {
+  const element = useRenderElement('div', componentProps, {
     enabled: shouldRender,
     state,
     ref: store.useStateSetter('viewportElement'),
@@ -78,6 +78,8 @@ export function DialogViewport(componentProps: DialogViewport.Props) {
       elementProps,
     ],
   });
+
+  return <>{element()}</>;
 }
 
 export interface DialogViewportState {

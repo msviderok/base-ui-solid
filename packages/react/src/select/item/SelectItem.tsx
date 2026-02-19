@@ -33,7 +33,7 @@ export const SelectItem = React.memo(
     const {
       render,
       className,
-      value = null,
+      value: itemValue = null,
       label,
       disabled = false,
       nativeButton = false,
@@ -63,7 +63,7 @@ export const SelectItem = React.memo(
     const highlightTimeout = useTimeout();
 
     const highlighted = useStore(store, selectors.isActive, listItem.index);
-    const selected = useStore(store, selectors.isSelected, listItem.index, value);
+    const selected = useStore(store, selectors.isSelected, listItem.index, itemValue);
     const selectedByFocus = useStore(store, selectors.isSelectedByFocus, listItem.index);
     const isItemEqualToValue = useStore(store, selectors.isItemEqualToValue);
 
@@ -79,12 +79,12 @@ export const SelectItem = React.memo(
       }
 
       const values = valuesRef.current;
-      values[index] = value;
+      values[index] = itemValue;
 
       return () => {
         delete values[index];
       };
-    }, [hasRegistered, index, value, valuesRef]);
+    }, [hasRegistered, index, itemValue, valuesRef]);
 
     useIsoLayoutEffect(() => {
       if (!hasRegistered) {
@@ -93,25 +93,25 @@ export const SelectItem = React.memo(
 
       const selectedValue = store.state.value;
 
-      let candidate = selectedValue;
+      let selectedCandidate = selectedValue;
       if (multiple && Array.isArray(selectedValue) && selectedValue.length > 0) {
-        candidate = selectedValue[selectedValue.length - 1];
+        selectedCandidate = selectedValue[selectedValue.length - 1];
       }
 
-      if (candidate !== undefined && compareItemEquality(candidate, value, isItemEqualToValue)) {
+      if (
+        selectedCandidate !== undefined &&
+        compareItemEquality(itemValue, selectedCandidate, isItemEqualToValue)
+      ) {
         store.set('selectedIndex', index);
       }
       return undefined;
-    }, [hasRegistered, index, multiple, isItemEqualToValue, store, value]);
+    }, [hasRegistered, index, multiple, isItemEqualToValue, store, itemValue]);
 
-    const state: SelectItem.State = React.useMemo(
-      () => ({
-        disabled,
-        selected,
-        highlighted,
-      }),
-      [disabled, selected, highlighted],
-    );
+    const state: SelectItem.State = {
+      disabled,
+      selected,
+      highlighted,
+    };
 
     const rootProps = getItemProps({ active: highlighted, selected });
     // With our custom `focusItemOnHover` implementation, this interferes with the logic and can
@@ -134,11 +134,11 @@ export const SelectItem = React.memo(
       if (multiple) {
         const currentValue = Array.isArray(selectedValue) ? selectedValue : [];
         const nextValue = selected
-          ? removeItem(currentValue, value, isItemEqualToValue)
-          : [...currentValue, value];
+          ? removeItem(currentValue, itemValue, isItemEqualToValue)
+          : [...currentValue, itemValue];
         setValue(nextValue, createChangeEventDetails(REASONS.itemPress, event));
       } else {
-        setValue(value, createChangeEventDetails(REASONS.itemPress, event));
+        setValue(itemValue, createChangeEventDetails(REASONS.itemPress, event));
         setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
       }
     }
@@ -151,7 +151,11 @@ export const SelectItem = React.memo(
         store.set('activeIndex', index);
       },
       onMouseEnter() {
-        if (!keyboardActiveRef.current && store.state.selectedIndex === null) {
+        if (
+          !keyboardActiveRef.current &&
+          store.state.selectedIndex === null &&
+          highlightItemOnHover
+        ) {
           store.set('activeIndex', index);
         }
       },
@@ -280,13 +284,13 @@ export interface SelectItemProps
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * Specifies the text label to use when the item is matched during keyboard text navigation.
    *
    * Defaults to the item text content if not provided.
    */
-  label?: string;
+  label?: string | undefined;
 }
 
 export namespace SelectItem {

@@ -1,4 +1,5 @@
 import { batch, createMemo, createSignal, onCleanup, onMount, type JSX } from 'solid-js';
+import { useCSPContext } from '../../csp-provider/CSPContext';
 import { contains } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
 import { STYLE_TAG_ID, styleDisableScrollbar } from '../../utils/styles';
@@ -40,6 +41,7 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
 
   const scrollYTimeout = useTimeout();
   const scrollXTimeout = useTimeout();
+  const { nonce, disableStyleElements } = useCSPContext();
 
   const [hovering, setHovering] = createSignal(false);
   const [scrollingX, setScrollingX] = createSignal(false);
@@ -194,6 +196,9 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
   }
 
   const state: ScrollAreaRoot.State = {
+    get scrolling() {
+      return scrollingX() || scrollingY();
+    },
     get hasOverflowX() {
       return !hiddenState().x;
     },
@@ -267,8 +272,12 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
   };
 
   onMount(() => {
+    if (disableStyleElements) {
+      return;
+    }
+
     if (!document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {
-      const el = styleDisableScrollbar.element();
+      const el = styleDisableScrollbar.getElement(nonce());
       document.head.appendChild(el);
       onCleanup(() => {
         if (document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {
@@ -286,6 +295,8 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
 }
 
 export interface ScrollAreaRootState {
+  /** Whether the scroll area is being scrolled. */
+  scrolling: boolean;
   /** Whether horizontal overflow is present. */
   hasOverflowX: boolean;
   /** Whether vertical overflow is present. */
@@ -309,13 +320,16 @@ export interface ScrollAreaRootProps extends BaseUIComponentProps<'div', ScrollA
    * @default 0
    */
   overflowEdgeThreshold?:
-    | number
-    | Partial<{
-        xStart: number;
-        xEnd: number;
-        yStart: number;
-        yEnd: number;
-      }>;
+    | (
+        | number
+        | Partial<{
+            xStart: number;
+            xEnd: number;
+            yStart: number;
+            yEnd: number;
+          }>
+      )
+    | undefined;
 }
 
 export namespace ScrollAreaRoot {

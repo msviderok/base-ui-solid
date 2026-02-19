@@ -1,5 +1,6 @@
+import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
-import { createEffect, createSignal, on, Show } from 'solid-js';
+import { createEffect, createSignal, Match, on, Switch } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
 import { FloatingNode } from '../../floating-ui-solid';
@@ -38,7 +39,8 @@ const stateAttributesMapping: StateAttributesMapping<NavigationMenuContent.State
  * Documentation: [Base UI Navigation Menu](https://base-ui.com/react/components/navigation-menu)
  */
 export function NavigationMenuContent(componentProps: NavigationMenuContent.Props) {
-  const [renderProps, , elementProps] = splitComponentProps(componentProps, []);
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, ['keepMounted']);
+  const keepMounted = () => local.keepMounted ?? false;
 
   const {
     mounted: popupMounted,
@@ -55,6 +57,7 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
 
   let ref = null as HTMLDivElement | null | undefined;
 
+  const [hasMountedInPortal, setHasMountedInPortal] = createSignal(false);
   const [focusInside, setFocusInside] = createSignal(false);
 
   const { transitionStatus, setMounted, mounted } = useTransitionStatus(open);
@@ -128,23 +131,43 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
   };
 
   const portalContainer = () => viewportTargetElement() || viewportElement();
-  const shouldRender = () => portalContainer() !== null && mounted();
+  const hidden = () => keepMounted() && !mounted();
+  const shouldRenderInline = () => keepMounted() && !portalContainer() && !hasMountedInPortal();
+
+  createEffect(() => {
+    if (keepMounted() && portalContainer() && !hasMountedInPortal()) {
+      setHasMountedInPortal(true);
+    }
+  });
 
   return (
-    <Show when={portalContainer() && shouldRender()}>
-      <Portal mount={portalContainer()!}>
-        <FloatingNode id={nodeId?.()}>
-          <CompositeRoot
-            render={renderProps.render}
-            class={renderProps.class}
-            state={state}
-            refs={[componentProps.ref as any, ref, handleCurrentContentRef]}
-            props={[defaultProps.props, elementProps]}
-            stateAttributesMapping={stateAttributesMapping}
-          />
-        </FloatingNode>
-      </Portal>
-    </Show>
+    <Switch>
+      <Match when={shouldRenderInline()}>
+        <CompositeRoot
+          render={renderProps.render}
+          class={renderProps.class}
+          state={state}
+          refs={[componentProps.ref as any]}
+          props={[defaultProps, { hidden: true }, elementProps]}
+          stateAttributesMapping={stateAttributesMapping}
+        />
+      </Match>
+
+      <Match when={portalContainer() && (mounted() || keepMounted())}>
+        <Portal mount={portalContainer()!}>
+          <FloatingNode id={nodeId?.()}>
+            <CompositeRoot
+              render={renderProps.render}
+              class={renderProps.class}
+              state={state}
+              refs={[componentProps.ref as any, ref, handleCurrentContentRef]}
+              props={[defaultProps.props, hidden() ? { hidden: true } : EMPTY_OBJECT, elementProps]}
+              stateAttributesMapping={stateAttributesMapping}
+            />
+          </FloatingNode>
+        </Portal>
+      </Match>
+    </Switch>
   );
 }
 
@@ -166,7 +189,14 @@ export interface NavigationMenuContentState {
 export interface NavigationMenuContentProps extends BaseUIComponentProps<
   'div',
   NavigationMenuContent.State
-> {}
+> {
+  /**
+   * Whether to keep the content mounted in the DOM while the popup is closed.
+   * Ensures the content is present during server-side rendering for web crawlers.
+   * @default false
+   */
+  keepMounted?: boolean | undefined;
+}
 
 export namespace NavigationMenuContent {
   export type State = NavigationMenuContentState;

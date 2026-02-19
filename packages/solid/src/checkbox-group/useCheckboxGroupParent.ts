@@ -113,10 +113,12 @@ export function useCheckboxGroupParent(
 export interface UseCheckboxGroupParentParameters {
   allValues?: Accessor<string[] | undefined>;
   value?: Accessor<string[] | undefined>;
-  onValueChange?: (
-    value: string[],
-    eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
-  ) => void;
+  onValueChange?:
+    | ((
+        value: string[],
+        eventDetails: BaseUIChangeEventDetails<BaseUIEventReasons['none']>,
+      ) => void)
+    | undefined;
 }
 
 export interface UseCheckboxGroupParentReturnValue {

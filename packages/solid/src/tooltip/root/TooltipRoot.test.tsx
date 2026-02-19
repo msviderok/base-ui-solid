@@ -586,6 +586,51 @@ describe('<Tooltip.Root />', () => {
           expect(secondPopup.getAnimations().length).to.equal(1);
         });
       });
+
+      it('inline opacity: 0 is removed before user CSS transitions run', async () => {
+        globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
+
+        // The inline opacity: 0 applied before positioning must be removed
+        // before CSS transitions start, so it does not trigger an unwanted
+        // opacity transition.
+        const style = `
+          .tooltip {
+            transition: opacity 200ms;
+            opacity: 1;
+          }
+        `;
+
+        const { user } = render(() => (
+          <Tooltip.Root>
+            {/* eslint-disable-next-line solid/no-innerhtml */}
+            <style innerHTML={style} />
+            <Tooltip.Trigger data-testid="trigger" delay={0}>
+              Trigger
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Positioner>
+                <Tooltip.Popup class="tooltip" data-testid="popup">
+                  Tooltip
+                </Tooltip.Popup>
+              </Tooltip.Positioner>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        ));
+
+        await user.hover(screen.getByTestId('trigger'));
+
+        const popup = await screen.findByTestId('popup');
+
+        // Opacity should be 1 immediately — no unwanted fade from 0 to 1.
+        // No opacity transition should be running.
+        await waitFor(() => {
+          expect(Number(getComputedStyle(popup).opacity)).to.equal(1);
+          const opacityAnimations = popup
+            .getAnimations()
+            .filter((a) => (a as CSSTransition).transitionProperty === 'opacity');
+          expect(opacityAnimations.length).to.equal(0);
+        });
+      });
     });
 
     describe('prop: disabled', () => {
@@ -603,6 +648,17 @@ describe('<Tooltip.Root />', () => {
         expect(screen.queryByText('Content')).to.equal(null);
 
         trigger.focus();
+
+        expect(screen.queryByText('Content')).to.equal(null);
+      });
+
+      it('should not open on focus when the trigger is disabled', async () => {
+        render(() => <TestTooltip triggerProps={{ disabled: true, delay: 0 }} />);
+
+        const trigger = screen.getByRole('button', { name: 'Toggle' });
+
+        trigger.focus();
+        await flushMicrotasks();
 
         expect(screen.queryByText('Content')).to.equal(null);
       });

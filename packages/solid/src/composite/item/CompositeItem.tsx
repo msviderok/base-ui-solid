@@ -56,10 +56,10 @@ export interface CompositeItemProps<Metadata, State extends Record<string, any>>
   children?: JSX.Element;
   metadata?: MaybeAccessor<Metadata | undefined>;
   refs?: Ref<HTMLElement | null | undefined> | Ref<HTMLElement | null | undefined>[];
-  props?: Array<Record<string, any> | (() => Record<string, any>)>;
-  state?: State;
-  stateAttributesMapping?: StateAttributesMapping<State>;
-  tag?: keyof JSX.IntrinsicElements;
+  props?: Array<Record<string, any> | (() => Record<string, any>)> | undefined;
+  state?: State | undefined;
+  stateAttributesMapping?: StateAttributesMapping<State> | undefined;
+  tag?: keyof JSX.IntrinsicElements | undefined;
 }
 
 export namespace CompositeItem {

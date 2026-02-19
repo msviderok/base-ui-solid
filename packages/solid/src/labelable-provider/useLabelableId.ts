@@ -9,33 +9,64 @@ export function useLabelableId(params: useLabelableId.Parameters = {}) {
   const id = () => access(params.id);
   const implicit = () => access(params.implicit) ?? false;
   const controlRef = () => access(params.controlRef);
-  const { controlId, setControlId } = useLabelableContext();
+
+  const { controlId, registerControlId } = useLabelableContext();
+
   const defaultId = useBaseUiId(id);
 
-  createEffect(() => {
-    const resolvedImplicit = implicit();
-    const resolvedId = id();
-    if ((!resolvedImplicit && !resolvedId) || setControlId === NOOP) {
+  const controlIdForEffect = () => (implicit() ? controlId() : undefined);
+
+  const controlSourceRef = Symbol('labelable-control');
+  let hasRegisteredRef = false;
+  let hadExplicitIdRef = id() != null;
+
+  const unregisterControlId = () => {
+    if (!hasRegisteredRef || registerControlId === NOOP) {
       return;
     }
 
-    if (resolvedImplicit) {
+    hasRegisteredRef = false;
+    registerControlId(controlSourceRef, undefined);
+  };
+
+  createEffect(() => {
+    if (registerControlId === NOOP) {
+      return;
+    }
+
+    let nextId: string | null | undefined;
+
+    if (implicit()) {
       const elem = controlRef();
 
       if (isElement(elem) && elem.closest('label') != null) {
-        setControlId(resolvedId ?? null);
+        nextId = id() ?? null;
       } else {
-        setControlId(controlId() ?? defaultId());
+        nextId = controlIdForEffect() ?? defaultId();
       }
-    } else if (resolvedId) {
-      setControlId(resolvedId);
+    } else if (id() != null) {
+      hadExplicitIdRef = true;
+      nextId = id();
+    } else if (hadExplicitIdRef) {
+      nextId = defaultId();
+    } else {
+      unregisterControlId();
+      return;
     }
 
-    onCleanup(() => {
-      if (resolvedId) {
-        setControlId(undefined);
-      }
-    });
+    if (nextId === undefined) {
+      unregisterControlId();
+      return;
+    }
+
+    hasRegisteredRef = true;
+    registerControlId(controlSourceRef, nextId);
+
+    return;
+  });
+
+  onCleanup(() => {
+    unregisterControlId();
   });
 
   return () => controlId() ?? defaultId();
@@ -51,7 +82,7 @@ export interface UseLabelableIdParameters {
   /**
    * A ref to an element that can be implicitly labelled.
    */
-  controlRef?: MaybeAccessor<HTMLElement | null | undefined>;
+  controlRef?: MaybeAccessor<(HTMLElement | null) | undefined>;
 }
 
 export type UseLabelableIdReturnValue = string;

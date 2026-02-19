@@ -13,6 +13,7 @@ import { useScrollAreaRootContext } from '../root/ScrollAreaRootContext';
 import { scrollAreaStateAttributesMapping } from '../root/stateAttributes';
 import { getOffset } from '../utils/getOffset';
 import { onVisible } from '../utils/onVisible';
+import { normalizeScrollOffset } from '../utils/scrollEdges';
 import { ScrollAreaViewportContext } from './ScrollAreaViewportContext';
 import { ScrollAreaViewportCssVars } from './ScrollAreaViewportCssVars';
 
@@ -83,6 +84,8 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
     setOverflowEdges,
     overflowEdges,
     overflowEdgeThreshold,
+    scrollingX,
+    scrollingY,
   } = useScrollAreaRootContext();
 
   const direction = useDirection();
@@ -126,15 +129,20 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
       let scrollLeftFromStart = 0;
       let scrollLeftFromEnd = 0;
       if (!scrollbarXHidden) {
+        let rawScrollLeftFromStart = 0;
         if (direction() === 'rtl') {
-          scrollLeftFromStart = clamp(-scrollLeft, 0, maxScrollLeft);
+          rawScrollLeftFromStart = clamp(-scrollLeft, 0, maxScrollLeft);
         } else {
-          scrollLeftFromStart = clamp(scrollLeft, 0, maxScrollLeft);
+          rawScrollLeftFromStart = clamp(scrollLeft, 0, maxScrollLeft);
         }
+        scrollLeftFromStart = normalizeScrollOffset(rawScrollLeftFromStart, maxScrollLeft);
         scrollLeftFromEnd = maxScrollLeft - scrollLeftFromStart;
       }
 
-      const scrollTopFromStart = !scrollbarYHidden ? clamp(scrollTop, 0, maxScrollTop) : 0;
+      const rawScrollTopFromStart = !scrollbarYHidden ? clamp(scrollTop, 0, maxScrollTop) : 0;
+      const scrollTopFromStart = !scrollbarYHidden
+        ? normalizeScrollOffset(rawScrollTopFromStart, maxScrollTop)
+        : 0;
       const scrollTopFromEnd = !scrollbarYHidden ? maxScrollTop - scrollTopFromStart : 0;
       const nextWidth = scrollbarXHidden ? 0 : viewportWidth;
       const nextHeight = scrollbarYHidden ? 0 : viewportHeight;
@@ -212,16 +220,11 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
         thumbXEl.style.transform = `translate3d(${thumbOffsetX}px,0,0)`;
       }
 
-      const clampedScrollLeftStart = clamp(scrollLeftFromStart, 0, maxScrollLeft);
-      const clampedScrollLeftEnd = clamp(scrollLeftFromEnd, 0, maxScrollLeft);
-      const clampedScrollTopStart = clamp(scrollTopFromStart, 0, maxScrollTop);
-      const clampedScrollTopEnd = clamp(scrollTopFromEnd, 0, maxScrollTop);
-
       const overflowMetricsPx: Array<[ScrollAreaViewportCssVars, number]> = [
-        [ScrollAreaViewportCssVars.scrollAreaOverflowXStart, clampedScrollLeftStart],
-        [ScrollAreaViewportCssVars.scrollAreaOverflowXEnd, clampedScrollLeftEnd],
-        [ScrollAreaViewportCssVars.scrollAreaOverflowYStart, clampedScrollTopStart],
-        [ScrollAreaViewportCssVars.scrollAreaOverflowYEnd, clampedScrollTopEnd],
+        [ScrollAreaViewportCssVars.scrollAreaOverflowXStart, scrollLeftFromStart],
+        [ScrollAreaViewportCssVars.scrollAreaOverflowXEnd, scrollLeftFromEnd],
+        [ScrollAreaViewportCssVars.scrollAreaOverflowYStart, scrollTopFromStart],
+        [ScrollAreaViewportCssVars.scrollAreaOverflowYEnd, scrollTopFromEnd],
       ];
 
       for (const [cssVar, value] of overflowMetricsPx) {
@@ -255,10 +258,10 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
       });
 
       const nextOverflowEdges = {
-        xStart: !scrollbarXHidden && clampedScrollLeftStart > overflowEdgeThreshold().xStart,
-        xEnd: !scrollbarXHidden && clampedScrollLeftEnd > overflowEdgeThreshold().xEnd,
-        yStart: !scrollbarYHidden && clampedScrollTopStart > overflowEdgeThreshold().yStart,
-        yEnd: !scrollbarYHidden && clampedScrollTopEnd > overflowEdgeThreshold().yEnd,
+        xStart: !scrollbarXHidden && scrollLeftFromStart > overflowEdgeThreshold().xStart,
+        xEnd: !scrollbarXHidden && scrollLeftFromEnd > overflowEdgeThreshold().xEnd,
+        yStart: !scrollbarYHidden && scrollTopFromStart > overflowEdgeThreshold().yStart,
+        yEnd: !scrollbarYHidden && scrollTopFromEnd > overflowEdgeThreshold().yEnd,
       };
 
       setOverflowEdges((prev) => {
@@ -341,7 +344,7 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
         return;
       }
 
-      Promise.all(animations.map((animation) => animation.finished))
+      Promise.allSettled(animations.map((animation) => animation.finished))
         .then(computeThumbPosition)
         .catch(() => {});
     });
@@ -405,6 +408,9 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
   };
 
   const viewportState: ScrollAreaViewport.State = {
+    get scrolling() {
+      return scrollingX() || scrollingY();
+    },
     get hasOverflowX() {
       return !hiddenState().x;
     },

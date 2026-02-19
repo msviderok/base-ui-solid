@@ -24,7 +24,7 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
 
   const rendered = () => rootState.checked || rootState.indeterminate;
 
-  const { transitionStatus, setMounted } = useTransitionStatus(rendered);
+  const { mounted, transitionStatus, setMounted } = useTransitionStatus(rendered);
 
   let indicatorRef = null as HTMLSpanElement | null | undefined;
 
@@ -46,7 +46,7 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
     ...fieldValidityMapping,
   };
 
-  const shouldRender = () => keepMounted() || rendered();
+  const shouldRender = () => keepMounted() || mounted();
 
   const indicatorState: CheckboxIndicator.State = solidMergeProps(rootState, {
     get transitionStatus() {
@@ -79,7 +79,7 @@ export interface CheckboxIndicatorProps extends BaseUIComponentProps<
    * Whether to keep the element in the DOM when the checkbox is not checked.
    * @default false
    */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export namespace CheckboxIndicator {

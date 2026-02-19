@@ -8,7 +8,7 @@ interface Targets {
 
 interface Params {
   popupElement: HTMLElement | null | undefined;
-  viewportElement?: HTMLElement | null | undefined;
+  viewportElement?: (HTMLElement | null) | undefined;
   rootRef: HTMLDivElement | null | undefined;
   tree: FloatingTreeType | null;
   nodeId: string | undefined;

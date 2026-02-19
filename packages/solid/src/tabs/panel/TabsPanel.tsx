@@ -1,14 +1,23 @@
 import { createEffect, onCleanup, Show, type Accessor } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { splitComponentProps } from '../../solid-helpers';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
+import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { useTransitionStatus, type TransitionStatus } from '../../utils/useTransitionStatus';
 import { tabsStateAttributesMapping } from '../root/stateAttributesMapping';
 import type { TabsRoot } from '../root/TabsRoot';
 import { useTabsRootContext } from '../root/TabsRootContext';
 import type { TabsTab } from '../tab/TabsTab';
 import { TabsPanelDataAttributes } from './TabsPanelDataAttributes';
+
+const stateAttributesMapping: StateAttributesMapping<TabsPanel.State> = {
+  ...tabsStateAttributesMapping,
+  ...transitionStatusMapping,
+};
 
 /**
  * A panel displayed when the corresponding tab is active.
@@ -38,7 +47,9 @@ export function TabsPanel(componentProps: TabsPanel.Props) {
 
   const { setRef: setListItemRef, index } = useCompositeListItem({ metadata });
 
-  const hidden = () => local.value !== selectedValue();
+  const open = () => local.value === selectedValue();
+  const { mounted, transitionStatus, setMounted } = useTransitionStatus(open);
+  const hidden = () => !mounted();
 
   const correspondingTabId = () => getTabIdByPanelValue(local.value);
 
@@ -52,11 +63,19 @@ export function TabsPanel(componentProps: TabsPanel.Props) {
     get tabActivationDirection() {
       return tabActivationDirection();
     },
+    get transitionStatus() {
+      return transitionStatus();
+    },
   };
+
+  let panelRef = null as HTMLDivElement | null | undefined;
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: setListItemRef,
+    ref: (el) => {
+      panelRef = el;
+      setListItemRef(el);
+    },
     props: [
       {
         role: 'tabpanel',
@@ -70,7 +89,10 @@ export function TabsPanel(componentProps: TabsPanel.Props) {
           return id();
         },
         get tabIndex() {
-          return hidden() ? -1 : 0;
+          return open() ? 0 : -1;
+        },
+        get inert() {
+          return !open();
         },
         get [TabsPanelDataAttributes.index as string]() {
           return index();
@@ -78,7 +100,17 @@ export function TabsPanel(componentProps: TabsPanel.Props) {
       },
       elementProps,
     ],
-    stateAttributesMapping: tabsStateAttributesMapping,
+    stateAttributesMapping,
+  });
+
+  useOpenChangeComplete({
+    open,
+    ref: panelRef,
+    onComplete() {
+      if (!open()) {
+        setMounted(false);
+      }
+    },
   });
 
   createEffect(() => {
@@ -97,7 +129,7 @@ export function TabsPanel(componentProps: TabsPanel.Props) {
     });
   });
 
-  const shouldRender = () => !hidden() || keepMounted();
+  const shouldRender = () => keepMounted() || mounted();
 
   return <Show when={shouldRender()}>{element()}</Show>;
 }
@@ -109,6 +141,7 @@ export interface TabsPanelMetadata {
 
 export interface TabsPanelState extends TabsRoot.State {
   hidden: boolean;
+  transitionStatus: TransitionStatus;
 }
 
 export interface TabsPanelProps extends BaseUIComponentProps<'div', TabsPanel.State> {
@@ -120,7 +153,7 @@ export interface TabsPanelProps extends BaseUIComponentProps<'div', TabsPanel.St
    * Whether to keep the HTML element in the DOM while the panel is hidden.
    * @default false
    */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export namespace TabsPanel {

@@ -5,6 +5,7 @@ import { FloatingNode } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
 import { DROPDOWN_COLLISION_AVOIDANCE, POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import { InternalBackdrop } from '../../utils/InternalBackdrop';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
@@ -62,6 +63,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
   const open = store.useState('open');
   const modal = store.useState('modal');
   const triggerElement = store.useState('activeTriggerElement');
+  const transitionStatus = store.useState('transitionStatus');
   const lastOpenChangeReason = store.useState('lastOpenChangeReason');
   const floatingNodeId = store.useState('floatingNodeId');
   const floatingParentNodeId = store.useState('floatingParentNodeId');
@@ -132,7 +134,10 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
     keepMounted,
     disableAnchorTracking,
     collisionAvoidance,
-    shiftCrossAxis: contextMenu,
+    shiftCrossAxis: () => {
+      const ca = collisionAvoidance();
+      return contextMenu() && !('side' in ca && ca.side === 'flip');
+    },
     get externalTree() {
       return floatingTreeRoot();
     },
@@ -167,14 +172,6 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
         details.parentNodeId === store.select('floatingParentNodeId')
       ) {
         store.setOpen(false, createChangeEventDetails(REASONS.siblingOpen));
-      }
-    } else if (details.parentNodeId === floatingNodeId()) {
-      // Re-enable hover on the parent when a child closes, except when the child
-      // closed due to hovering a different sibling item in this parent (sibling-open).
-      // Keeping hover disabled in that scenario prevents the parent from closing
-      // immediately when the pointer then leaves it.
-      if (details.reason !== REASONS.siblingOpen) {
-        store.set('hoverEnabled', true);
       }
     }
   }
@@ -277,7 +274,9 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
     ref: (el) => {
       store.set('positionerElement', el);
     },
-    props: [positionerProps, elementProps],
+    get props() {
+      return [positionerProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];
+    },
   });
 
   const shouldRenderBackdrop = () => {

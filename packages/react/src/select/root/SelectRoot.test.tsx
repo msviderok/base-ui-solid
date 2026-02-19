@@ -591,6 +591,28 @@ describe('<Select.Root />', () => {
     });
   });
 
+  it('should pass autoComplete to the hidden input', async () => {
+    await render(
+      <Select.Root name="country" autoComplete="country">
+        <Select.Trigger data-testid="trigger">
+          <Select.Value />
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Positioner>
+            <Select.Popup>
+              <Select.Item value="US">United States</Select.Item>
+              <Select.Item value="CA">Canada</Select.Item>
+            </Select.Popup>
+          </Select.Positioner>
+        </Select.Portal>
+      </Select.Root>,
+    );
+
+    const hiddenInput = screen.getByRole('textbox', { hidden: true });
+    expect(hiddenInput).to.have.attribute('name', 'country');
+    expect(hiddenInput).to.have.attribute('autocomplete', 'country');
+  });
+
   it('should handle browser autofill with object values', async () => {
     const items = [
       { country: 'United States', code: 'US' },
@@ -1093,7 +1115,7 @@ describe('<Select.Root />', () => {
   });
 
   describe('prop: id', () => {
-    it('sets the id on the hidden input', async () => {
+    it('sets the id on the trigger', async () => {
       await render(
         <Select.Root id="test-id">
           <Select.Trigger>
@@ -1110,8 +1132,8 @@ describe('<Select.Root />', () => {
         </Select.Root>,
       );
 
-      const input = screen.getByRole('textbox', { hidden: true });
-      expect(input).to.have.attribute('id', 'test-id');
+      const trigger = screen.getByRole('combobox');
+      expect(trigger).to.have.attribute('id', 'test-id');
     });
   });
 
@@ -1629,6 +1651,96 @@ describe('<Select.Root />', () => {
       expect(trigger).not.to.have.attribute('data-focused');
     });
 
+    it('does not mark as touched when focus moves into the popup', async () => {
+      const validateSpy = spy(() => 'error');
+
+      await render(
+        <React.Fragment>
+          <Field.Root validationMode="onBlur" validate={validateSpy}>
+            <Select.Root>
+              <Select.Trigger data-testid="trigger" />
+              <Select.Portal>
+                <Select.Positioner>
+                  <Select.Popup>
+                    <Select.Item value="1">Option 1</Select.Item>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </Field.Root>
+          <button data-testid="outside">Outside</button>
+        </React.Fragment>,
+      );
+
+      const trigger = screen.getByTestId('trigger');
+
+      fireEvent.focus(trigger);
+      fireEvent.click(trigger);
+
+      await flushMicrotasks();
+
+      const listbox = screen.getByRole('listbox');
+
+      fireEvent.blur(trigger, { relatedTarget: listbox });
+      fireEvent.focus(listbox);
+
+      await flushMicrotasks();
+
+      expect(validateSpy.callCount).to.equal(0);
+      expect(trigger).to.have.attribute('data-focused', '');
+      expect(trigger).not.to.have.attribute('data-touched');
+      expect(trigger).not.to.have.attribute('aria-invalid');
+    });
+
+    it('validates when the popup is blurred', async () => {
+      const validateSpy = spy(() => 'error');
+
+      await render(
+        <React.Fragment>
+          <Field.Root validationMode="onBlur" validate={validateSpy}>
+            <Select.Root>
+              <Select.Trigger data-testid="trigger" />
+              <Select.Portal>
+                <Select.Positioner>
+                  <Select.Popup>
+                    <Select.Item value="1">Option 1</Select.Item>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </Field.Root>
+          <button data-testid="outside">Outside</button>
+        </React.Fragment>,
+      );
+
+      const trigger = screen.getByTestId('trigger');
+      const outside = screen.getByTestId('outside');
+
+      fireEvent.focus(trigger);
+      fireEvent.click(trigger);
+
+      await flushMicrotasks();
+
+      const listbox = screen.getByRole('listbox');
+
+      fireEvent.blur(trigger, { relatedTarget: listbox });
+      fireEvent.focus(listbox);
+
+      fireEvent.blur(listbox, { relatedTarget: outside });
+      fireEvent.focus(outside);
+
+      await waitFor(() => {
+        expect(validateSpy.callCount).to.equal(1);
+      });
+
+      // The above `waitFor` might not ensure re-render has finished
+      await waitFor(() => {
+        expect(trigger).to.have.attribute('data-touched', '');
+      });
+      expect(trigger).not.to.have.attribute('data-focused');
+      expect(trigger).to.have.attribute('aria-invalid', 'true');
+    });
+
     it('prop: validate', async () => {
       await render(
         <Field.Root validationMode="onBlur" validate={() => 'error'}>
@@ -1880,7 +1992,7 @@ describe('<Select.Root />', () => {
               <Select.Positioner />
             </Select.Portal>
           </Select.Root>
-          <Field.Label data-testid="label" render={<span />} />
+          <Field.Label data-testid="label" nativeLabel={false} render={<span />} />
         </Field.Root>,
       );
 
@@ -1890,8 +2002,8 @@ describe('<Select.Root />', () => {
       );
     });
 
-    it('Field.Label links to hidden input and focuses trigger', async () => {
-      const { container, user } = await render(
+    it('Field.Label links to trigger and focuses it', async () => {
+      const { user } = await render(
         <Field.Root>
           <Field.Label data-testid="label">Font</Field.Label>
           <Select.Root>
@@ -1912,15 +2024,45 @@ describe('<Select.Root />', () => {
 
       const label = screen.getByTestId<HTMLLabelElement>('label');
       const trigger = screen.getByTestId('trigger');
-      // eslint-disable-next-line testing-library/no-container -- No appropriate method on screen since it's a hidden input without any type
-      const hiddenInput = container.querySelector('input[type="text"]');
 
-      expect(label).to.have.attribute('for', hiddenInput?.id);
-      expect(trigger).not.to.have.attribute('id', label?.htmlFor);
+      expect(label).to.have.attribute('for', trigger.id);
+      expect(trigger).to.have.attribute('id', label?.htmlFor);
 
       await user.click(label);
 
-      expect(trigger).toHaveFocus();
+      expect(screen.getByRole('listbox')).toHaveFocus();
+    });
+
+    it('Field.Label links to trigger when trigger has an explicit id', async () => {
+      const { user } = await render(
+        <Field.Root>
+          <Field.Label data-testid="label">Font</Field.Label>
+          <Select.Root>
+            <Select.Trigger data-testid="trigger" id="x-id">
+              <Select.Value />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner>
+                <Select.Popup>
+                  <Select.Item value="sans">Sans-serif</Select.Item>
+                  <Select.Item value="serif">Serif</Select.Item>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
+        </Field.Root>,
+      );
+
+      const label = screen.getByTestId<HTMLLabelElement>('label');
+      const trigger = screen.getByTestId('trigger');
+
+      expect(trigger).to.have.attribute('id', 'x-id');
+      expect(label).to.have.attribute('for', 'x-id');
+      expect(trigger).to.have.attribute('id', label?.htmlFor);
+
+      await user.click(label);
+
+      expect(screen.getByRole('listbox')).toHaveFocus();
     });
 
     it('Field.Description', async () => {
@@ -2304,6 +2446,95 @@ describe('<Select.Root />', () => {
       options.forEach((opt) => {
         expect(opt).not.to.have.attribute('data-selected');
       });
+    });
+  });
+
+  describe('typeahead', () => {
+    it('starts from the first match after value reset (closed)', async () => {
+      function App() {
+        const [value, setValue] = React.useState<string | null>(null);
+        return (
+          <React.Fragment>
+            <button data-testid="reset" onClick={() => setValue(null)}>
+              Reset
+            </button>
+            <Select.Root value={value} onValueChange={setValue}>
+              <Select.Trigger data-testid="trigger">
+                <Select.Value data-testid="value" />
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner>
+                  <Select.Popup>
+                    <Select.Item value="a1">A1</Select.Item>
+                    <Select.Item value="a2">A2</Select.Item>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </React.Fragment>
+        );
+      }
+
+      const { user } = await render(<App />);
+
+      const trigger = screen.getByTestId('trigger');
+      const valueEl = screen.getByTestId('value');
+      const resetBtn = screen.getByTestId('reset');
+
+      act(() => trigger.focus());
+      await user.keyboard('a');
+      expect(valueEl.textContent).to.equal('a1');
+
+      await user.click(resetBtn);
+
+      act(() => trigger.focus());
+      await user.keyboard('a');
+      expect(valueEl.textContent).to.equal('a1');
+    });
+
+    it('does not jump matches after a closed-state value reset', async () => {
+      function App() {
+        const [value, setValue] = React.useState<string | null>('dog');
+        return (
+          <React.Fragment>
+            <button data-testid="set-car" onClick={() => setValue('car')}>
+              Set car
+            </button>
+            <Select.Root value={value} onValueChange={setValue}>
+              <Select.Trigger data-testid="trigger">
+                <Select.Value data-testid="value" />
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner>
+                  <Select.Popup>
+                    <Select.Item value="car">car</Select.Item>
+                    <Select.Item value="cat">cat</Select.Item>
+                    <Select.Item value="dog">dog</Select.Item>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </React.Fragment>
+        );
+      }
+
+      const { user } = await render(<App />);
+
+      const trigger = screen.getByTestId('trigger');
+      const valueEl = screen.getByTestId('value');
+      const setCarButton = screen.getByTestId('set-car');
+
+      expect(valueEl.textContent).to.equal('dog');
+
+      await user.click(setCarButton);
+      expect(valueEl.textContent).to.equal('car');
+
+      await act(async () => trigger.focus());
+      await user.keyboard('c');
+      expect(valueEl.textContent).to.equal('cat');
+
+      await user.keyboard('a');
+      expect(valueEl.textContent).to.equal('cat');
     });
   });
 
@@ -2787,11 +3018,55 @@ describe('<Select.Root />', () => {
         expect(screen.getByRole('option', { name: 'Bob' })).to.have.attribute('data-selected', '');
       });
     });
+
+    it('passes item as the first comparator argument in multiple mode', async () => {
+      const users = [
+        { id: 1, name: 'Alice', source: 'item' },
+        { id: 2, name: 'Bob', source: 'item' },
+      ];
+
+      await render(
+        <Select.Root
+          multiple
+          defaultOpen
+          defaultValue={[{ id: 2, name: 'Bob', source: 'selected' }]}
+          itemToStringLabel={(item) => item.name}
+          itemToStringValue={(item) => String(item.id)}
+          isItemEqualToValue={(item, value) =>
+            item.id === value.id && item.source === 'item' && value.source === 'selected'
+          }
+        >
+          <Select.Trigger data-testid="trigger">
+            <Select.Value />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                {users.map((user) => (
+                  <Select.Item key={user.id} value={user}>
+                    {user.name}
+                  </Select.Item>
+                ))}
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      );
+
+      const option = screen.getByRole('option', { name: 'Bob' });
+      expect(option).to.have.attribute('data-selected', '');
+
+      fireEvent.click(option);
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Bob' })).not.to.have.attribute('data-selected');
+      });
+    });
   });
 
   describe('prop: highlightItemOnHover', () => {
     it('highlights an item on mouse move by default', async () => {
-      await render(
+      const { user } = await render(
         <Select.Root defaultOpen>
           <Select.Trigger data-testid="trigger">
             <Select.Value />
@@ -2809,7 +3084,7 @@ describe('<Select.Root />', () => {
       );
 
       const optionB = screen.getByRole('option', { name: 'b' });
-      fireEvent.mouseMove(optionB);
+      await user.hover(optionB);
 
       await waitFor(() => {
         expect(optionB).to.have.attribute('data-highlighted');
@@ -2817,7 +3092,7 @@ describe('<Select.Root />', () => {
     });
 
     it('does not highlight items from mouse movement when disabled', async () => {
-      await render(
+      const { user } = await render(
         <Select.Root defaultOpen highlightItemOnHover={false}>
           <Select.Trigger data-testid="trigger">
             <Select.Value />
@@ -2835,7 +3110,7 @@ describe('<Select.Root />', () => {
       );
 
       const optionB = screen.getByRole('option', { name: 'b' });
-      fireEvent.mouseMove(optionB);
+      await user.hover(optionB);
 
       await flushMicrotasks();
 
@@ -2861,7 +3136,7 @@ describe('<Select.Root />', () => {
       );
 
       const optionA = screen.getByRole('option', { name: 'a' });
-      fireEvent.mouseMove(optionA);
+      await user.hover(optionA);
 
       await user.keyboard('{ArrowDown}');
 

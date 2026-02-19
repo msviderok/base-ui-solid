@@ -14,7 +14,8 @@ export function PreviewCardPortal(props: PreviewCardPortal.Props) {
   const [local, portalProps] = splitProps(props, ['keepMounted']);
   const keepMounted = () => local.keepMounted ?? false;
 
-  const { mounted } = usePreviewCardRootContext();
+  const store = usePreviewCardRootContext();
+  const mounted = store.useState('mounted');
 
   const shouldRender = () => mounted() || keepMounted();
 
@@ -36,7 +37,7 @@ export interface PreviewCardPortalProps extends FloatingPortalLite.Props<Preview
    * Whether to keep the portal mounted in the DOM while the popup is hidden.
    * @default false
    */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export namespace PreviewCardPortal {

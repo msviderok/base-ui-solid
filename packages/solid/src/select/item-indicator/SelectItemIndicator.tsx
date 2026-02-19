@@ -71,7 +71,7 @@ export interface SelectItemIndicatorProps extends BaseUIComponentProps<
 > {
   children?: JSX.Element;
   /** Whether to keep the HTML element in the DOM when the item is not selected. */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export namespace SelectItemIndicator {

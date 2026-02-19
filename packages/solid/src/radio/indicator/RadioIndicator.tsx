@@ -21,7 +21,7 @@ export function RadioIndicator(componentProps: RadioIndicator.Props) {
 
   const rendered = () => rootState.checked();
 
-  const { transitionStatus, setMounted } = useTransitionStatus(rendered);
+  const { mounted, transitionStatus, setMounted } = useTransitionStatus(rendered());
 
   const state: RadioIndicator.State = {
     // @ts-expect-error - disabled is not a valid property for the state
@@ -59,26 +59,25 @@ export function RadioIndicator(componentProps: RadioIndicator.Props) {
 
   let indicatorRef = null as HTMLSpanElement | null | undefined;
 
-  const shouldRender = () => keepMounted() || rendered();
-
-  useOpenChangeComplete({
-    open: rendered,
-    ref: () => indicatorRef,
-    onComplete() {
-      if (!rendered()) {
-        setMounted(false);
-      }
-    },
-  });
+  const shouldRender = () => keepMounted() || mounted();
 
   const element = useRenderElement('span', componentProps, {
-    enabled: shouldRender,
     state,
     ref: (el) => {
       indicatorRef = el;
     },
     props: elementProps,
     stateAttributesMapping,
+  });
+
+  useOpenChangeComplete({
+    open: rendered,
+    ref: indicatorRef,
+    onComplete() {
+      if (!rendered()) {
+        setMounted(false);
+      }
+    },
   });
 
   return <Show when={shouldRender()}>{element()}</Show>;
@@ -89,7 +88,7 @@ export interface RadioIndicatorProps extends BaseUIComponentProps<'span', RadioI
    * Whether to keep the HTML element in the DOM when the radio button is inactive.
    * @default false
    */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export interface RadioIndicatorState {

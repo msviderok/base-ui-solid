@@ -35,7 +35,9 @@ export interface ProgressValueProps extends Omit<
   BaseUIComponentProps<'span', ProgressRoot.State>,
   'children'
 > {
-  children?: ((formattedValue: string | null, value: number | null) => JSX.Element) | null;
+  children?:
+    | (null | ((formattedValue: string | null, value: number | null) => JSX.Element))
+    | undefined;
 }
 
 export namespace ProgressValue {

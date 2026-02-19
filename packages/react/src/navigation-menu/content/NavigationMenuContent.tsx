@@ -1,21 +1,22 @@
 'use client';
-import { inertValue } from '@base-ui/utils/inertValue';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { CompositeRoot } from '../../composite/root/CompositeRoot';
+import { inertValue } from '@base-ui/utils/inertValue';
 import { FloatingNode } from '../../floating-ui-react';
 import { contains, getTarget } from '../../floating-ui-react/utils';
-import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
-import { popupStateMapping } from '../../utils/popupStateMapping';
-import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
-import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
-import { TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
-import { useNavigationMenuItemContext } from '../item/NavigationMenuItemContext';
 import {
   useNavigationMenuRootContext,
   useNavigationMenuTreeContext,
 } from '../root/NavigationMenuRootContext';
+import { useNavigationMenuItemContext } from '../item/NavigationMenuItemContext';
+import { TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
+import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
+import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { CompositeRoot } from '../../composite/root/CompositeRoot';
+import { popupStateMapping } from '../../utils/popupStateMapping';
+import { EMPTY_OBJECT } from '../../utils/constants';
 
 const stateAttributesMapping: StateAttributesMapping<NavigationMenuContent.State> = {
   ...popupStateMapping,
@@ -41,7 +42,7 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
   componentProps: NavigationMenuContent.Props,
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { className, render, ...elementProps } = componentProps;
+  const { className, render, keepMounted = false, ...elementProps } = componentProps;
 
   const {
     mounted: popupMounted,
@@ -58,6 +59,7 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
 
   const ref = React.useRef<HTMLDivElement | null>(null);
 
+  const [hasMountedInPortal, setHasMountedInPortal] = React.useState(false);
   const [focusInside, setFocusInside] = React.useState(false);
 
   const { mounted, setMounted, transitionStatus } = useTransitionStatus(open);
@@ -78,14 +80,11 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
     },
   });
 
-  const state: NavigationMenuContent.State = React.useMemo(
-    () => ({
-      open,
-      transitionStatus,
-      activationDirection,
-    }),
-    [open, transitionStatus, activationDirection],
-  );
+  const state: NavigationMenuContent.State = {
+    open,
+    transitionStatus,
+    activationDirection,
+  };
 
   const handleCurrentContentRef = React.useCallback(
     (node: HTMLDivElement | null) => {
@@ -121,9 +120,27 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
       : commonProps;
 
   const portalContainer = viewportTargetElement || viewportElement;
-  const shouldRender = portalContainer !== null && mounted;
+  const hidden = keepMounted && !mounted;
+  const shouldRenderInline = keepMounted && !portalContainer && !hasMountedInPortal;
 
-  if (!portalContainer || !shouldRender) {
+  if (keepMounted && portalContainer && !hasMountedInPortal) {
+    setHasMountedInPortal(true);
+  }
+
+  if (shouldRenderInline) {
+    return (
+      <CompositeRoot
+        render={render}
+        className={className}
+        state={state}
+        refs={[forwardedRef]}
+        props={[defaultProps, { hidden: true }, elementProps]}
+        stateAttributesMapping={stateAttributesMapping}
+      />
+    );
+  }
+
+  if (!portalContainer || (!mounted && !keepMounted)) {
     return null;
   }
 
@@ -134,7 +151,7 @@ export const NavigationMenuContent = React.forwardRef(function NavigationMenuCon
         className={className}
         state={state}
         refs={[forwardedRef, ref, handleCurrentContentRef]}
-        props={[defaultProps, elementProps]}
+        props={[defaultProps, hidden ? { hidden: true } : EMPTY_OBJECT, elementProps]}
         stateAttributesMapping={stateAttributesMapping}
       />
     </FloatingNode>,
@@ -160,7 +177,14 @@ export interface NavigationMenuContentState {
 export interface NavigationMenuContentProps extends BaseUIComponentProps<
   'div',
   NavigationMenuContent.State
-> {}
+> {
+  /**
+   * Whether to keep the content mounted in the DOM while the popup is closed.
+   * Ensures the content is present during server-side rendering for web crawlers.
+   * @default false
+   */
+  keepMounted?: boolean | undefined;
+}
 
 export namespace NavigationMenuContent {
   export type State = NavigationMenuContentState;

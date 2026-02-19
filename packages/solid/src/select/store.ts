@@ -1,6 +1,6 @@
-import { type JSX } from 'solid-js';
+import { type Accessor, type JSX } from 'solid-js';
 import { compareItemEquality } from '../utils/itemEquality';
-import { stringifyAsValue } from '../utils/resolveValueLabel';
+import { hasNullItemLabel, stringifyAsValue } from '../utils/resolveValueLabel';
 import type { SolidStore } from '../utils/store/SolidStore';
 import type { HTMLProps } from '../utils/types';
 import { type InteractionType } from '../utils/useEnhancedClickHandler';
@@ -17,7 +17,7 @@ export type State = {
     | undefined;
   itemToStringLabel: ((item: any) => string) | undefined;
   itemToStringValue: ((item: any) => string) | undefined;
-  isItemEqualToValue: (item: any, value: any) => boolean;
+  isItemEqualToValue: (itemValue: any, selectedValue: any) => boolean;
 
   value: any;
 
@@ -53,6 +53,22 @@ export const selectors = {
   isItemEqualToValue: (state: State) => state.isItemEqualToValue,
 
   value: (state: State) => state.value,
+
+  hasSelectedValue: (state: State) => {
+    if (state.value == null) {
+      return false;
+    }
+    if (state.multiple && Array.isArray(state.value)) {
+      return state.value.length > 0;
+    }
+
+    return stringifyAsValue(state.value, state.itemToStringValue) !== '';
+  },
+
+  hasNullItemLabel: (state: State, enabled: Accessor<boolean>) => {
+    return enabled() ? hasNullItemLabel(state.items) : false;
+  },
+
   open: (state: State) => state.open,
   mounted: (state: State) => state.mounted,
   forceMount: (state: State) => state.forceMount,
@@ -61,29 +77,29 @@ export const selectors = {
 
   activeIndex: (state: State) => state.activeIndex,
   selectedIndex: (state: State) => state.selectedIndex,
-  isActive: (state: State, index: number) => state.activeIndex === index,
+  isActive: (state: State, index: Accessor<number>) => state.activeIndex === index(),
 
-  isSelected: (state: State, index: number, candidate: any) => {
+  isSelected: (state: State, index: Accessor<number>, itemValue: Accessor<any>) => {
     const comparer = state.isItemEqualToValue;
     const storeValue = state.value;
 
     if (state.multiple) {
       return (
         Array.isArray(storeValue) &&
-        storeValue.some((item) => compareItemEquality(item, candidate, comparer))
+        storeValue.some((selectedItem) => compareItemEquality(itemValue(), selectedItem, comparer))
       );
     }
 
     // `selectedIndex` is only updated after the items mount for the first time,
     // the value check avoids a re-render for the initially selected item.
-    if (state.selectedIndex === index && state.selectedIndex !== null) {
+    if (state.selectedIndex === index() && state.selectedIndex !== null) {
       return true;
     }
 
-    return compareItemEquality(storeValue, candidate, comparer);
+    return compareItemEquality(itemValue(), storeValue, comparer);
   },
-  isSelectedByFocus: (state: State, index: number) => {
-    return state.selectedIndex === index;
+  isSelectedByFocus: (state: State, index: Accessor<number>) => {
+    return state.selectedIndex === index();
   },
 
   popupProps: (state: State) => state.popupProps,
@@ -96,14 +112,6 @@ export const selectors = {
   scrollDownArrowVisible: (state: State) => state.scrollDownArrowVisible,
 
   hasScrollArrows: (state: State) => state.hasScrollArrows,
-
-  serializedValue: (state: State) => {
-    const { multiple, value, itemToStringValue } = state;
-    if (multiple && Array.isArray(value) && value.length === 0) {
-      return '';
-    }
-    return stringifyAsValue(value, itemToStringValue);
-  },
 };
 
-export type SelectStore = SolidStore<State, abt, typeof selectors>;
+export type SelectStore = SolidStore<State, {}, typeof selectors>;

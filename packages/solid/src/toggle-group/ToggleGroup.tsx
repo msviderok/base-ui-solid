@@ -24,7 +24,7 @@ const stateAttributesMapping = {
  *
  * Documentation: [Base UI Toggle Group](https://base-ui.com/react/components/toggle-group)
  */
-export function ToggleGroup(componentProps: ToggleGroup.Props) {
+export function ToggleGroup<Value extends string>(componentProps: ToggleGroup.Props<Value>) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'defaultValue',
     'disabled',
@@ -51,6 +51,10 @@ export function ToggleGroup(componentProps: ToggleGroup.Props) {
     return undefined;
   });
 
+  const isValueInitialized = createMemo(
+    () => valueProp() !== undefined || defaultValueProp() !== undefined,
+  );
+
   const disabled = () => (toolbarContext?.disabled() ?? false) || disabledProp();
 
   const [groupValue, setValueState] = useControlled({
@@ -61,11 +65,11 @@ export function ToggleGroup(componentProps: ToggleGroup.Props) {
   });
 
   const setGroupValue = (
-    newValue: string,
+    newValue: Value,
     nextPressed: boolean,
     eventDetails: BaseUIChangeEventDetails<typeof REASONS.none>,
   ) => {
-    let newGroupValue: any[] | undefined;
+    let newGroupValue: Value[] | undefined;
     if (multiple()) {
       newGroupValue = groupValue()?.slice();
       if (nextPressed) {
@@ -101,11 +105,12 @@ export function ToggleGroup(componentProps: ToggleGroup.Props) {
     },
   };
 
-  const contextValue: ToggleGroupContext = {
+  const contextValue: ToggleGroupContext<Value> = {
     disabled,
     orientation,
     setGroupValue,
     value: groupValue,
+    isValueInitialized,
   };
 
   const defaultProps: HTMLProps = {
@@ -130,6 +135,7 @@ export function ToggleGroup(componentProps: ToggleGroup.Props) {
           props={[defaultProps, elementProps]}
           stateAttributesMapping={stateAttributesMapping}
           loopFocus={loopFocus()}
+          enableHomeAndEndKeys
         />
       </Show>
     </ToggleGroupContext.Provider>
@@ -141,52 +147,63 @@ export interface ToggleGroupState {
    * Whether the component should ignore user interaction.
    */
   disabled: boolean;
-  multiple: boolean;
-  orientation: Orientation;
-}
-
-export interface ToggleGroupProps extends BaseUIComponentProps<'div', ToggleGroup.State> {
-  /**
-   * The open state of the toggle group represented by an array of
-   * the values of all pressed toggle buttons.
-   * This is the controlled counterpart of `defaultValue`.
-   */
-  value?: readonly any[];
-  /**
-   * The open state of the toggle group represented by an array of
-   * the values of all pressed toggle buttons.
-   * This is the uncontrolled counterpart of `value`.
-   */
-  defaultValue?: readonly any[];
-  /**
-   * Callback fired when the pressed states of the toggle group changes.
-   *
-   * @param {any[]} groupValue An array of the `value`s of all the pressed items.
-   * @param {Event} event The corresponding event that initiated the change.
-   */
-  onValueChange?: (groupValue: any[], eventDetails: ToggleGroup.ChangeEventDetails) => void;
-  /**
-   * Whether the toggle group should ignore user interaction.
-   * @default false
-   */
-  disabled?: boolean;
-  /**
-   * @default 'horizontal'
-   */
-  orientation?: Orientation;
-  /**
-   * Whether to loop keyboard focus back to the first item
-   * when the end of the list is reached while using the arrow keys.
-   * @default true
-   */
-  loopFocus?: boolean;
   /**
    * When `false` only one item in the group can be pressed. If any item in
    * the group becomes pressed, the others will become unpressed.
    * When `true` multiple items can be pressed.
    * @default false
    */
-  multiple?: boolean;
+  multiple: boolean;
+  /**
+   * The orientation of the toggle group.
+   */
+  orientation: Orientation;
+}
+
+export interface ToggleGroupProps<Value extends string> extends BaseUIComponentProps<
+  'div',
+  ToggleGroup.State
+> {
+  /**
+   * The open state of the toggle group represented by an array of
+   * the values of all pressed toggle buttons.
+   * This is the controlled counterpart of `defaultValue`.
+   */
+  value?: readonly Value[] | undefined;
+  /**
+   * The open state of the toggle group represented by an array of
+   * the values of all pressed toggle buttons.
+   * This is the uncontrolled counterpart of `value`.
+   */
+  defaultValue?: readonly Value[] | undefined;
+  /**
+   * Callback fired when the pressed states of the toggle group changes.
+   */
+  onValueChange?:
+    | ((groupValue: Value[], eventDetails: ToggleGroup.ChangeEventDetails) => void)
+    | undefined;
+  /**
+   * Whether the toggle group should ignore user interaction.
+   * @default false
+   */
+  disabled?: boolean | undefined;
+  /**
+   * @default 'horizontal'
+   */
+  orientation?: Orientation | undefined;
+  /**
+   * Whether to loop keyboard focus back to the first item
+   * when the end of the list is reached while using the arrow keys.
+   * @default true
+   */
+  loopFocus?: boolean | undefined;
+  /**
+   * When `false` only one item in the group can be pressed. If any item in
+   * the group becomes pressed, the others will become unpressed.
+   * When `true` multiple items can be pressed.
+   * @default false
+   */
+  multiple?: boolean | undefined;
 }
 
 export type ToggleGroupChangeEventReason = typeof REASONS.none;
@@ -195,7 +212,7 @@ export type ToggleGroupChangeEventDetails = BaseUIChangeEventDetails<ToggleGroup
 
 export namespace ToggleGroup {
   export type State = ToggleGroupState;
-  export type Props = ToggleGroupProps;
+  export type Props<Value extends string = string> = ToggleGroupProps<Value>;
   export type ChangeEventReason = ToggleGroupChangeEventReason;
   export type ChangeEventDetails = ToggleGroupChangeEventDetails;
 }

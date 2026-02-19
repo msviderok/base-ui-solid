@@ -1,5 +1,4 @@
 import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
-import type { JSX } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import type { BaseUIComponentProps, NonNativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -36,7 +35,7 @@ export function MenuItem(componentProps: MenuItem.Props) {
   const id = useBaseUiId(idProp);
 
   const { store } = useMenuRootContext();
-  const highlighted = () => store.useState('isActive', listItem.index())();
+  const highlighted = store.useState('isActive', listItem.index);
   const itemProps = store.useState('itemProps');
 
   const { getItemProps, setItemRef } = useMenuItem({
@@ -89,26 +88,26 @@ export interface MenuItemProps
   /**
    * The click handler for the menu item.
    */
-  onClick?: JSX.EventHandlerUnion<HTMLElement, MouseEvent>;
+  onClick?: BaseUIComponentProps<'div', MenuItemState>['onClick'] | undefined;
   /**
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * Overrides the text label to use when the item is matched during keyboard text navigation.
    */
-  label?: string;
+  label?: string | undefined;
   /**
    * @ignore
    */
-  id?: string;
+  id?: string | undefined;
   /**
    * Whether to close the menu when the item is clicked.
    *
    * @default true
    */
-  closeOnClick?: boolean;
+  closeOnClick?: boolean | undefined;
 }
 
 export namespace MenuItem {

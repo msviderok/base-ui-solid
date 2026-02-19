@@ -8,7 +8,7 @@ import { RadioGroup } from '@msviderok/base-ui-solid/radio-group';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { createSignal } from 'solid-js';
+import { createEffect, createSignal } from 'solid-js';
 import { describeConformance } from '../../test/describeConformance';
 
 describe('<RadioGroup />', () => {
@@ -26,20 +26,41 @@ describe('<RadioGroup />', () => {
     });
   });
 
-  it('should call onValueChange when an item is clicked', async () => {
-    const handleChange = spy();
-    render(() => (
-      <RadioGroup onValueChange={handleChange}>
-        <Radio.Root value="a" data-testid="item" />
-      </RadioGroup>
-    ));
+  describe('prop: onValueChange', () => {
+    it('should call onValueChange when an item is clicked', async () => {
+      const handleChange = spy();
+      render(() => (
+        <RadioGroup onValueChange={handleChange}>
+          <Radio.Root value="a" data-testid="item" />
+        </RadioGroup>
+      ));
 
-    const item = screen.getByTestId('item');
+      const item = screen.getByTestId('item');
 
-    fireEvent.click(item);
+      fireEvent.click(item);
 
-    expect(handleChange.callCount).to.equal(1);
-    expect(handleChange.firstCall.args[0]).to.equal('a');
+      expect(handleChange.callCount).to.equal(1);
+      expect(handleChange.firstCall.args[0]).to.equal('a');
+    });
+
+    it('should report keyboard modifier event properties when calling onCheckedChange', async () => {
+      const handleChange = spy((value, eventDetails) => eventDetails);
+
+      const { user } = render(() => (
+        <RadioGroup onValueChange={handleChange}>
+          <Radio.Root value="a" data-testid="item" />
+        </RadioGroup>
+      ));
+
+      const item = screen.getByTestId('item');
+
+      await user.keyboard('{Shift>}');
+      await user.click(item);
+      await user.keyboard('{/Shift}');
+
+      expect(handleChange.callCount).to.equal(1);
+      expect(handleChange.firstCall.returnValue.event.shiftKey).to.equal(true);
+    });
   });
 
   describe('prop: disabled', () => {
@@ -52,11 +73,8 @@ describe('<RadioGroup />', () => {
       expect(screen.getByRole('radiogroup')).to.have.attribute('aria-disabled', 'true');
       expect(screen.getByRole('radio')).to.have.attribute('aria-disabled', 'true');
       expect(screen.getByRole('radio')).to.have.attribute('data-disabled');
-      expect(
-        screen.getByRole('textbox', {
-          hidden: true,
-        }),
-      ).to.have.attribute('disabled');
+      const input = document.querySelector('input[type="radio"]');
+      expect(input).to.have.attribute('disabled');
     });
 
     it('should not have the aria attribute when `disabled` is not set', async () => {
@@ -156,20 +174,189 @@ describe('<RadioGroup />', () => {
     expect(indicator).to.have.attribute('data-required', '');
   });
 
-  it('should set the name attribute on the input only when a value is selected', async () => {
+  it('should set the name attribute on each radio input', async () => {
     render(() => (
       <RadioGroup name="radio-group">
         <Radio.Root value="a" data-testid="radio" />
       </RadioGroup>
     ));
-    const group = screen.getByRole('radiogroup');
     const radio = screen.getByTestId('radio');
+    const input = radio.nextElementSibling as HTMLInputElement;
 
-    expect(group.nextElementSibling).to.not.have.attribute('name');
-
-    radio.click();
-    expect(group.nextElementSibling).to.have.attribute('name', 'radio-group');
+    expect(input).to.have.attribute('name', 'radio-group');
+    expect(input).to.have.attribute('value', 'a');
   });
+
+  it('points inputRef to the checked radio input when present', async () => {
+    let groupInputRef!: HTMLInputElement;
+
+    render(() => (
+      <RadioGroup defaultValue="a" inputRef={groupInputRef}>
+        <Radio.Root value="a" data-testid="radio-a" />
+        <Radio.Root value="b" data-testid="radio-b" />
+      </RadioGroup>
+    ));
+
+    const radioA = screen.getByTestId('radio-a');
+    const radioB = screen.getByTestId('radio-b');
+    const inputA = radioA.nextElementSibling as HTMLInputElement;
+    const inputB = radioB.nextElementSibling as HTMLInputElement;
+
+    expect(groupInputRef).to.equal(inputA);
+
+    fireEvent.click(radioB);
+
+    expect(groupInputRef).to.equal(inputB);
+  });
+
+  it('allows reading inputRef in an effect', async () => {
+    let observedValue: string | null = null;
+
+    function App() {
+      let inputRef: HTMLInputElement | undefined;
+
+      createEffect(() => {
+        observedValue = inputRef?.value ?? null;
+      });
+
+      return (
+        <RadioGroup defaultValue="a" inputRef={inputRef}>
+          <Radio.Root value="a" />
+          <Radio.Root value="b" />
+        </RadioGroup>
+      );
+    }
+
+    render(() => <App />);
+
+    expect(observedValue).to.equal('a');
+  });
+
+  it('supports inputRef as a function', async () => {
+    const inputRefSpy = spy();
+
+    render(() => (
+      <RadioGroup defaultValue="a" inputRef={inputRefSpy}>
+        <Radio.Root value="a" data-testid="radio-a" />
+        <Radio.Root value="b" data-testid="radio-b" />
+      </RadioGroup>
+    ));
+
+    const radioA = screen.getByTestId('radio-a');
+    const radioB = screen.getByTestId('radio-b');
+    const inputA = radioA.nextElementSibling as HTMLInputElement;
+    const inputB = radioB.nextElementSibling as HTMLInputElement;
+
+    fireEvent.click(radioB);
+
+    expect(inputRefSpy.calledWith(inputA)).to.equal(true);
+    expect(inputRefSpy.calledWith(inputB)).to.equal(true);
+    expect(inputRefSpy.lastCall.args[0]).to.equal(inputB);
+  });
+
+  it('skips disabled radios when assigning inputRef', async () => {
+    let groupInputRef!: HTMLInputElement;
+
+    render(() => (
+      <RadioGroup inputRef={groupInputRef}>
+        <Radio.Root value="a" disabled data-testid="radio-a" />
+        <Radio.Root value="b" data-testid="radio-b" />
+      </RadioGroup>
+    ));
+
+    const inputB = (screen.getByTestId('radio-b').nextElementSibling ??
+      null) as HTMLInputElement | null;
+
+    expect(groupInputRef).to.equal(inputB);
+  });
+
+  it('points inputRef to the first radio input when nativeButton wraps a button', async () => {
+    let groupInputRef!: HTMLInputElement;
+
+    render(() => (
+      <RadioGroup inputRef={groupInputRef}>
+        <Radio.Root
+          nativeButton
+          value="a"
+          render={(props) => (
+            <label>
+              <button {...props} data-testid="radio-a" />
+              <span>Label A</span>
+            </label>
+          )}
+        />
+        <Radio.Root
+          nativeButton
+          value="b"
+          render={(props) => (
+            <label>
+              <button {...props} data-testid="radio-b" />
+              <span>Label B</span>
+            </label>
+          )}
+        />
+      </RadioGroup>
+    ));
+
+    const inputs = document.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+    expect(inputs.length).to.equal(2);
+    expect(groupInputRef).to.equal(inputs[0]);
+  });
+
+  it('keeps inputRef pointing to the first radio when the value is cleared', async () => {
+    let groupInputRef!: HTMLInputElement;
+
+    function App() {
+      const [value, setValue] = createSignal<null | string>('a');
+
+      return (
+        <>
+          <RadioGroup value={value()} inputRef={groupInputRef!}>
+            <Radio.Root value="a" data-testid="radio-a" />
+            <Radio.Root value="b" data-testid="radio-b" />
+          </RadioGroup>
+          <button type="button" onClick={() => setValue(null)}>
+            Clear
+          </button>
+        </>
+      );
+    }
+
+    render(() => <App />);
+
+    const radioA = screen.getByTestId('radio-a');
+    const inputA = radioA.nextElementSibling as HTMLInputElement;
+
+    expect(groupInputRef).to.equal(inputA);
+
+    fireEvent.click(screen.getByText('Clear'));
+
+    expect(groupInputRef).to.equal(inputA);
+  });
+
+  it.skipIf(isJSDOM)(
+    'should return null when no radio is selected (matching native behavior)',
+    async () => {
+      render(() => (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            expect(formData.get('test-group')).to.equal(null);
+          }}
+        >
+          <RadioGroup name="test-group">
+            <Radio.Root value="option-a" />
+            <Radio.Root value="option-b" />
+          </RadioGroup>
+          <button type="submit">Submit</button>
+        </form>
+      ));
+
+      const submitButton = screen.getByRole('button');
+      submitButton.click();
+    },
+  );
 
   it.skipIf(isJSDOM)('should return null in form data when no radio is selected', async () => {
     render(() => (
@@ -476,7 +663,7 @@ describe('<RadioGroup />', () => {
   });
 
   describe('Field', () => {
-    it('passes the `name` prop to the hidden input only when a value is selected', async () => {
+    it('passes the `name` prop to the radio input', async () => {
       render(() => (
         <Field.Root name="test" data-testid="field">
           <RadioGroup name="group">
@@ -487,20 +674,14 @@ describe('<RadioGroup />', () => {
         </Field.Root>
       ));
 
-      // Initially, no name attribute when no value is selected
-      let input = screen.getByTestId('field').querySelector('input[name="test"]');
-      expect(input).to.equal(null);
-
-      // After selecting, should have name attribute
       const radio = screen.getByTestId('item');
-      radio.click();
+      const input = radio.nextElementSibling as HTMLInputElement;
 
-      input = screen.getByTestId('field').querySelector('input[name="test"]');
-      expect(input).not.to.equal(null);
+      expect(input).to.have.attribute('name', 'test');
     });
 
     describe('Field.Root', () => {
-      it('should receive disabled prop from Field.Root', () => {
+      it('should receive disabled prop from Field.Root', async () => {
         render(() => (
           <Field.Root disabled>
             <RadioGroup>
@@ -531,8 +712,8 @@ describe('<RadioGroup />', () => {
           </Field.Root>
         ));
 
-        const group = screen.getByRole('radiogroup');
-        const input = group.nextElementSibling as HTMLInputElement;
+        const radio = screen.getByTestId('radio');
+        const input = radio.nextElementSibling as HTMLInputElement;
 
         expect(input).to.have.attribute('name', 'field-radio');
       });
@@ -737,7 +918,7 @@ describe('<RadioGroup />', () => {
   });
 
   describe('Fieldset', () => {
-    it("labels the radio group's hidden input", async () => {
+    it('labels the radio group from the fieldset legend', async () => {
       render(() => (
         <Field.Root name="test">
           <Fieldset.Root render={{ component: RadioGroup }}>
@@ -749,11 +930,10 @@ describe('<RadioGroup />', () => {
         </Field.Root>
       ));
 
-      const hiddenInput = document.querySelector('input[value]');
-      expect(hiddenInput).to.not.equal(null);
-
       const legend = screen.getByText('Legend');
-      expect(legend.getAttribute('id')).to.equal(hiddenInput?.getAttribute('aria-labelledby'));
+      const radioGroup = screen.getByRole('radiogroup');
+
+      expect(radioGroup.getAttribute('aria-labelledby')).to.equal(legend.getAttribute('id'));
     });
   });
 
@@ -791,6 +971,99 @@ describe('<RadioGroup />', () => {
 
       const error = screen.getByTestId('error');
       expect(error).to.have.text('required');
+    });
+
+    it('clears required validation when a value is selected', async () => {
+      const { user } = renderFakeTimers(() => (
+        <Form>
+          <Field.Root name="test" data-testid="field">
+            <RadioGroup name="group" required data-testid="group">
+              <Radio.Root value="a" data-testid="item-a" />
+              <Radio.Root value="b" data-testid="item-b" />
+            </RadioGroup>
+            <Field.Error match="valueMissing" data-testid="error">
+              required
+            </Field.Error>
+          </Field.Root>
+          <button type="submit">Submit</button>
+        </Form>
+      ));
+
+      expect(screen.queryByTestId('error')).to.equal(null);
+
+      const group = screen.getByTestId('group');
+      const radioA = screen.getByTestId('item-a');
+      const radioB = screen.getByTestId('item-b');
+
+      await user.click(screen.getByText('Submit'));
+
+      expect(screen.getByTestId('error')).to.have.text('required');
+      expect(group).to.have.attribute('aria-invalid', 'true');
+      expect(radioA).to.have.attribute('aria-invalid', 'true');
+      expect(radioB).to.have.attribute('aria-invalid', 'true');
+
+      await user.click(radioB);
+
+      expect(screen.queryByTestId('error')).to.equal(null);
+      expect(group).not.to.have.attribute('aria-invalid', 'true');
+      expect(radioA).not.to.have.attribute('aria-invalid', 'true');
+      expect(radioB).not.to.have.attribute('aria-invalid', 'true');
+    });
+
+    it('validates when inputRef is a function', async () => {
+      const inputRefSpy = spy(() => () => {});
+      const { user } = renderFakeTimers(() => (
+        <Form>
+          <Field.Root name="test">
+            <RadioGroup name="group" required inputRef={inputRefSpy}>
+              <Radio.Root value="a" data-testid="item-a" />
+              <Radio.Root value="b" data-testid="item-b" />
+            </RadioGroup>
+            <Field.Error match="valueMissing" data-testid="error">
+              required
+            </Field.Error>
+          </Field.Root>
+          <button type="submit">Submit</button>
+        </Form>
+      ));
+
+      expect(screen.queryByTestId('error')).to.equal(null);
+
+      await user.click(screen.getByText('Submit'));
+
+      expect(inputRefSpy.called).to.equal(true);
+      expect(screen.getByTestId('error')).to.have.text('required');
+    });
+
+    it('focuses the first enabled radio when all radios start disabled', async () => {
+      function App() {
+        const [disabled, setDisabled] = createSignal(true);
+
+        return (
+          <Form>
+            <Field.Root name="test">
+              <RadioGroup name="group" required>
+                <Radio.Root value="a" disabled={disabled()} data-testid="item-a" />
+                <Radio.Root value="b" disabled={disabled()} data-testid="item-b" />
+              </RadioGroup>
+            </Field.Root>
+            <button type="button" onClick={() => setDisabled(false)}>
+              Enable
+            </button>
+            <button type="submit">Submit</button>
+          </Form>
+        );
+      }
+
+      const { user } = renderFakeTimers(() => <App />);
+
+      await user.click(screen.getByText('Enable'));
+
+      const radioA = screen.getByTestId('item-a');
+
+      await user.click(screen.getByText('Submit'));
+
+      expect(document.activeElement).to.equal(radioA);
     });
 
     it('clears external errors on change', async () => {

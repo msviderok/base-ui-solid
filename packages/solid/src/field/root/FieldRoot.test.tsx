@@ -13,6 +13,8 @@ import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { createSignal } from 'solid-js';
+import { vi } from 'vitest';
+import { LabelableProvider } from '../../labelable-provider';
 
 describe('<Field.Root />', () => {
   const { render } = createRenderer();
@@ -21,6 +23,171 @@ describe('<Field.Root />', () => {
     refInstanceof: window.HTMLDivElement,
     render,
   }));
+
+  it('updates label association when replacing one control with another', async () => {
+    function TestCase() {
+      const [showB, setShowB] = createSignal(false);
+
+      return (
+        <>
+          <Field.Root>
+            <Field.Label>Label</Field.Label>
+            {showB() ? <Field.Control id="control-b" /> : <Field.Control id="control-a" />}
+          </Field.Root>
+          <button type="button" onClick={() => setShowB(true)}>
+            Toggle
+          </button>
+        </>
+      );
+    }
+
+    render(() => <TestCase />);
+
+    const label = screen.getByText('Label');
+    expect(label).to.have.attribute('for', 'control-a');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle' }));
+
+    await waitFor(() => {
+      expect(label).to.have.attribute('for', 'control-b');
+    });
+  });
+
+  it('preserves null initial control ids', async () => {
+    render(() => (
+      <Field.Root>
+        <LabelableProvider initialControlId={null}>
+          <Field.Label>Label</Field.Label>
+          <Field.Control data-testid="control" />
+        </LabelableProvider>
+      </Field.Root>
+    ));
+
+    const label = screen.getByText('Label');
+    const control = screen.getByTestId('control');
+
+    expect(label).not.to.have.attribute('for');
+    expect(control.getAttribute('id')).to.not.equal(null);
+  });
+
+  it('updates label associations when the control id changes', async () => {
+    function TestCase() {
+      const [controlId, setControlId] = createSignal('control-a');
+
+      return (
+        <>
+          <Field.Root>
+            <Field.Label>Label</Field.Label>
+            <Field.Control id={controlId()} />
+          </Field.Root>
+          <button type="button" onClick={() => setControlId('control-b')}>
+            Change
+          </button>
+        </>
+      );
+    }
+
+    render(() => <TestCase />);
+
+    const label = screen.getByText('Label');
+
+    expect(label).to.have.attribute('for', 'control-a');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+
+    await waitFor(() => {
+      expect(label).to.have.attribute('for', 'control-b');
+    });
+  });
+
+  it('falls back to a generated id when the control id is removed', async () => {
+    function TestCase() {
+      const [controlId, setControlId] = createSignal<string | undefined>('control-a');
+
+      return (
+        <>
+          <Field.Root>
+            <Field.Label>Label</Field.Label>
+            <Field.Control id={controlId()} />
+          </Field.Root>
+          <button type="button" onClick={() => setControlId(undefined)}>
+            Clear
+          </button>
+        </>
+      );
+    }
+
+    render(() => <TestCase />);
+
+    const label = screen.getByText('Label');
+    const control = screen.getByRole('textbox');
+
+    expect(label).to.have.attribute('for', 'control-a');
+    expect(control).to.have.attribute('id', 'control-a');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+
+    await waitFor(() => {
+      const updatedControl = screen.getByRole('textbox');
+      const updatedId = updatedControl.getAttribute('id') ?? '';
+
+      expect(updatedId).to.not.equal('');
+      expect(updatedId).to.not.equal('control-a');
+      expect(label).to.have.attribute('for', updatedId);
+    });
+  });
+
+  it('does not loop when a control is unmounted and remounted', async () => {
+    const errorSpy = vi
+      .spyOn(console, 'error')
+      .mockName('console.error')
+      .mockImplementation(() => {});
+
+    try {
+      function TestCase() {
+        const [showSelect, setShowSelect] = createSignal(true);
+
+        return (
+          <>
+            <Field.Root>
+              <Field.Label nativeLabel={false} render="div">
+                Label
+              </Field.Label>
+              <Select.Root>
+                <Select.Trigger>
+                  <Select.Value placeholder="Select a model" />
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Positioner>
+                    <Select.Popup>
+                      <Select.Item value="model">Model</Select.Item>
+                    </Select.Popup>
+                  </Select.Positioner>
+                </Select.Portal>
+              </Select.Root>
+            </Field.Root>
+            <Checkbox.Root
+              checked={!showSelect()}
+              onCheckedChange={(checked) => {
+                setShowSelect(!checked);
+              }}
+            />
+          </>
+        );
+      }
+
+      render(() => <TestCase />);
+
+      const checkbox = screen.getByRole('checkbox');
+
+      fireEvent.click(checkbox);
+      fireEvent.click(checkbox);
+
+      expect(errorSpy.mock.calls.length).to.equal(0);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
 
   describe('prop: disabled', () => {
     it('should add data-disabled style hook to all components', async () => {
@@ -131,8 +298,12 @@ describe('<Field.Root />', () => {
 
           <Field.Root name="checkbox-group">
             <CheckboxGroup defaultValue={['apple', 'banana']}>
-              <Checkbox.Root value="apple" />
-              <Checkbox.Root value="banana" />
+              <Field.Item>
+                <Checkbox.Root value="apple" />
+              </Field.Item>
+              <Field.Item>
+                <Checkbox.Root value="banana" />
+              </Field.Item>
             </CheckboxGroup>
           </Field.Root>
 

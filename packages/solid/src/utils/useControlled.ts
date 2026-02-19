@@ -22,7 +22,7 @@ export interface UseControlledProps<T = unknown> {
   state?: string | undefined;
 }
 
-export function useControlled<T = unknown>(props: UseControlledProps<T>): Signal<T> {
+export function useControlled<T = unknown>(props: UseControlledProps<T>) {
   const controlledProp = createMemo(() => access(props.controlled));
   const defaultProp = createMemo(() => access(props.default));
 
@@ -68,11 +68,14 @@ export function useControlled<T = unknown>(props: UseControlledProps<T>): Signal
     });
   }
 
-  function setValueIfUncontrolled(...args: Parameters<typeof setValue>) {
+  function setValueIfUncontrolled(newValue: T | ((prevValue: T) => T)) {
     if (!isControlled) {
-      setValue(...args);
+      setValue(newValue as any);
     }
   }
 
-  return [value, setValueIfUncontrolled] as Signal<T>;
+  return [value, setValueIfUncontrolled] as [
+    Accessor<T>,
+    (newValue: T | ((prevValue: T) => T)) => void,
+  ];
 }

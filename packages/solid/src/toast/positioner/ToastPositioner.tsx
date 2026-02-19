@@ -1,13 +1,14 @@
 import { isElement } from '@floating-ui/utils/dom';
-import { createMemo, createSignal, splitProps } from 'solid-js';
+import { createSignal, splitProps } from 'solid-js';
 import { useFloatingRootContext } from '../../floating-ui-solid';
 import { EMPTY_OBJECT, POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import { NOOP } from '../../utils/noop';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useAnchorPositioning, type Align, type Side } from '../../utils/useAnchorPositioning';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { useToastContext } from '../provider/ToastProviderContext';
+import { useToastProviderContext } from '../provider/ToastProviderContext';
 import { ToastRootCssVars } from '../root/ToastRootCssVars';
 import type { ToastObject } from '../useToastManager';
 import { ToastPositionerContext } from './ToastPositionerContext';
@@ -21,7 +22,7 @@ import { ToastPositionerContext } from './ToastPositionerContext';
 export function ToastPositioner(componentProps: ToastPositioner.Props) {
   const [posLocal, props] = splitProps(componentProps, ['toast']);
 
-  const { toasts } = useToastContext();
+  const store = useToastProviderContext();
   const positionerProps = () =>
     (posLocal.toast.positionerProps ?? EMPTY_OBJECT) as NonNullable<
       typeof posLocal.toast.positionerProps
@@ -60,10 +61,8 @@ export function ToastPositioner(componentProps: ToastPositioner.Props) {
 
   const [positionerElement, setPositionerElement] = createSignal<HTMLDivElement | null>(null);
 
-  const domIndex = createMemo(() => toasts.list.indexOf(posLocal.toast));
-  const visibleIndex = createMemo(() =>
-    toasts.list.filter((t) => t.transitionStatus !== 'ending').indexOf(posLocal.toast),
-  );
+  const domIndex = store.useState('toastIndex', () => posLocal.toast.id);
+  const visibleIndex = store.useState('toastVisibleIndex', () => posLocal.toast.id);
 
   const anchor = () => {
     const el = anchorProp();
@@ -137,7 +136,13 @@ export function ToastPositioner(componentProps: ToastPositioner.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    props: [defaultProps, elementProps],
+    get props() {
+      return [
+        defaultProps,
+        getDisabledMountTransitionStyles(posLocal.toast.transitionStatus),
+        elementProps,
+      ];
+    },
     ref: setPositionerElement,
     stateAttributesMapping: popupStateMapping,
   });
@@ -162,13 +167,13 @@ export interface ToastPositionerProps
   /**
    * An element to position the toast against.
    */
-  anchor?: Element | null | undefined;
+  anchor?: (Element | null) | undefined;
   /**
    * Which side of the anchor element to align the toast against.
    * May automatically change to avoid collisions.
    * @default 'top'
    */
-  side?: Side;
+  side?: Side | undefined;
   /**
    * The toast object associated with the positioner.
    */

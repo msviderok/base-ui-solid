@@ -8,7 +8,7 @@ import { itemMapping } from '../utils/stateAttributesMapping';
 
 /**
  * Indicates whether the radio item is selected.
- * Renders a `<div>` element.
+ * Renders a `<span>` element.
  *
  * Documentation: [Base UI Menu](https://base-ui.com/react/components/menu)
  */
@@ -68,7 +68,7 @@ export interface MenuRadioItemIndicatorProps extends BaseUIComponentProps<
    * Whether to keep the HTML element in the DOM when the radio item is inactive.
    * @default false
    */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export interface MenuRadioItemIndicatorState {

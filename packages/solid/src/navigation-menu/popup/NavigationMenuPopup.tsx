@@ -5,6 +5,7 @@ import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping as baseMapping } from '../../utils/popupStateMapping';
 import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
+import { Align, Side } from '../../utils/useAnchorPositioning';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
@@ -39,7 +40,6 @@ export function NavigationMenuPopup(componentProps: NavigationMenuPopup.Props) {
     get transitionStatus() {
       return transitionStatus();
     },
-    // @ts-expect-error - side is not part of the state type
     get side() {
       return positioning.side();
     },
@@ -106,6 +106,18 @@ export interface NavigationMenuPopupState {
    * The transition status of the popup.
    */
   transitionStatus: TransitionStatus;
+  /**
+   * The side of the anchor the popup is positioned on.
+   */
+  side: Side;
+  /**
+   * The alignment of the popup relative to the anchor.
+   */
+  align: Align;
+  /**
+   * Whether the anchor element is hidden.
+   */
+  anchorHidden: boolean;
 }
 
 export interface NavigationMenuPopupProps extends BaseUIComponentProps<

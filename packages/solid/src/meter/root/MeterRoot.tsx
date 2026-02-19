@@ -1,21 +1,9 @@
 import { createMemo, createSignal, type JSX } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
-import { formatNumber } from '../../utils/formatNumber';
+import { formatNumberValue } from '../../utils/formatNumber';
 import { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { MeterRootContext } from './MeterRootContext';
-
-function formatValue(
-  value: number,
-  locale?: Intl.LocalesArgument,
-  format?: Intl.NumberFormatOptions,
-): string {
-  if (!format) {
-    return formatNumber(value / 100, locale, { style: 'percent' });
-  }
-
-  return formatNumber(value, locale, format);
-}
 
 /**
  * Groups all parts of the meter and provides the value for screen readers.
@@ -37,7 +25,7 @@ export function MeterRoot(componentProps: MeterRoot.Props) {
   const valueProp = () => local.value;
 
   const [labelId, setLabelId] = createSignal<string>();
-  const formattedValue = () => formatValue(valueProp(), local.locale, local.format);
+  const formattedValue = () => formatNumberValue(valueProp(), local.locale, local.format);
 
   const ariaValuetext = createMemo(() => {
     if (local.getAriaValueText) {
@@ -91,33 +79,33 @@ export interface MeterRootProps extends BaseUIComponentProps<'div', MeterRoot.St
   /**
    * A string value that provides a user-friendly name for `aria-valuenow`, the current value of the meter.
    */
-  'aria-valuetext'?: JSX.AriaAttributes['aria-valuetext'];
+  'aria-valuetext'?: JSX.AriaAttributes['aria-valuetext'] | undefined;
   /**
    * Options to format the value.
    */
-  format?: Intl.NumberFormatOptions;
+  format?: Intl.NumberFormatOptions | undefined;
   /**
    * A function that returns a string value that provides a human-readable text alternative for `aria-valuenow`, the current value of the meter.
    * @param {string} formattedValue The formatted value
    * @param {number} value The raw value
    * @returns {string}
    */
-  getAriaValueText?: (formattedValue: string, value: number) => string;
+  getAriaValueText?: ((formattedValue: string, value: number) => string) | undefined;
   /**
    * The locale used by `Intl.NumberFormat` when formatting the value.
    * Defaults to the user's runtime locale.
    */
-  locale?: Intl.LocalesArgument;
+  locale?: Intl.LocalesArgument | undefined;
   /**
    * The maximum value
    * @default 100
    */
-  max?: number;
+  max?: number | undefined;
   /**
    * The minimum value
    * @default 0
    */
-  min?: number;
+  min?: number | undefined;
   /**
    * The current value.
    */

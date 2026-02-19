@@ -1096,10 +1096,11 @@ describe('<Menu.Root />', () => {
 
         const submenuTrigger = screen.getByTestId('submenu-trigger');
 
-        fireEvent.mouseEnter(submenuTrigger);
-        fireEvent.mouseMove(submenuTrigger);
+        await userEvent.hover(submenuTrigger);
 
-        expect(screen.queryByTestId('submenu')).not.to.equal(null);
+        await waitFor(() => {
+          expect(screen.queryByTestId('submenu')).not.to.equal(null);
+        });
       });
 
       it('should not close when submenu is hovered after root menu is hovered', async () => {

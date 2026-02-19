@@ -7,6 +7,7 @@ export type * from './checkbox-item/MenuCheckboxItem';
 export type * from './group-label/MenuGroupLabel';
 export type * from './group/MenuGroup';
 export type * from './item/MenuItem';
+export type * from './link-item/MenuLinkItem';
 export type * from './popup/MenuPopup';
 export type * from './portal/MenuPortal';
 export type * from './positioner/MenuPositioner';

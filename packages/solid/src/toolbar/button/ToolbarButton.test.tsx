@@ -101,13 +101,18 @@ describe('<Toolbar.Button />', () => {
 
         render(() => (
           <Toolbar.Root>
-            <Toolbar.Button data-testid="button" render={Switch.Root} />
+            <Toolbar.Button data-testid="button" render={{ component: Switch.Root }} />
           </Toolbar.Root>
         ));
 
         expect(console.error).toHaveBeenCalledTimes(1);
         expect(console.error).toHaveBeenCalledWith(
-          'Base UI: A component that acts as a button was not rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is a real <button>, or set the `nativeButton` prop on the component to `false`.',
+          expect.stringContaining(
+            'Base UI: A component that acts as a button expected a native <button> because ' +
+              'the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, ' +
+              'which can impact forms and accessibility. Use a real <button> in the `render` prop, or ' +
+              'set `nativeButton` to `false`.',
+          ),
         );
 
         expect(screen.getByTestId('button')).to.equal(screen.getByRole('switch'));
@@ -135,7 +140,12 @@ describe('<Toolbar.Button />', () => {
 
         expect(console.error).toHaveBeenCalledTimes(1);
         expect(console.error).toHaveBeenCalledWith(
-          'Base UI: A component that acts as a button was not rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is a real <button>, or set the `nativeButton` prop on the component to `false`.',
+          expect.stringContaining(
+            'Base UI: A component that acts as a button expected a native <button> because ' +
+              'the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, ' +
+              'which can impact forms and accessibility. Use a real <button> in the `render` prop, or ' +
+              'set `nativeButton` to `false`.',
+          ),
         );
 
         const switchElement = screen.getByRole('switch');
@@ -182,7 +192,12 @@ describe('<Toolbar.Button />', () => {
 
         expect(console.error).toHaveBeenCalledTimes(1);
         expect(console.error).toHaveBeenCalledWith(
-          'Base UI: A component that acts as a button was not rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is a real <button>, or set the `nativeButton` prop on the component to `false`.',
+          expect.stringContaining(
+            'Base UI: A component that acts as a button expected a native <button> because ' +
+              'the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, ' +
+              'which can impact forms and accessibility. Use a real <button> in the `render` prop, or ' +
+              'set `nativeButton` to `false`.',
+          ),
         );
 
         const switchElement = screen.getByRole('switch');
@@ -360,7 +375,7 @@ describe('<Toolbar.Button />', () => {
         render(() => (
           <Toolbar.Root>
             <Select.Root defaultValue="a">
-              <Toolbar.Button data-testid="button" render={Select.Trigger} />
+              <Toolbar.Button data-testid="button" render={{ component: Select.Trigger }} />
               <Select.Portal>
                 <Select.Positioner>
                   <Select.Popup>
@@ -383,7 +398,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <Select.Root defaultValue="a" onValueChange={handleValueChange}>
-              <Toolbar.Button data-testid="button" render={Select.Trigger} />
+              <Toolbar.Button data-testid="button" render={{ component: Select.Trigger }} />
               <Select.Portal>
                 <Select.Positioner>
                   <Select.Popup data-testid="popup">
@@ -478,7 +493,11 @@ describe('<Toolbar.Button />', () => {
           expect(onOpenChange).toHaveBeenCalledTimes(0);
           expect(onValueChange).toHaveBeenCalledTimes(0);
         }).toErrorDev([
-          'Base UI: A component that acts as a button was rendered as a native <button>, which does not match the default. Ensure that the element passed to the `render` prop of the component is not a real <button>, or set the `nativeButton` prop on the component to `true`.',
+          'Base UI: A component that acts as a button expected a non-<button> because ' +
+            'the `nativeButton` prop is false. Rendering a <button> keeps native behavior while Base UI ' +
+            'applies non-native attributes and handlers, which can add unintended extra attributes ' +
+            '(such as `role` or `aria-disabled`). Use a non-<button> in the `render` prop, or set ' +
+            '`nativeButton` to `true`.',
         ]);
       });
     });
@@ -512,7 +531,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <Dialog.Root modal={false} onOpenChange={onOpenChange}>
-              <Toolbar.Button render={Dialog.Trigger} />
+              <Toolbar.Button render={{ component: Dialog.Trigger }} />
               <Dialog.Portal>
                 <Dialog.Backdrop />
                 <Dialog.Popup>
@@ -550,7 +569,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <Dialog.Root modal={false} onOpenChange={onOpenChange}>
-              <Toolbar.Button disabled render={Dialog.Trigger} />
+              <Toolbar.Button disabled render={{ component: Dialog.Trigger }} />
               <Dialog.Portal>
                 <Dialog.Backdrop />
                 <Dialog.Popup>
@@ -584,7 +603,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <Dialog.Root modal={false} onOpenChange={onOpenChange}>
-              <Toolbar.Button render={Dialog.Trigger}>dialog</Toolbar.Button>
+              <Toolbar.Button render={{ component: Dialog.Trigger }}>dialog</Toolbar.Button>
               <Dialog.Portal>
                 <Dialog.Popup />
               </Dialog.Portal>
@@ -638,7 +657,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <AlertDialog.Root onOpenChange={onOpenChange}>
-              <Toolbar.Button render={AlertDialog.Trigger} />
+              <Toolbar.Button render={{ component: AlertDialog.Trigger }} />
               <AlertDialog.Portal>
                 <AlertDialog.Backdrop />
                 <AlertDialog.Popup>
@@ -676,7 +695,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <AlertDialog.Root onOpenChange={onOpenChange}>
-              <Toolbar.Button disabled render={AlertDialog.Trigger} />
+              <Toolbar.Button disabled render={{ component: AlertDialog.Trigger }} />
               <AlertDialog.Portal>
                 <AlertDialog.Backdrop />
                 <AlertDialog.Popup>
@@ -710,7 +729,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <AlertDialog.Root onOpenChange={onOpenChange}>
-              <Toolbar.Button render={AlertDialog.Trigger}>dialog</Toolbar.Button>
+              <Toolbar.Button render={{ component: AlertDialog.Trigger }}>dialog</Toolbar.Button>
               <AlertDialog.Portal>
                 <AlertDialog.Popup />
               </AlertDialog.Portal>
@@ -764,7 +783,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <Popover.Root onOpenChange={onOpenChange}>
-              <Toolbar.Button render={Popover.Trigger} />
+              <Toolbar.Button render={{ component: Popover.Trigger }} />
               <Popover.Portal>
                 <Popover.Positioner>
                   <Popover.Popup>Content</Popover.Popup>
@@ -800,7 +819,7 @@ describe('<Toolbar.Button />', () => {
         const { user } = render(() => (
           <Toolbar.Root>
             <Popover.Root onOpenChange={onOpenChange}>
-              <Toolbar.Button disabled render={Popover.Trigger} />
+              <Toolbar.Button disabled render={{ component: Popover.Trigger }} />
               <Popover.Portal>
                 <Popover.Positioner>
                   <Popover.Popup>Content</Popover.Popup>

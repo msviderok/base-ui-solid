@@ -173,18 +173,20 @@ export interface FormProps<
    *
    * @default 'onSubmit'
    */
-  validationMode?: FormValidationMode;
+  validationMode?: FormValidationMode | undefined;
   /**
    * Validation errors returned externally, typically after submission by a server or a form action.
    * This should be an object where keys correspond to the `name` attribute on `<Field.Root>`,
    * and values correspond to error(s) related to that field.
    */
-  errors?: Errors;
+  errors?: Errors | undefined;
   /**
    * Event handler called when the form is submitted.
    * `preventDefault()` is called on the native submit event when used.
    */
-  onFormSubmit?: (formValues: FormValues, eventDetails: Form.SubmitEventDetails) => void;
+  onFormSubmit?:
+    | ((formValues: FormValues, eventDetails: Form.SubmitEventDetails) => void)
+    | undefined;
   /**
    * A ref to imperative actions.
    * - `validate`: Validates all fields when called. Optionally pass a field name to validate a single field.
@@ -197,7 +199,7 @@ export interface FormProps<
    * actionsRef.validate('email');
    * ```
    */
-  actionsRef?: Form.Actions | null;
+  actionsRef?: (Form.Actions | null) | undefined;
 }
 
 export namespace Form {

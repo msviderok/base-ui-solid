@@ -1,23 +1,15 @@
 import { createEffect, createSignal, mergeProps as solidMergeProps, type JSX } from 'solid-js';
-import { produce } from 'solid-js/store';
 import { CompositeList, type CompositeMetadata } from '../../composite/list/CompositeList';
-import type { Padding, VirtualElement } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
 import { InternalBackdrop } from '../../utils/InternalBackdrop';
 import { DROPDOWN_COLLISION_AVOIDANCE } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
-import { findItemIndex, itemIncludes } from '../../utils/itemEquality';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
+import { findItemIndex, selectedValueIncludes } from '../../utils/itemEquality';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
-import {
-  useAnchorPositioning,
-  type Align,
-  type Boundary,
-  type CollisionAvoidance,
-  type OffsetFunction,
-  type Side,
-} from '../../utils/useAnchorPositioning';
+import { useAnchorPositioning, type Align, type Side } from '../../utils/useAnchorPositioning';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useScrollLock } from '../../utils/useScrollLock';
 import { clearStyles } from '../popup/utils';
@@ -71,6 +63,7 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
   const positionerElement = store.useState('positionerElement');
   const triggerElement = store.useState('triggerElement');
   const isItemEqualToValue = store.useState('isItemEqualToValue');
+  const transitionStatus = store.useState('transitionStatus');
 
   let scrollUpArrowRef = null as HTMLDivElement | null | undefined;
   let scrollDownArrowRef = null as HTMLDivElement | null | undefined;
@@ -166,6 +159,15 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
     store.set('positionerElement', element);
   };
 
+  const element = useRenderElement('div', componentProps, {
+    state,
+    ref: setPositionerElement,
+    stateAttributesMapping: popupStateMapping,
+    get props() {
+      return [defaultProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];
+    },
+  });
+
   let prevMapSizeRef = 0;
 
   const onMapChange = <Metadata,>(
@@ -190,12 +192,13 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
     const val = value();
 
     if (prevSize !== 0 && !store.state.multiple && val !== null) {
-      const valueIndex = findItemIndex(refs.valuesRef, val, isItemEqualToValue());
-      if (valueIndex === -1) {
-        const initial = refs.initialValueRef;
+      const selectedValueIndex = findItemIndex(refs.valuesRef, val, isItemEqualToValue());
+      if (selectedValueIndex === -1) {
+        const initialSelectedValue = refs.initialValueRef;
         const hasInitial =
-          initial != null && itemIncludes(refs.valuesRef, initial, isItemEqualToValue());
-        const nextValue = hasInitial ? initial : null;
+          initialSelectedValue != null &&
+          findItemIndex(refs.valuesRef, initialSelectedValue, isItemEqualToValue()) !== -1;
+        const nextValue = hasInitial ? initialSelectedValue : null;
         setValue(nextValue, eventDetails);
 
         if (nextValue === null) {
@@ -206,10 +209,15 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
     }
 
     if (prevSize !== 0 && store.state.multiple && Array.isArray(val)) {
-      const nextValue = val.filter((v) => itemIncludes(refs.valuesRef, v, isItemEqualToValue()));
+      const hasVisibleItem = (selectedItemValue: unknown) =>
+        findItemIndex(refs.valuesRef, selectedItemValue, isItemEqualToValue()) !== -1;
+      const nextValue = val.filter((selectedItemValue) => hasVisibleItem(selectedItemValue));
       if (
         nextValue.length !== val.length ||
-        nextValue.some((v) => !itemIncludes(val, v, isItemEqualToValue()))
+        nextValue.some(
+          (selectedItemValue) =>
+            !selectedValueIncludes(val, selectedItemValue, isItemEqualToValue()),
+        )
       ) {
         setValue(nextValue, eventDetails);
 
@@ -242,13 +250,6 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
     },
   }) as SelectPositionerContext;
 
-  const element = useRenderElement('div', componentProps, {
-    state,
-    ref: setPositionerElement,
-    stateAttributesMapping: popupStateMapping,
-    props: [defaultProps, elementProps],
-  });
-
   return (
     <CompositeList
       refs={{ elements: refs.listRef, labels: refs.labelsRef }}
@@ -279,7 +280,7 @@ export interface SelectPositionerProps
    * Whether the positioner overlaps the trigger so the selected item's text is aligned with the trigger's value text. This only applies to mouse input and is automatically disabled if there is not enough space.
    * @default true
    */
-  alignItemWithTrigger?: boolean;
+  alignItemWithTrigger?: boolean | undefined;
 }
 
 export namespace SelectPositioner {

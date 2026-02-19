@@ -1,7 +1,7 @@
 'use client';
 import { createSignal, type JSX } from 'solid-js';
 import { mergeProps } from '../merge-props';
-import { HTMLProps } from '../utils/types';
+import { HTMLProps, type BaseUIHTMLProps } from '../utils/types';
 import { useBaseUiId } from '../utils/useBaseUiId';
 import { LabelableContext, useLabelableContext } from './LabelableContext';
 
@@ -11,15 +11,51 @@ import { LabelableContext, useLabelableContext } from './LabelableContext';
 export function LabelableProvider(props: LabelableProvider.Props) {
   const defaultId = useBaseUiId();
 
-  const [controlId, setControlId] = createSignal<string | null | undefined>(
+  const [controlId, setControlIdState] = createSignal<string | null | undefined>(
     props.initialControlId === undefined ? defaultId() : props.initialControlId,
   );
   const [labelId, setLabelId] = createSignal<string | undefined>(undefined);
   const [messageIds, setMessageIds] = createSignal<string[]>([]);
 
+  const registrationsRef = new Map<symbol, string | null>();
+
   const { messageIds: parentMessageIds } = useLabelableContext();
 
-  const getDescriptionProps = (externalProps: HTMLProps) => {
+  const registerControlId = (source: symbol, nextId: string | null | undefined) => {
+    const registrations = registrationsRef;
+
+    if (nextId === undefined) {
+      registrations.delete(source);
+      return;
+    }
+
+    registrations.set(source, nextId);
+
+    // Only flush when registering, not when unregistering.
+    // This prevents loops during rapid unmount/remount cycles (e.g. React Activity).
+    // The next registration will pick up the correct state.
+    setControlIdState((prev) => {
+      if (registrations.size === 0) {
+        return undefined;
+      }
+
+      let nextControlId: string | null | undefined;
+
+      for (const id of registrations.values()) {
+        if (prev !== undefined && id === prev) {
+          return prev;
+        }
+
+        if (nextControlId === undefined) {
+          nextControlId = id;
+        }
+      }
+
+      return nextControlId;
+    });
+  };
+
+  const getDescriptionProps = (externalProps: HTMLProps | BaseUIHTMLProps) => {
     return mergeProps(
       {
         get 'aria-describedby'() {
@@ -32,7 +68,7 @@ export function LabelableProvider(props: LabelableProvider.Props) {
 
   const contextValue: LabelableContext = {
     controlId,
-    setControlId,
+    registerControlId,
     labelId,
     setLabelId,
     messageIds,

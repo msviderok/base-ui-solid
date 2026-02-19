@@ -1,4 +1,4 @@
-import { mergeProps } from '../../merge-props';
+import { useHoverFloatingInteraction } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
@@ -26,17 +26,31 @@ const stateAttributesMapping: StateAttributesMapping<PreviewCardPopup.State> = {
 export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { open, transitionStatus, refs, onOpenChangeComplete, popupProps } =
-    usePreviewCardRootContext();
+  const store = usePreviewCardRootContext();
   const { side, align } = usePreviewCardPositionerContext();
+
+  const open = store.useState('open');
+  const instantType = store.useState('instantType');
+  const transitionStatus = store.useState('transitionStatus');
+  const popupProps = store.useState('popupProps');
+  const floatingContext = store.useState('floatingRootContext');
 
   useOpenChangeComplete({
     open,
-    ref: () => refs.popupRef,
+    ref: store.context.refs.popupRef,
     onComplete() {
       if (open()) {
-        onOpenChangeComplete?.(true);
+        store.context.onOpenChangeComplete?.(true);
       }
+    },
+  });
+
+  useHoverFloatingInteraction({
+    get context() {
+      return floatingContext();
+    },
+    parameters: {
+      closeDelay: () => store.context.refs.closeDelayRef,
     },
   });
 
@@ -45,10 +59,13 @@ export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
       return open();
     },
     get side() {
-      return side();
+      return side;
     },
     get align() {
-      return align();
+      return align;
+    },
+    get instant() {
+      return instantType();
     },
     get transitionStatus() {
       return transitionStatus();
@@ -58,13 +75,12 @@ export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      refs.popupRef = el;
+      store.context.refs.popupRef = el;
+      store.useStateSetter('popupElement')(el);
     },
-    props: [
-      popupProps,
-      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
-      elementProps,
-    ],
+    get props() {
+      return [popupProps(), getDisabledMountTransitionStyles(transitionStatus()), elementProps];
+    },
     stateAttributesMapping,
   });
 
@@ -78,6 +94,7 @@ export interface PreviewCardPopupState {
   open: boolean;
   side: Side;
   align: Align;
+  instant: 'dismiss' | 'focus' | undefined;
   transitionStatus: TransitionStatus;
 }
 

@@ -7,7 +7,6 @@ import {
   onCleanup,
   type Accessor,
   type JSX,
-  type Setter,
 } from 'solid-js';
 import { useDirection } from '../direction-provider/DirectionContext';
 import {
@@ -210,7 +209,7 @@ export function useAnchorPositioning(
     } as const;
   });
 
-  const [arrowRef, setArrowRef] = createSignal<Element | null | undefined>(null);
+  let arrowRef = null as Element | null | undefined;
   const shiftDisabled = () =>
     collisionAvoidanceAlign() === 'none' && collisionAvoidanceSide() !== 'shift';
   const crossAxisShiftEnabled = () =>
@@ -256,7 +255,6 @@ export function useAnchorPositioning(
   });
 
   const shiftMiddleware = createMemo<Middleware | null>(() => {
-    const arrowRefValue = arrowRef();
     return shiftDisabled()
       ? null
       : shift(
@@ -276,10 +274,10 @@ export function useAnchorPositioning(
                 sticky() || shiftCrossAxis()
                   ? undefined
                   : limitShift((limitData) => {
-                      if (!arrowRefValue) {
+                      if (!arrowRef) {
                         return {};
                       }
-                      const { width, height } = arrowRefValue.getBoundingClientRect();
+                      const { width, height } = arrowRef.getBoundingClientRect();
                       const sideAxis = getSideAxis(getSide(limitData.placement));
                       const arrowSize = sideAxis === 'y' ? width : height;
                       const offsetAmount =
@@ -309,11 +307,10 @@ export function useAnchorPositioning(
   });
 
   const arrowMiddleware = createMemo<Middleware>(() => {
-    const arrowRefValue = arrowRef();
     return arrow(() => ({
       // `transform-origin` calculations rely on an element existing. If the arrow hasn't been set,
       // we'll create a fake element.
-      element: arrowRefValue || document.createElement('div'),
+      element: arrowRef || document.createElement('div'),
       padding: arrowPadding(),
       offsetParent: 'floating',
     }));
@@ -329,8 +326,8 @@ export function useAnchorPositioning(
         const currentRenderedAxis = getSideAxis(currentRenderedSide);
         const arrowX = middlewareData.arrow?.x || 0;
         const arrowY = middlewareData.arrow?.y || 0;
-        const arrowWidth = arrowRef()?.clientWidth || 0;
-        const arrowHeight = arrowRef()?.clientHeight || 0;
+        const arrowWidth = arrowRef?.clientWidth || 0;
+        const arrowHeight = arrowRef?.clientHeight || 0;
         const transformX = arrowX + arrowWidth / 2;
         const transformY = arrowY + arrowHeight / 2;
         const shiftY = Math.abs(middlewareData.shift?.y || 0);
@@ -531,7 +528,6 @@ export function useAnchorPositioning(
     refs: {
       ...refs,
       arrowRef,
-      setArrowRef,
     },
     context,
     isPositioned,
@@ -683,8 +679,7 @@ export interface UseAnchorPositioningReturnValue {
   physicalSide: Accessor<PhysicalSide>;
   anchorHidden: Accessor<boolean>;
   refs: ReturnType<typeof useFloating>['refs'] & {
-    arrowRef: Accessor<Element | null | undefined>;
-    setArrowRef: Setter<Element | null | undefined>;
+    arrowRef: Element | null | undefined;
   };
   context: FloatingContext;
   isPositioned: Accessor<boolean>;

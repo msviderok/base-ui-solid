@@ -1,6 +1,6 @@
 import { NOOP } from '@base-ui/utils/empty';
 import { createEffect, createMemo, createRoot, on, onCleanup, type Accessor } from 'solid-js';
-import { produce, type SetStoreFunction, type Store } from 'solid-js/store';
+import { createStore, produce, type SetStoreFunction, type Store } from 'solid-js/store';
 import { access, type MaybeAccessor, type MaybeAccessorValue } from '../../solid-helpers';
 
 /**
@@ -23,11 +23,11 @@ export class SolidStore<
    * @param selectors Optional selectors for use with `useState`.
    */
   constructor(
-    state: [Store<State>, SetStoreFunction<State>],
+    state: State | [Store<State>, SetStoreFunction<State>],
     context: Context = {} as Context,
     selectors?: Selectors,
   ) {
-    const [internalState, setInternalState] = state;
+    const [internalState, setInternalState] = Array.isArray(state) ? state : createStore(state);
     this.state = internalState;
     this.setState = setInternalState;
     this.set = setInternalState;
@@ -54,7 +54,7 @@ export class SolidStore<
    */
   useSyncedValue<Key extends keyof State, Value extends State[Key]>(
     key: keyof State,
-    value: Value,
+    value: MaybeAccessor<Value>,
   ) {
     createEffect(
       on([() => access(key), () => access(value)], ([k, v]: [any, any]) => this.setState(k, v)),
@@ -70,7 +70,7 @@ export class SolidStore<
    */
   public useSyncedValueWithCleanup<Key extends KeysAllowingUndefined<State>>(
     key: Key,
-    value: State[Key],
+    value: MaybeAccessor<State[Key]>,
   ) {
     this.useSyncedValue(key, value);
     onCleanup(() => this.setState(key as any, undefined as any));
@@ -82,9 +82,11 @@ export class SolidStore<
    * Note that the while the values in `state` are updated immediately, the values returned
    * by `useState` are updated before the next render (similarly to React's `useState`).
    */
-  public useSyncedValues<Keys extends keyof State>(statePart: {
-    [Key in Keys]: MaybeAccessor<State[Key]>;
-  }) {
+  public useSyncedValues<Keys extends keyof State>(
+    statePart: Partial<{
+      [Key in Keys]: MaybeAccessor<State[Key]>;
+    }>,
+  ) {
     if (process.env.NODE_ENV !== 'production') {
       // Check that an object with the same shape is passed on every render
       const keys = Object.keys(statePart) as Array<keyof State>;
@@ -159,12 +161,12 @@ export class SolidStore<
    *
    * @param key Key of the selector to use.
    */
-  select = <Key extends keyof Selectors>(
+  select<Key extends keyof Selectors>(
     key: Key,
     ...args: SelectorArgs<Selectors[Key]>
-  ): ReturnType<Selectors[Key]> => {
+  ): ReturnType<Selectors[Key]> {
     return access(this.selectors![key](this.state, ...args));
-  };
+  }
 
   /**
    * Returns a value from the store's state using a selector function.
@@ -173,13 +175,13 @@ export class SolidStore<
    *
    * @param key Key of the selector to use.
    */
-  useState = <Key extends keyof Selectors>(
+  useState<Key extends keyof Selectors>(
     key: Key,
     ...args: SelectorArgs<Selectors[Key]>
-  ): Accessor<MaybeAccessorValue<ReturnType<Selectors[Key]>>> => {
+  ): Accessor<MaybeAccessorValue<ReturnType<Selectors[Key]>>> {
     const c = createMemo(() => access(this.selectors![key](this.state, ...args)));
     return c;
-  };
+  }
 
   /**
    * Wraps a function with `useStableCallback` to ensure it has a stable reference
@@ -260,10 +262,10 @@ type KeysAllowingUndefined<State> = {
 
 type ObserveSelector<State> = (state: State) => any;
 
-type SelectorFunction<State> = (state: State, ...args: MaybeAccessor<any>[]) => any;
+type SelectorFunction<State, Args extends any[] = any[]> = (state: State, ...args: Args) => any;
 
 type Tail<T extends readonly any[]> = T extends readonly [any, ...infer Rest] ? Rest : [];
 
-type SelectorArgs<Selector> = Selector extends (...params: infer Params) => any
+export type SelectorArgs<Selector> = Selector extends (...params: infer Params) => any
   ? Tail<Params>
   : never;

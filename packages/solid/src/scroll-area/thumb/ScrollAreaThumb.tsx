@@ -73,7 +73,7 @@ export function ScrollAreaThumb(componentProps: ScrollAreaThumb.Props) {
 }
 
 export interface ScrollAreaThumbState {
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: ('horizontal' | 'vertical') | undefined;
 }
 
 export interface ScrollAreaThumbProps extends BaseUIComponentProps<'div', ScrollAreaThumb.State> {}

@@ -1,4 +1,3 @@
-import type { JSX } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { splitComponentProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
@@ -38,7 +37,7 @@ export function MenuRadioItem(componentProps: MenuRadioItem.Props) {
   const id = useBaseUiId(idProp);
 
   const { store } = useMenuRootContext();
-  const highlighted = () => store.useState('isActive', listItem.index())();
+  const highlighted = store.useState('isActive', listItem.index);
   const itemProps = store.useState('itemProps');
 
   const {
@@ -140,25 +139,25 @@ export interface MenuRadioItemProps
   /**
    * The click handler for the menu item.
    */
-  onClick?: JSX.EventHandlerUnion<HTMLElement, MouseEvent>;
+  onClick?: BaseUIComponentProps<'div', MenuRadioItemState>['onClick'] | undefined;
   /**
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * Overrides the text label to use when the item is matched during keyboard text navigation.
    */
-  label?: string;
+  label?: string | undefined;
   /**
    * @ignore
    */
-  id?: string;
+  id?: string | undefined;
   /**
    * Whether to close the menu when the item is clicked.
    * @default false
    */
-  closeOnClick?: boolean;
+  closeOnClick?: boolean | undefined;
 }
 
 export namespace MenuRadioItem {

@@ -6,12 +6,12 @@ import { useCompositeListContext } from './CompositeListContext';
 export interface UseCompositeListItemParameters<Metadata> {
   index?: MaybeAccessor<number | undefined>;
   label?: MaybeAccessor<string | null | undefined>;
-  metadata?: MaybeAccessor<Metadata | undefined | null>;
+  metadata?: MaybeAccessor<Metadata | undefined>;
   textRef?: MaybeAccessor<HTMLElement | null | undefined>;
   /** Enables guessing the indexes. This avoids a re-render after mount, which is useful for
    * large lists. This should be used for lists that are likely flat and vertical, other cases
    * might trigger a re-render anyway. */
-  indexGuessBehavior?: IndexGuessBehavior;
+  indexGuessBehavior?: IndexGuessBehavior | undefined;
 }
 
 interface UseCompositeListItemReturnValue {

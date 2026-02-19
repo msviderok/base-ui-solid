@@ -27,8 +27,14 @@ export function AlertDialogRoot<Payload>(props: AlertDialogRoot.Props<Payload>) 
       get open() {
         return defaultOpen();
       },
+      get openProp() {
+        return openProp();
+      },
       get activeTriggerId() {
-        return triggerIdProp() !== undefined ? triggerIdProp() : defaultTriggerIdProp();
+        return defaultTriggerIdProp();
+      },
+      get triggerIdProp() {
+        return triggerIdProp();
       },
       modal: true,
       disablePointerDismissal: true,
@@ -38,8 +44,8 @@ export function AlertDialogRoot<Payload>(props: AlertDialogRoot.Props<Payload>) 
       role: 'alertdialog',
     });
 
-  store.useControlledProp('open', openProp, defaultOpen);
-  store.useControlledProp('activeTriggerId', triggerIdProp, defaultTriggerIdProp);
+  store.useControlledProp('openProp', openProp);
+  store.useControlledProp('triggerIdProp', triggerIdProp);
   store.useSyncedValue('nested', nested);
   store.useContextCallback('onOpenChange', props.onOpenChange);
   store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
@@ -74,7 +80,9 @@ export interface AlertDialogRootProps<Payload = unknown> extends Omit<
   /**
    * Event handler called when the dialog is opened or closed.
    */
-  onOpenChange?: (open: boolean, eventDetails: AlertDialogRoot.ChangeEventDetails) => void;
+  onOpenChange?:
+    | ((open: boolean, eventDetails: AlertDialogRoot.ChangeEventDetails) => void)
+    | undefined;
   /**
    * A ref to imperative actions.
    * - `unmount`: When specified, the dialog will not be unmounted when closed.
@@ -82,13 +90,13 @@ export interface AlertDialogRootProps<Payload = unknown> extends Omit<
    * Useful when the dialog's animation is controlled by an external library.
    * - `close`: Closes the dialog imperatively when called.
    */
-  actionsRef?: AlertDialogRoot.Actions;
+  actionsRef?: (AlertDialogRoot.Actions | null) | undefined;
   /**
-   * A handle to associate the popover with a trigger.
-   * If specified, allows external triggers to control the popover's open state.
+   * A handle to associate the alert dialog with a trigger.
+   * If specified, allows external triggers to control the alert dialog's open state.
    * Can be created with the AlertDialog.createHandle() method.
    */
-  handle?: DialogHandle<Payload>;
+  handle?: DialogHandle<Payload> | undefined;
 }
 
 export type AlertDialogRootActions = DialogRoot.Actions;

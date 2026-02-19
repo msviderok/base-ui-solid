@@ -23,12 +23,16 @@ export function SelectBackdrop(componentProps: SelectBackdrop.Props) {
 
   const { store } = useSelectRootContext();
 
+  const open = store.useState('open');
+  const mounted = store.useState('mounted');
+  const transitionStatus = store.useState('transitionStatus');
+
   const state: SelectBackdrop.State = {
     get open() {
-      return store.open;
+      return open();
     },
     get transitionStatus() {
-      return store.transitionStatus;
+      return transitionStatus();
     },
   };
 
@@ -38,7 +42,7 @@ export function SelectBackdrop(componentProps: SelectBackdrop.Props) {
       {
         role: 'presentation',
         get hidden() {
-          return !store.mounted;
+          return !mounted();
         },
         style: {
           'user-select': 'none',

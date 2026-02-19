@@ -22,7 +22,7 @@ export function PopoverPortal(props: PopoverPortal.Props) {
   return (
     <Show when={shouldRender()}>
       <PopoverPortalContext.Provider value={keepMounted}>
-        <FloatingPortal {...portalProps} renderGuards={false} />
+        <FloatingPortal {...portalProps} />
       </PopoverPortalContext.Provider>
     </Show>
   );
@@ -37,7 +37,7 @@ export interface PopoverPortalProps extends FloatingPortal.Props<PopoverPortal.S
    * Whether to keep the portal mounted in the DOM while the popup is hidden.
    * @default false
    */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export namespace PopoverPortal {

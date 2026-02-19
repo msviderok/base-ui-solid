@@ -1,4 +1,3 @@
-import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button/useButton';
 import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
@@ -32,7 +31,9 @@ export function ToastAction(componentProps: ToastAction.Props) {
     enabled: () => Boolean(toast().actionProps?.children ?? componentProps.children),
     state,
     ref: buttonRef,
-    props: [elementProps, (props) => mergeProps(props, toast().actionProps), getButtonProps],
+    get props() {
+      return [elementProps, toast().actionProps, getButtonProps];
+    },
     get children() {
       return <>{toast().actionProps?.children ?? componentProps.children}</>;
     },

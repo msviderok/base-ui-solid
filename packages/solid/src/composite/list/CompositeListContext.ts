@@ -11,7 +11,7 @@ export interface CompositeListContextValue<Metadata> {
   ) => void;
   refs: {
     elements: Array<HTMLElement | null | undefined>;
-    labels?: Array<string | null>;
+    labels?: Array<string | null> | undefined;
   };
   nextIndex: Accessor<number>;
   setNextIndex: (nextIndex: number) => void;

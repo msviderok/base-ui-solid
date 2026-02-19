@@ -1,4 +1,5 @@
-import { batch, Show } from 'solid-js';
+import { error } from '@base-ui/utils/error';
+import { batch, createEffect, Show } from 'solid-js';
 import { CompositeItem } from '../composite/item/CompositeItem';
 import { splitComponentProps } from '../solid-helpers';
 import { useToggleGroupContext } from '../toggle-group/ToggleGroupContext';
@@ -19,7 +20,7 @@ import { useRenderElement } from '../utils/useRenderElement';
  *
  * Documentation: [Base UI Toggle](https://base-ui.com/react/components/toggle)
  */
-export function Toggle(componentProps: Toggle.Props) {
+export function Toggle<Value extends string>(componentProps: Toggle.Props<Value>) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'defaultPressed',
     'disabled',
@@ -45,6 +46,18 @@ export function Toggle(componentProps: Toggle.Props) {
   const defaultPressed = () => (groupContext ? undefined : defaultPressedProp());
 
   const disabled = () => (disabledProp() || groupContext?.disabled()) ?? false;
+
+  if (process.env.NODE_ENV !== 'production') {
+    createEffect(() => {
+      if (groupContext && valueProp() === undefined && groupContext.isValueInitialized()) {
+        error(
+          'A `<Toggle>` component rendered in a `<ToggleGroup>` has no explicit `value` prop.',
+          'This will cause issues between the Toggle Group and Toggle values.',
+          'Provide the `<Toggle>` with a `value` prop matching the `<ToggleGroup>` values prop type.',
+        );
+      }
+    });
+  }
 
   const [pressed, setPressedState] = useControlled({
     controlled: () => (groupContext ? groupValue()?.indexOf(value()) > -1 : pressedProp()),
@@ -133,33 +146,33 @@ export interface ToggleState {
   disabled: boolean;
 }
 
-export interface ToggleProps
+export interface ToggleProps<Value extends string>
   extends NativeButtonProps, BaseUIComponentProps<'button', Toggle.State> {
   /**
    * Whether the toggle button is currently pressed.
    * This is the controlled counterpart of `defaultPressed`.
    */
-  pressed?: boolean;
+  pressed?: boolean | undefined;
   /**
    * Whether the toggle button is currently pressed.
    * This is the uncontrolled counterpart of `pressed`.
    * @default false
    */
-  defaultPressed?: boolean;
+  defaultPressed?: boolean | undefined;
   /**
    * Callback fired when the pressed state is changed.
    *
    * @param {boolean} pressed The new pressed state.
    * @param {Event} event The corresponding event that initiated the change.
    */
-  onPressedChange?: (pressed: boolean, eventDetails: Toggle.ChangeEventDetails) => void;
+  onPressedChange?:
+    | ((pressed: boolean, eventDetails: Toggle.ChangeEventDetails) => void)
+    | undefined;
   /**
-   * Whether the component renders a native `<button>` element when replacing it
-   * via the `render` prop.
-   * Set to `false` if the rendered element is not a button (e.g. `<div>`).
-   * @default true
+   * A unique string that identifies the toggle when used
+   * inside a toggle group.
    */
-  nativeButton?: boolean;
+  value?: Value | undefined;
 }
 
 export type ToggleChangeEventReason = typeof REASONS.none;
@@ -168,7 +181,7 @@ export type ToggleChangeEventDetails = BaseUIChangeEventDetails<Toggle.ChangeEve
 
 export namespace Toggle {
   export type State = ToggleState;
-  export type Props = ToggleProps;
+  export type Props<TValue extends string = string> = ToggleProps<TValue>;
   export type ChangeEventReason = ToggleChangeEventReason;
   export type ChangeEventDetails = ToggleChangeEventDetails;
 }

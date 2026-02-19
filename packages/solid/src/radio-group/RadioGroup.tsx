@@ -1,9 +1,9 @@
 import {
   batch,
   createEffect,
-  createMemo,
   createSignal,
   on,
+  onCleanup,
   mergeProps as solidMergeProps,
   type Ref,
 } from 'solid-js';
@@ -17,14 +17,12 @@ import { useFieldsetRootContext } from '../fieldset/root/FieldsetRootContext';
 import { contains } from '../floating-ui-solid/utils';
 import { useFormContext } from '../form/FormContext';
 import { useLabelableContext } from '../labelable-provider/LabelableContext';
-import { mergeProps } from '../merge-props';
 import { splitComponentProps } from '../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
 import { REASONS } from '../utils/reasons';
 import type { BaseUIComponentProps, HTMLProps } from '../utils/types';
 import { useBaseUiId } from '../utils/useBaseUiId';
 import { useControlled } from '../utils/useControlled';
-import { visuallyHiddenInput } from '../utils/visuallyHidden';
 import { RadioGroupContext } from './RadioGroupContext';
 
 const MODIFIER_KEYS = [SHIFT];
@@ -35,7 +33,7 @@ const MODIFIER_KEYS = [SHIFT];
  *
  * Documentation: [Base UI Radio Group](https://base-ui.com/react/components/radio)
  */
-export function RadioGroup(componentProps: RadioGroup.Props) {
+export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'disabled',
     'readOnly',
@@ -81,7 +79,7 @@ export function RadioGroup(componentProps: RadioGroup.Props) {
     state: 'value',
   });
 
-  const setCheckedValue = (value: unknown, eventDetails: RadioGroup.ChangeEventDetails) => {
+  const setCheckedValue = (value: Value, eventDetails: RadioGroup.ChangeEventDetails) => {
     local.onValueChange?.(value, eventDetails);
 
     if (eventDetails.isCanceled) {
@@ -92,10 +90,55 @@ export function RadioGroup(componentProps: RadioGroup.Props) {
   };
 
   let controlRef = null as HTMLElement | null | undefined;
-  const registerControlRef = (element: HTMLElement | null | undefined) => {
-    if (controlRef == null && element != null) {
+  let groupInputRef = null as HTMLInputElement | null | undefined;
+  let firstEnabledInputRef = null as HTMLInputElement | null | undefined;
+
+  function setInputRef(hiddenInput: HTMLInputElement | null | undefined) {
+    if (local.inputRef) {
+      if (typeof local.inputRef === 'function') {
+        const cleanup = () => (local.inputRef as Function)(hiddenInput);
+        onCleanup(cleanup);
+      } else {
+        local.inputRef = hiddenInput;
+      }
+    }
+
+    groupInputRef = hiddenInput;
+    validation.inputRef = hiddenInput;
+  }
+
+  const registerControlRef = (element: HTMLElement | null | undefined, isDisabled = false) => {
+    if (!element) {
+      return;
+    }
+
+    if (isDisabled) {
+      if (controlRef === element) {
+        controlRef = null;
+      }
+      return;
+    }
+
+    if (controlRef == null) {
       controlRef = element;
     }
+  };
+
+  const registerInputRef = (input: HTMLInputElement | null | undefined) => {
+    if (!input || input.disabled) {
+      return undefined;
+    }
+
+    if (!firstEnabledInputRef) {
+      firstEnabledInputRef = input;
+    }
+
+    const currentInput = groupInputRef;
+    if (input.checked || currentInput == null || currentInput.disabled) {
+      return setInputRef(input);
+    }
+
+    return undefined;
   };
 
   useField({
@@ -124,70 +167,17 @@ export function RadioGroup(componentProps: RadioGroup.Props) {
     }),
   );
 
-  const [touched, setTouched] = createSignal(false);
-
-  const onBlur = (event: FocusEvent) => {
-    batch(() => {
-      if (!contains(event.currentTarget as Element, event.relatedTarget as Element)) {
-        setFieldTouched(true);
-        setFocused(false);
-
-        if (validationMode() === 'onBlur') {
-          validation.commit(checkedValue());
-        }
-      }
-    });
-  };
-
-  const onKeyDownCapture = (event: KeyboardEvent) => {
-    if (event.key.startsWith('Arrow')) {
-      batch(() => {
-        setFieldTouched(true);
-        setTouched(true);
-        setFocused(true);
-      });
+  createEffect(() => {
+    const fallbackInput = firstEnabledInputRef;
+    if (checkedValue() == null && fallbackInput && !fallbackInput.disabled) {
+      setInputRef(fallbackInput);
     }
-  };
-
-  const serializedCheckedValue = createMemo<string>(() => {
-    if (checkedValue() == null) {
-      return ''; // avoid uncontrolled -> controlled error
-    }
-    if (typeof checkedValue() === 'string') {
-      return checkedValue() as string;
-    }
-
-    return JSON.stringify(checkedValue());
   });
 
-  const inputProps = createMemo(() =>
-    mergeProps<'input'>(
-      {
-        value: serializedCheckedValue(),
-        ref: (el) => {
-          if (typeof local.inputRef === 'function') {
-            local.inputRef(el);
-          } else {
-            local.inputRef = el;
-          }
-          validation.inputRef = el;
-        },
-        id: id(),
-        name: serializedCheckedValue() ? name() : undefined,
-        disabled: disabled(),
-        readOnly: local.readOnly,
-        required: local.required,
-        'aria-labelledby': elementProps['aria-labelledby'] ?? fieldsetContext?.legendId(),
-        'aria-hidden': true,
-        tabIndex: -1,
-        style: visuallyHiddenInput,
-        onFocus() {
-          controlRef?.focus();
-        },
-      },
-      validation.getInputValidationProps,
-    ),
-  );
+  const [touched, setTouched] = createSignal(false);
+
+  const ariaLabelledby = () =>
+    elementProps['aria-labelledby'] ?? labelId() ?? fieldsetContext?.legendId();
 
   const state: RadioGroup.State = solidMergeProps(fieldState, {
     get disabled() {
@@ -201,7 +191,7 @@ export function RadioGroup(componentProps: RadioGroup.Props) {
     },
   });
 
-  const contextValue: RadioGroupContext = solidMergeProps(fieldState, {
+  const contextValue: RadioGroupContext<Value> = solidMergeProps(fieldState, {
     checkedValue,
     disabled,
     validation,
@@ -210,6 +200,7 @@ export function RadioGroup(componentProps: RadioGroup.Props) {
     readOnly: () => local.readOnly,
     required: () => local.required,
     registerControlRef,
+    registerInputRef,
     setCheckedValue,
     setTouched,
     touched,
@@ -227,15 +218,30 @@ export function RadioGroup(componentProps: RadioGroup.Props) {
       return local.readOnly || undefined;
     },
     get 'aria-labelledby'() {
-      return labelId();
+      return ariaLabelledby();
     },
     onFocus() {
       setFocused(true);
     },
-    onBlur,
+    onBlur(event) {
+      if (!contains(event.currentTarget, event.relatedTarget as Element)) {
+        setFieldTouched(true);
+        setFocused(false);
+
+        if (validationMode() === 'onBlur') {
+          validation.commit(checkedValue());
+        }
+      }
+    },
     'on:keydown': {
       capture: true,
-      handleEvent: onKeyDownCapture,
+      handleEvent(event) {
+        if (event.key.startsWith('Arrow')) {
+          setFieldTouched(true);
+          setTouched(true);
+          setFocused(true);
+        }
+      },
     },
   };
 
@@ -251,7 +257,6 @@ export function RadioGroup(componentProps: RadioGroup.Props) {
         enableHomeAndEndKeys={false}
         modifierKeys={MODIFIER_KEYS}
       />
-      <input {...(inputProps() as any)} />
     </RadioGroupContext.Provider>
   );
 }
@@ -260,10 +265,14 @@ export interface RadioGroupState extends FieldRoot.State {
   /**
    * Whether the user should be unable to select a different radio button in the group.
    */
-  readOnly: boolean | undefined;
+  readOnly: boolean;
+  /**
+   * Whether the user must tick a radio button within the group before submitting a form.
+   */
+  required: boolean;
 }
 
-export interface RadioGroupProps extends Omit<
+export interface RadioGroupProps<Value = any> extends Omit<
   BaseUIComponentProps<'div', RadioGroup.State>,
   'value'
 > {
@@ -271,41 +280,41 @@ export interface RadioGroupProps extends Omit<
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * Whether the user should be unable to select a different radio button in the group.
    * @default false
    */
-  readOnly?: boolean;
+  readOnly?: boolean | undefined;
   /**
    * Whether the user must choose a value before submitting a form.
    * @default false
    */
-  required?: boolean;
+  required?: boolean | undefined;
   /**
    * Identifies the field when a form is submitted.
    */
-  name?: string;
+  name?: string | undefined;
   /**
    * The controlled value of the radio item that should be currently selected.
    *
    * To render an uncontrolled radio group, use the `defaultValue` prop instead.
    */
-  value?: any;
+  value?: Value | undefined;
   /**
    * The uncontrolled value of the radio button that should be initially selected.
    *
    * To render a controlled radio group, use the `value` prop instead.
    */
-  defaultValue?: any;
+  defaultValue?: Value | undefined;
   /**
    * Callback fired when the value changes.
    */
-  onValueChange?: (value: any, eventDetails: RadioGroup.ChangeEventDetails) => void;
+  onValueChange?: ((value: Value, eventDetails: RadioGroup.ChangeEventDetails) => void) | undefined;
   /**
    * A ref to access the hidden input element.
    */
-  inputRef?: Ref<HTMLInputElement>;
+  inputRef?: Ref<HTMLInputElement | null | undefined> | undefined;
 }
 
 export type RadioGroupChangeEventReason = typeof REASONS.none;
@@ -314,7 +323,7 @@ export type RadioGroupChangeEventDetails = BaseUIChangeEventDetails<RadioGroup.C
 
 export namespace RadioGroup {
   export type State = RadioGroupState;
-  export type Props = RadioGroupProps;
+  export type Props<TValue = any> = RadioGroupProps<TValue>;
   export type ChangeEventReason = RadioGroupChangeEventReason;
   export type ChangeEventDetails = RadioGroupChangeEventDetails;
 }

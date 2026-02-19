@@ -1,3 +1,4 @@
+import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import {
   batch,
   createEffect,
@@ -23,7 +24,7 @@ import type { BaseUIComponentProps, NonNativeButtonProps } from '../../utils/typ
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { visuallyHiddenInput } from '../../utils/visuallyHidden';
+import { visuallyHidden, visuallyHiddenInput } from '../../utils/visuallyHidden';
 import { stateAttributesMapping } from '../stateAttributesMapping';
 import { SwitchRootContext } from './SwitchRootContext';
 
@@ -46,6 +47,7 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
     'required',
     'disabled',
     'uncheckedValue',
+    'value',
   ]);
   const checkedProp = () => local.checked;
   const idProp = () => local.id;
@@ -174,7 +176,15 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
 
       event.preventDefault();
 
-      inputRef?.click();
+      inputRef?.dispatchEvent(
+        new PointerEvent('click', {
+          bubbles: true,
+          shiftKey: event.shiftKey,
+          ctrlKey: event.ctrlKey,
+          altKey: event.altKey,
+          metaKey: event.metaKey,
+        }),
+      );
     },
   };
 
@@ -195,7 +205,9 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
       get required() {
         return required();
       },
-      style: visuallyHiddenInput,
+      get style() {
+        return name() ? visuallyHiddenInput : visuallyHidden;
+      },
       tabIndex: -1,
       type: 'checkbox',
       'aria-hidden': true,
@@ -233,6 +245,11 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
       },
     },
     validation.getInputValidationProps,
+    {
+      get value() {
+        return local.value !== undefined ? local.value : undefined;
+      },
+    },
   );
 
   const state: SwitchRoot.State = solidMergeProps(fieldState, {
@@ -307,52 +324,59 @@ export interface SwitchRootProps
   /**
    * The id of the switch element.
    */
-  id?: string;
+  id?: string | undefined;
   /**
    * Whether the switch is currently active.
    *
    * To render an uncontrolled switch, use the `defaultChecked` prop instead.
    */
-  checked?: boolean;
+  checked?: boolean | undefined;
   /**
    * Whether the switch is initially active.
    *
    * To render a controlled switch, use the `checked` prop instead.
    * @default false
    */
-  defaultChecked?: boolean;
+  defaultChecked?: boolean | undefined;
   /**
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * A ref to access the hidden `<input>` element.
    */
-  inputRef?: Ref<HTMLInputElement>;
+  inputRef?: Ref<HTMLInputElement> | undefined;
   /**
    * Identifies the field when a form is submitted.
    */
-  name?: string;
+  name?: string | undefined;
   /**
    * Event handler called when the switch is activated or deactivated.
    */
-  onCheckedChange?: (checked: boolean, eventDetails: SwitchRoot.ChangeEventDetails) => void;
+  onCheckedChange?:
+    | ((checked: boolean, eventDetails: SwitchRoot.ChangeEventDetails) => void)
+    | undefined;
   /**
    * Whether the user should be unable to activate or deactivate the switch.
    * @default false
    */
-  readOnly?: boolean;
+  readOnly?: boolean | undefined;
   /**
    * Whether the user must activate the switch before submitting a form.
    * @default false
    */
-  required?: boolean;
+  required?: boolean | undefined;
+  /**
+   * The value submitted with the form when the switch is on.
+   * By default, switch submits the "on" value, matching native checkbox behavior.
+   */
+  value?: string | undefined;
   /**
    * The value submitted with the form when the switch is off.
    * By default, unchecked switches do not submit any value, matching native checkbox behavior.
    */
-  uncheckedValue?: string;
+  uncheckedValue?: string | undefined;
 }
 
 export type SwitchRootChangeEventReason = typeof REASONS.none;

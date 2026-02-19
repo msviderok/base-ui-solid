@@ -1,5 +1,4 @@
 import { useHoverFloatingInteraction } from '../../floating-ui-solid';
-import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
@@ -49,9 +48,16 @@ export function TooltipPopup(componentProps: TooltipPopup.Props) {
   const disabled = store.useState('disabled');
   const closeDelay = store.useState('closeDelay');
 
-  useHoverFloatingInteraction(floatingContext, {
-    enabled: !disabled,
-    closeDelay,
+  useHoverFloatingInteraction({
+    context: floatingContext,
+    parameters: {
+      get enabled() {
+        return !disabled();
+      },
+      get closeDelay() {
+        return closeDelay();
+      },
+    },
   });
 
   const state: TooltipPopup.State = {
@@ -78,11 +84,9 @@ export function TooltipPopup(componentProps: TooltipPopup.Props) {
       store.context.refs.popupRef = el;
       store.useStateSetter('popupElement')(el);
     },
-    props: [
-      popupProps,
-      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
-      elementProps,
-    ],
+    get props() {
+      return [popupProps(), getDisabledMountTransitionStyles(transitionStatus()), elementProps];
+    },
     stateAttributesMapping,
   });
 

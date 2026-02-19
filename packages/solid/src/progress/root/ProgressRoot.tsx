@@ -1,26 +1,10 @@
 import { createMemo, createSignal, type JSX } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
-import { formatNumber } from '../../utils/formatNumber';
+import { formatNumberValue } from '../../utils/formatNumber';
 import { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { ProgressRootContext } from './ProgressRootContext';
 import { progressStateAttributesMapping } from './stateAttributesMapping';
-
-function formatValue(
-  value: number | null,
-  locale?: Intl.LocalesArgument,
-  format?: Intl.NumberFormatOptions,
-): string {
-  if (value == null) {
-    return '';
-  }
-
-  if (!format) {
-    return formatNumber(value / 100, locale, { style: 'percent' });
-  }
-
-  return formatNumber(value, locale, format);
-}
 
 function getDefaultAriaValueText(formattedValue: string | null, value: number | null) {
   if (value == null) {
@@ -60,7 +44,7 @@ export function ProgressRoot(componentProps: ProgressRoot.Props) {
     return 'indeterminate';
   });
 
-  const formattedValue = () => formatValue(local.value, local.locale, local.format);
+  const formattedValue = () => formatNumberValue(local.value, local.locale, local.format);
 
   const state: ProgressRoot.State = {
     get status() {
@@ -118,33 +102,33 @@ export interface ProgressRootProps extends BaseUIComponentProps<'div', ProgressR
   /**
    * A string value that provides a user-friendly name for `aria-valuenow`, the current value of the meter.
    */
-  'aria-valuetext'?: JSX.AriaAttributes['aria-valuetext'];
+  'aria-valuetext'?: JSX.AriaAttributes['aria-valuetext'] | undefined;
   /**
    * Options to format the value.
    */
-  format?: Intl.NumberFormatOptions;
+  format?: Intl.NumberFormatOptions | undefined;
   /**
    * Accepts a function which returns a string value that provides a human-readable text alternative for the current value of the progress bar.
    * @param {string} formattedValue The component's formatted value.
    * @param {number | null} value The component's numerical value.
    * @returns {string}
    */
-  getAriaValueText?: (formattedValue: string | null, value: number | null) => string;
+  getAriaValueText?: ((formattedValue: string | null, value: number | null) => string) | undefined;
   /**
    * The locale used by `Intl.NumberFormat` when formatting the value.
    * Defaults to the user's runtime locale.
    */
-  locale?: Intl.LocalesArgument;
+  locale?: Intl.LocalesArgument | undefined;
   /**
    * The maximum value.
    * @default 100
    */
-  max?: number;
+  max?: number | undefined;
   /**
    * The minimum value.
    * @default 0
    */
-  min?: number;
+  min?: number | undefined;
   /**
    * The current value. The component is indeterminate when value is `null`.
    * @default null

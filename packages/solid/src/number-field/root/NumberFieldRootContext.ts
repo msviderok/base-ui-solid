@@ -16,9 +16,9 @@ export interface NumberFieldRootContext {
   disabled: Accessor<boolean>;
   readOnly: Accessor<boolean>;
   id: Accessor<string | undefined>;
-  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => void;
+  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => boolean;
   getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
-  incrementValue: (amount: number, params: IncrementValueParameters) => void;
+  incrementValue: (amount: number, params: IncrementValueParameters) => boolean;
   refs: {
     inputRef: HTMLInputElement | null | undefined;
     allowInputSyncRef: boolean | null;

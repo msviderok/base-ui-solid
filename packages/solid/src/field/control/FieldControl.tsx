@@ -1,4 +1,6 @@
+import { ownerDocument } from '@base-ui/utils/owner';
 import { batch, createEffect, mergeProps as solidMergeProps, type JSX } from 'solid-js';
+import { activeElement } from '../../floating-ui-solid/utils';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { mergeProps } from '../../merge-props';
@@ -32,13 +34,26 @@ export function FieldControl(componentProps: FieldControl.Props) {
     'disabled',
     'onValueChange',
     'defaultValue',
+    'autofocus',
   ]);
   const idProp = () => local.id;
   const nameProp = () => local.name;
   const valueProp = () => local.value;
   const disabledProp = () => local.disabled ?? false;
+  const autofocus = () => local.autofocus ?? false;
 
-  const { state: fieldState, name: fieldName, disabled: fieldDisabled } = useFieldRootContext();
+  const {
+    state: fieldState,
+    name: fieldName,
+    disabled: fieldDisabled,
+    setTouched,
+    setDirty,
+    validityData,
+    setFocused,
+    setFilled,
+    validationMode,
+    validation,
+  } = useFieldRootContext();
 
   const disabled = () => fieldDisabled() || disabledProp();
   const name = () => fieldName() ?? nameProp();
@@ -49,8 +64,6 @@ export function FieldControl(componentProps: FieldControl.Props) {
     },
   });
 
-  const { setTouched, setDirty, validityData, setFocused, setFilled, validationMode, validation } =
-    useFieldRootContext();
   const { labelId } = useLabelableContext();
 
   const id = useLabelableId({ id: idProp });
@@ -64,24 +77,24 @@ export function FieldControl(componentProps: FieldControl.Props) {
     }
   });
 
-  const [value, setValueUnwrapped] = useControlled({
-    controlled: () => local.value,
+  let inputRef = null as HTMLElement | null | undefined;
+
+  createEffect(() => {
+    if (autofocus() && inputRef === activeElement(ownerDocument(inputRef ?? null))) {
+      setFocused(true);
+    }
+  });
+
+  const [valueUnwrapped] = useControlled({
+    controlled: valueProp,
     default: () => local.defaultValue,
     name: 'FieldControl',
     state: 'value',
   });
 
-  const setValue = (nextValue: string, eventDetails: FieldControl.ChangeEventDetails) => {
-    batch(() => {
-      local.onValueChange?.(nextValue, eventDetails);
+  const isControlled = () => valueProp() !== undefined;
 
-      if (eventDetails.isCanceled) {
-        return;
-      }
-
-      setValueUnwrapped(nextValue);
-    });
-  };
+  const value = () => (isControlled() ? valueUnwrapped() : undefined);
 
   useField({
     id,
@@ -95,9 +108,9 @@ export function FieldControl(componentProps: FieldControl.Props) {
   const element = useRenderElement('input', componentProps, {
     state,
     ref: (el) => {
-      validation.inputRef = el;
+      // validation.inputRef = el;
+      inputRef = el;
     },
-    customStyleHookMapping: fieldValidityMapping,
     props: [
       {
         get id() {
@@ -112,12 +125,15 @@ export function FieldControl(componentProps: FieldControl.Props) {
         get 'aria-labelledby'() {
           return labelId();
         },
+        get autofocus() {
+          return autofocus();
+        },
         get value() {
-          return value();
+          return isControlled() ? value() : undefined;
         },
         onChange(event) {
           const inputValue = event.currentTarget.value;
-          setValue(inputValue, createChangeEventDetails(REASONS.none, event));
+          local.onValueChange?.(inputValue, createChangeEventDetails(REASONS.none, event));
           setDirty(inputValue !== validityData.initialValue);
           setFilled(inputValue !== '');
         },
@@ -154,8 +170,10 @@ export interface FieldControlProps extends BaseUIComponentProps<'input', FieldCo
   /**
    * Callback fired when the `value` changes. Use when controlled.
    */
-  onValueChange?: (value: string, eventDetails: FieldControl.ChangeEventDetails) => void;
-  defaultValue?: JSX.InputHTMLAttributes<HTMLInputElement>['value'];
+  onValueChange?:
+    | ((value: string, eventDetails: FieldControl.ChangeEventDetails) => void)
+    | undefined;
+  defaultValue?: JSX.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
 export type FieldControlChangeEventReason = typeof REASONS.none;

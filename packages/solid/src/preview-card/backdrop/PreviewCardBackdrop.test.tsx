@@ -1,6 +1,6 @@
 import { createRenderer, describeConformance } from '#test-utils';
 import { PreviewCard } from '@msviderok/base-ui-solid/preview-card';
-import { screen } from '@solidjs/testing-library';
+import { screen, waitFor } from '@solidjs/testing-library';
 
 describe('<PreviewCard.Backdrop />', () => {
   const { render } = createRenderer();
@@ -27,6 +27,8 @@ describe('<PreviewCard.Backdrop />', () => {
 
     await user.hover(screen.getByText('Open'));
 
-    expect(screen.getByTestId('backdrop').style.pointerEvents).to.equal('none');
+    await waitFor(() => {
+      expect(screen.getByTestId('backdrop').style.pointerEvents).to.equal('none');
+    });
   });
 });

@@ -17,9 +17,9 @@ export function ToastTitle(componentProps: ToastTitle.Props) {
 
   const { toast, setTitleId } = useToastRootContext();
 
-  const id = useId(idProp);
-
   const shouldRender = () => 'children' in local;
+
+  const id = useId(idProp);
 
   createEffect(() => {
     if (!shouldRender()) {

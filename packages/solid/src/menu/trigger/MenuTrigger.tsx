@@ -86,9 +86,9 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   }
 
   const thisTriggerId = useBaseUiId(idProp);
-  const isTriggerActive = () => store.useState('isTriggerActive', thisTriggerId())();
-  const floatingRootContext = store.select('floatingRootContext');
-  const isOpenedByThisTrigger = () => store.useState('isOpenedByTrigger', thisTriggerId())();
+  const isTriggerActive = store.useState('isTriggerActive', thisTriggerId);
+  const floatingRootContext = store.useState('floatingRootContext');
+  const isOpenedByThisTrigger = store.useState('isOpenedByTrigger', thisTriggerId);
 
   let triggerElementRef = null as HTMLElement | null | undefined;
 
@@ -100,11 +100,13 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   const floatingNodeId = useFloatingNodeId(floatingTreeRoot);
   const floatingParentNodeId = useFloatingParentNodeId();
 
-  const { registerTrigger, isMountedByThisTrigger } = useTriggerDataForwarding(
-    thisTriggerId,
-    triggerElementRef,
+  const { registerTrigger, isMountedByThisTrigger } = useTriggerDataForwarding({
+    get triggerId() {
+      return thisTriggerId();
+    },
+    triggerElement: triggerElementRef,
     store,
-    {
+    stateUpdates: {
       payload: local.payload,
       get closeDelay() {
         return closeDelay();
@@ -121,7 +123,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
         return compositeRootContext?.relayKeyboardEvent as any;
       },
     },
-  );
+  });
 
   const isInMenubar = () => parent().type === 'menubar';
 
@@ -195,24 +197,36 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
 
   const openOnHover = () => openOnHoverProp() ?? parentMenubarHasSubmenuOpen();
 
-  const hoverProps = useHoverReferenceInteraction(floatingRootContext, {
-    enabled: () =>
-      openOnHover() &&
-      !disabled() &&
-      parent().type !== 'context-menu' &&
-      (!isInMenubar() || (parentMenubarHasSubmenuOpen() && !isMountedByThisTrigger())),
-    handleClose: safePolygon({
-      get blockPointerEvents() {
-        return !isInMenubar();
+  const hoverProps = useHoverReferenceInteraction({
+    get context() {
+      return floatingRootContext();
+    },
+    props: {
+      get enabled() {
+        return (
+          openOnHover() &&
+          !disabled() &&
+          parent().type !== 'context-menu' &&
+          (!isInMenubar() || (parentMenubarHasSubmenuOpen() && !isMountedByThisTrigger()))
+        );
       },
-    }),
-    mouseOnly: true,
-    move: false,
-    restMs: () => (parent().type === undefined ? delay() : undefined),
-    delay: () => ({ close: closeDelay() }),
-    triggerElementRef,
-    externalTree: floatingTreeRoot,
-    isActiveTrigger: isTriggerActive,
+      handleClose: safePolygon({
+        get blockPointerEvents() {
+          return !isInMenubar();
+        },
+      }),
+      mouseOnly: true,
+      move: false,
+      get restMs() {
+        return parent().type === undefined ? delay() : undefined;
+      },
+      delay: () => ({ close: closeDelay() }),
+      triggerElementRef,
+      externalTree: floatingTreeRoot,
+      get isActiveTrigger() {
+        return isTriggerActive();
+      },
+    },
   });
 
   // Whether to ignore clicks to open the menu.
@@ -245,7 +259,6 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   const localInteractionProps = useInteractions([click, focus]);
 
   const state: MenuTrigger.State = {
-    // @ts-expect-error - TODO: fix this
     get disabled() {
       return disabled();
     },
@@ -254,7 +267,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
     },
   };
 
-  const rootTriggerProps = () => store.useState('triggerProps', isMountedByThisTrigger())();
+  const rootTriggerProps = store.useState('triggerProps', isMountedByThisTrigger);
 
   const ref = (el: any) => {
     triggerRef = el;
@@ -271,7 +284,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   const props = () => [
     localInteractionProps.getReferenceProps(),
     hoverProps ?? EMPTY_OBJECT,
-    rootTriggerProps,
+    rootTriggerProps(),
     {
       'aria-haspopup': 'menu' as const,
       get id() {
@@ -390,22 +403,22 @@ export interface MenuTriggerProps<Payload = unknown>
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * A handle to associate the trigger with a menu.
    */
-  handle?: MenuHandle<Payload>;
+  handle?: MenuHandle<Payload> | undefined;
   /**
    * A payload to pass to the menu when it is opened.
    */
-  payload?: Payload;
+  payload?: Payload | undefined;
   /**
    * How long to wait before the menu may be opened on hover. Specified in milliseconds.
    *
    * Requires the `openOnHover` prop.
    * @default 100
    */
-  delay?: number;
+  delay?: number | undefined;
   /**
    * How long to wait before closing the menu that was opened on hover.
    * Specified in milliseconds.
@@ -413,11 +426,11 @@ export interface MenuTriggerProps<Payload = unknown>
    * Requires the `openOnHover` prop.
    * @default 0
    */
-  closeDelay?: number;
+  closeDelay?: number | undefined;
   /**
    * Whether the menu should also open when the trigger is hovered.
    */
-  openOnHover?: boolean;
+  openOnHover?: boolean | undefined;
 }
 
 export type MenuTriggerState = {
@@ -425,6 +438,10 @@ export type MenuTriggerState = {
    * Whether the menu is currently open.
    */
   open: boolean;
+  /**
+   * Whether the trigger is disabled.
+   */
+  disabled: boolean;
 };
 
 export namespace MenuTrigger {

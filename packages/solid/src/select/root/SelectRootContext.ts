@@ -41,11 +41,11 @@ export interface SelectRootContext {
   };
   handleScrollArrowVisibility: () => void;
   getItemProps: (
-    props?: HTMLProps & { active?: boolean; selected?: boolean },
+    props?: HTMLProps & { active?: boolean | undefined; selected?: boolean | undefined },
   ) => Record<string, unknown>; // PREVENT_COMMIT
   events: FloatingEvents;
   validation: UseFieldValidationReturnValue;
-  onOpenChangeComplete?: (open: boolean) => void;
+  onOpenChangeComplete?: ((open: boolean) => void) | undefined;
 }
 
 export const SelectRootContext = createContext<SelectRootContext | null>(null);

@@ -3,7 +3,7 @@ import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button/useButton';
 import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { useToastContext } from '../provider/ToastProviderContext';
+import { useToastProviderContext } from '../provider/ToastProviderContext';
 import { useToastRootContext } from '../root/ToastRootContext';
 
 /**
@@ -16,8 +16,9 @@ export function ToastClose(componentProps: ToastClose.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['disabled', 'nativeButton']);
   const nativeButton = () => local.nativeButton ?? true;
 
-  const { close, expanded } = useToastContext();
+  const store = useToastProviderContext();
   const { toast } = useToastRootContext();
+  const expanded = store.useState('expanded');
 
   const [hasFocus, setHasFocus] = createSignal(false);
 
@@ -41,7 +42,7 @@ export function ToastClose(componentProps: ToastClose.Props) {
           return !expanded() && !hasFocus();
         },
         onClick() {
-          close(toast().id);
+          store.closeToast(toast().id);
         },
         onFocus() {
           setHasFocus(true);

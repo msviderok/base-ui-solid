@@ -8,7 +8,7 @@ import { itemMapping } from '../utils/stateAttributesMapping';
 
 /**
  * Indicates whether the checkbox item is ticked.
- * Renders a `<div>` element.
+ * Renders a `<span>` element.
  *
  * Documentation: [Base UI Menu](https://base-ui.com/react/components/menu)
  */
@@ -68,7 +68,7 @@ export interface MenuCheckboxItemIndicatorProps extends BaseUIComponentProps<
    * Whether to keep the HTML element in the DOM when the checkbox item is not checked.
    * @default false
    */
-  keepMounted?: boolean;
+  keepMounted?: boolean | undefined;
 }
 
 export interface MenuCheckboxItemIndicatorState {

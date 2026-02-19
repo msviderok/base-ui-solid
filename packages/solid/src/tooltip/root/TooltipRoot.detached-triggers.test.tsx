@@ -266,6 +266,7 @@ describe('<Tooltip.Root />', () => {
         <Tooltip.Root handle={testTooltip} defaultOpen defaultTriggerId={triggerId}>
           {(data: NumberPayload) => (
             <>
+              <button type="button" aria-label="Initial focus" autofocus use:autofocus />
               <Tooltip.Trigger handle={testTooltip} payload={1}>
                 Trigger 1
               </Tooltip.Trigger>
@@ -398,6 +399,46 @@ describe('<Tooltip.Root />', () => {
       expect(screen.queryByText('Tooltip Content')).to.equal(null);
     });
 
+    it('should close when focusing a disabled trigger while another trigger is open', async () => {
+      const testTooltip = Tooltip.createHandle<number>();
+      render(() => (
+        <div>
+          <Tooltip.Trigger handle={testTooltip} payload={1}>
+            Trigger 1
+          </Tooltip.Trigger>
+          <Tooltip.Trigger handle={testTooltip} payload={2} disabled>
+            Trigger 2
+          </Tooltip.Trigger>
+
+          <Tooltip.Root handle={testTooltip}>
+            {(data: NumberPayload) => (
+              <Tooltip.Portal>
+                <Tooltip.Positioner>
+                  <Tooltip.Popup>
+                    <span data-testid="content">{data.payload}</span>
+                  </Tooltip.Popup>
+                </Tooltip.Positioner>
+              </Tooltip.Portal>
+            )}
+          </Tooltip.Root>
+        </div>
+      ));
+
+      const trigger1 = screen.getByRole('button', { name: 'Trigger 1' });
+      const trigger2 = screen.getByRole('button', { name: 'Trigger 2' });
+
+      trigger1.focus();
+      await flushMicrotasks();
+      expect(screen.getByTestId('content').textContent).to.equal('1');
+
+      trigger2.focus();
+      await flushMicrotasks();
+      await waitFor(() => {
+        expect(screen.queryByTestId('content')).to.equal(null);
+      });
+      expect(trigger2).not.to.have.attribute('data-popup-open');
+    });
+
     it('should set the payload and render content based on its value', async () => {
       const testTooltip = Tooltip.createHandle<number>();
       const { user } = render(() => (
@@ -432,6 +473,93 @@ describe('<Tooltip.Root />', () => {
       await user.unhover(trigger1);
       await user.hover(trigger2);
       expect(screen.getByTestId('content').textContent).to.equal('2');
+    });
+
+    it('should close when hovering a disabled trigger while another trigger is open', async () => {
+      const testTooltip = Tooltip.createHandle<number>();
+      const { user } = render(() => (
+        <div>
+          <Tooltip.Trigger handle={testTooltip} payload={1} delay={0}>
+            Trigger 1
+          </Tooltip.Trigger>
+          <Tooltip.Trigger handle={testTooltip} payload={2} disabled>
+            Trigger 2
+          </Tooltip.Trigger>
+
+          <Tooltip.Root handle={testTooltip}>
+            {(data: NumberPayload) => (
+              <Tooltip.Portal>
+                <Tooltip.Positioner>
+                  <Tooltip.Popup>
+                    <span data-testid="content">{data.payload}</span>
+                  </Tooltip.Popup>
+                </Tooltip.Positioner>
+              </Tooltip.Portal>
+            )}
+          </Tooltip.Root>
+        </div>
+      ));
+
+      const trigger1 = screen.getByRole('button', { name: 'Trigger 1' });
+      const trigger2 = screen.getByRole('button', { name: 'Trigger 2' });
+
+      await user.hover(trigger1);
+      await waitFor(() => {
+        expect(screen.getByTestId('content').textContent).to.equal('1');
+      });
+
+      await user.hover(trigger2);
+      await waitFor(() => {
+        expect(screen.queryByTestId('content')).to.equal(null);
+      });
+      expect(trigger2).not.to.have.attribute('data-popup-open');
+    });
+
+    it('should switch to a rendered disabled button trigger when trigger hover is enabled', async () => {
+      const testTooltip = Tooltip.createHandle<number>();
+      const { user } = render(() => (
+        <div>
+          <Tooltip.Trigger handle={testTooltip} payload={1} delay={0}>
+            Trigger 1
+          </Tooltip.Trigger>
+          <Tooltip.Trigger
+            handle={testTooltip}
+            payload={2}
+            delay={0}
+            render={(props) => (
+              <button {...props} type="button" disabled>
+                Trigger 2
+              </button>
+            )}
+          />
+
+          <Tooltip.Root handle={testTooltip}>
+            {(data: NumberPayload) => (
+              <Tooltip.Portal>
+                <Tooltip.Positioner>
+                  <Tooltip.Popup>
+                    <span data-testid="content">{data.payload}</span>
+                  </Tooltip.Popup>
+                </Tooltip.Positioner>
+              </Tooltip.Portal>
+            )}
+          </Tooltip.Root>
+        </div>
+      ));
+
+      const trigger1 = screen.getByRole('button', { name: 'Trigger 1' });
+      const trigger2 = screen.getByRole('button', { name: 'Trigger 2' });
+
+      await user.hover(trigger1);
+      await waitFor(() => {
+        expect(screen.getByTestId('content').textContent).to.equal('1');
+      });
+
+      await user.hover(trigger2);
+      await waitFor(() => {
+        expect(screen.getByTestId('content').textContent).to.equal('2');
+      });
+      expect(trigger2).to.have.attribute('data-popup-open');
     });
 
     it('should reuse the popup and positioner DOM nodes when switching triggers', async () => {
@@ -585,6 +713,62 @@ describe('<Tooltip.Root />', () => {
       await waitFor(() => {
         expect(screen.getByTestId('popup').textContent).to.equal('2');
       });
+    });
+
+    it('should not have inline scale style after switching triggers', async () => {
+      globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
+
+      const testTooltip = Tooltip.createHandle<number>();
+
+      function Test() {
+        return (
+          <>
+            <button type="button" aria-label="Initial focus" autofocus use:autofocus />
+            <Tooltip.Trigger handle={testTooltip} payload={1} delay={0}>
+              Trigger 1
+            </Tooltip.Trigger>
+            <Tooltip.Trigger handle={testTooltip} payload={2} delay={0}>
+              Trigger 2
+            </Tooltip.Trigger>
+
+            <Tooltip.Root handle={testTooltip}>
+              {(data: NumberPayload) => (
+                <Tooltip.Portal>
+                  <Tooltip.Positioner>
+                    <Tooltip.Popup data-testid="popup">
+                      <Tooltip.Viewport>
+                        <span data-testid="content">{data.payload}</span>
+                      </Tooltip.Viewport>
+                    </Tooltip.Popup>
+                  </Tooltip.Positioner>
+                </Tooltip.Portal>
+              )}
+            </Tooltip.Root>
+          </>
+        );
+      }
+
+      const { user } = render(() => <Test />);
+
+      const trigger1 = screen.getByRole('button', { name: 'Trigger 1' });
+      const trigger2 = screen.getByRole('button', { name: 'Trigger 2' });
+
+      // Open with Trigger 1
+      await user.hover(trigger1);
+      await waitFor(() => {
+        expect(screen.getByTestId('content').textContent).to.equal('1');
+      });
+
+      // Switch to Trigger 2
+      await user.unhover(trigger1);
+      await user.hover(trigger2);
+      await waitFor(() => {
+        expect(screen.getByTestId('content').textContent).to.equal('2');
+      });
+
+      // The popup should not have an inline scale style that would override CSS transitions
+      const popup = screen.getByTestId('popup');
+      expect(popup.style.scale).to.equal('');
     });
   });
 

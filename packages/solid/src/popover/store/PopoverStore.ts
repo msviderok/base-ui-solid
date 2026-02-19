@@ -40,9 +40,8 @@ type Context = PopupStoreContext<PopoverRoot.ChangeEventDetails> & {
   readonly stickIfOpenTimeout: Timeout;
 };
 
-function createInitialState<Payload>(): State<Payload> {
-  return {
-    ...createInitialPopupStoreState(),
+function createInitialState<Payload>(initialState?: Partial<State<Payload>>) {
+  return createInitialPopupStoreState<Payload, State<Payload>>({
     disabled: false,
     modal: false,
     instantType: undefined,
@@ -55,7 +54,10 @@ function createInitialState<Payload>(): State<Payload> {
     openOnHover: false,
     closeDelay: 0,
     hasViewport: false,
-  };
+    ...initialState,
+    mounted:
+      initialState?.open && initialState?.mounted === undefined ? true : initialState?.mounted,
+  });
 }
 
 const selectors = {
@@ -73,20 +75,10 @@ const selectors = {
   hasViewport: (state: State<unknown>) => state.hasViewport,
 };
 
-export class PopoverStore<Payload> extends SolidStore<
-  Readonly<State<Payload>>,
-  Context,
-  Selectors
-> {
+export class PopoverStore<Payload> extends SolidStore<State<Payload>, Context, Selectors> {
   constructor(initialState?: Partial<State<Payload>>) {
-    const initial = { ...createInitialState<Payload>(), ...initialState };
-
-    if (initial.open && initialState?.mounted === undefined) {
-      initial.mounted = true;
-    }
-
     super(
-      initial,
+      createInitialState(initialState),
       {
         refs: {
           popupRef: undefined,
@@ -169,7 +161,7 @@ export class PopoverStore<Payload> extends SolidStore<
     if (isKeyboardClick || isDismissClose) {
       this.set('instantType', isKeyboardClick ? 'click' : 'dismiss');
     } else if (eventDetails.reason === REASONS.focusOut) {
-      this.set('instantType', 'focus');
+      this.set('instantType', 'focus' as any);
     } else {
       this.set('instantType', undefined);
     }
@@ -179,9 +171,11 @@ export class PopoverStore<Payload> extends SolidStore<
     externalStore: PopoverStore<Payload> | undefined,
     initialState: Partial<State<Payload>>,
   ) {
-    const store = externalStore ?? new PopoverStore<Payload>(initialState);
+    const internalStore = new PopoverStore<Payload>(initialState);
 
-    onMount(store.disposeEffect);
+    const store = externalStore ?? internalStore;
+
+    onMount(internalStore.disposeEffect);
     return store;
   }
 

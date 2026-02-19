@@ -1,4 +1,4 @@
-import { batch, createEffect, createSignal, on, onCleanup } from 'solid-js';
+import { batch, createEffect, createSignal, onCleanup } from 'solid-js';
 import { isTabbable } from 'tabbable';
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import {
@@ -21,17 +21,13 @@ import { useButton } from '../../use-button';
 import { EMPTY_ARRAY, ownerVisuallyHidden, PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { FocusGuard } from '../../utils/FocusGuard';
-import { getCssDimensions } from '../../utils/getCssDimensions';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps, HTMLProps, NativeButtonProps } from '../../utils/types';
 import { useAnimationFrame } from '../../utils/useAnimationFrame';
-import { useAnimationsFinished } from '../../utils/useAnimationsFinished';
 import { useTimeout } from '../../utils/useTimeout';
 import { useNavigationMenuItemContext } from '../item/NavigationMenuItemContext';
 import { useNavigationMenuDismissContext } from '../list/NavigationMenuDismissContext';
-import { NavigationMenuPopupCssVars } from '../popup/NavigationMenuPopupCssVars';
-import { NavigationMenuPositionerCssVars } from '../positioner/NavigationMenuPositionerCssVars';
 import { NavigationMenuRoot } from '../root/NavigationMenuRoot';
 import {
   useNavigationMenuRootContext,
@@ -39,8 +35,6 @@ import {
 } from '../root/NavigationMenuRootContext';
 import { NAVIGATION_MENU_TRIGGER_IDENTIFIER } from '../utils/constants';
 import { isOutsideMenuEvent } from '../utils/isOutsideMenuEvent';
-
-const DEFAULT_SIZE = { width: 0, height: 0 };
 
 /**
  * Opens the navigation menu popup when hovered or clicked, revealing the
@@ -80,8 +74,6 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
 
   const stickIfOpenTimeout = useTimeout();
   const focusFrame = useAnimationFrame();
-  const sizeFrame1 = useAnimationFrame();
-  const sizeFrame2 = useAnimationFrame();
 
   const [triggerElement, setTriggerElement] = createSignal<HTMLElement | null | undefined>(
     undefined,
@@ -90,128 +82,14 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
   const [pointerType, setPointerType] = createSignal<'mouse' | 'touch' | 'pen' | ''>('');
 
   let allowFocusRef = false;
-  let prevSizeRef = DEFAULT_SIZE;
-  let animationAbortControllerRef = null as AbortController | null;
 
   const isActiveItem = () => open() && value() === itemValue();
   const interactionsEnabled = () => (positionerElement() ? true : !value());
 
-  const runOnceAnimationsFinish = useAnimationsFinished(popupElement);
-
-  createEffect(
-    on(isActiveItem, () => {
-      animationAbortControllerRef?.abort();
-    }),
-  );
-
-  function setAutoSizes() {
-    const element = popupElement();
-    if (!element) {
-      return;
-    }
-
-    element.style.setProperty(NavigationMenuPopupCssVars.popupWidth, 'auto');
-    element.style.setProperty(NavigationMenuPopupCssVars.popupHeight, 'auto');
-  }
-
-  const handleValueChange = (currentWidth: number, currentHeight: number) => {
-    const popupEl = popupElement();
-    const positionerEl = positionerElement();
-    if (!popupEl || !positionerEl) {
-      return;
-    }
-
-    popupEl.style.removeProperty(NavigationMenuPopupCssVars.popupWidth);
-    popupEl.style.removeProperty(NavigationMenuPopupCssVars.popupHeight);
-    positionerEl.style.removeProperty(NavigationMenuPositionerCssVars.positionerWidth);
-    positionerEl.style.removeProperty(NavigationMenuPositionerCssVars.positionerHeight);
-
-    const { width, height } = getCssDimensions(popupEl);
-    const measuredWidth = width || prevSizeRef.width;
-    const measuredHeight = height || prevSizeRef.height;
-
-    if (currentHeight === 0 || currentWidth === 0) {
-      currentWidth = measuredWidth;
-      currentHeight = measuredHeight;
-    }
-
-    popupEl.style.setProperty(NavigationMenuPopupCssVars.popupWidth, `${currentWidth}px`);
-    popupEl.style.setProperty(NavigationMenuPopupCssVars.popupHeight, `${currentHeight}px`);
-    positionerEl.style.setProperty(
-      NavigationMenuPositionerCssVars.positionerWidth,
-      `${measuredWidth}px`,
-    );
-    positionerEl.style.setProperty(
-      NavigationMenuPositionerCssVars.positionerHeight,
-      `${measuredHeight}px`,
-    );
-
-    sizeFrame1.request(() => {
-      popupEl.style.setProperty(NavigationMenuPopupCssVars.popupWidth, `${measuredWidth}px`);
-      popupEl.style.setProperty(NavigationMenuPopupCssVars.popupHeight, `${measuredHeight}px`);
-
-      sizeFrame2.request(() => {
-        animationAbortControllerRef = new AbortController();
-        runOnceAnimationsFinish(setAutoSizes, animationAbortControllerRef.signal);
-      });
-    });
-  };
-
   createEffect(() => {
     if (!open()) {
       stickIfOpenTimeout.clear();
-      sizeFrame1.cancel();
-      sizeFrame2.cancel();
     }
-  });
-
-  createEffect(() => {
-    if (!mounted()) {
-      prevSizeRef = DEFAULT_SIZE;
-    }
-  });
-
-  createEffect(() => {
-    const popupEl = popupElement();
-    if (!popupEl || typeof ResizeObserver !== 'function') {
-      return;
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      // Using `getCssDimensions` here causes issues due to fractional values.
-      prevSizeRef = {
-        width: popupEl.offsetWidth,
-        height: popupEl.offsetHeight,
-      };
-    });
-
-    resizeObserver.observe(popupEl);
-
-    onCleanup(() => {
-      resizeObserver.disconnect();
-    });
-  });
-
-  createEffect(() => {
-    const popupEl = popupElement();
-    if (!popupEl || !isActiveItem() || typeof MutationObserver !== 'function') {
-      return undefined;
-    }
-
-    const mutationObserver = new MutationObserver(() => {
-      animationAbortControllerRef?.abort();
-      handleValueChange(prevSizeRef.width, prevSizeRef.height);
-    });
-
-    mutationObserver.observe(popupEl, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
-
-    onCleanup(() => {
-      mutationObserver.disconnect();
-    });
   });
 
   createEffect(() => {
@@ -225,12 +103,6 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
     onCleanup(() => {
       focusFrame.cancel();
     });
-  });
-
-  createEffect(() => {
-    if (isActiveItem() && open() && popupElement()) {
-      handleValueChange(0, 0);
-    }
   });
 
   function handleOpenChange(
@@ -346,22 +218,6 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
     });
   }
 
-  const handleOpenEvent = (event: MouseEvent | KeyboardEvent) => {
-    // For nested scenarios without positioner/popup, we can still open the menu
-    // but we can't do size calculations
-    const popupEl = popupElement();
-    const positionerEl = positionerElement();
-    if (!popupEl || !positionerEl) {
-      handleActivation(event);
-      return;
-    }
-
-    const { width, height } = getCssDimensions(popupEl);
-
-    handleActivation(event);
-    handleValueChange(width, height);
-  };
-
   const state: NavigationMenuTrigger.State = {
     get open() {
       return isActiveItem();
@@ -374,8 +230,8 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
 
   const defaultProps: HTMLProps = {
     tabIndex: 0,
-    onMouseEnter: handleOpenEvent,
-    onClick: handleOpenEvent,
+    onMouseEnter: handleActivation,
+    onClick: handleActivation,
     onPointerEnter: handleSetPointerType,
     onPointerDown: handleSetPointerType,
     get 'aria-expanded'() {
@@ -409,7 +265,7 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
 
       if (openHorizontal || openVertical) {
         setValue(itemValue(), createChangeEventDetails(REASONS.listNavigation, event));
-        handleOpenEvent(event);
+        handleActivation(event);
         stopEvent(event);
       }
     },

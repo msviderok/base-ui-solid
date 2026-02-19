@@ -3,7 +3,6 @@ import {
   IndexGuessBehavior,
   useCompositeListItem,
 } from '../../composite/list/useCompositeListItem';
-import { mergeProps } from '../../merge-props/mergeProps';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
@@ -29,7 +28,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
     'disabled',
     'nativeButton',
   ]);
-  const value = () => local.value ?? null;
+  const itemValue = () => local.value ?? null;
   const disabled = () => local.disabled ?? false;
   const nativeButton = () => local.nativeButton ?? false;
 
@@ -50,8 +49,6 @@ export function SelectItem(componentProps: SelectItem.Props) {
 
   const {
     store,
-    setStore,
-    selectors,
     getItemProps,
     setOpen,
     setValue,
@@ -62,9 +59,9 @@ export function SelectItem(componentProps: SelectItem.Props) {
 
   const highlightTimeout = useTimeout();
 
-  const highlighted = () => store.useState('isActive', listItem.index())();
-  const selected = () => store.useState('isSelected', listItem.index(), value())();
-  const selectedByFocus = () => store.useState('isSelectedByFocus', listItem.index())();
+  const highlighted = store.useState('isActive', listItem.index);
+  const selected = store.useState('isSelected', listItem.index, itemValue);
+  const selectedByFocus = store.useState('isSelectedByFocus', listItem.index);
   const isItemEqualToValue = store.useState('isItemEqualToValue');
 
   const index = listItem.index;
@@ -77,7 +74,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
 
     const values = rootRefs.valuesRef;
     const idx = listItem.index();
-    values[idx] = value();
+    values[idx] = itemValue();
 
     onCleanup(() => {
       delete values[idx];
@@ -91,12 +88,15 @@ export function SelectItem(componentProps: SelectItem.Props) {
 
     const selectedValue = store.state.value;
 
-    let candidate = selectedValue;
+    let selectedCandidate = selectedValue;
     if (multiple() && Array.isArray(selectedValue()) && selectedValue().length > 0) {
-      candidate = selectedValue[selectedValue.length - 1];
+      selectedCandidate = selectedValue[selectedValue.length - 1];
     }
 
-    if (candidate !== undefined && compareItemEquality(candidate, value(), isItemEqualToValue())) {
+    if (
+      selectedCandidate !== undefined &&
+      compareItemEquality(itemValue(), selectedCandidate, isItemEqualToValue())
+    ) {
       store.set('selectedIndex', index());
     }
   });
@@ -138,11 +138,11 @@ export function SelectItem(componentProps: SelectItem.Props) {
       if (multiple()) {
         const currentValue = Array.isArray(selectedValue) ? selectedValue : [];
         const nextValue = selected()
-          ? removeItem(currentValue, value(), isItemEqualToValue())
-          : [...currentValue, value()];
+          ? removeItem(currentValue, itemValue(), isItemEqualToValue())
+          : [...currentValue, itemValue()];
         setValue(nextValue, createChangeEventDetails(REASONS.itemPress, event));
       } else {
-        setValue(value(), createChangeEventDetails(REASONS.itemPress, event));
+        setValue(itemValue(), createChangeEventDetails(REASONS.itemPress, event));
         setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
       }
     });
@@ -160,7 +160,11 @@ export function SelectItem(componentProps: SelectItem.Props) {
       store.set('activeIndex', index());
     },
     onMouseEnter() {
-      if (!rootRefs.keyboardActiveRef && store.state.selectedIndex === null) {
+      if (
+        !rootRefs.keyboardActiveRef &&
+        store.state.selectedIndex === null &&
+        highlightItemOnHover()
+      ) {
         store.set('activeIndex', index());
       }
     },
@@ -248,7 +252,9 @@ export function SelectItem(componentProps: SelectItem.Props) {
       buttonRef(el);
       listItem.setRef(el);
     },
-    props: [(props) => mergeProps(props, rootProps()), defaultProps, elementProps, getButtonProps],
+    get props() {
+      return [rootProps(), defaultProps, elementProps, getButtonProps];
+    },
   });
 
   const contextValue: SelectItemContext = {
@@ -288,13 +294,13 @@ export interface SelectItemProps
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * Specifies the text label to use when the item is matched during keyboard text navigation.
    *
    * Defaults to the item text content if not provided.
    */
-  label?: string;
+  label?: string | undefined;
 }
 
 export namespace SelectItem {

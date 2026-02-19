@@ -1,3 +1,4 @@
+import { fieldValidityMapping } from '../../field/utils/constants';
 import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import type { SliderRoot } from './SliderRoot';
 
@@ -8,4 +9,5 @@ export const sliderStateAttributesMapping: StateAttributesMapping<SliderRoot.Sta
   minStepsBetweenValues: () => null,
   step: () => null,
   values: () => null,
+  ...fieldValidityMapping,
 };

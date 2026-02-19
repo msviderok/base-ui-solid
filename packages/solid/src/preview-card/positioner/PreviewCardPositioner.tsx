@@ -1,6 +1,8 @@
 import { type JSX } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
+import { adaptiveOrigin } from '../../utils/adaptiveOriginMiddleware';
 import { POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
+import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { type Align, type Side, useAnchorPositioning } from '../../utils/useAnchorPositioning';
@@ -42,12 +44,21 @@ export function PreviewCardPositioner(componentProps: PreviewCardPositioner.Prop
   const disableAnchorTracking = () => local.disableAnchorTracking ?? false;
   const collisionAvoidance = () => local.collisionAvoidance ?? POPUP_COLLISION_AVOIDANCE;
 
-  const { open, mounted, floatingRootContext, setPositionerElement } = usePreviewCardRootContext();
+  const store = usePreviewCardRootContext();
   const keepMounted = usePreviewCardPortalContext();
+
+  const open = store.useState('open');
+  const mounted = store.useState('mounted');
+  const floatingRootContext = store.useState('floatingRootContext');
+  const instantType = store.useState('instantType');
+  const transitionStatus = store.useState('transitionStatus');
+  const hasViewport = store.useState('hasViewport');
 
   const positioning = useAnchorPositioning({
     anchor: () => local.anchor,
-    floatingRootContext,
+    get floatingRootContext() {
+      return floatingRootContext();
+    },
     positionMethod,
     mounted,
     side,
@@ -61,6 +72,9 @@ export function PreviewCardPositioner(componentProps: PreviewCardPositioner.Prop
     disableAnchorTracking,
     keepMounted,
     collisionAvoidance,
+    get adaptiveOrigin() {
+      return hasViewport() ? adaptiveOrigin : undefined;
+    },
   });
 
   const defaultProps: HTMLProps = {
@@ -93,17 +107,38 @@ export function PreviewCardPositioner(componentProps: PreviewCardPositioner.Prop
     get anchorHidden() {
       return positioning.anchorHidden();
     },
+    get instant() {
+      return instantType();
+    },
+  };
+
+  const contextValue: PreviewCardPositionerContext = {
+    side: positioning.side,
+    align: positioning.align,
+    refs: {
+      get arrowRef() {
+        return positioning.refs.arrowRef();
+      },
+    },
+    arrowUncentered: positioning.arrowUncentered,
+    get arrowStyles() {
+      return positioning.arrowStyles();
+    },
   };
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: setPositionerElement,
-    props: [defaultProps, elementProps],
+    ref: (el) => {
+      store.useStateSetter('positionerElement')(el);
+    },
+    get props() {
+      return [defaultProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];
+    },
     stateAttributesMapping: popupStateMapping,
   });
 
   return (
-    <PreviewCardPositionerContext.Provider value={positioning}>
+    <PreviewCardPositionerContext.Provider value={contextValue}>
       {element()}
     </PreviewCardPositionerContext.Provider>
   );
@@ -117,6 +152,7 @@ export interface PreviewCardPositionerState {
   side: Side;
   align: Align;
   anchorHidden: boolean;
+  instant: 'dismiss' | 'focus' | undefined;
 }
 
 export interface PreviewCardPositionerProps

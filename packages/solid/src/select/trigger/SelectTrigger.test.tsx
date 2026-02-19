@@ -157,11 +157,27 @@ describe('<Select.Trigger />', () => {
       expect(trigger).not.to.have.attribute('data-placeholder');
       expect(value).not.to.have.attribute('data-placeholder');
     });
+
+    it('should not have the data-placeholder attribute when multiple mode has a default value', async () => {
+      render(() => (
+        <Select.Root multiple defaultValue={['a']}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+        </Select.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger');
+      const value = screen.getByTestId('value');
+
+      expect(trigger).not.to.have.attribute('data-placeholder');
+      expect(value).not.to.have.attribute('data-placeholder');
+    });
   });
 
   describe('style hooks', () => {
     it('should have the data-popup-open and data-pressed attributes when open', async () => {
-      render(() => (
+      const { user } = render(() => (
         <Select.Root>
           <Select.Trigger />
         </Select.Root>
@@ -169,9 +185,11 @@ describe('<Select.Trigger />', () => {
 
       const trigger = screen.getByRole('combobox');
 
-      trigger.click();
+      await user.click(trigger);
 
-      expect(trigger).to.have.attribute('data-popup-open');
+      await waitFor(() => {
+        expect(trigger).to.have.attribute('data-popup-open');
+      });
       expect(trigger).to.have.attribute('data-pressed');
     });
   });

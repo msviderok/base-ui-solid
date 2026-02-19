@@ -39,10 +39,10 @@ export interface UseCompositeRootParameters {
   cols?: MaybeAccessor<number | undefined>;
   loopFocus?: MaybeAccessor<boolean | undefined>;
   highlightedIndex?: MaybeAccessor<number | undefined>;
-  onHighlightedIndexChange?: (index: number) => void;
+  onHighlightedIndexChange?: ((index: number) => void) | undefined;
   dense?: MaybeAccessor<boolean | undefined>;
   itemSizes?: MaybeAccessor<Dimensions[] | undefined>;
-  rootRef?: HTMLElement | null | undefined;
+  rootRef?: (HTMLElement | null) | undefined;
   /**
    * When `true`, pressing the Home key moves focus to the first item,
    * and pressing the End key moves focus to the last item.

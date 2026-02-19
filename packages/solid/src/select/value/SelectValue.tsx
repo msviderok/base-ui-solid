@@ -17,22 +17,25 @@ const stateAttributesMapping: StateAttributesMapping<SelectValue.State> = {
  * Documentation: [Base UI Select](https://base-ui.com/react/components/select)
  */
 export function SelectValue(componentProps: SelectValue.Props) {
-  const [, , elementProps] = splitComponentProps(componentProps, []);
+  const [, local, elementProps] = splitComponentProps(componentProps, ['children', 'placeholder']);
 
   const { store, refs } = useSelectRootContext();
 
   const value = store.useState('value');
   const items = store.useState('items');
   const itemToStringLabel = store.useState('itemToStringLabel');
-  const serializedValue = store.useState('serializedValue');
-  const multiple = store.useState('multiple');
+  const hasSelectedValue = store.useState('hasSelectedValue');
+
+  const shouldCheckNullItemLabel = () =>
+    !hasSelectedValue() && local.placeholder != null && local.children == null;
+  const hasNullLabel = store.useState('hasNullItemLabel', shouldCheckNullItemLabel);
 
   const state: SelectValue.State = {
     get value() {
       return value();
     },
     get placeholder() {
-      return !serializedValue();
+      return !hasSelectedValue();
     },
   };
 
@@ -50,7 +53,10 @@ export function SelectValue(componentProps: SelectValue.Props) {
             {(componentProps.children as Function)(value())}
           </Match>
           <Match when={componentProps.children != null}>{componentProps.children}</Match>
-          <Match when={multiple() && Array.isArray(value())}>
+          <Match when={!hasSelectedValue() && local.placeholder != null && !hasNullLabel()}>
+            {local.placeholder}
+          </Match>
+          <Match when={Array.isArray(value())}>
             {resolveMultipleLabels(value(), items(), itemToStringLabel())}
           </Match>
         </Switch>
@@ -66,7 +72,9 @@ export interface SelectValueState {
    * The value of the currently selected item.
    */
   value: any;
-  // TODO: added to SolidJS
+  /**
+   * Whether the placeholder is being displayed.
+   */
   placeholder: boolean;
 }
 
@@ -84,6 +92,11 @@ export interface SelectValueProps extends Omit<
    * ```
    */
   children?: JSX.Element | ((value: any) => JSX.Element);
+  /**
+   * The placeholder value to display when no value is selected.
+   * This is overridden by `children` if specified, or by a null item's label in `items`.
+   */
+  placeholder?: JSX.Element;
 }
 
 export namespace SelectValue {

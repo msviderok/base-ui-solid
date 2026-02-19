@@ -5,10 +5,10 @@ import { splitComponentProps } from '../../solid-helpers';
 import { FocusGuard } from '../../utils/FocusGuard';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { useTimeout } from '../../utils/useTimeout';
 import { visuallyHidden } from '../../utils/visuallyHidden';
-import { useToastContext } from '../provider/ToastProviderContext';
+import { useToastProviderContext } from '../provider/ToastProviderContext';
 import { isFocusVisible } from '../utils/focusVisible';
-import { ToastViewportContext } from './ToastViewportContext';
 import { ToastViewportCssVars } from './ToastViewportCssVars';
 
 /**
@@ -20,52 +20,45 @@ import { ToastViewportCssVars } from './ToastViewportCssVars';
 export function ToastViewport(componentProps: ToastViewport.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const {
-    toasts,
-    pauseTimers,
-    resumeTimers,
-    setHovering,
-    setFocused,
-    refs,
-    prevFocusElement,
-    setPrevFocusElement,
-    expanded,
-    focused,
-  } = useToastContext();
+  const store = useToastProviderContext();
+  const windowFocusTimeout = useTimeout();
 
   let handlingFocusGuardRef = false;
   let markedReadyForMouseLeaveRef = false;
 
-  const numToasts = () => toasts.list.length;
-  const frontmostHeight = () => toasts.list[0]?.height ?? 0;
+  const isEmpty = store.useState('isEmpty');
+  const toasts = store.useState('toasts');
+  const focused = store.useState('focused');
+  const expanded = store.useState('expanded');
+  const prevFocusElement = store.useState('prevFocusElement');
+  const frontmostHeight = () => toasts()[0]?.height ?? 0;
 
   const hasTransitioningToasts = createMemo(() =>
-    toasts.list.some((toast) => toast.transitionStatus === 'ending'),
+    toasts().some((toast) => toast.transitionStatus === 'ending'),
   );
 
   // Listen globally for F6 so we can force-focus the viewport.
   createEffect(() => {
-    if (!refs.viewportRef) {
+    const viewport = store.state.viewport ?? null;
+    if (!viewport) {
       return;
     }
 
     function handleGlobalKeyDown(event: KeyboardEvent) {
-      if (numToasts() === 0) {
+      if (isEmpty()) {
         return;
       }
 
-      if (event.key === 'F6' && event.target !== refs.viewportRef) {
+      if (event.key === 'F6' && event.target !== viewport) {
         event.preventDefault();
-        setPrevFocusElement(
-          activeElement(ownerDocument(refs.viewportRef ?? null)) as HTMLElement | null,
-        );
-        refs.viewportRef?.focus({ preventScroll: true });
-        pauseTimers();
-        setFocused(true);
+        store.setPrevFocusElement(activeElement(ownerDocument(viewport)) as HTMLElement | null);
+        viewport?.focus({ preventScroll: true });
+        store.pauseTimers();
+        store.setFocused(true);
       }
     }
 
-    const win = ownerWindow(refs.viewportRef);
+    const win = ownerWindow(viewport);
 
     win.addEventListener('keydown', handleGlobalKeyDown);
 
@@ -75,19 +68,20 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
   });
 
   createEffect(() => {
-    if (!refs.viewportRef || !numToasts()) {
+    const viewport = store.state.viewport ?? null;
+    if (!viewport || isEmpty()) {
       return;
     }
 
-    const win = ownerWindow(refs.viewportRef);
+    const win = ownerWindow(viewport);
 
     function handleWindowBlur(event: FocusEvent) {
       if (event.target !== win) {
         return;
       }
 
-      refs.windowFocusedRef = false;
-      pauseTimers();
+      store.setIsWindowFocused(false);
+      store.pauseTimers();
     }
 
     function handleWindowFocus(event: FocusEvent) {
@@ -96,15 +90,13 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
       }
 
       const target = getTarget(event);
-      const activeEl = activeElement(ownerDocument(refs.viewportRef ?? null));
-      if (!contains(refs.viewportRef, target as HTMLElement | null) || !isFocusVisible(activeEl)) {
-        resumeTimers();
+      const activeEl = activeElement(ownerDocument(viewport));
+      if (!contains(viewport, target as HTMLElement | null) || !isFocusVisible(activeEl)) {
+        store.resumeTimers();
       }
 
       // Wait for the `handleFocus` event to fire.
-      setTimeout(() => {
-        refs.windowFocusedRef = true;
-      });
+      windowFocusTimeout.start(0, () => store.setIsWindowFocused(true));
     }
 
     win.addEventListener('blur', handleWindowBlur, true);
@@ -117,85 +109,71 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
   });
 
   createEffect(() => {
-    const viewportNode = refs.viewportRef;
-    if (!viewportNode || numToasts() === 0) {
+    const viewport = store.state.viewport ?? null;
+    if (!viewport || isEmpty()) {
       return;
     }
 
-    const doc = ownerDocument(viewportNode);
+    const doc = ownerDocument(viewport);
 
-    function handlePointerDown(event: PointerEvent) {
-      if (event.pointerType !== 'touch') {
-        return;
-      }
-
-      const target = getTarget(event) as Element | null;
-      if (contains(viewportNode, target)) {
-        return;
-      }
-
-      resumeTimers();
-      setHovering(false);
-      setFocused(false);
-    }
-
-    doc.addEventListener('pointerdown', handlePointerDown, true);
+    doc.addEventListener('pointerdown', store.handleDocumentPointerDown, true);
 
     onCleanup(() => {
-      doc.removeEventListener('pointerdown', handlePointerDown, true);
+      doc.removeEventListener('pointerdown', store.handleDocumentPointerDown, true);
     });
   });
 
   function handleFocusGuard(event: FocusEvent) {
-    if (!refs.viewportRef) {
+    const viewport = store.state.viewport ?? null;
+    if (!viewport) {
       return;
     }
 
     handlingFocusGuardRef = true;
 
     // If we're coming off the container, move to the first toast
-    if (event.relatedTarget === refs.viewportRef) {
-      toasts.list[0]?.ref?.focus();
+    if (event.relatedTarget === viewport) {
+      toasts()[0]?.ref?.focus();
     } else {
-      prevFocusElement()?.focus({ preventScroll: true });
+      store.restoreFocusToPrevElement();
     }
   }
 
   function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Tab' && event.shiftKey && event.target === refs.viewportRef) {
+    if (event.key === 'Tab' && event.shiftKey && event.target === store.state.viewport) {
       event.preventDefault();
-      prevFocusElement()?.focus({ preventScroll: true });
-      resumeTimers();
+      store.restoreFocusToPrevElement();
+      store.resumeTimers();
     }
   }
 
   createEffect(() => {
-    if (!refs.windowFocusedRef || hasTransitioningToasts() || !markedReadyForMouseLeaveRef) {
+    if (!store.state.isWindowFocused || hasTransitioningToasts() || !markedReadyForMouseLeaveRef) {
       return;
     }
 
     // Once transitions have finished, see if a mouseleave was already triggered
     // but blocked from taking effect. If so, we can now safely resume timers and
     // collapse the viewport.
-    resumeTimers();
-    setHovering(false);
+    store.resumeTimers();
+    store.setHovering(false);
     markedReadyForMouseLeaveRef = false;
   });
 
   function handleMouseEnter() {
-    pauseTimers();
-    setHovering(true);
+    store.pauseTimers();
+    store.setHovering(true);
     markedReadyForMouseLeaveRef = false;
   }
 
   function handleMouseLeave() {
-    if (toasts.list.some((toast) => toast.transitionStatus === 'ending')) {
+    if (hasTransitioningToasts()) {
       // When swiping to dismiss, wait until the transitions have settled
       // to avoid the viewport collapsing while the user is interacting.
       markedReadyForMouseLeaveRef = true;
     } else {
-      resumeTimers();
-      setHovering(false);
+      store.resumeTimers();
+      store.setHovering(false);
     }
   }
 
@@ -212,19 +190,19 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     // Only set focused when the active element is focus-visible.
     // This prevents the viewport from staying expanded when clicking inside without
     // keyboard navigation.
-    if (isFocusVisible(ownerDocument(refs.viewportRef ?? null).activeElement)) {
-      setFocused(true);
-      pauseTimers();
+    if (isFocusVisible(ownerDocument(store.state.viewport ?? null).activeElement)) {
+      store.setFocused(true);
+      store.pauseTimers();
     }
   }
 
   function handleBlur(event: FocusEvent) {
-    if (!focused() || contains(refs.viewportRef, event.relatedTarget as HTMLElement | null)) {
+    if (!focused() || contains(store.state.viewport, event.relatedTarget as HTMLElement | null)) {
       return;
     }
 
-    setFocused(false);
-    resumeTimers();
+    store.setFocused(false);
+    store.resumeTimers();
   }
 
   const defaultProps: HTMLProps = {
@@ -251,7 +229,7 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      refs.viewportRef = el;
+      store.setViewport(el);
     },
     state,
     props: [
@@ -270,23 +248,21 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     get children() {
       return (
         <>
-          {numToasts() > 0 && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
+          {!isEmpty() && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
           {componentProps.children}
-          {numToasts() > 0 && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
+          {!isEmpty() && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
         </>
       );
     },
   });
 
-  const contextValue = { refs };
-
   const highPriorityToasts = createMemo(() =>
-    toasts.list.filter((toast) => toast.priority === 'high'),
+    toasts().filter((toast) => toast.priority === 'high'),
   );
 
   return (
-    <ToastViewportContext.Provider value={contextValue}>
-      {numToasts() > 0 && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
+    <>
+      {!isEmpty() && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
       {element()}
       {!focused() && highPriorityToasts().length > 0 && (
         <div style={visuallyHidden}>
@@ -300,7 +276,7 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
           </For>
         </div>
       )}
-    </ToastViewportContext.Provider>
+    </>
   );
 }
 

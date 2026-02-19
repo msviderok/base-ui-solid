@@ -1,5 +1,6 @@
 import { createMemo, type JSX } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
+import { type TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
 import { FieldValidityData } from '../root/FieldRoot';
 import { useFieldRootContext } from '../root/FieldRootContext';
 import { getCombinedFieldValidityData } from '../utils/getCombinedFieldValidityData';
@@ -13,11 +14,17 @@ import { getCombinedFieldValidityData } from '../utils/getCombinedFieldValidityD
 export function FieldValidity(props: FieldValidity.Props) {
   const { validityData, invalid } = useFieldRootContext(false);
 
+  const combinedFieldValidityData = createMemo(() =>
+    getCombinedFieldValidityData(validityData, invalid()),
+  );
+  const isInvalid = () => combinedFieldValidityData().state.valid === false;
+  const { transitionStatus } = useTransitionStatus(isInvalid);
+
   const fieldValidityState = createMemo<FieldValidity.State>(() => {
-    const combinedFieldValidityData = getCombinedFieldValidityData(validityData, invalid());
     return {
-      ...combinedFieldValidityData,
-      validity: combinedFieldValidityData.state,
+      ...combinedFieldValidityData(),
+      validity: combinedFieldValidityData().state,
+      transitionStatus: transitionStatus(),
     };
   });
 
@@ -26,6 +33,7 @@ export function FieldValidity(props: FieldValidity.Props) {
 
 export interface FieldValidityState extends Omit<FieldValidityData, 'state'> {
   validity: FieldValidityData['state'];
+  transitionStatus: TransitionStatus;
 }
 
 export interface FieldValidityProps {

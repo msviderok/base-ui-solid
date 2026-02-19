@@ -1,18 +1,19 @@
 export * from './accordion';
 export * from './alert-dialog';
-// export * from './autocomplete';
+export * from './autocomplete';
 export * from './avatar';
 export * from './button';
 export * from './checkbox';
 export * from './checkbox-group';
 export * from './collapsible';
-// export * from './combobox';
+export * from './combobox';
 export * from './context-menu';
+export * from './csp-provider';
 export * from './dialog';
 export * from './direction-provider';
+export * from './drawer';
 export * from './field';
 export * from './fieldset';
-export { type Accessorify } from './floating-ui-solid/types';
 export * from './form';
 export * from './input';
 export * from './menu';
@@ -39,6 +40,4 @@ export * from './toolbar';
 export * from './tooltip';
 export * from './use-render';
 
-// TODO: to remove
-export * as utils from './utils';
-// export type * from './types';
+export type * from './types';

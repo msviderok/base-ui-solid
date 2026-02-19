@@ -1,6 +1,5 @@
 'use client';
 import { useControlled } from '@base-ui/utils/useControlled';
-import type { JSX } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { splitComponentProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
@@ -44,7 +43,7 @@ export function MenuCheckboxItem(componentProps: MenuCheckboxItem.Props) {
   const id = useBaseUiId(idProp);
 
   const { store } = useMenuRootContext();
-  const highlighted = () => store.useState('isActive', listItem.index())();
+  const highlighted = store.useState('isActive', listItem.index);
   const itemProps = store.useState('itemProps');
 
   const [checked, setChecked] = useControlled({
@@ -150,40 +149,42 @@ export interface MenuCheckboxItemProps
    *
    * To render an uncontrolled checkbox item, use the `defaultChecked` prop instead.
    */
-  checked?: boolean;
+  checked?: boolean | undefined;
   /**
    * Whether the checkbox item is initially ticked.
    *
    * To render a controlled checkbox item, use the `checked` prop instead.
    * @default false
    */
-  defaultChecked?: boolean;
+  defaultChecked?: boolean | undefined;
   /**
    * Event handler called when the checkbox item is ticked or unticked.
    */
-  onCheckedChange?: (checked: boolean, eventDetails: MenuCheckboxItem.ChangeEventDetails) => void;
+  onCheckedChange?:
+    | ((checked: boolean, eventDetails: MenuCheckboxItem.ChangeEventDetails) => void)
+    | undefined;
   /**
    * The click handler for the menu item.
    */
-  onClick?: JSX.EventHandlerUnion<HTMLDivElement, MouseEvent>;
+  onClick?: BaseUIComponentProps<'div', MenuCheckboxItemState>['onClick'] | undefined;
   /**
    * Whether the component should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * Overrides the text label to use when the item is matched during keyboard text navigation.
    */
-  label?: string;
+  label?: string | undefined;
   /**
    * @ignore
    */
-  id?: string;
+  id?: string | undefined;
   /**
    * Whether to close the menu when the item is clicked.
    * @default false
    */
-  closeOnClick?: boolean;
+  closeOnClick?: boolean | undefined;
 }
 
 export type MenuCheckboxItemChangeEventReason = MenuRoot.ChangeEventReason;

@@ -1,5 +1,5 @@
 import { onCleanup, onMount } from 'solid-js';
-import { type MaybeAccessor, access } from '../solid-helpers';
+import type { CSPContextValue } from '../csp-provider/CSPContext';
 
 export const STYLE_TAG_ID = 'disable-scrollbar';
 const DISABLE_SCROLLBAR_CLASS_NAME = 'base-ui-disable-scrollbar';
@@ -22,10 +22,14 @@ export const styleDisableScrollbar = {
   },
 };
 
-export const useStyleDisableScrollbar = (nonce?: MaybeAccessor<string | undefined>) => {
+export const useStyleDisableScrollbar = (csp: CSPContextValue) => {
   onMount(() => {
+    if (csp.disableStyleElements()) {
+      return;
+    }
+
     if (!document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {
-      const el = styleDisableScrollbar.getElement(access(nonce));
+      const el = styleDisableScrollbar.getElement(csp.nonce());
       document.head.appendChild(el);
       onCleanup(() => {
         if (document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {

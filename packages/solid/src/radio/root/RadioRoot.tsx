@@ -1,4 +1,13 @@
-import { batch, onMount, Show, mergeProps as solidMergeProps, type JSX, type Ref } from 'solid-js';
+import {
+  batch,
+  createEffect,
+  createMemo,
+  onMount,
+  Show,
+  mergeProps as solidMergeProps,
+  type JSX,
+  type Ref,
+} from 'solid-js';
 import { ACTIVE_COMPOSITE_ITEM } from '../../composite/constants';
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import { useFieldItemContext } from '../../field/item/FieldItemContext';
@@ -12,10 +21,11 @@ import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { NOOP } from '../../utils/noop';
 import { REASONS } from '../../utils/reasons';
+import { serializeValue } from '../../utils/serializeValue';
 import type { BaseUIComponentProps, NonNativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { visuallyHiddenInput } from '../../utils/visuallyHidden';
+import { visuallyHidden, visuallyHiddenInput } from '../../utils/visuallyHidden';
 import { stateAttributesMapping } from '../utils/stateAttributesMapping';
 import { RadioRootContext } from './RadioRootContext';
 
@@ -25,7 +35,7 @@ import { RadioRootContext } from './RadioRootContext';
  *
  * Documentation: [Base UI Radio](https://base-ui.com/react/components/radio)
  */
-export function RadioRoot(componentProps: RadioRoot.Props) {
+export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'disabled',
     'readOnly',
@@ -42,17 +52,21 @@ export function RadioRoot(componentProps: RadioRoot.Props) {
   const nativeButton = () => local.nativeButton ?? false;
   const idProp = () => local.id;
 
+  const groupContext = useRadioGroupContext();
+
   const {
     disabled: disabledGroup,
     readOnly: readOnlyGroup,
     required: requiredGroup,
     checkedValue,
-    setCheckedValue,
     touched,
-    setTouched,
     validation,
-    registerControlRef,
-  } = useRadioGroupContext();
+    name,
+  } = groupContext ?? {};
+  const setCheckedValue = groupContext?.setCheckedValue ?? NOOP;
+  const setTouched = groupContext?.setTouched ?? NOOP;
+  const registerControlRef = groupContext?.registerControlRef ?? NOOP;
+  const registerInputRef = groupContext?.registerInputRef ?? NOOP;
 
   const {
     setDirty,
@@ -66,19 +80,45 @@ export function RadioRoot(componentProps: RadioRoot.Props) {
   const { labelId, getDescriptionProps } = useLabelableContext();
 
   const disabled = () =>
-    fieldDisabled() || fieldItemContext.disabled() || disabledGroup() || disabledProp();
-  const readOnly = () => readOnlyGroup() || readOnlyProp();
-  const required = () => requiredGroup() || requiredProp();
+    fieldDisabled() || fieldItemContext.disabled() || disabledGroup?.() || disabledProp();
+  const readOnly = () => readOnlyGroup?.() || readOnlyProp();
+  const required = () => requiredGroup?.() || requiredProp();
 
-  const checked = () => checkedValue() === local.value;
+  const checked = () => (groupContext ? checkedValue?.() === local.value : local.value === '');
+  const serializedValue = createMemo(() => serializeValue(local.value));
 
   let radioRef = null as HTMLElement | null | undefined;
   let inputRef = null as HTMLInputElement | null | undefined;
+
+  const handleControlRef = (element: HTMLElement | null | undefined) => {
+    if (!element) {
+      return;
+    }
+
+    registerControlRef(element, disabled());
+  };
 
   onMount(() => {
     if (inputRef?.checked) {
       setFilled(true);
     }
+  });
+
+  createEffect(() => {
+    if (!local.inputRef) {
+      return;
+    }
+
+    if (disabled() && checked()) {
+      registerInputRef(null);
+      return;
+    }
+
+    if (radioRef) {
+      registerControlRef(radioRef, disabled());
+    }
+
+    registerInputRef(inputRef);
   });
 
   const id = useBaseUiId();
@@ -121,10 +161,18 @@ export function RadioRoot(componentProps: RadioRoot.Props) {
 
       event.preventDefault();
 
-      inputRef?.click();
+      inputRef?.dispatchEvent(
+        new PointerEvent('click', {
+          bubbles: true,
+          shiftKey: event.shiftKey,
+          ctrlKey: event.ctrlKey,
+          altKey: event.altKey,
+          metaKey: event.metaKey,
+        }),
+      );
     },
     onFocus(event) {
-      if (event.defaultPrevented || disabled() || readOnly() || !touched()) {
+      if (event.defaultPrevented || disabled() || readOnly() || !touched?.()) {
         return;
       }
 
@@ -148,13 +196,22 @@ export function RadioRoot(componentProps: RadioRoot.Props) {
         local.inputRef = el;
       }
       inputRef = el;
+      registerInputRef(el);
     },
     get id() {
       return hiddenInputId();
     },
+    get name() {
+      return name?.();
+    },
     tabIndex: -1,
-    style: visuallyHiddenInput,
+    get style() {
+      return name?.() ? visuallyHiddenInput : visuallyHidden;
+    },
     'aria-hidden': true,
+    get value() {
+      return local.value !== undefined ? serializedValue() : undefined;
+    },
     get disabled() {
       return disabled();
     },
@@ -216,16 +273,15 @@ export function RadioRoot(componentProps: RadioRoot.Props) {
     filled: () => fieldState.filled,
     focused: () => fieldState.focused,
     disabled,
-    touched,
+    touched: () => touched?.() ?? false,
     readOnly,
     checked,
     required,
   };
 
-  const isRadioGroup = () => setCheckedValue !== NOOP;
+  const isRadioGroup = () => groupContext !== undefined;
 
   const ref = (el: any) => {
-    registerControlRef(el);
     radioRef = el;
     buttonRef(el);
     if (typeof componentProps.ref === 'function') {
@@ -273,31 +329,49 @@ export function RadioRoot(componentProps: RadioRoot.Props) {
 }
 
 export interface RadioRootState extends FieldRoot.State {
-  /** Whether the radio button is currently selected. */
+  /**
+   * Whether the radio button is currently selected.
+   */
   checked: boolean;
-  /** Whether the component should ignore user interaction. */
+  /**
+   * Whether the component should ignore user interaction.
+   */
   disabled: boolean;
-  /** Whether the user should be unable to select the radio button. */
+  /**
+   * Whether the user should be unable to select the radio button.
+   */
   readOnly: boolean;
-  /** Whether the user must choose a value before submitting a form. */
+  /**
+   * Whether the user must choose a value before submitting a form.
+   */
   required: boolean;
 }
 
-export interface RadioRootProps
+export interface RadioRootProps<Value = any>
   extends NonNativeButtonProps, Omit<BaseUIComponentProps<'span', RadioRoot.State>, 'value'> {
-  /** The unique identifying value of the radio in a group. */
-  value: any;
-  /** Whether the component should ignore user interaction. */
-  disabled?: boolean;
-  /** Whether the user must choose a value before submitting a form. */
-  required?: boolean;
-  /** Whether the user should be unable to select the radio button. */
-  readOnly?: boolean;
-  /** A ref to access the hidden input element. */
-  inputRef?: Ref<HTMLInputElement>;
+  /**
+   * The unique identifying value of the radio in a group.
+   */
+  value: Value;
+  /**
+   * Whether the component should ignore user interaction.
+   */
+  disabled?: boolean | undefined;
+  /**
+   * Whether the user must choose a value before submitting a form.
+   */
+  required?: boolean | undefined;
+  /**
+   * Whether the user should be unable to select the radio button.
+   */
+  readOnly?: boolean | undefined;
+  /**
+   * A ref to access the hidden input element.
+   */
+  inputRef?: Ref<HTMLInputElement> | undefined;
 }
 
 export namespace RadioRoot {
   export type State = RadioRootState;
-  export type Props = RadioRootProps;
+  export type Props<TValue = any> = RadioRootProps<TValue>;
 }

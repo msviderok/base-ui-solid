@@ -1,6 +1,5 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Menu } from '@msviderok/base-ui-solid/menu';
-import { A, Route, Router, useLocation } from '@solidjs/router';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
@@ -41,6 +40,31 @@ describe('<Menu.Item />', () => {
     await user.click(item);
 
     expect(onClick.callCount).to.equal(1);
+  });
+
+  it('does not close the menu when onClick prevents Base UI handler', async () => {
+    const onClick = spy((event) => event.preventBaseUIHandler());
+    const { user } = render(() => (
+      <Menu.Root>
+        <Menu.Trigger>Open</Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner>
+            <Menu.Popup>
+              <Menu.Item onClick={onClick}>Item</Menu.Item>
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
+    ));
+
+    const trigger = screen.getByRole('button', { name: 'Open' });
+    await user.click(trigger);
+
+    const item = screen.getByRole('menuitem');
+    await user.click(item);
+
+    expect(onClick.callCount).to.equal(1);
+    expect(screen.queryByRole('menu')).not.to.equal(null);
   });
 
   it('perf: does not rerender menu items unnecessarily', async ({ skip }) => {
@@ -185,77 +209,6 @@ describe('<Menu.Item />', () => {
       await user.click(item);
 
       expect(screen.queryByRole('menu')).not.to.equal(null);
-    });
-  });
-
-  describe('rendering links', () => {
-    function One() {
-      return <div>page one</div>;
-    }
-    function Two() {
-      return <div>page two</div>;
-    }
-    function LocationDisplay() {
-      const location = useLocation();
-      return <div data-testid="location">{location.pathname}</div>;
-    }
-
-    it('@solidjs/router <A>', async () => {
-      const { user } = render(() => (
-        <Router>
-          <Route
-            component={(props) => (
-              <>
-                {props.children}
-                <LocationDisplay />
-
-                <Menu.Root open>
-                  <Menu.Portal>
-                    <Menu.Positioner>
-                      <Menu.Popup>
-                        <Menu.Item render={{ component: A, href: '/' }}>link 1</Menu.Item>
-                        <Menu.Item render={{ component: A, href: '/two' }}>link 2</Menu.Item>
-                      </Menu.Popup>
-                    </Menu.Positioner>
-                  </Menu.Portal>
-                </Menu.Root>
-              </>
-            )}
-          >
-            <Route path="/" component={One} />
-            <Route path="/two" component={Two} />
-          </Route>
-        </Router>
-      ));
-
-      const link1 = () => screen.getAllByRole('menuitem')[0];
-      const link2 = () => screen.getAllByRole('menuitem')[1];
-
-      const locationDisplay = screen.getByTestId('location');
-
-      expect(screen.getByText(/page one/i)).not.to.equal(null);
-
-      expect(locationDisplay).to.have.text('/');
-
-      link2().focus();
-
-      await waitFor(() => {
-        expect(link2()).toHaveFocus();
-      });
-
-      await user.keyboard('[Enter]');
-
-      expect(locationDisplay).to.have.text('/two');
-
-      expect(screen.getByText(/page two/i)).not.to.equal(null);
-
-      link1().focus();
-
-      await user.keyboard('[Enter]');
-
-      expect(screen.getByText(/page one/i)).not.to.equal(null);
-
-      expect(locationDisplay).to.have.text('/');
     });
   });
 

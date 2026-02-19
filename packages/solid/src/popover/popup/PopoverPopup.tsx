@@ -1,7 +1,6 @@
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { COMPOSITE_KEYS } from '../../composite/composite';
 import { FloatingFocusManager, useHoverFloatingInteraction } from '../../floating-ui-solid';
-import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import { useToolbarRootContext } from '../../toolbar/root/ToolbarRootContext';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
@@ -67,9 +66,16 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   const openOnHover = store.useState('openOnHover');
   const closeDelay = store.useState('closeDelay');
 
-  useHoverFloatingInteraction(floatingContext, {
-    enabled: () => openOnHover() && !disabled(),
-    closeDelay,
+  useHoverFloatingInteraction({
+    get context() {
+      return floatingContext();
+    },
+    parameters: {
+      get enabled() {
+        return openOnHover() && !disabled();
+      },
+      closeDelay,
+    },
   });
 
   // Default initial focus logic:
@@ -95,7 +101,6 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
     get align() {
       return positioner.align();
     },
-    // @ts-expect-error - instant missing from state type?
     get instant() {
       return instantType();
     },
@@ -114,24 +119,26 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
       store.context.refs.popupRef = el;
       setPopupElement(el);
     },
-    props: [
-      popupProps,
-      {
-        get 'aria-labelledby'() {
-          return titleId();
+    get props() {
+      return [
+        popupProps(),
+        {
+          get 'aria-labelledby'() {
+            return titleId();
+          },
+          get 'aria-describedby'() {
+            return descriptionId();
+          },
+          onKeyDown(event: KeyboardEvent) {
+            if (insideToolbar() && COMPOSITE_KEYS.has(event.key)) {
+              event.stopPropagation();
+            }
+          },
         },
-        get 'aria-describedby'() {
-          return descriptionId();
-        },
-        onKeyDown(event) {
-          if (insideToolbar() && COMPOSITE_KEYS.has(event.key)) {
-            event.stopPropagation();
-          }
-        },
-      },
-      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
-      elementProps,
-    ],
+        getDisabledMountTransitionStyles(transitionStatus()),
+        elementProps,
+      ];
+    },
     stateAttributesMapping,
   });
 
@@ -163,6 +170,7 @@ export interface PopoverPopupState {
   side: Side;
   align: Align;
   transitionStatus: TransitionStatus;
+  instant: 'dismiss' | 'click' | undefined;
 }
 
 export interface PopoverPopupProps extends BaseUIComponentProps<'div', PopoverPopup.State> {
@@ -176,10 +184,13 @@ export interface PopoverPopupProps extends BaseUIComponentProps<'div', PopoverPo
    *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
    */
   initialFocus?:
-    | boolean
-    | HTMLElement
-    | null
-    | ((openType: InteractionType) => void | boolean | HTMLElement | null);
+    | (
+        | boolean
+        | HTMLElement
+        | null
+        | ((openType: InteractionType) => void | boolean | HTMLElement | null)
+      )
+    | undefined;
   /**
    * Determines the element to focus when the popover is closed.
    *
@@ -190,10 +201,13 @@ export interface PopoverPopupProps extends BaseUIComponentProps<'div', PopoverPo
    *   Return an element to focus, `true` to use the default behavior, or `false`/`undefined` to do nothing.
    */
   finalFocus?:
-    | boolean
-    | HTMLElement
-    | null
-    | ((closeType: InteractionType) => void | boolean | HTMLElement | null);
+    | (
+        | boolean
+        | HTMLElement
+        | null
+        | ((closeType: InteractionType) => void | boolean | HTMLElement | null)
+      )
+    | undefined;
 }
 
 export namespace PopoverPopup {

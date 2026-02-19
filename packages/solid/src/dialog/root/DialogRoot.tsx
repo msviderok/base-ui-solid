@@ -36,6 +36,9 @@ export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
       get activeTriggerId() {
         return triggerIdProp() !== undefined ? triggerIdProp() : defaultTriggerIdProp();
       },
+      get triggerIdProp() {
+        return triggerIdProp();
+      },
       get modal() {
         return modal();
       },
@@ -47,8 +50,19 @@ export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
       },
     });
 
-  store.useControlledProp('open', openProp, defaultOpen);
-  store.useControlledProp('activeTriggerId', triggerIdProp, defaultTriggerIdProp);
+  // Support initially open state when uncontrolled
+  onMount(() => {
+    if (openProp() === undefined && store.state.open === false && defaultOpen() === true) {
+      store.update({
+        open: true,
+        activeTriggerId: defaultTriggerIdProp(),
+      });
+    }
+  });
+
+  store.useControlledProp('openProp', openProp);
+  store.useControlledProp('triggerIdProp', triggerIdProp);
+
   store.useSyncedValues({
     get disablePointerDismissal() {
       return disablePointerDismissal();
@@ -97,7 +111,7 @@ export interface DialogRootProps<Payload = unknown> {
    * To render a controlled dialog, use the `open` prop instead.
    * @default false
    */
-  defaultOpen?: boolean;
+  defaultOpen?: boolean | undefined;
   /**
    * Determines if the dialog enters a modal state when open.
    * - `true`: user interaction is limited to just the dialog: focus is trapped, document page scroll is locked, and pointer interactions on outside elements are disabled.

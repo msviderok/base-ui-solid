@@ -1,6 +1,11 @@
 'use client';
-import * as React from 'react';
 import type { Timeout } from '@base-ui/utils/useTimeout';
+import * as React from 'react';
+import {
+  createChangeEventDetails,
+  createGenericEventDetails,
+} from '../../utils/createBaseUIEventDetails';
+import type { HTMLProps } from '../../utils/types';
 import {
   DEFAULT_STEP,
   MAX_POINTER_MOVES_AFTER_TOUCH,
@@ -8,17 +13,19 @@ import {
   TOUCH_TIMEOUT,
 } from '../utils/constants';
 import { parseNumber } from '../utils/parse';
-import {
-  createChangeEventDetails,
-  createGenericEventDetails,
-} from '../../utils/createBaseUIEventDetails';
 import type {
-  EventWithOptionalKeyState,
   Direction,
+  EventWithOptionalKeyState,
   IncrementValueParameters,
 } from '../utils/types';
 import type { NumberFieldRoot } from './NumberFieldRoot';
-import type { HTMLProps } from '../../utils/types';
+
+// Treat pen as touch-like to avoid forcing the software keyboard on stylus taps.
+// Linux Chrome may emit "pen" historically for mouse usage due to a bug, but the touch path
+// still works with minor behavioral differences.
+function isTouchLikePointerType(pointerType: string) {
+  return pointerType === 'touch' || pointerType === 'pen';
+}
 
 export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
   const {
@@ -65,14 +72,12 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
       valueRef.current = parsedValue;
       setValue(
         parsedValue,
-        createChangeEventDetails<NumberFieldRoot.ChangeEventReason, { direction?: Direction }>(
-          pressReason,
-          nativeEvent,
-          undefined,
-          {
-            direction: isIncrement ? 1 : -1,
-          },
-        ),
+        createChangeEventDetails<
+          NumberFieldRoot.ChangeEventReason,
+          { direction?: Direction | undefined }
+        >(pressReason, nativeEvent, undefined, {
+          direction: isIncrement ? 1 : -1,
+        }),
       );
     }
   }
@@ -102,7 +107,9 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
         event.defaultPrevented ||
         isDisabled ||
         // If it's not a keyboard/virtual click, ignore.
-        (pointerTypeRef.current === 'touch' ? ignoreClickRef.current : event.detail !== 0)
+        (isTouchLikePointerType(pointerTypeRef.current)
+          ? ignoreClickRef.current
+          : event.detail !== 0)
       ) {
         return;
       }
@@ -137,8 +144,9 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
 
       commitValue(event.nativeEvent);
 
-      // Note: "pen" is sometimes returned for mouse usage on Linux Chrome.
-      if (event.pointerType !== 'touch') {
+      const isTouchPointer = isTouchLikePointerType(event.pointerType);
+
+      if (!isTouchPointer) {
         event.preventDefault();
         inputRef.current?.focus();
         startAutoChange(isIncrement, event);
@@ -166,13 +174,13 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
     onPointerUp(event) {
       // Ensure we mark the press as released for touch flows even if auto-change never started,
       // so the delayed auto-change check won’t start after a quick tap.
-      if (event.pointerType === 'touch') {
+      if (isTouchLikePointerType(event.pointerType)) {
         isPressedRef.current = false;
       }
     },
     onPointerMove(event) {
       const isDisabled = disabled || readOnly;
-      if (isDisabled || event.pointerType !== 'touch' || !isPressedRef.current) {
+      if (isDisabled || !isTouchLikePointerType(event.pointerType) || !isPressedRef.current) {
         return;
       }
 
@@ -197,7 +205,7 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
         isDisabled ||
         !isPressedRef.current ||
         isTouchingButtonRef.current ||
-        pointerTypeRef.current === 'touch'
+        isTouchLikePointerType(pointerTypeRef.current)
       ) {
         return;
       }
@@ -229,16 +237,16 @@ export interface UseNumberFieldButtonParameters {
   formatOptionsRef: React.RefObject<Intl.NumberFormatOptions | undefined>;
   getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
   id: string | undefined;
-  incrementValue: (amount: number, params: IncrementValueParameters) => void;
+  incrementValue: (amount: number, params: IncrementValueParameters) => boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
   inputValue: string;
   intentionalTouchCheckTimeout: Timeout;
   isIncrement: boolean;
   isPressedRef: React.RefObject<boolean | null>;
-  locale?: Intl.LocalesArgument;
+  locale?: Intl.LocalesArgument | undefined;
   movesAfterTouchRef: React.RefObject<number | null>;
   readOnly: boolean;
-  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => void;
+  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => boolean;
   startAutoChange: (isIncrement: boolean, event?: React.MouseEvent | Event) => void;
   stopAutoChange: () => void;
   valueRef: React.RefObject<number | null>;

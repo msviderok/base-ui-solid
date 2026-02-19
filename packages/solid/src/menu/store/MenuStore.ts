@@ -1,4 +1,5 @@
 import { EMPTY_OBJECT } from '@base-ui/utils/empty';
+import type { Accessor } from 'solid-js';
 import { FloatingTreeStore } from '../../floating-ui-solid/components/FloatingTreeStore';
 import {
   createInitialPopupStoreState,
@@ -54,10 +55,7 @@ const selectors = {
     (state.parent.type === undefined || state.parent.type === 'context-menu') &&
     (state.modal ?? true),
 
-  allowMouseEnter: (state: State<unknown>): boolean =>
-    state.parent.type === 'menu'
-      ? state.parent.store.select('allowMouseEnter')
-      : state.allowMouseEnter,
+  allowMouseEnter: (state: State<unknown>) => state.allowMouseEnter,
   stickIfOpen: (state: State<unknown>) => state.stickIfOpen,
   parent: (state: State<unknown>) => state.parent,
   rootId: (state: State<unknown>): string | undefined => {
@@ -68,7 +66,8 @@ const selectors = {
     return state.parent.type !== undefined ? state.parent.context.rootId() : state.rootId;
   },
   activeIndex: (state: State<unknown>) => state.activeIndex,
-  isActive: (state: State<unknown>, itemIndex: number) => state.activeIndex === itemIndex,
+  isActive: (state: State<unknown>, itemIndex: Accessor<number>) =>
+    state.activeIndex === itemIndex(),
   hoverEnabled: (state: State<unknown>) => state.hoverEnabled,
   instantType: (state: State<unknown>) => state.instantType,
   lastOpenChangeReason: (state: State<unknown>) => state.openChangeReason,
@@ -96,14 +95,10 @@ const selectors = {
   },
 };
 
-export class MenuStore<Payload> extends SolidStore<
-  Readonly<State<Payload>>,
-  Context,
-  typeof selectors
-> {
+export class MenuStore<Payload> extends SolidStore<State<Payload>, Context, typeof selectors> {
   constructor(initialState?: Partial<State<Payload>>) {
     super(
-      { ...createInitialState(), ...initialState },
+      createInitialState(initialState),
       {
         refs: {
           positionerRef: null,
@@ -119,18 +114,6 @@ export class MenuStore<Payload> extends SolidStore<
         triggerElements: new PopupTriggerMap(),
       },
       selectors,
-    );
-
-    // Sync `allowMouseEnter` with parent menu if applicable.
-    this.observe(
-      (state) => state.allowMouseEnter,
-      (allowMouseEnter, oldValue) => {
-        // The allowMouseEnter !== oldValue check prevent calling parent store's set
-        // on intialization. Without it, React might complain about updating one component during rendering another.
-        if (this.state.parent.type === 'menu' && allowMouseEnter !== oldValue) {
-          this.state.parent.store.set('allowMouseEnter', allowMouseEnter);
-        }
-      },
     );
 
     // Set up propagation of state from parent menu if applicable.
@@ -162,20 +145,19 @@ export class MenuStore<Payload> extends SolidStore<
     externalStore: MenuStore<Payload> | undefined,
     initialState: Partial<State<Payload>>,
   ) {
-    const store = externalStore ?? new MenuStore<Payload>(initialState);
+    const internalStore = new MenuStore<Payload>(initialState);
 
-    return store;
+    return externalStore ?? internalStore;
   }
 
   private unsubscribeParentListener: (() => void) | null = null;
 }
 
-function createInitialState<Payload>(): State<Payload> {
-  return {
-    ...createInitialPopupStoreState(),
+function createInitialState<Payload>(initialState?: Partial<State<Payload>>) {
+  return createInitialPopupStoreState<Payload, State<Payload>>({
     disabled: false,
     modal: true,
-    allowMouseEnter: true,
+    allowMouseEnter: false,
     stickIfOpen: true,
     parent: {
       type: undefined,
@@ -191,5 +173,6 @@ function createInitialState<Payload>(): State<Payload> {
     itemProps: EMPTY_OBJECT as HTMLProps,
     keyboardEventRelay: undefined,
     closeDelay: 0,
-  };
+    ...initialState,
+  });
 }

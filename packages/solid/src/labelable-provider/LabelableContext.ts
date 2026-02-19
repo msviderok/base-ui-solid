@@ -9,7 +9,7 @@ export interface LabelableContext {
    * When `null` the association is implicit.
    */
   controlId: Accessor<string | null | undefined>;
-  setControlId: Setter<string | null | undefined>;
+  registerControlId: (source: symbol, id: string | null | undefined) => void;
   /**
    * The `id` of the label.
    */
@@ -29,7 +29,7 @@ export interface LabelableContext {
  */
 export const LabelableContext = createContext<LabelableContext>({
   controlId: () => undefined,
-  setControlId: NOOP as Setter<string | null | undefined>,
+  registerControlId: NOOP,
   labelId: () => undefined,
   setLabelId: NOOP as Setter<string | undefined>,
   messageIds: () => [],

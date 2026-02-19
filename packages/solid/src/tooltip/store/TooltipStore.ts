@@ -39,14 +39,10 @@ const selectors = {
   hasViewport: (state: State<unknown>) => state.hasViewport,
 };
 
-export class TooltipStore<Payload> extends SolidStore<
-  Readonly<State<Payload>>,
-  Context,
-  typeof selectors
-> {
+export class TooltipStore<Payload> extends SolidStore<State<Payload>, Context, typeof selectors> {
   constructor(initialState?: Partial<State<Payload>>) {
     super(
-      { ...createInitialState(), ...initialState },
+      createInitialState<Payload>(initialState),
       {
         refs: {
           popupRef: null,
@@ -59,7 +55,7 @@ export class TooltipStore<Payload> extends SolidStore<
     );
   }
 
-  public setOpen = (
+  setOpen = (
     nextOpen: boolean,
     eventDetails: Omit<TooltipRoot.ChangeEventDetails, 'preventUnmountOnClose'>,
   ) => {
@@ -111,11 +107,13 @@ export class TooltipStore<Payload> extends SolidStore<
     }
   };
 
-  public static useStore<Payload>(
+  static useStore<Payload>(
     externalStore: TooltipStore<Payload> | undefined,
     initialState?: Partial<State<Payload>>,
   ) {
-    const store = externalStore ?? new TooltipStore<Payload>(initialState);
+    const internalStore = new TooltipStore<Payload>(initialState);
+
+    const store = externalStore ?? internalStore;
 
     const floatingRootContext = useSyncedFloatingRootContext({
       popupStore: store,
@@ -131,9 +129,8 @@ export class TooltipStore<Payload> extends SolidStore<
   }
 }
 
-function createInitialState<Payload>(): State<Payload> {
-  return {
-    ...createInitialPopupStoreState(),
+function createInitialState<Payload>(initialState: Partial<State<Payload>> = {}) {
+  return createInitialPopupStoreState<Payload, State<Payload>>({
     disabled: false,
     instantType: undefined,
     isInstantPhase: false,
@@ -142,5 +139,6 @@ function createInitialState<Payload>(): State<Payload> {
     openChangeReason: null,
     closeDelay: 0,
     hasViewport: false,
-  };
+    ...initialState,
+  });
 }

@@ -1,20 +1,11 @@
-import { mergeProps as solidMergeProps, type JSX } from 'solid-js';
-import type { Padding, VirtualElement } from '../../floating-ui-solid';
-import { mergeProps } from '../../merge-props';
+import { type JSX } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { adaptiveOrigin } from '../../utils/adaptiveOriginMiddleware';
 import { POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
-import {
-  useAnchorPositioning,
-  type Align,
-  type Boundary,
-  type CollisionAvoidance,
-  type OffsetFunction,
-  type Side,
-} from '../../utils/useAnchorPositioning';
+import { useAnchorPositioning, type Align, type Side } from '../../utils/useAnchorPositioning';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTooltipPortalContext } from '../portal/TooltipPortalContext';
 import { useTooltipRootContext } from '../root/TooltipRootContext';
@@ -135,11 +126,9 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: store.useStateSetter('positionerElement'),
-    props: [
-      defaultProps,
-      (p) => mergeProps(p, getDisabledMountTransitionStyles(transitionStatus())),
-      elementProps,
-    ],
+    get props() {
+      return [defaultProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];
+    },
     stateAttributesMapping: popupStateMapping,
   });
 
@@ -173,7 +162,7 @@ export interface TooltipPositionerProps
    * May automatically change to avoid collisions.
    * @default 'top'
    */
-  side?: Side;
+  side?: Side | undefined;
 }
 
 export namespace TooltipPositioner {

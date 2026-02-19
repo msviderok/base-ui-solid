@@ -7,6 +7,7 @@ import {
   Show,
   type JSX,
 } from 'solid-js';
+import { useCSPContext } from '../../csp-provider/CSPContext';
 import { splitComponentProps } from '../../solid-helpers';
 import { getCssDimensions } from '../../utils/getCssDimensions';
 import type { BaseUIComponentProps } from '../../utils/types';
@@ -34,6 +35,8 @@ const stateAttributesMapping = {
 export function TabsIndicator(componentProps: TabsIndicator.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['renderBeforeHydration']);
   const renderBeforeHydration = () => local.renderBeforeHydration ?? false;
+
+  const { nonce } = useCSPContext();
 
   const { getTabElementBySelectedValue, orientation, tabActivationDirection, value } =
     useTabsRootContext();
@@ -187,6 +190,7 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
       {element()}
       {!isMounted() && renderBeforeHydration() && (
         <script
+          nonce={nonce()}
           // eslint-disable-next-line solid/no-innerhtml
           innerHTML={prehydrationScript}
           // @ts-expect-error - suppressHydrationWarnings is not a valid attribute for Solid
@@ -209,7 +213,7 @@ export interface TabsIndicatorProps extends BaseUIComponentProps<'span', TabsInd
    * This minimizes the time that the indicator isn’t visible after server-side rendering.
    * @default false
    */
-  renderBeforeHydration?: boolean;
+  renderBeforeHydration?: boolean | undefined;
 }
 
 export namespace TabsIndicator {

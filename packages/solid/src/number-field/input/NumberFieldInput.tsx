@@ -5,7 +5,6 @@ import { fieldValidityMapping } from '../../field/utils/constants';
 import { stopEvent } from '../../floating-ui-solid/utils';
 import { useFormContext } from '../../form/FormContext';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
-import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import {
   createChangeEventDetails,
@@ -251,9 +250,8 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
         return;
       }
 
-      // For trusted user typing, update the input text immediately and only fire onValueChange
-      // if the typed value is currently parseable into a number. This preserves good UX for IME
-      // composition/partial input while still providing live numeric updates when possible.
+      // Update the input text immediately and only fire onValueChange if the typed value is
+      // currently parseable into a number. This preserves good UX for IME
       const allowedNonNumericKeys = getAllowedNonNumericKeys();
       const isValidCharacterString = Array.from(targetValue).every((ch) => {
         const isAsciiDigit = ch >= '0' && ch <= '9';
@@ -277,19 +275,11 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
         return;
       }
 
-      if (event.isTrusted) {
-        setInputValue(targetValue);
-        const parsedValue = parseNumber(targetValue, locale(), refs.formatOptionsRef);
-        if (parsedValue !== null) {
-          setValue(parsedValue, createChangeEventDetails(REASONS.inputChange, event));
-        }
-        return;
-      }
-
       const parsedValue = parseNumber(targetValue, locale(), refs.formatOptionsRef);
 
+      setInputValue(targetValue);
+
       if (parsedValue !== null) {
-        setInputValue(targetValue);
         setValue(parsedValue, createChangeEventDetails(REASONS.inputChange, event));
       }
     },
@@ -441,11 +431,9 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
     ref: (el) => {
       refs.inputRef = el;
     },
-    props: [
-      inputProps,
-      (props) => mergeProps(props, validation.getValidationProps()),
-      elementProps,
-    ],
+    get props() {
+      return [inputProps, validation.getValidationProps(), elementProps];
+    },
     stateAttributesMapping,
   });
 

@@ -19,6 +19,13 @@ import type {
 } from '../utils/types';
 import type { NumberFieldRoot } from './NumberFieldRoot';
 
+// Treat pen as touch-like to avoid forcing the software keyboard on stylus taps.
+// Linux Chrome may emit "pen" historically for mouse usage due to a bug, but the touch path
+// still works with minor behavioral differences.
+function isTouchLikePointerType(pointerType: string) {
+  return pointerType === 'touch' || pointerType === 'pen';
+}
+
 export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
   const disabled = () => access(params.disabled);
   const id = () => access(params.id);
@@ -32,7 +39,7 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
   let ignoreClickRef = false;
   let pointerTypeRef = '' as 'mouse' | 'touch' | 'pen' | '';
 
-  const pressReason: NumberFieldRoot.ChangeEventReason = () =>
+  const pressReason = (): NumberFieldRoot.ChangeEventReason =>
     isIncrement() ? 'increment-press' : 'decrement-press';
 
   function commitValue(nativeEvent: MouseEvent) {
@@ -47,14 +54,12 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
       params.refs.valueRef = parsedValue;
       params.setValue(
         parsedValue,
-        createChangeEventDetails<NumberFieldRoot.ChangeEventReason, { direction?: Direction }>(
-          pressReason,
-          nativeEvent,
-          undefined,
-          {
-            direction: isIncrement() ? 1 : -1,
-          },
-        ),
+        createChangeEventDetails<
+          NumberFieldRoot.ChangeEventReason,
+          { direction?: Direction | undefined }
+        >(pressReason(), nativeEvent, undefined, {
+          direction: isIncrement() ? 1 : -1,
+        }),
       );
     }
   }
@@ -88,12 +93,12 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
       isTouchingButtonRef = false;
     },
     onClick(event) {
-      const isDisabled = disabled() || readOnly() || (isIncrement() ? isMax() : isMin());
+      const isDisabled = disabled() || readOnly();
       if (
         event.defaultPrevented ||
         isDisabled ||
         // If it's not a keyboard/virtual click, ignore.
-        (pointerTypeRef === 'touch' ? ignoreClickRef : event.detail !== 0)
+        (isTouchLikePointerType(pointerTypeRef) ? ignoreClickRef : event.detail !== 0)
       ) {
         return;
       }
@@ -106,13 +111,13 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
 
       params.incrementValue(amount, {
         direction: isIncrement() ? 1 : -1,
-        event: event,
-        reason: pressReason,
+        event,
+        reason: pressReason() as any,
       });
 
       const committed = params.refs.lastChangedValueRef ?? params.refs.valueRef;
       if (committed !== prev) {
-        params.onValueCommitted(committed, createGenericEventDetails(pressReason, event));
+        params.onValueCommitted(committed, createGenericEventDetails(pressReason(), event));
       }
     },
     onPointerDown(event) {
@@ -128,8 +133,10 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
 
       commitValue(event);
 
+      const isTouchPointer = isTouchLikePointerType(event.pointerType);
+
       // Note: "pen" is sometimes returned for mouse usage on Linux Chrome.
-      if (event.pointerType !== 'touch') {
+      if (!isTouchPointer) {
         event.preventDefault();
         params.refs.inputRef?.focus();
         params.startAutoChange(isIncrement(), event);
@@ -157,13 +164,13 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
     onPointerUp(event) {
       // Ensure we mark the press as released for touch flows even if auto-change never started,
       // so the delayed auto-change check won’t start after a quick tap.
-      if (event.pointerType === 'touch') {
+      if (isTouchLikePointerType(event.pointerType)) {
         params.refs.isPressedRef = false;
       }
     },
     onPointerMove(event) {
       const isDisabled = disabled() || readOnly();
-      if (isDisabled || event.pointerType !== 'touch' || !params.refs.isPressedRef) {
+      if (isDisabled || !isTouchLikePointerType(event.pointerType) || !params.refs.isPressedRef) {
         return;
       }
 
@@ -188,7 +195,7 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
         isDisabled ||
         !params.refs.isPressedRef ||
         isTouchingButtonRef ||
-        pointerTypeRef === 'touch'
+        isTouchLikePointerType(pointerTypeRef)
       ) {
         return;
       }
@@ -227,13 +234,13 @@ export interface UseNumberFieldButtonParameters {
   disabled: MaybeAccessor<boolean>;
   getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
   id: MaybeAccessor<string | undefined>;
-  incrementValue: (amount: number, params: IncrementValueParameters) => void;
+  incrementValue: (amount: number, params: IncrementValueParameters) => boolean;
   inputValue: MaybeAccessor<string>;
   intentionalTouchCheckTimeout: Timeout;
   isIncrement: MaybeAccessor<boolean>;
   locale?: MaybeAccessor<Intl.LocalesArgument | undefined>;
   readOnly: MaybeAccessor<boolean>;
-  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => void;
+  setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => boolean;
   startAutoChange: (isIncrement: boolean, event?: MouseEvent | Event) => void;
   stopAutoChange: () => void;
   onValueCommitted: (

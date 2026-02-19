@@ -27,9 +27,11 @@ export function SelectArrow(componentProps: SelectArrow.Props) {
   const { side, align, refs, arrowStyles, arrowUncentered, alignItemWithTriggerActive } =
     useSelectPositionerContext();
 
+  const open = store.useState('open');
+
   const state: SelectArrow.State = {
     get open() {
-      return store.open;
+      return open();
     },
     get side() {
       return side();

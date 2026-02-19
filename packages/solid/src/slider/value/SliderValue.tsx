@@ -73,8 +73,8 @@ export interface SliderValueProps extends Omit<
   'children'
 > {
   children?:
-    | null
-    | ((formattedValues: readonly string[], values: readonly number[]) => JSX.Element);
+    | (null | ((formattedValues: readonly string[], values: readonly number[]) => JSX.Element))
+    | undefined;
 }
 
 export namespace SliderValue {}

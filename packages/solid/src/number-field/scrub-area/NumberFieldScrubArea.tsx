@@ -47,6 +47,8 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
   };
 
   let isScrubbingRef = false;
+  let didMoveRef = false;
+  let pointerDownTargetRef = null as EventTarget | null | undefined;
   let virtualCursorCoords = { x: 0, y: 0 };
   // TODO: this is needed to be a react-like ref due to it being mutated in the subscribeToVisualViewportResize
   const visualScaleRef = { current: 1 };
@@ -147,6 +149,17 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
             numberFieldRootRefs.lastChangedValueRef ?? numberFieldRootRefs.valueRef,
             createGenericEventDetails(REASONS.scrub, event),
           );
+
+          // Manually dispatch a click event if no movement happened, since
+          // preventDefault on pointerdown prevents the browser click event.
+          if (!didMoveRef && pointerDownTargetRef != null) {
+            pointerDownTargetRef.dispatchEvent(
+              new MouseEvent('click', { bubbles: true, cancelable: true }),
+            );
+          }
+
+          didMoveRef = false;
+          pointerDownTargetRef = null;
         }
       }
 
@@ -175,6 +188,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
 
       if (Math.abs(cumulativeDelta) >= pixelSensitivity()) {
         cumulativeDelta = 0;
+        didMoveRef = true;
         const dValue = direction() === 'vertical' ? -movementY : movementX;
         const stepAmount = getStepAmount(event) ?? DEFAULT_STEP;
         const rawAmount = dValue * stepAmount;
@@ -190,7 +204,6 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     }
 
     const win = ownerWindow(numberFieldRootRefs.inputRef);
-
     win.addEventListener('pointerup', handleScrubPointerUp, true);
     win.addEventListener('pointermove', handleScrubPointerMove, true);
 
@@ -243,6 +256,8 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
       }
 
       isScrubbingRef = true;
+      didMoveRef = false;
+      pointerDownTargetRef = event.target;
       onScrubbingChange(true, event);
 
       // WebKit causes significant layout shift with the native message, so we can't use it.
@@ -300,13 +315,13 @@ export interface NumberFieldScrubAreaProps extends BaseUIComponentProps<
    * Cursor movement direction in the scrub area.
    * @default 'horizontal'
    */
-  direction?: 'horizontal' | 'vertical';
+  direction?: ('horizontal' | 'vertical') | undefined;
   /**
    * Determines how many pixels the cursor must move before the value changes.
    * A higher value will make scrubbing less sensitive.
    * @default 2
    */
-  pixelSensitivity?: number;
+  pixelSensitivity?: number | undefined;
   /**
    * If specified, determines the distance that the cursor may move from the center
    * of the scrub area before it will loop back around.

@@ -9,6 +9,7 @@ import {
   HOME,
 } from '../../composite/composite';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
+import { useCSPContext } from '../../csp-provider/CSPContext';
 import { useDirection } from '../../direction-provider/DirectionContext';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { type LabelableContext } from '../../labelable-provider/LabelableContext';
@@ -105,6 +106,7 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
   const indexProp = () => local.index;
   const tabIndexProp = () => local.tabIndex;
 
+  const { nonce } = useCSPContext();
   const id = useBaseUiId(idProp);
 
   const {
@@ -508,6 +510,7 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
             // preceding thumbs are already rendered in the DOM
             last() && (
               <script
+                nonce={nonce()}
                 // eslint-disable-next-line solid/no-innerhtml
                 innerHTML={prehydrationScript}
                 // @ts-expect-error - suppressHydrationWarning is not a valid attribute in SolidJS
@@ -533,16 +536,18 @@ export interface SliderThumbProps extends BaseUIComponentProps<'div', SliderThum
    * Whether the thumb should ignore user interaction.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /**
    * A function which returns a string value for the [`aria-label`](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-label) attribute of the `input`.
    */
-  getAriaLabel?: ((index: number) => string) | null;
+  getAriaLabel?: (((index: number) => string) | null) | undefined;
   /**
    * A function which returns a string value for the [`aria-valuetext`](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-valuetext) attribute of the `input`.
    * This is important for screen reader users.
    */
-  getAriaValueText?: ((formattedValue: string, value: number, index: number) => string) | null;
+  getAriaValueText?:
+    | (((formattedValue: string, value: number, index: number) => string) | null)
+    | undefined;
   /**
    * The index of the thumb which corresponds to the index of its value in the
    * `value` or `defaultValue` array.
@@ -560,11 +565,11 @@ export interface SliderThumbProps extends BaseUIComponentProps<'div', SliderThum
   /**
    * A ref to access the nested input element.
    */
-  inputRef?: HTMLInputElement | null;
+  inputRef?: (HTMLInputElement | null) | undefined;
   /**
    * Optional tab index attribute forwarded to the `input`.
    */
-  tabIndex?: number;
+  tabIndex?: number | undefined;
 }
 
 export namespace SliderThumb {

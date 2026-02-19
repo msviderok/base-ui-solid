@@ -47,7 +47,7 @@ export interface ToolbarGroupProps extends BaseUIComponentProps<'div', ToolbarRo
    * When `true` all toolbar items in the group are disabled.
    * @default false
    */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
 }
 
 export namespace ToolbarGroup {

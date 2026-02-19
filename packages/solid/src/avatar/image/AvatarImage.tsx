@@ -1,11 +1,20 @@
-import { batch, createEffect } from 'solid-js';
+import { batch, createEffect, Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
+import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import { BaseUIComponentProps } from '../../utils/types';
+import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { type TransitionStatus, useTransitionStatus } from '../../utils/useTransitionStatus';
 import type { AvatarRoot } from '../root/AvatarRoot';
 import { useAvatarRootContext } from '../root/AvatarRootContext';
 import { avatarStateAttributesMapping } from '../root/stateAttributesMapping';
 import { ImageLoadingStatus, useImageLoadingStatus } from './useImageLoadingStatus';
+
+const stateAttributesMapping: StateAttributesMapping<AvatarImage.State> = {
+  ...avatarStateAttributesMapping,
+  ...transitionStatusMapping,
+};
 
 /**
  * The image to be displayed in the avatar.
@@ -27,6 +36,11 @@ export function AvatarImage(componentProps: AvatarImage.Props) {
     crossOrigin: local.crossOrigin,
   });
 
+  const isVisible = () => imageLoadingStatus() === 'loading' || imageLoadingStatus() === 'loaded';
+  const { mounted, transitionStatus, setMounted } = useTransitionStatus(isVisible);
+
+  let imageRef = null as HTMLImageElement | null | undefined;
+
   const handleLoadingStatusChange = (status: ImageLoadingStatus) => {
     batch(() => {
       local.onLoadingStatusChange?.(status);
@@ -40,29 +54,53 @@ export function AvatarImage(componentProps: AvatarImage.Props) {
     }
   });
 
-  const state: AvatarRoot.State = {
+  const resolvedTransitionStatus = () =>
+    imageLoadingStatus() === 'loading' ? 'starting' : transitionStatus();
+
+  const state: AvatarImage.State = {
     get imageLoadingStatus() {
       return imageLoadingStatus();
     },
+    get transitionStatus() {
+      return resolvedTransitionStatus();
+    },
   };
+
+  useOpenChangeComplete({
+    open: isVisible,
+    ref: imageRef,
+    onComplete() {
+      if (!isVisible()) {
+        setMounted(false);
+      }
+    },
+  });
 
   const element = useRenderElement('img', componentProps, {
     state,
+    ref: (el) => {
+      imageRef = el;
+    },
     props: elementProps,
-    customStyleHookMapping: avatarStateAttributesMapping,
-    enabled: () => imageLoadingStatus() === 'loaded',
+    stateAttributesMapping,
+    enabled: mounted,
   });
 
-  return <>{element()}</>;
+  return <Show when={mounted()}>{element()}</Show>;
 }
 
-export interface AvatarImageProps extends BaseUIComponentProps<'img', AvatarRoot.State> {
+export interface AvatarImageState extends AvatarRoot.State {
+  transitionStatus: TransitionStatus;
+}
+
+export interface AvatarImageProps extends BaseUIComponentProps<'img', AvatarImage.State> {
   /**
    * Callback fired when the loading status changes.
    */
-  onLoadingStatusChange?: (status: ImageLoadingStatus) => void;
+  onLoadingStatusChange?: ((status: ImageLoadingStatus) => void) | undefined;
 }
 
 export namespace AvatarImage {
+  export type State = AvatarImageState;
   export type Props = AvatarImageProps;
 }
