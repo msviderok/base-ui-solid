@@ -26,9 +26,15 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
     reset: resetOpenInteractionType,
   } = useOpenInteractionType(open);
 
-  useImplicitActiveTrigger(params.store);
-  const { forceUnmount } = useOpenStateTransitions(open, params.store, () => {
-    resetOpenInteractionType();
+  useImplicitActiveTrigger({ store: params.store });
+  const { forceUnmount } = useOpenStateTransitions({
+    get open() {
+      return open();
+    },
+    store: params.store,
+    onUnmount: () => {
+      resetOpenInteractionType();
+    },
   });
 
   const createDialogEventDetails = (reason: DialogRoot.ChangeEventReason) => {

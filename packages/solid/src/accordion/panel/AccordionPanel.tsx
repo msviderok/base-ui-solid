@@ -120,7 +120,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
     state: panelState,
     ref: (el) => {
       refs.panelRef = el;
-      panel.ref(el);
+      panel.setRef(el);
     },
     props: [
       panel.props,

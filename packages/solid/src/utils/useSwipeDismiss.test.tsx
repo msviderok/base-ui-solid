@@ -29,7 +29,9 @@ function SwipeProgressBox(props: { onProgress: (progress: number) => void }) {
   const swipe = useSwipeDismiss({
     enabled: true,
     directions: ['right'],
-    elementRef: ref,
+    get elementRef() {
+      return ref;
+    },
     movementCssVars: { x: '--x', y: '--y' },
     onProgress: props.onProgress,
   });
@@ -75,7 +77,9 @@ describe('useSwipeDismiss', () => {
       const swipeDismiss = useSwipeDismiss({
         enabled: true,
         directions: ['down'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         ignoreScrollableAncestors: true,
         onSwipeStart,

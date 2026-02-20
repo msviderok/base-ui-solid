@@ -54,7 +54,7 @@ export function AvatarFallback(componentProps: AvatarFallback.Props) {
 
   useOpenChangeComplete({
     open: visible,
-    ref: fallbackRef,
+    ref: () => fallbackRef,
     onComplete() {
       if (!visible()) {
         setMounted(false);

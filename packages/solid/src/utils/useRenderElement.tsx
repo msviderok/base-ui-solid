@@ -84,13 +84,16 @@ export function useRenderElement<
 
             getStateAttributesProps(state(), params.stateAttributesMapping),
 
+            {
+              get class() {
+                return resolveClassName(componentProps.class, state());
+              },
+            },
+
             mergeProps(Array.isArray(params.props) ? params.props.flat() : params.props),
 
             {
               component: undefined,
-              get class() {
-                return resolveClassName(componentProps.class, state());
-              },
               get style() {
                 return resolveStyle(componentProps.style, state());
               },

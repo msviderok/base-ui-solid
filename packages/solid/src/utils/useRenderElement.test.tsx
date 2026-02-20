@@ -1,7 +1,9 @@
 /* eslint-disable testing-library/render-result-naming-convention */
 import { createRenderer } from '#test-utils';
+import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { lazy, splitProps, Suspense, type ComponentProps } from 'solid-js';
+import { mergeProps as solidMergeProps } from '../merge-props';
 import type { BaseUIComponentProps } from '../utils/types';
 import { useRenderElement } from './useRenderElement';
 
@@ -19,7 +21,7 @@ describe('useRenderElement', () => {
           return local.active;
         },
       },
-      props: [{ ...elementProps, class: 'test-component', style: { padding: '10px' } }],
+      props: [elementProps, { class: 'test-component', style: { padding: '10px' } }],
     });
 
     return <>{element()}</>;
@@ -131,7 +133,7 @@ describe('useRenderElement', () => {
         <TestComponent
           active
           class="component-class"
-          render={(props) => <div {...props} class="render-class" />}
+          render={(props) => <div {...props} class={`${props.class} render-class`} />}
         />
       ));
 
@@ -147,7 +149,7 @@ describe('useRenderElement', () => {
         <TestComponent
           active
           class={(state) => (state.active ? 'active-class' : '')}
-          render={(props) => <div {...props} class="render-class" />}
+          render={(props) => <div {...props} class={`${props.class} render-class`} />}
         />
       ));
 
@@ -163,7 +165,10 @@ describe('useRenderElement', () => {
         <TestComponent
           active
           style={{ color: 'rgb(255, 0, 0)' }}
-          render={(props) => <div {...props} style={{ 'font-size': '16px' }} />}
+          render={(props) => {
+            const mergedProps = solidMergeProps(props, { style: { 'font-size': '16px' } });
+            return <div {...mergedProps} />;
+          }}
         />
       ));
 
@@ -178,7 +183,10 @@ describe('useRenderElement', () => {
         <TestComponent
           active
           style={(state) => ({ color: state.active ? 'rgb(255, 0, 0)' : 'rgb(0, 0, 0)' })}
-          render={(props) => <div {...props} style={{ 'font-size': '16px' }} />}
+          render={(props) => {
+            const mergedProps = solidMergeProps(props, { style: { 'font-size': '16px' } });
+            return <div {...mergedProps} />;
+          }}
         />
       ));
 
@@ -195,7 +203,7 @@ describe('useRenderElement', () => {
         }),
       );
 
-      const { container } = render(() => (
+      render(() => (
         <Suspense fallback={<div>Loading…</div>}>
           <TestComponent
             active
@@ -204,8 +212,9 @@ describe('useRenderElement', () => {
         </Suspense>
       ));
 
-      const element = container.firstElementChild;
+      const element = await screen.findByTestId('lazy');
       expect(element).to.not.equal(null);
+
       expect(element?.getAttribute('data-testid')).to.equal('lazy');
       expect(element?.getAttribute('data-lazy')).to.equal('true');
       expect(element?.className).to.contain('test-component');
@@ -220,7 +229,15 @@ describe('useRenderElement', () => {
       render(() => (
         <TestComponent
           ref={componentRef}
-          render={(props) => <CustomElement {...props} ref={renderRef} />}
+          render={(props) => (
+            <CustomElement
+              {...props}
+              ref={(el) => {
+                renderRef = el;
+                props.ref(el);
+              }}
+            />
+          )}
         />
       ));
 

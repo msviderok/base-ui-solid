@@ -1,5 +1,5 @@
 import { createEffect, type JSX } from 'solid-js';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../store/SolidStoreV2';
 import { useOpenChangeComplete } from '../useOpenChangeComplete';
 import { useTransitionStatus } from '../useTransitionStatus';
 import {
@@ -188,7 +188,7 @@ export function useOpenStateTransitions<State extends PopupStoreState<any>>(para
       return !preventUnmountingOnClose();
     },
     open: parameters.open,
-    ref: parameters.store.context.refs.popupRef,
+    ref: () => parameters.store.context.popupRef,
     onComplete() {
       if (!parameters.open) {
         forceUnmount();

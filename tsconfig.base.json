@@ -3,7 +3,7 @@
     "module": "nodenext",
     "target": "es2022",
     "lib": ["es2022", "dom"],
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noEmit": true,

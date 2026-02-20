@@ -108,9 +108,7 @@ export type PopupStoreContext<ChangeEventDetails> = {
   /**
    * Reference to the popup element.
    */
-  readonly refs: {
-    popupRef: HTMLElement | null | undefined;
-  };
+  readonly popupRef: HTMLElement | null | undefined;
   /**
    * Callback fired when the open state changes.
    */

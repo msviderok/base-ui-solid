@@ -3,24 +3,20 @@ import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { SinonSpy, spy } from 'sinon';
 import { createSignal } from 'solid-js';
-import type { MaybeAccessor } from '../../solid-helpers';
-import { SolidStore } from './SolidStore';
+import { createStore } from 'solid-js/store';
+import { SolidStore as SolidStoreV2 } from './SolidStoreV2';
 
 type TestState = { value: number; label: string };
-
-function useStableStore<State extends Record<string, MaybeAccessor<unknown>>>(initial: State) {
-  return new SolidStore<State>(initial);
-}
 
 describe('SolidStore', () => {
   const { render } = createRenderer();
 
   it('syncs internal state from controlled prop', () => {
-    let store!: SolidStore<TestState>;
+    let store!: SolidStoreV2<TestState>;
 
-    function Test({ controlled }: { controlled: number | undefined }) {
-      store = useStableStore<TestState>({ value: 0, label: '' });
-      store.useControlledProp('value', controlled);
+    function Test(props: { controlled: number | undefined }) {
+      store = SolidStoreV2<TestState>({ value: 0, label: '' });
+      store.useControlledProp('value', () => props.controlled);
       return null;
     }
 
@@ -28,7 +24,7 @@ describe('SolidStore', () => {
     render(() => <Test controlled={controlled()} />);
     expect(store.state.value).to.equal(1);
 
-    store.update('label', 'y');
+    store.update({ label: 'y' });
     // Non-controlled keys still update
     expect(store.state.label).to.equal('y');
 
@@ -38,9 +34,9 @@ describe('SolidStore', () => {
   });
 
   it('warns on switching from uncontrolled to controlled', () => {
-    function Test({ controlled }: { controlled?: number }) {
-      const store = useStableStore<TestState>({ value: 0, label: '' });
-      store.useControlledProp('value', controlled);
+    function Test(props: { controlled?: number }) {
+      const store = SolidStoreV2<TestState>({ value: 0, label: '' });
+      store.useControlledProp('value', () => props.controlled);
       return null;
     }
 
@@ -51,15 +47,13 @@ describe('SolidStore', () => {
       setControlled(1);
     }).toErrorDev([
       'A component is changing the controlled state of value to be uncontrolled. Elements should not switch from uncontrolled to controlled (or vice versa).',
-      'A component is changing the controlled state of value to be uncontrolled. Elements should not switch from uncontrolled to controlled (or vice versa).',
     ]);
   });
 
   it('warns on switching from controlled to uncontrolled', () => {
     function Test(props: { controlled?: number }) {
-      const store = useStableStore<TestState>({ value: 0, label: '' });
-      // eslint-disable-next-line solid/reactivity
-      store.useControlledProp('value', props.controlled);
+      const store = SolidStoreV2<TestState>({ value: 0, label: '' });
+      store.useControlledProp('value', () => props.controlled);
       return null;
     }
 
@@ -70,17 +64,15 @@ describe('SolidStore', () => {
       setControlled(undefined);
     }).toErrorDev([
       'A component is changing the uncontrolled state of value to be controlled. Elements should not switch from uncontrolled to controlled (or vice versa).',
-      'A component is changing the uncontrolled state of value to be controlled. Elements should not switch from uncontrolled to controlled (or vice versa).',
     ]);
   });
 
   it('useProp updates a single key when the passed value changes', () => {
-    let store!: SolidStore<TestState>;
+    let store!: SolidStoreV2<TestState>;
 
     function Test(props: { value: number }) {
-      store = useStableStore<TestState>({ value: 0, label: '' });
-      // eslint-disable-next-line solid/reactivity
-      store.useSyncedValue('value', props.value);
+      store = SolidStoreV2<TestState>({ value: 0, label: '' });
+      store.useSyncedValue('value', () => props.value);
       return null;
     }
 
@@ -93,12 +85,11 @@ describe('SolidStore', () => {
   });
 
   it('useProps applies multiple keys from a props object', () => {
-    let store!: SolidStore<TestState>;
+    let store!: SolidStoreV2<TestState>;
 
     function Test(props: { props: Partial<TestState> }) {
-      store = useStableStore<TestState>({ value: 0, label: '' });
-      // eslint-disable-next-line solid/reactivity
-      store.useSyncedValues(props.props);
+      store = SolidStoreV2<TestState>({ value: 0, label: '' });
+      store.useSyncedValues(() => props.props);
       return null;
     }
 
@@ -111,24 +102,25 @@ describe('SolidStore', () => {
     expect(store.state.value).to.equal(6);
     expect(store.state.label).to.equal('b');
   });
+
   it('useSyncedValues depends on entries instead of object identity', () => {
-    let store!: SolidStore<TestState>;
-    let updateSpy!: SinonSpy<[Partial<TestState>], void>;
+    let store!: SolidStoreV2<TestState>;
+    const updateSpy = spy();
+
+    const [internalStore, setInternalStore] = createStore<TestState>({ value: 0, label: '' });
+    const setState: typeof setInternalStore = ((...args: any[]) => {
+      updateSpy(...args);
+      return (setInternalStore as any)(...args);
+    }) as typeof setInternalStore;
 
     function Test(props: { props: Partial<TestState> }) {
-      store = useStableStore<TestState>({ value: 0, label: '' });
-
-      if (!updateSpy) {
-        updateSpy = spy(store, 'setState') as any;
-      }
-
-      // eslint-disable-next-line solid/reactivity
-      store.useSyncedValues(props.props);
+      store = SolidStoreV2<TestState>([internalStore, setState]);
+      store.useSyncedValues(() => props.props);
       return null;
     }
 
-    const [props, setProps] = createSignal({ value: 5, label: 'a' });
-    render(() => <Test props={props()} />);
+    const [props, setProps] = createStore({ value: 5, label: 'a' });
+    render(() => <Test props={props} />);
 
     expect(updateSpy.callCount).to.equal(1);
 
@@ -144,9 +136,8 @@ describe('SolidStore', () => {
 
   it('warns if useSyncedValues keys change between renders', () => {
     function Test(props: { props: Partial<TestState> }) {
-      const store = useStableStore<TestState>({ value: 0, label: '' });
-      // eslint-disable-next-line solid/reactivity
-      store.useSyncedValues(props.props);
+      const store = SolidStoreV2<TestState>({ value: 0, label: '' });
+      store.useSyncedValues(() => props.props);
       return null;
     }
 
@@ -156,22 +147,21 @@ describe('SolidStore', () => {
     expect(() => {
       setProps({ label: 'x' });
     }).toErrorDev([
-      'ReactStore.useSyncedValues expects the same prop keys on every render. Keys should be stable.',
-      'ReactStore.useSyncedValues expects the same prop keys on every render. Keys should be stable.',
+      'SolidStore.useSyncedValues expects the same prop keys on every render. Keys should be stable.',
     ]);
   });
 
   it('useSyncedValueWithCleanup synchronizes value and resets on cleanup', () => {
     type CleanupState = { node: HTMLDivElement | undefined };
-    let store!: SolidStore<CleanupState>;
+    let store!: SolidStoreV2<CleanupState>;
 
     const firstNode = document.createElement('div');
     const secondNode = document.createElement('div');
 
     function Test(props: { node: HTMLDivElement | undefined }) {
-      store = useStableStore<CleanupState>({ node: undefined });
-      // eslint-disable-next-line solid/reactivity
-      store.useSyncedValueWithCleanup('node', props.node);
+      store = SolidStoreV2<CleanupState>({ node: undefined });
+
+      store.useSyncedValueWithCleanup('node', () => props.node);
       return null;
     }
 
@@ -190,7 +180,7 @@ describe('SolidStore', () => {
     type ParentState = { count: number };
     type ChildState = {
       count: number;
-      parent?: SolidStore<ParentState, Record<string, never>, typeof parentSelectors>;
+      parent?: SolidStoreV2<ParentState, Record<string, never>, typeof parentSelectors>;
     };
 
     const parentSelectors = { count: (state: ParentState) => state.count };
@@ -199,21 +189,25 @@ describe('SolidStore', () => {
       parent: (state: ChildState) => state.parent,
     };
 
-    const parentStore = new SolidStore<ParentState, Record<string, never>, typeof parentSelectors>(
+    const localCountSelector = (state: ChildState) => state.count;
+
+    const parentStore = SolidStoreV2<ParentState, Record<string, never>, typeof parentSelectors>(
       { count: 0 },
       undefined,
       parentSelectors,
     );
 
-    const childStore = new SolidStore<ChildState, Record<string, never>, typeof childSelectors>(
+    const childStore = SolidStoreV2<ChildState, Record<string, never>, typeof childSelectors>(
       { count: 10 },
       undefined,
       childSelectors,
     );
 
-    childStore.observe('count', (newCount, _, store) => {
-      store.state.parent?.set('count', newCount);
-    });
+    const onCountUpdated = (newCount: number, _: number, state: ChildState) => {
+      state.parent?.set('count', newCount);
+    };
+
+    childStore.observe(localCountSelector, onCountUpdated);
 
     function Test() {
       const count = childStore.useState('count');
@@ -254,14 +248,12 @@ describe('SolidStore', () => {
     };
 
     it('accepts selector functions', () => {
-      const store = new SolidStore<CounterState>({ count: 0, multiplier: 1 });
+      const store = SolidStoreV2<CounterState>({ count: 0, multiplier: 1 });
       const calls: Array<{ newValue: boolean; oldValue: boolean }> = [];
 
       const unsubscribe = store.observe(
         (state) => state.count > 1,
-        (newValue, oldValue) => {
-          calls.push({ newValue, oldValue });
-        },
+        (newValue, oldValue) => calls.push({ newValue, oldValue }),
       );
 
       expect(calls).to.have.lengthOf(1);
@@ -282,7 +274,7 @@ describe('SolidStore', () => {
     });
 
     it('calls listener immediately with current selector result on subscription', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
+      const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
         { count: 5, multiplier: 3 },
         undefined,
         selectors,
@@ -298,7 +290,7 @@ describe('SolidStore', () => {
     });
 
     it('calls listener when selector result changes', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
+      const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
         { count: 5, multiplier: 3 },
         undefined,
         selectors,
@@ -318,7 +310,7 @@ describe('SolidStore', () => {
     });
 
     it('does not call listener when selector result is unchanged', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
+      const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
         { count: 5, multiplier: 3 },
         undefined,
         selectors,
@@ -335,7 +327,7 @@ describe('SolidStore', () => {
     });
 
     it('calls listener when any dependency of the selector changes', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
+      const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
         { count: 5, multiplier: 3 },
         undefined,
         selectors,
@@ -355,23 +347,23 @@ describe('SolidStore', () => {
       expect(calls[2]).to.deep.equal({ newValue: 20, oldValue: 30 });
     });
 
-    it('provides the store instance to the listener', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
-        { count: 5, multiplier: 3 },
-        undefined,
-        selectors,
-      );
-      let receivedStore!: SolidStore<CounterState, Record<string, never>, typeof selectors>;
+    // it('provides the store instance to the listener', () => {
+    //   const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
+    //     { count: 5, multiplier: 3 },
+    //     undefined,
+    //     selectors,
+    //   );
+    //   let receivedStore!: SolidStoreV2<CounterState, Record<string, never>, typeof selectors>;
 
-      store.observe('doubled', (_: number, __: number, storeArg) => {
-        receivedStore = storeArg;
-      });
+    //   store.observe('doubled', (_: number, __: number, storeArg) => {
+    //     receivedStore = storeArg;
+    //   });
 
-      expect(receivedStore).to.equal(store);
-    });
+    //   expect(receivedStore).to.equal(store);
+    // });
 
     it('returns an unsubscribe function that stops observing', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
+      const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
         { count: 5, multiplier: 3 },
         undefined,
         selectors,
@@ -392,7 +384,7 @@ describe('SolidStore', () => {
     });
 
     it('supports multiple observers on the same selector', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
+      const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
         { count: 5, multiplier: 3 },
         undefined,
         selectors,
@@ -415,7 +407,7 @@ describe('SolidStore', () => {
     });
 
     it('supports observers on different selectors', () => {
-      const store = new SolidStore<CounterState, Record<string, never>, typeof selectors>(
+      const store = SolidStoreV2<CounterState, Record<string, never>, typeof selectors>(
         { count: 5, multiplier: 3 },
         undefined,
         selectors,

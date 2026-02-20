@@ -73,11 +73,12 @@ export function testRenderProp(
             ref={instanceFromRef}
             render={(props) => <Wrapper {...props} />}
             data-testid="wrapped"
+            {...(button && { nativeButton })}
           />
         );
       }
 
-      render(() => <Test />, { ...(button && { nativeButton }) });
+      render(() => <Test />);
       expect(instanceFromRef!.tagName).to.equal(Element.toUpperCase());
       expect(instanceFromRef!).to.have.attribute('data-testid', 'wrapped');
     });

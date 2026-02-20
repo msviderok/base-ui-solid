@@ -54,11 +54,11 @@ export class SolidStore<
    */
   useSyncedValue<Key extends keyof State, Value extends State[Key]>(
     key: keyof State,
-    value: MaybeAccessor<Value>,
+    value: Accessor<Value>,
   ) {
-    createEffect(
-      on([() => access(key), () => access(value)], ([k, v]: [any, any]) => this.setState(k, v)),
-    );
+    createEffect(() => {
+      this.setState(key as any, value());
+    });
   }
 
   /**
@@ -70,10 +70,10 @@ export class SolidStore<
    */
   public useSyncedValueWithCleanup<Key extends KeysAllowingUndefined<State>>(
     key: Key,
-    value: MaybeAccessor<State[Key]>,
+    value: Accessor<State[Key]>,
   ) {
     this.useSyncedValue(key, value);
-    onCleanup(() => this.setState(key as any, undefined as any));
+    onCleanup(() => this.setState(key as any, undefined));
   }
 
   /**
@@ -83,20 +83,21 @@ export class SolidStore<
    * by `useState` are updated before the next render (similarly to React's `useState`).
    */
   public useSyncedValues<Keys extends keyof State>(
-    statePart: Partial<{
-      [Key in Keys]: MaybeAccessor<State[Key]>;
-    }>,
+    statePart: Accessor<Partial<State>> | Partial<{ [Key in Keys]: Accessor<State[Key]> }>,
   ) {
+    const partialState = createMemo(
+      () => access(statePart) as Partial<{ [Key in Keys]: MaybeAccessor<State[Key]> }>,
+    );
+
     if (process.env.NODE_ENV !== 'production') {
       // Check that an object with the same shape is passed on every render
-      const keys = Object.keys(statePart) as Array<keyof State>;
+      // eslint-disable-next-line solid/reactivity
+      const keys = Object.keys(partialState()) as Array<keyof State>;
 
-      const nextKeys = createMemo(() => Object.keys(statePart));
+      const nextKeys = createMemo(() => Object.keys(partialState()) as Array<keyof State>);
       createEffect(() => {
-        if (
-          keys.length !== nextKeys().length ||
-          keys.some((key, index) => key !== nextKeys()[index])
-        ) {
+        const next = nextKeys();
+        if (keys.length !== next.length || keys.some((key, index) => key !== next[index])) {
           console.error(
             'SolidStore.useSyncedValues expects the same prop keys on every render. Keys should be stable.',
           );
@@ -104,20 +105,17 @@ export class SolidStore<
       });
     }
 
-    createEffect(
-      on(
-        () => statePart,
-        () =>
-          this.setState(
-            produce((currentState) => {
-              // eslint-disable-next-line guard-for-in
-              for (const key in statePart) {
-                currentState[key] = access(statePart[key]) as any;
-              }
-            }),
-          ),
-      ),
-    );
+    createEffect(() => {
+      const state = partialState();
+      this.setState(
+        produce((currentState) => {
+          // eslint-disable-next-line guard-for-in
+          for (const key in state) {
+            currentState[key] = access(state[key]) as any;
+          }
+        }),
+      );
+    });
   }
 
   /**
@@ -126,12 +124,15 @@ export class SolidStore<
    */
   useControlledProp<Key extends keyof State, Value extends State[Key]>(
     key: keyof State,
-    controlledProp: MaybeAccessor<Value | undefined>,
+    controlledProp: Value | Accessor<Value | undefined> | undefined,
   ): void {
     const controlled = createMemo(() => access(controlledProp));
-    const isControlled = () => controlled() !== undefined;
+    const isControlled = createMemo(() => {
+      return controlled() !== undefined;
+    });
 
     createEffect(() => {
+      // console.log(isControlled(), controlled);
       if (isControlled() && !Object.is(this.state[key], controlled())) {
         // Set the internal state to match the controlled value.
         this.setState({ ...this.state, [key]: controlled() });
@@ -142,10 +143,13 @@ export class SolidStore<
       createEffect(() => {
         // eslint-disable-next-line
         const cache = ((this as any).controlledValues ??= new Map<keyof State, boolean>());
+        console.log(cache, isControlled());
         if (!cache.has(key)) {
-          cache.set(key, isControlled);
+          cache.set(key, isControlled());
         }
+
         const previouslyControlled = cache.get(key);
+        console.log(previouslyControlled, isControlled());
         if (previouslyControlled !== undefined && previouslyControlled !== isControlled()) {
           console.error(
             `A component is changing the ${
@@ -241,7 +245,12 @@ export class SolidStore<
           : this.selectors![selector](this.state),
       );
 
-      createEffect(on(data, (nextValue, prevValue) => listener(nextValue, prevValue, this)));
+      createEffect(
+        on(data, (nextValue, prevValue) => {
+          console.log('observe', this.state);
+          return listener(nextValue, prevValue, this);
+        }),
+      );
     });
 
     return unsubscribe;

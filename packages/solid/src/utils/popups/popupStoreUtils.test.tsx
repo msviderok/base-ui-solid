@@ -1,7 +1,7 @@
 import { render } from '@solidjs/testing-library';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { describe, expect, it, vi } from 'vitest';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../store/SolidStoreV2';
 import {
   createInitialPopupStoreState,
   PopupStoreContext,
@@ -12,7 +12,7 @@ import {
 } from './';
 
 function createStore() {
-  return new SolidStore<PopupStoreState<unknown>, PopupStoreContext<unknown>, PopupStoreSelectors>(
+  return SolidStore<PopupStoreState<unknown>, PopupStoreContext<unknown>, PopupStoreSelectors>(
     createInitialPopupStoreState(),
     {
       triggerElements: new PopupTriggerMap(),
@@ -29,8 +29,14 @@ function TestTrigger(props: {
   repeat?: number;
 }) {
   const repeat = () => props.repeat ?? 1;
-  // eslint-disable-next-line solid/reactivity
-  const register = useTriggerRegistration(props.id, props.store);
+  const register = useTriggerRegistration({
+    get id() {
+      return props.id;
+    },
+    get store() {
+      return props.store;
+    },
+  });
 
   createEffect(() => {
     for (let i = 0; i < repeat(); i += 1) {

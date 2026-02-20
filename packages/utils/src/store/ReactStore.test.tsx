@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { expect } from 'chai';
 import { act, createRenderer, screen } from '@mui/internal-test-utils';
+import { expect } from 'chai';
+import * as React from 'react';
 import { SinonSpy, spy } from 'sinon';
-import { ReactStore } from './ReactStore';
 import { useRefWithInit } from '../useRefWithInit';
 import { createSelector } from './createSelector';
+import { ReactStore } from './ReactStore';
 
 type TestState = { value: number; label: string };
 
@@ -329,6 +329,7 @@ describe('ReactStore', () => {
       const unsubscribe = store.observe(
         (state) => state.count > 1,
         (newValue, oldValue) => {
+          console.log('observe', newValue, oldValue);
           calls.push({ newValue, oldValue });
         },
       );

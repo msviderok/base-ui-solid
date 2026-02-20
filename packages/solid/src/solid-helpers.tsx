@@ -40,8 +40,10 @@ export function autofocus(element: HTMLElement, autofocusProp: Accessor<boolean>
 }
 
 // https://github.com/solidjs-community/solid-primitives/blob/461ab9edda2ffa6666d7ed2d5deed8b6b77f65a6/packages/utils/src/index.ts#L106C1-L107C59
-export function access<T>(v: MaybeAccessor<T>): T {
-  return typeof v === 'function' && !v.length ? (v as Accessor<T>)() : (v as T);
+export function access<V extends MaybeAccessor<unknown>>(
+  v: V,
+): V extends Accessor<infer U> ? U : V {
+  return typeof v === 'function' && !v.length ? (v as Function)() : (v as any);
 }
 
 export type Args<T extends ((...args: any[]) => any) | undefined | null> = Parameters<

@@ -5,13 +5,15 @@ import { createSignal } from 'solid-js';
 import { Mock } from 'vitest';
 import { useImageLoadingStatus } from './useImageLoadingStatus';
 
+vi.mock('./useImageLoadingStatus');
+
 describe('<Avatar.Image />', () => {
   const { render } = createRenderer();
 
   const useImageLoadingStatusMock = useImageLoadingStatus as Mock;
 
   beforeEach(() => {
-    useImageLoadingStatusMock.mockReturnValue('loaded');
+    useImageLoadingStatusMock.mockReturnValue(() => 'loaded');
   });
 
   afterEach(() => {

@@ -1,10 +1,10 @@
 import { createRenderer } from '#test-utils';
-import { useId } from '@msviderok/base-ui-solid/utils';
 import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { createSignal } from 'solid-js';
 import { NoHydration } from 'solid-js/web';
 import { access } from '../solid-helpers';
+import { useId } from './useId';
 
 interface TestComponentProps {
   id?: string;
