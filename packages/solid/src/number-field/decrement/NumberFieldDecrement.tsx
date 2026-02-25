@@ -20,21 +20,27 @@ export function NumberFieldDecrement(componentProps: NumberFieldDecrement.Props)
   const nativeButton = () => local.nativeButton ?? true;
 
   const {
+    allowInputSyncRef,
     disabled: contextDisabled,
+    formatOptionsRef,
     getStepAmount,
     id,
     incrementValue,
+    inputRef,
     inputValue,
     intentionalTouchCheckTimeout,
+    isPressedRef,
     minWithDefault,
+    movesAfterTouchRef,
     readOnly,
     setValue,
     startAutoChange,
     state,
     stopAutoChange,
     value,
+    valueRef,
     locale,
-    refs,
+    lastChangedValueRef,
     onValueCommitted,
   } = useNumberFieldRootContext();
 
@@ -43,6 +49,7 @@ export function NumberFieldDecrement(componentProps: NumberFieldDecrement.Props)
 
   const { props } = useNumberFieldButton({
     isIncrement: false,
+    inputRef,
     startAutoChange,
     stopAutoChange,
     inputValue,
@@ -52,9 +59,14 @@ export function NumberFieldDecrement(componentProps: NumberFieldDecrement.Props)
     setValue,
     getStepAmount,
     incrementValue,
+    allowInputSyncRef,
+    formatOptionsRef,
+    valueRef,
+    isPressedRef,
     intentionalTouchCheckTimeout,
+    movesAfterTouchRef,
     locale,
-    refs,
+    lastChangedValueRef,
     onValueCommitted,
   });
 

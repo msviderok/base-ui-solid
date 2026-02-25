@@ -16,7 +16,7 @@ export function SolidStore<
   selectors?: Selectors,
 ) {
   let controlledValues: Map<keyof State, boolean> | undefined;
-  const [context, setContext] = createStore<Context>(initialContext);
+  const context = initialContext;
   const [state, setState] = createInitialStore(initialState);
 
   function update(statePart: Partial<State>) {
@@ -79,9 +79,7 @@ export function SolidStore<
     controlledProp: Value | Accessor<Value | undefined> | undefined,
   ): void {
     const controlled = createMemo(() => access(controlledProp));
-    const isControlled = createMemo(() => {
-      return controlled() !== undefined;
-    });
+    const isControlled = createMemo(() => controlled() !== undefined);
 
     createEffect(() => {
       if (isControlled() && !Object.is(state[key], controlled())) {
@@ -121,15 +119,19 @@ export function SolidStore<
     key: Key,
     ...args: SelectorArgs<Selectors[Key]>
   ): Accessor<MaybeAccessorValue<ReturnType<Selectors[Key]>>> {
-    const c = createMemo(() => access(selectors![key](state, ...args)));
-    return c;
+    if (selectors && key in selectors) {
+      return () => access(selectors![key](state, ...args));
+    }
+
+    // eslint-disable-next-line solid/reactivity
+    return createMemo(() => access(state[key as unknown as keyof State]) as any);
   }
 
   function useContextCallback<Key extends ContextFunctionKeys<Context>>(
     key: Key,
     fn: ContextFunction<Context, Key> | undefined,
   ) {
-    setContext(key as any, fn ?? (NOOP as ContextFunction<Context, Key>));
+    (context as any)[key] = fn ?? (NOOP as ContextFunction<Context, Key>);
   }
 
   function useStateSetter<const Key extends keyof State, Value extends State[Key]>(key: Key) {
@@ -184,15 +186,7 @@ export function SolidStore<
     state,
     setState,
     set: setState,
-    context: new Proxy(context, {
-      get(target, prop) {
-        return target[prop as keyof Context];
-      },
-      set(_target, prop, value) {
-        setContext(prop as any, value);
-        return true;
-      },
-    }),
+    context,
     update,
     useSyncedValue,
     useSyncedValueWithCleanup,

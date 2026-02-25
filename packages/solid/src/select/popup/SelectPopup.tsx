@@ -45,20 +45,19 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
 
   const {
     store,
-    refs: rootRefs,
+    popupRef,
     onOpenChangeComplete,
     setOpen,
+    valueRef,
+    selectedItemTextRef,
+    keyboardActiveRef,
     multiple,
     handleScrollArrowVisibility,
+    scrollHandlerRef,
     highlightItemOnHover,
   } = useSelectRootContext();
-  const {
-    side,
-    align,
-    alignItemWithTriggerActive,
-    setControlledAlignItemWithTrigger,
-    refs: positionerRefs,
-  } = useSelectPositionerContext();
+  const { side, align, alignItemWithTriggerActive, setControlledAlignItemWithTrigger } =
+    useSelectPositionerContext();
   const insideToolbar = useToolbarRootContext(true) != null;
   const floatingRootContext = useSelectFloatingContext();
 
@@ -77,7 +76,6 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
 
   let initialHeightRef = 0;
   let reachedMaxHeightRef = false;
-  let maxHeightRef = 0;
   let initialPlacedRef = false;
   let originalPositionerStylesRef = {} as JSX.CSSProperties;
 
@@ -85,7 +83,7 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
 
   const handleScroll = (scroller: HTMLDivElement) => {
     const positionerEl = positionerElement();
-    if (!positionerEl || !rootRefs.popupRef || !initialPlacedRef) {
+    if (!positionerEl || !popupRef.current || !initialPlacedRef) {
       return;
     }
 
@@ -102,7 +100,7 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     const positionerStyles = getComputedStyle(positionerEl);
     const marginTop = parseFloat(positionerStyles.marginTop);
     const marginBottom = parseFloat(positionerStyles.marginBottom);
-    const maxPopupHeight = getMaxPopupHeight(getComputedStyle(rootRefs.popupRef));
+    const maxPopupHeight = getMaxPopupHeight(getComputedStyle(popupRef.current));
     const maxAvailableHeight = Math.min(
       doc.documentElement.clientHeight - marginTop - marginBottom,
       maxPopupHeight,
@@ -199,12 +197,12 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
   };
 
   onMount(() => {
-    rootRefs.scrollHandlerRef = handleScroll;
+    scrollHandlerRef.current = handleScroll;
   });
 
   useOpenChangeComplete({
     open,
-    ref: rootRefs.popupRef,
+    ref: popupRef.current,
     onComplete() {
       if (open()) {
         onOpenChangeComplete?.(true);
@@ -229,7 +227,7 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
 
   createEffect(() => {
     const positionerEl = positionerElement();
-    if (!positionerEl || !rootRefs.popupRef || Object.keys(originalPositionerStylesRef).length) {
+    if (!positionerEl || !popupRef.current || Object.keys(originalPositionerStylesRef).length) {
       return;
     }
 
@@ -254,13 +252,12 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     initialPlacedRef = false;
     reachedMaxHeightRef = false;
     initialHeightRef = 0;
-    maxHeightRef = 0;
 
     clearStyles(positionerElement(), originalPositionerStylesRef);
   });
 
   createEffect(() => {
-    const popupElement = rootRefs.popupRef;
+    const popupElement = popupRef.current;
     const positionerEl = positionerElement();
     const triggerEl = triggerElement();
     if (
@@ -314,8 +311,8 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
         const viewportWidth = doc.documentElement.clientWidth;
         const availableSpaceBeneathTrigger = viewportHeight - triggerRect.bottom + triggerHeight;
 
-        const textElement = rootRefs.selectedItemTextRef;
-        const valueElement = rootRefs.valueRef;
+        const textElement = selectedItemTextRef.current;
+        const valueElement = valueRef.current;
 
         let textRect: DOMRect | undefined;
         let offsetX = 0;
@@ -447,13 +444,13 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
       return listElement() ? undefined : `${id()}-list`;
     },
     onKeyDown(event) {
-      rootRefs.keyboardActiveRef = true;
+      keyboardActiveRef.current = true;
       if (insideToolbar && COMPOSITE_KEYS.has(event.key)) {
         event.stopPropagation();
       }
     },
     onMouseMove() {
-      rootRefs.keyboardActiveRef = false;
+      keyboardActiveRef.current = false;
     },
     onPointerLeave(event) {
       if (!highlightItemOnHover() || isMouseWithinBounds(event) || event.pointerType === 'touch') {
@@ -483,7 +480,7 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      rootRefs.popupRef = el;
+      popupRef.current = el;
     },
     state,
     stateAttributesMapping,

@@ -1,9 +1,8 @@
 import { ownerDocument } from '@base-ui/utils/owner';
-import { batch, createEffect, mergeProps as solidMergeProps, type JSX } from 'solid-js';
+import { createEffect, mergeProps as solidMergeProps, type JSX } from 'solid-js';
 import { activeElement } from '../../floating-ui-solid/utils';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
-import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
@@ -70,7 +69,7 @@ export function FieldControl(componentProps: FieldControl.Props) {
 
   createEffect(() => {
     const hasExternalValue = valueProp() != null;
-    if (validation.inputRef?.value || (hasExternalValue && valueProp() !== '')) {
+    if (validation.inputRef.current?.value || (hasExternalValue && valueProp() !== '')) {
       setFilled(true);
     } else if (hasExternalValue && local.value === '') {
       setFilled(false);
@@ -101,63 +100,68 @@ export function FieldControl(componentProps: FieldControl.Props) {
     name,
     commit: validation.commit,
     value,
-    getValue: () => validation.inputRef?.value,
-    controlRef: () => validation.inputRef,
+    getValue: () => validation.inputRef.current?.value,
+    controlRef: () => validation.inputRef.current,
   });
 
   const element = useRenderElement('input', componentProps, {
     state,
     ref: (el) => {
-      // validation.inputRef = el;
+      validation.inputRef.current = el;
       inputRef = el;
     },
-    props: [
-      {
-        get id() {
-          return id();
-        },
-        get disabled() {
-          return disabled();
-        },
-        get name() {
-          return name();
-        },
-        get 'aria-labelledby'() {
-          return labelId();
-        },
-        get autofocus() {
-          return autofocus();
-        },
-        get value() {
-          return isControlled() ? value() : undefined;
-        },
-        onChange(event) {
-          const inputValue = event.currentTarget.value;
-          local.onValueChange?.(inputValue, createChangeEventDetails(REASONS.none, event));
-          setDirty(inputValue !== validityData.initialValue);
-          setFilled(inputValue !== '');
-        },
-        onFocus() {
-          setFocused(true);
-        },
-        onBlur(event) {
-          setTouched(true);
-          setFocused(false);
-
-          if (validationMode() === 'onBlur') {
-            validation.commit(event.currentTarget.value);
-          }
-        },
-        onKeyDown(event) {
-          if (event.currentTarget.tagName === 'INPUT' && event.key === 'Enter') {
+    get props() {
+      return [
+        {
+          get id() {
+            return id();
+          },
+          get disabled() {
+            return disabled();
+          },
+          get name() {
+            return name();
+          },
+          get 'aria-labelledby'() {
+            return labelId();
+          },
+          get autofocus() {
+            return autofocus();
+          },
+          get value() {
+            return isControlled() ? value() : local.defaultValue;
+          },
+          onInput(event: InputEvent) {
+            const inputValue = (event.currentTarget as HTMLInputElement).value;
+            local.onValueChange?.(inputValue, createChangeEventDetails(REASONS.none, event));
+            setDirty(inputValue !== validityData.initialValue);
+            setFilled(inputValue !== '');
+          },
+          onFocus() {
+            setFocused(true);
+          },
+          onBlur(event: FocusEvent) {
             setTouched(true);
-            validation.commit(event.currentTarget.value);
-          }
+            setFocused(false);
+
+            if (validationMode() === 'onBlur') {
+              validation.commit((event.currentTarget as HTMLInputElement).value);
+            }
+          },
+          onKeyDown(event: KeyboardEvent) {
+            if (
+              (event.currentTarget as HTMLInputElement).tagName === 'INPUT' &&
+              event.key === 'Enter'
+            ) {
+              setTouched(true);
+              validation.commit((event.currentTarget as HTMLInputElement).value);
+            }
+          },
         },
-      },
-      (props) => mergeProps(props, validation.getInputValidationProps()),
-      elementProps,
-    ],
+        validation.getInputValidationProps(),
+        elementProps,
+      ];
+    },
     stateAttributesMapping: fieldValidityMapping,
   });
 

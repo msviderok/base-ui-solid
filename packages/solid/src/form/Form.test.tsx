@@ -2,6 +2,7 @@ import { createRenderer, describeConformance } from '#test-utils';
 import { Field } from '@msviderok/base-ui-solid/field';
 import { Form } from '@msviderok/base-ui-solid/form';
 import { NumberField } from '@msviderok/base-ui-solid/number-field';
+import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
@@ -263,7 +264,7 @@ describe('<Form />', () => {
   describe('actionsRef', () => {
     it('validates the form when the `validate` method is called', async () => {
       function App() {
-        const actionsRef = null as Form.Actions | null;
+        const actionsRef = useRef<Form.Actions | null>(null);
         return (
           <div>
             <Form actionsRef={actionsRef}>
@@ -279,7 +280,7 @@ describe('<Form />', () => {
               </Field.Root>
               <button type="submit">submit</button>
             </Form>
-            <button type="button" onClick={() => actionsRef?.validate()}>
+            <button type="button" onClick={() => actionsRef.current?.validate()}>
               validate
             </button>
           </div>
@@ -292,13 +293,13 @@ describe('<Form />', () => {
 
       await user.click(screen.getByText('validate'));
 
-      await expect(screen.queryAllByTestId('error').length).to.equal(2);
+      expect(screen.queryAllByTestId('error').length).to.equal(2);
     });
   });
 
   it('validates a field when the `validate` method is called with the field name', async () => {
     function App() {
-      const actionsRef = null as Form.Actions | null;
+      const actionsRef = useRef<Form.Actions | null>(null);
       return (
         <div>
           <Form actionsRef={actionsRef}>
@@ -314,7 +315,7 @@ describe('<Form />', () => {
             </Field.Root>
             <button type="submit">submit</button>
           </Form>
-          <button type="button" onClick={() => actionsRef?.validate('quantity')}>
+          <button type="button" onClick={() => actionsRef.current?.validate('quantity')}>
             validate
           </button>
         </div>
@@ -327,6 +328,6 @@ describe('<Form />', () => {
 
     await user.click(screen.getByText('validate'));
 
-    await expect(screen.queryByTestId('error')).to.have.text('number field error');
+    expect(screen.queryByTestId('error')).to.have.text('number field error');
   });
 });

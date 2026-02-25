@@ -1,7 +1,7 @@
 import { flushMicrotasks } from '#test-utils';
 import type { Coords } from '@floating-ui/dom';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
-import { createSignal, Show, mergeProps as solidMergeProps } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { test } from 'vitest';
 import { useClientPoint, useFloating, useInteractions } from '../index';
 
@@ -13,20 +13,26 @@ function expectLocation({ x, y }: Coords) {
 }
 
 function App(props: { enabled?: boolean; axis?: 'both' | 'x' | 'y'; useTriggerProps?: boolean }) {
-  const merged = solidMergeProps({ enabled: true }, props);
   const [isOpen, setIsOpen] = createSignal(false);
   const { refs, elements, context } = useFloating({
     open: isOpen,
     onOpenChange: setIsOpen,
   });
-  const clientPoint = useClientPoint(context, {
-    enabled: () => merged.enabled,
-    axis: () => merged.axis,
+  const clientPoint = useClientPoint({
+    context,
+    props: {
+      get enabled() {
+        return props.enabled ?? true;
+      },
+      get axis() {
+        return props.axis;
+      },
+    },
   });
   const { getReferenceProps, getTriggerProps, getFloatingProps } = useInteractions([clientPoint]);
 
   const rect = () => elements.reference()?.getBoundingClientRect();
-  const referenceProps = () => (merged.useTriggerProps ? getTriggerProps() : getReferenceProps());
+  const referenceProps = () => (props.useTriggerProps ? getTriggerProps() : getReferenceProps());
 
   return (
     <>

@@ -16,8 +16,9 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['direction', 'keepMounted']);
   const keepMounted = () => componentProps.keepMounted ?? false;
 
-  const { store, refs: rootRefs, handleScrollArrowVisibility } = useSelectRootContext();
-  const { side, refs: positionerRefs } = useSelectPositionerContext();
+  const { store, popupRef, listRef, handleScrollArrowVisibility, scrollArrowsMountedCountRef } =
+    useSelectRootContext();
+  const { side, scrollDownArrowRef, scrollUpArrowRef } = useSelectPositionerContext();
 
   const stateVisible = () =>
     local.direction === 'up'
@@ -31,19 +32,19 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
   const timeout = useTimeout();
 
   const scrollArrowRef = () =>
-    local.direction === 'up' ? positionerRefs.scrollUpArrowRef : positionerRefs.scrollDownArrowRef;
+    local.direction === 'up' ? scrollUpArrowRef.current : scrollDownArrowRef.current;
 
   const { transitionStatus, setMounted } = useTransitionStatus(visible);
 
   createEffect(() => {
-    rootRefs.scrollArrowsMountedCountRef += 1;
+    scrollArrowsMountedCountRef.current += 1;
     if (!store.state.hasScrollArrows) {
       store.set('hasScrollArrows', true);
     }
 
     onCleanup(() => {
-      rootRefs.scrollArrowsMountedCountRef = Math.max(0, rootRefs.scrollArrowsMountedCountRef - 1);
-      if (rootRefs.scrollArrowsMountedCountRef === 0 && store.state.hasScrollArrows) {
+      scrollArrowsMountedCountRef.current = Math.max(0, scrollArrowsMountedCountRef.current - 1);
+      if (scrollArrowsMountedCountRef.current === 0 && store.state.hasScrollArrows) {
         store.set('hasScrollArrows', false);
       }
     });
@@ -74,7 +75,7 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
     },
   };
 
-  const defaultProps: JSX.HTMLAttributes<HTMLDivElement> = {
+  const defaultProps = {
     'aria-hidden': true,
     get children() {
       return <>{local.direction === 'up' ? '▲' : '▼'}</>;
@@ -90,7 +91,7 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
       store.set('activeIndex', null);
 
       function scrollNextItem() {
-        const scroller = store.state.listElement ?? rootRefs.popupRef;
+        const scroller = store.state.listElement ?? popupRef.current;
         if (!scroller) {
           return;
         }
@@ -102,7 +103,7 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
         const isScrolledToBottom =
           Math.round(scroller.scrollTop + scroller.clientHeight) >= scroller.scrollHeight;
 
-        const list = rootRefs.listRef;
+        const list = listRef.current;
 
         if (list.length === 0) {
           if (local.direction === 'up') {
@@ -120,8 +121,8 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
           return;
         }
 
-        if (store.state.listElement && rootRefs.listRef && rootRefs.listRef.length > 0) {
-          const items = rootRefs.listRef;
+        if (store.state.listElement && listRef.current && listRef.current.length > 0) {
+          const items = listRef.current;
           const scrollArrowHeight = scrollArrowRef()?.offsetHeight || 0;
 
           if (local.direction === 'up') {
@@ -189,7 +190,7 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
     onMouseLeave() {
       timeout.clear();
     },
-  };
+  } satisfies JSX.HTMLAttributes<HTMLDivElement>;
 
   const shouldRender = () => visible() || keepMounted();
 
@@ -197,9 +198,9 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
     state,
     ref: (el) => {
       if (local.direction === 'up') {
-        positionerRefs.scrollUpArrowRef = el;
+        scrollUpArrowRef.current = el;
       } else {
-        positionerRefs.scrollDownArrowRef = el;
+        scrollDownArrowRef.current = el;
       }
     },
     props: [defaultProps, elementProps],

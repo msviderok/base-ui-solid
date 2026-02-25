@@ -6,7 +6,7 @@ import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { batch, createSignal, onMount, Show, type Component, type JSX } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
+import { delegateEvents, Dynamic, render as solidRender } from 'solid-js/web';
 import { test } from 'vitest';
 import { Main as Navigation } from '../../../test/floating-ui-tests/Navigation';
 import { autofocus } from '../../solid-helpers';
@@ -91,7 +91,9 @@ function App(
       {open() && (
         <FloatingFocusManager
           {...props}
-          initialFocus={props.initialFocus === 'two' ? ref : props.initialFocus}
+          initialFocus={() => {
+            return props.initialFocus === 'two' ? ref : props.initialFocus;
+          }}
           context={context}
         >
           <div role="dialog" ref={refs.setFloating} data-testid="floating">
@@ -565,7 +567,6 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
     });
   });
 
-  // TODO: fix iframe focus navigation
   describe('iframe focus navigation', () => {
     function App(props: { iframe: HTMLElement }) {
       return (
@@ -646,7 +647,14 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const root = createIframe();
 
         if (root) {
-          render(() => <App iframe={root} />, { container: root });
+          // Solid delegates common events (click, mousedown, etc.) to `document`.
+          // Since the app renders inside an iframe, we must set up delegation
+          // on the iframe's document so events bubble to the right handler.
+          delegateEvents(
+            ['click', 'mousedown', 'pointerdown', 'keydown', 'focusin', 'focusout'],
+            root.ownerDocument,
+          );
+          solidRender(() => <App iframe={root} />, root);
         }
       });
 
@@ -671,10 +679,8 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
 
       const user = userEvent.setup({ document: iframeDoc });
 
-      // eslint-disable-next-line testing-library/prefer-screen-queries
       await user.click(iframeWithin.getByRole('button', { name: 'Open' }));
 
-      // eslint-disable-next-line testing-library/prefer-screen-queries
       const popover = iframeWithin.getByTestId('popover');
       expect(iframeDoc!.body.contains(popover)).toBe(true);
 
@@ -697,10 +703,8 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
 
         const user = userEvent.setup({ document: iframeDoc });
 
-        // eslint-disable-next-line testing-library/prefer-screen-queries
         await user.click(iframeWithin.getByRole('button', { name: 'Open' }));
 
-        // eslint-disable-next-line testing-library/prefer-screen-queries
         const popover = iframeWithin.getByTestId('popover');
         expect(iframeDoc!.body.contains(popover)).toBe(true);
 

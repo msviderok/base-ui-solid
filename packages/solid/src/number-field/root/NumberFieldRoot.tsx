@@ -12,7 +12,7 @@ import {
 import type { FieldRoot } from '../../field/root/FieldRoot';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef, type ReactLikeRef } from '../../solid-helpers';
 import {
   createChangeEventDetails,
   createGenericEventDetails,
@@ -120,19 +120,17 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
 
   const value = () => valueUnwrapped() ?? null;
 
-  const refs: NumberFieldRootContext['refs'] = {
-    inputRef: null,
-    allowInputSyncRef: true,
-    formatOptionsRef: local.format,
-    valueRef: value(),
-    isPressedRef: false,
-    movesAfterTouchRef: 0,
-    hasPendingCommitRef: false,
-    lastChangedValueRef: null,
-  };
+  const inputRef = useRef<HTMLInputElement | null | undefined>(null);
+  const allowInputSyncRef = useRef<boolean | null>(true);
+  const formatOptionsRef = useRef(local.format);
+  const valueRef = useRef(value());
+  const lastChangedValueRef = useRef<number | null>(null);
+  const hasPendingCommitRef = useRef(false);
+  const isPressedRef = useRef<boolean | null>(false);
+  const movesAfterTouchRef = useRef<number | null>(0);
 
   createEffect(() => {
-    refs.valueRef = value();
+    valueRef.current = value();
   });
 
   createEffect(() => {
@@ -143,7 +141,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
     nextValue: number | null,
     eventDetails: NumberFieldRoot.CommitEventDetails,
   ) => {
-    refs.hasPendingCommitRef = false;
+    hasPendingCommitRef.current = false;
     local.onValueCommitted?.(nextValue, eventDetails);
   };
 
@@ -251,7 +249,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
 
     const validatedValue = toValidatedNumber(unvalidatedValue, {
       step: dir ? getStepAmount(eventWithOptionalKeyState) * dir : undefined,
-      format: refs.formatOptionsRef,
+      format: formatOptionsRef.current,
       minWithDefault: minWithDefault(),
       maxWithDefault: maxWithDefault(),
       minWithZeroDefault: minWithZeroDefault(),
@@ -271,26 +269,28 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
       details.reason === REASONS.none;
     const shouldFireChange =
       validatedValue !== value() ||
-      (isInputReason && (unvalidatedValue !== value() || refs.allowInputSyncRef === false));
+      (isInputReason && (unvalidatedValue !== value() || allowInputSyncRef.current === false));
 
     if (shouldFireChange) {
-      refs.lastChangedValueRef = validatedValue;
+      lastChangedValueRef.current = validatedValue;
       local.onValueChange?.(validatedValue, details);
 
       if (details.isCanceled) {
         return shouldFireChange;
       }
 
-      setValueUnwrapped(validatedValue);
-      setDirty(validatedValue !== validityData.initialValue);
-      refs.hasPendingCommitRef = true;
+      batch(() => {
+        setValueUnwrapped(validatedValue);
+        setDirty(validatedValue !== validityData.initialValue);
+        hasPendingCommitRef.current = true;
+      });
     }
 
     // Keep the visible input in sync immediately when programmatic changes occur
     // (increment/decrement, wheel, etc). During direct typing we don't want
     // to overwrite the user-provided text until blur, so we gate on
     // `allowInputSyncRef`.
-    if (refs.allowInputSyncRef) {
+    if (allowInputSyncRef.current) {
       setInputValue(formatNumber(validatedValue, local.locale, local.format));
     }
 
@@ -305,7 +305,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
     amount: number,
     { direction, currentValue, event, reason }: IncrementValueParameters,
   ) => {
-    const prevValue = currentValue == null ? refs.valueRef : currentValue;
+    const prevValue = currentValue == null ? valueRef.current : currentValue;
     const nextValue =
       typeof prevValue === 'number' ? prevValue + amount * direction : Math.max(0, local.min ?? 0);
     const nativeEvent = event as ReasonToEvent<IncrementValueParameters['reason']> | undefined;
@@ -323,18 +323,18 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
       startTickTimeout.clear();
       tickInterval.clear();
       unsubscribeFromGlobalContextMenuRef();
-      refs.movesAfterTouchRef = 0;
+      movesAfterTouchRef.current = 0;
     });
   };
 
   const startAutoChange = (isIncrement: boolean, triggerEvent?: MouseEvent | Event) => {
     stopAutoChange();
 
-    if (!refs.inputRef) {
+    if (!inputRef.current) {
       return;
     }
 
-    const win = ownerWindow(refs.inputRef);
+    const win = ownerWindow(inputRef.current);
 
     function handleContextMenu(event: Event) {
       event.preventDefault();
@@ -350,9 +350,9 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
     win.addEventListener(
       'pointerup',
       () => {
-        refs.isPressedRef = false;
+        isPressedRef.current = false;
         stopAutoChange();
-        const committed = refs.lastChangedValueRef ?? refs.valueRef;
+        const committed = lastChangedValueRef.current ?? valueRef.current;
         const commitReason = isIncrement ? 'increment' : 'decrement';
         onValueCommitted(committed, createGenericEventDetails(commitReason, event));
       },
@@ -386,7 +386,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
     on(
       [value, inputValue, () => local.value, () => local.locale, () => local.format],
       function syncFormattedInputValueOnValueChange() {
-        if (!refs.allowInputSyncRef) {
+        if (!allowInputSyncRef.current) {
           return;
         }
 
@@ -424,7 +424,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
 
   // The `onWheel` prop can't be prevented, so we need to use a global event listener.
   createEffect(function registerElementWheelListener() {
-    const element = refs.inputRef;
+    const element = inputRef.current;
     if (disabled() || readOnly() || !allowWheelScrub() || !element) {
       return;
     }
@@ -433,7 +433,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
       if (
         // Allow pinch-zooming.
         event.ctrlKey ||
-        ownerDocument(refs.inputRef!).activeElement !== refs.inputRef
+        ownerDocument(inputRef.current!).activeElement !== inputRef.current
       ) {
         return;
       }
@@ -479,7 +479,6 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
   });
 
   const contextValue: NumberFieldRootContext = {
-    refs,
     inputValue,
     value,
     startAutoChange,
@@ -492,6 +491,14 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
     setValue,
     incrementValue,
     getStepAmount,
+    inputRef,
+    allowInputSyncRef,
+    formatOptionsRef,
+    valueRef,
+    lastChangedValueRef,
+    hasPendingCommitRef,
+    isPressedRef,
+    movesAfterTouchRef,
     intentionalTouchCheckTimeout,
     name,
     required,
@@ -520,7 +527,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
       <input
         {...(validation.getInputValidationProps({
           onFocus() {
-            refs.inputRef?.focus();
+            inputRef.current?.focus();
           },
           onInput(event) {
             batch(() => {
@@ -544,8 +551,9 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
           },
         } as JSX.InputHTMLAttributes<HTMLInputElement>) as any)}
         ref={(el) => {
-          if (local.refs) {
-            local.refs.inputRef = el;
+          validation.inputRef.current = el;
+          if (local.inputRef) {
+            local.inputRef.current = el;
           }
         }}
         type="number"
@@ -695,7 +703,7 @@ export interface NumberFieldRootProps extends Omit<
   /**
    * A ref to access the hidden input element.
    */
-  inputRef?: (HTMLInputElement | null) | undefined;
+  inputRef?: ReactLikeRef<HTMLInputElement | null> | undefined;
 }
 
 export interface NumberFieldRootState extends FieldRoot.State {

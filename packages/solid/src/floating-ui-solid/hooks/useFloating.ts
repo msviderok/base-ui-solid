@@ -2,7 +2,7 @@ import { type VirtualElement } from '@floating-ui/dom';
 import { isElement } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, createSignal, mergeProps as solidMergeProps } from 'solid-js';
 import { access } from '../../solid-helpers';
-import { FloatingRootStore } from '../components/FloatingRootStore';
+import { FloatingRootStore } from '../components/FloatingRootStoreV2';
 import { useFloatingTree } from '../components/FloatingTree';
 import type {
   FloatingContext,
@@ -40,13 +40,17 @@ export function useFloating(options: UseFloatingOptions = {}): UseFloatingReturn
 
   const tree = useFloatingTree();
 
-  const position = usePosition({
-    ...options,
+  const positionOptions = solidMergeProps(options, {
     elements: {
-      floating: () => rootContextElements.floating(),
-      reference: () => positionReference() ?? rootContextElements.reference(),
+      get floating() {
+        return rootContextElements.floating();
+      },
+      get reference() {
+        return positionReference() ?? rootContextElements.reference();
+      },
     },
   });
+  const position = usePosition(positionOptions);
 
   const setPositionReference = (node: ReferenceType | null | undefined) => {
     const computedPositionReference = isElement(node)
@@ -70,12 +74,11 @@ export function useFloating(options: UseFloatingOptions = {}): UseFloatingReturn
   >(null);
 
   createEffect(() => {
-    rootContext().useSyncedValue('referenceElement', localDomReference());
-    rootContext().useSyncedValue(
-      'domReferenceElement',
+    rootContext().useSyncedValue('referenceElement', localDomReference);
+    rootContext().useSyncedValue('domReferenceElement', () =>
       isElement(localDomReference()) ? localDomReference() : null,
     );
-    rootContext().useSyncedValue('floatingElement', localFloatingElement());
+    rootContext().useSyncedValue('floatingElement', localFloatingElement);
   });
 
   const setReference = (node: ReferenceType | null | undefined) => {

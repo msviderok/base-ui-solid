@@ -1,5 +1,6 @@
 import { ownerDocument } from '@base-ui/utils/owner';
-import * as React from 'react';
+import { createMemo } from 'solid-js';
+import { access, type MaybeAccessor } from '../solid-helpers';
 import { EMPTY_OBJECT } from './constants';
 import { BaseUIEvent } from './types';
 
@@ -9,36 +10,48 @@ import { BaseUIEvent } from './types';
  * This hook prevents the popup from closing immediately after the mouse button is released.
  */
 export function useMixedToggleClickHandler(params: useMixedToggleClickHandler.Parameters) {
-  const { enabled = true, mouseDownAction, open } = params;
-  const ignoreClickRef = React.useRef(false);
+  const enabled = () => access(params.enabled) ?? true;
+  const mouseDownAction = () => access(params.mouseDownAction);
+  const open = () => access(params.open);
 
-  return React.useMemo(() => {
-    if (!enabled) {
-      return EMPTY_OBJECT;
-    }
+  let ignoreClickRef = false;
+  const result = createMemo(
+    (): {
+      onMouseDown?: (event: MouseEvent) => void;
+      onClick?: (event: BaseUIEvent<MouseEvent>) => void;
+    } => {
+      if (!enabled()) {
+        return EMPTY_OBJECT;
+      }
 
-    return {
-      onMouseDown: (event: React.MouseEvent) => {
-        if ((mouseDownAction === 'open' && !open) || (mouseDownAction === 'close' && open)) {
-          ignoreClickRef.current = true;
+      return {
+        onMouseDown: (event) => {
+          if (
+            (mouseDownAction() === 'open' && !open()) ||
+            (mouseDownAction() === 'close' && open())
+          ) {
+            ignoreClickRef = true;
 
-          ownerDocument(event.currentTarget as Element).addEventListener(
-            'click',
-            () => {
-              ignoreClickRef.current = false;
-            },
-            { once: true },
-          );
-        }
-      },
-      onClick: (event: BaseUIEvent<React.MouseEvent>) => {
-        if (ignoreClickRef.current) {
-          ignoreClickRef.current = false;
-          event.preventBaseUIHandler();
-        }
-      },
-    };
-  }, [enabled, mouseDownAction, open]);
+            ownerDocument(event.currentTarget as Element).addEventListener(
+              'click',
+              () => {
+                ignoreClickRef = false;
+              },
+              { once: true },
+            );
+          }
+        },
+        onClick: (event) => {
+          if (ignoreClickRef) {
+            ignoreClickRef = false;
+            event.preventBaseUIHandler();
+          }
+        },
+      };
+    },
+  );
+
+  return result;
 }
 
 export interface UseMixedToggleClickHandlerParameters {
@@ -46,15 +59,15 @@ export interface UseMixedToggleClickHandlerParameters {
    * Whether the mixed toggle click handler is enabled.
    * @default true
    */
-  enabled?: boolean | undefined;
+  enabled?: MaybeAccessor<boolean | undefined>;
   /**
    * Determines what action is performed on mousedown.
    */
-  mouseDownAction: 'open' | 'close';
+  mouseDownAction: MaybeAccessor<'open' | 'close'>;
   /**
    * The current open state of the popup.
    */
-  open: boolean;
+  open: MaybeAccessor<boolean>;
 }
 
 export namespace useMixedToggleClickHandler {

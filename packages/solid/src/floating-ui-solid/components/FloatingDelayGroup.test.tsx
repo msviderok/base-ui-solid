@@ -2,8 +2,7 @@
 import { flushMicrotasks } from '#test-utils';
 import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
-import { type Component, createEffect, createSignal } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
+import { type Component, createEffect, createSignal, type JSX, Show } from 'solid-js';
 import { vi } from 'vitest';
 import {
   FloatingDelayGroup,
@@ -26,8 +25,15 @@ function Tooltip(props: Props) {
     onOpenChange: setOpen,
   });
 
-  const { delayRef } = useDelayGroup(context, { open });
-  const hover = useHover(context, { delay: delayRef });
+  const { delayRef } = useDelayGroup({
+    context,
+    options: {
+      get open() {
+        return open();
+      },
+    },
+  });
+  const hover = useHover(context, { delay: () => delayRef.current });
   const { getReferenceProps } = useInteractions([hover]);
 
   let renderCount = 0;
@@ -40,23 +46,27 @@ function Tooltip(props: Props) {
     }
   });
 
+  const style: JSX.CSSProperties = {
+    get position() {
+      return strategy();
+    },
+    get top() {
+      return `${y() ?? 0}px`;
+    },
+    get left() {
+      return `${x() ?? 0}px`;
+    },
+  };
+
   return (
     <>
-      <Dynamic component={props.children} {...getReferenceProps({ ref: refs.setReference })} />
+      {props.children(getReferenceProps({ ref: refs.setReference }))}
       <span data-testid={`render-count-${props.label}`} ref={renderCountRef} />
-      {open() && (
-        <div
-          data-testid={`floating-${props.label}`}
-          ref={refs.setFloating}
-          style={{
-            position: strategy(),
-            top: `${y() ?? 0}px`,
-            left: `${x() ?? 0}px`,
-          }}
-        >
+      <Show when={open()}>
+        <div data-testid={`floating-${props.label}`} ref={refs.setFloating} style={style}>
           {props.label}
         </div>
-      )}
+      </Show>
     </>
   );
 }

@@ -4,7 +4,7 @@ import { access, type MaybeAccessor } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { PopupTriggerMap } from '../../utils/popups';
 import { useId } from '../../utils/useId';
-import { FloatingRootStore, type FloatingRootState } from '../components/FloatingRootStore';
+import { FloatingRootStore, type FloatingRootState } from '../components/FloatingRootStoreV2';
 import { useFloatingParentNodeId } from '../components/FloatingTree';
 import type { ReferenceType } from '../types';
 
@@ -37,13 +37,21 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
     });
   }
 
-  const store = new FloatingRootStore({
-    open,
+  const store = FloatingRootStore({
+    get open() {
+      return open();
+    },
     onOpenChange: options.onOpenChange,
-    referenceElement: () => access(options.elements?.reference) ?? null,
-    floatingElement: () => access(options.elements?.floating) ?? null,
+    get referenceElement() {
+      return access(options.elements?.reference) ?? null;
+    },
+    get floatingElement() {
+      return access(options.elements?.floating) ?? null;
+    },
     triggerElements: new PopupTriggerMap(),
-    floatingId,
+    get floatingId() {
+      return floatingId();
+    },
     nested,
     noEmit: false,
   });

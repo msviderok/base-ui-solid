@@ -278,7 +278,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const isUntrappedTypeableCombobox = () =>
     isTypeableCombobox(domReference()) && ignoreInitialFocus();
 
-  let orderRef: Array<'reference' | 'floating' | 'content'> = ['content'];
+  const orderRef: Array<'reference' | 'floating' | 'content'> = ['content'];
 
   // eslint-disable-next-line solid/reactivity
   const tree = useFloatingTree(props.externalTree);
@@ -305,7 +305,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const pointerDownTimeout = useTimeout();
   const restoreFocusFrame = useAnimationFrame();
 
-  const isInsidePortal = () => portalContext != null;
+  const isInsidePortal = () => floating()?.closest(`[${createAttribute('portal')}]`) != null;
   const floatingFocusElement = createMemo(() => getFloatingFocusElement(floating()));
 
   const getTabbableContent = (containerProp?: Element) => {
@@ -515,14 +515,15 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     }
   }
 
-  function markInsideReactTree() {
+  function markinsidePortal() {
     if (pointerDownOutsideRef) {
       return;
     }
-    dataRef().insideReactTree = true;
-    blurTimeout.start(0, () => {
-      dataRef().insideReactTree = false;
-    });
+    dataRef().insidePortal = true;
+    const fn = () => {
+      dataRef().insidePortal = false;
+    };
+    blurTimeout.start(0, fn);
   }
 
   createEffect(() => {
@@ -610,8 +611,8 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
       });
 
       if (portalContext) {
-        floatingEl.addEventListener('focusout', markInsideReactTree, true);
-        onCleanup(() => floatingEl.removeEventListener('focusout', markInsideReactTree, true));
+        floatingEl.addEventListener('focusout', markinsidePortal, true);
+        onCleanup(() => floatingEl.removeEventListener('focusout', markinsidePortal, true));
       }
     }
   });
@@ -639,21 +640,23 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
               ? initialFocusValueOrFn(openInteractionType() || '')
               : initialFocusValueOrFn;
 
-          // `null` should fallback to default behavior in case of an empty ref.
-          if (resolvedInitialFocus === undefined || resolvedInitialFocus === false) {
+          // `null`/`undefined` should fallback to default behavior in case of an empty ref.
+          if (resolvedInitialFocus === false) {
             return;
           }
 
           let elToFocus: FocusableElement | null | undefined;
 
-          if (resolvedInitialFocus === true || resolvedInitialFocus === null) {
+          if (resolvedInitialFocus === true || resolvedInitialFocus == null) {
             elToFocus = focusableElements[0] || floatingEl;
           } else {
             elToFocus = resolvedInitialFocus;
           }
           elToFocus = elToFocus || focusableElements[0] || floatingEl;
 
-          const focusAlreadyInsideFloatingEl = contains(floatingEl, previouslyFocusedElement);
+          const focusAlreadyInsideFloatingEl =
+            contains(floatingEl, previouslyFocusedElement) ||
+            contains(floatingEl, activeElement(doc));
 
           if (focusAlreadyInsideFloatingEl) {
             return;

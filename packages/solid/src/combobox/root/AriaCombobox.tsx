@@ -1262,7 +1262,7 @@ export function AriaCombobox<Value = any, Mode extends SelectionMode = 'none'>(
         value={serializedValue()}
         ref={(el) => {
           props.inputRef = el;
-          validation.inputRef = el;
+          validation.inputRef.current = el;
         }}
         style={hiddenInputName() ? visuallyHiddenInput : visuallyHidden}
         tabIndex={-1}

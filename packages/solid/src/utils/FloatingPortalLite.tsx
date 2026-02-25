@@ -1,5 +1,5 @@
 import type { JSX } from 'solid-js';
-import { Portal } from 'solid-js/web';
+import { splitProps } from 'solid-js';
 import { useFloatingPortalNode, type FloatingPortal } from '../floating-ui-solid';
 
 /**
@@ -7,14 +7,32 @@ import { useFloatingPortalNode, type FloatingPortal } from '../floating-ui-solid
  * For components that don't need tabbable logic, use `FloatingPortalLite`.
  * @internal
  */
-export function FloatingPortalLite(props: FloatingPortalLite.Props<any>) {
-  const { portalMount, portalRef } = useFloatingPortalNode({ root: () => props.root });
-
-  return (
-    <Portal mount={portalMount()} ref={portalRef}>
-      {props.children}
-    </Portal>
+export function FloatingPortalLite(componentProps: FloatingPortalLite.Props<any>): JSX.Element {
+  const [local, , elementProps] = splitProps(
+    componentProps,
+    ['container', 'class', 'render'],
+    ['children'],
   );
+
+  const { portalSubtree } = useFloatingPortalNode({
+    get container() {
+      return local.container;
+    },
+    ref: (el) => {
+      if (typeof componentProps.ref === 'function') {
+        componentProps.ref(el);
+      } else {
+        componentProps.ref = el;
+      }
+    },
+    componentProps: local,
+    elementProps,
+    get children() {
+      return componentProps.children;
+    },
+  });
+
+  return <>{portalSubtree()}</>;
 }
 
 export interface FloatingPortalLiteProps<State> extends FloatingPortal.Props<State> {}

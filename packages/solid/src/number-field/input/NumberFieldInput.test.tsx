@@ -165,7 +165,7 @@ describe('<NumberField.Input />', () => {
     // First comma is allowed
     expect(dispatchKey(',')).to.equal(true);
     // Simulate a typical user value with a digit before decimal to let change handler accept it
-    fireEvent.change(input, { target: { value: '1,' } });
+    fireEvent.input(input, { target: { value: '1,' } });
     expect(input).to.have.value('1,');
 
     // Second comma should be blocked
@@ -196,7 +196,7 @@ describe('<NumberField.Input />', () => {
     expect(dispatchKey(' ')).to.equal(true);
 
     // Simulate a typical user value using a regular space as group
-    fireEvent.change(input, { target: { value: '1 234' } });
+    fireEvent.input(input, { target: { value: '1 234' } });
     expect(input).to.have.value('1 234');
   });
 
@@ -625,7 +625,7 @@ describe('<NumberField.Input />', () => {
     const input = screen.getByRole<HTMLInputElement>('textbox');
     input.focus();
 
-    fireEvent.change(input, { target: { value: '1234,5' } });
+    fireEvent.input(input, { target: { value: '1234,5' } });
     expect(input).to.have.value('1234,5');
 
     fireEvent.blur(input);

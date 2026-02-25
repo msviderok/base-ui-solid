@@ -1,3 +1,4 @@
+import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import {
   batch,
   createEffect,
@@ -224,7 +225,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
     get readOnly() {
       return readOnly();
     },
-    onChange(event) {
+    onInput(event) {
       // Workaround for https://github.com/facebook/react/issues/9023
       if (event.defaultPrevented) {
         return;
@@ -284,6 +285,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
   const ref = (el: any) => {
     radioRef = el;
     buttonRef(el);
+    handleControlRef(el);
     if (typeof componentProps.ref === 'function') {
       componentProps.ref(el);
     } else {
@@ -294,7 +296,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
   const props = () => [
     rootProps,
     getDescriptionProps,
-    (p: any) => validation?.getValidationProps(p) ?? (p as any),
+    validation?.getValidationProps ?? EMPTY_OBJECT,
     elementProps,
     getButtonProps,
   ];

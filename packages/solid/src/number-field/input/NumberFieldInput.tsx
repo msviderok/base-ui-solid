@@ -56,7 +56,6 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
   const {
-    refs,
     disabled,
     getAllowedNonNumericKeys,
     getStepAmount,
@@ -75,6 +74,12 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
     locale,
     value,
     onValueCommitted,
+    inputRef,
+    allowInputSyncRef,
+    hasPendingCommitRef,
+    formatOptionsRef,
+    lastChangedValueRef,
+    valueRef,
   } = useNumberFieldRootContext();
 
   const { clearErrors } = useFormContext();
@@ -84,37 +89,42 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
 
   let hasTouchedInputRef = false;
   let blockRevalidationRef = false;
+  let lastValue = null as string | null;
 
   useField({
     id,
     commit: validation.commit,
     value,
-    controlRef: () => refs.inputRef,
+    controlRef: () => inputRef.current,
     name,
     getValue: () => value() ?? null,
   });
 
   createEffect(
-    on(value, (val, previousValue) => {
-      const validateOnChange = shouldValidateOnChange();
+    on(
+      value,
+      (val, previousValue) => {
+        const validateOnChange = shouldValidateOnChange();
 
-      clearErrors(name());
+        clearErrors(name());
 
-      if (validateOnChange) {
-        validation.commit(value);
-      }
+        if (validateOnChange) {
+          validation.commit(val);
+        }
 
-      if (previousValue === val || validateOnChange) {
-        return;
-      }
+        if (previousValue === val || validateOnChange) {
+          return;
+        }
 
-      if (blockRevalidationRef) {
-        blockRevalidationRef = false;
-        return;
-      }
+        if (blockRevalidationRef) {
+          blockRevalidationRef = false;
+          return;
+        }
 
-      validation.commit(val, true);
-    }),
+        validation.commit(val, true);
+      },
+      { defer: true },
+    ),
   );
 
   const inputProps: JSX.InputHTMLAttributes<HTMLInputElement> = {
@@ -178,10 +188,10 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
       setTouched(true);
       setFocused(false);
 
-      const hadManualInput = !refs.allowInputSyncRef;
-      const hadPendingProgrammaticChange = refs.hasPendingCommitRef;
+      const hadManualInput = !allowInputSyncRef.current;
+      const hadPendingProgrammaticChange = hasPendingCommitRef.current;
 
-      refs.allowInputSyncRef = true;
+      allowInputSyncRef.current = true;
 
       if (inputValue().trim() === '') {
         setValue(null, createChangeEventDetails(REASONS.inputClear, event));
@@ -192,7 +202,7 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
         return;
       }
 
-      const formatOptions = refs.formatOptionsRef;
+      const formatOptions = formatOptionsRef.current;
       const parsedValue = parseNumber(inputValue(), locale(), formatOptions);
 
       if (parsedValue === null) {
@@ -241,12 +251,13 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
         return;
       }
 
-      refs.allowInputSyncRef = false;
+      allowInputSyncRef.current = false;
       const targetValue = event.target.value;
 
       if (targetValue.trim() === '') {
         setInputValue(targetValue);
         setValue(null, createChangeEventDetails(REASONS.inputClear, event));
+        lastValue = targetValue;
         return;
       }
 
@@ -272,23 +283,28 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
       });
 
       if (!isValidCharacterString) {
+        if (lastValue !== event.target.value) {
+          event.target.value = lastValue ?? '';
+        }
         return;
       }
 
-      const parsedValue = parseNumber(targetValue, locale(), refs.formatOptionsRef);
+      const parsedValue = parseNumber(targetValue, locale(), formatOptionsRef.current);
 
       setInputValue(targetValue);
 
       if (parsedValue !== null) {
         setValue(parsedValue, createChangeEventDetails(REASONS.inputChange, event));
       }
+
+      lastValue = targetValue;
     },
     onKeyDown(event) {
       if (event.defaultPrevented || readOnly() || disabled()) {
         return;
       }
 
-      refs.allowInputSyncRef = true;
+      allowInputSyncRef.current = true;
 
       const allowedNonNumericKeys = getAllowedNonNumericKeys();
 
@@ -296,7 +312,7 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
 
       const { decimal, currency, percentSign } = getNumberLocaleDetails(
         locale(),
-        refs.formatOptionsRef,
+        formatOptionsRef.current,
       );
 
       const selectionStart = event.currentTarget.selectionStart;
@@ -371,7 +387,7 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
       }
 
       // We need to commit the number at this point if the input hasn't been blurred.
-      const parsedValue = parseNumber(inputValue(), locale(), refs.formatOptionsRef);
+      const parsedValue = parseNumber(inputValue(), locale(), formatOptionsRef.current);
 
       const amount = getStepAmount(event) ?? DEFAULT_STEP;
 
@@ -387,7 +403,7 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
           event,
           reason: REASONS.keyboard,
         });
-        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
+        onValueCommitted(lastChangedValueRef.current ?? valueRef.current, commitDetails);
       } else if (event.key === 'ArrowDown') {
         incrementValue(amount, {
           direction: -1,
@@ -395,13 +411,13 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
           event,
           reason: REASONS.keyboard,
         });
-        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
+        onValueCommitted(lastChangedValueRef.current ?? valueRef.current, commitDetails);
       } else if (event.key === 'Home' && min() != null) {
         setValue(min()!, createChangeEventDetails(REASONS.keyboard, event));
-        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
+        onValueCommitted(lastChangedValueRef.current ?? valueRef.current, commitDetails);
       } else if (event.key === 'End' && max() != null) {
         setValue(max()!, createChangeEventDetails(REASONS.keyboard, event));
-        onValueCommitted(refs.lastChangedValueRef ?? refs.valueRef, commitDetails);
+        onValueCommitted(lastChangedValueRef.current ?? valueRef.current, commitDetails);
       }
     },
     onPaste(event) {
@@ -414,11 +430,11 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
 
       const clipboardData = (event.clipboardData || window.Clipboard) as DataTransfer;
       const pastedData = clipboardData.getData('text/plain');
-      const parsedValue = parseNumber(pastedData, locale(), refs.formatOptionsRef);
+      const parsedValue = parseNumber(pastedData, locale(), formatOptionsRef.current);
 
       if (parsedValue !== null) {
         batch(() => {
-          refs.allowInputSyncRef = false;
+          allowInputSyncRef.current = false;
           setValue(parsedValue, createChangeEventDetails(REASONS.inputPaste, event));
           setInputValue(pastedData);
         });
@@ -429,7 +445,7 @@ export function NumberFieldInput(componentProps: NumberFieldInput.Props) {
   const element = useRenderElement('input', componentProps, {
     state,
     ref: (el) => {
-      refs.inputRef = el;
+      inputRef.current = el;
     },
     get props() {
       return [inputProps, validation.getValidationProps(), elementProps];

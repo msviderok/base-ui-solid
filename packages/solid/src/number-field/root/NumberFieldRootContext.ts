@@ -1,4 +1,5 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import { Timeout } from '../../utils/useTimeout';
 import type { IncrementValueParameters } from '../utils/types';
 import { EventWithOptionalKeyState } from '../utils/types';
@@ -19,16 +20,14 @@ export interface NumberFieldRootContext {
   setValue: (value: number | null, details: NumberFieldRoot.ChangeEventDetails) => boolean;
   getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
   incrementValue: (amount: number, params: IncrementValueParameters) => boolean;
-  refs: {
-    inputRef: HTMLInputElement | null | undefined;
-    allowInputSyncRef: boolean | null;
-    formatOptionsRef: Intl.NumberFormatOptions | undefined;
-    valueRef: number | null;
-    lastChangedValueRef: number | null;
-    hasPendingCommitRef: boolean;
-    isPressedRef: boolean | null;
-    movesAfterTouchRef: number | null;
-  };
+  inputRef: ReactLikeRef<HTMLInputElement | null | undefined>;
+  allowInputSyncRef: ReactLikeRef<boolean | null>;
+  formatOptionsRef: ReactLikeRef<Intl.NumberFormatOptions | undefined>;
+  valueRef: ReactLikeRef<number | null>;
+  lastChangedValueRef: ReactLikeRef<number | null>;
+  hasPendingCommitRef: ReactLikeRef<boolean>;
+  isPressedRef: ReactLikeRef<boolean | null>;
+  movesAfterTouchRef: ReactLikeRef<number | null>;
   intentionalTouchCheckTimeout: Timeout;
   name: Accessor<string | undefined>;
   required: Accessor<boolean>;

@@ -1,6 +1,6 @@
 import { createEffect, createSignal, mergeProps as solidMergeProps, type JSX } from 'solid-js';
 import { CompositeList, type CompositeMetadata } from '../../composite/list/CompositeList';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { InternalBackdrop } from '../../utils/InternalBackdrop';
 import { DROPDOWN_COLLISION_AVOIDANCE } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
@@ -52,7 +52,17 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
   const alignItemWithTrigger = () => local.alignItemWithTrigger ?? true;
   const collisionAvoidance = () => local.collisionAvoidance ?? DROPDOWN_COLLISION_AVOIDANCE;
 
-  const { store, refs, setValue } = useSelectRootContext();
+  const {
+    store,
+    listRef,
+    labelsRef,
+    alignItemWithTriggerActiveRef,
+    selectedItemTextRef,
+    valuesRef,
+    initialValueRef,
+    popupRef,
+    setValue,
+  } = useSelectRootContext();
   const floatingRootContext = useSelectFloatingContext();
 
   const open = store.useState('open');
@@ -65,8 +75,8 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
   const isItemEqualToValue = store.useState('isItemEqualToValue');
   const transitionStatus = store.useState('transitionStatus');
 
-  let scrollUpArrowRef = null as HTMLDivElement | null | undefined;
-  let scrollDownArrowRef = null as HTMLDivElement | null | undefined;
+  const scrollUpArrowRef = useRef<HTMLDivElement | null | undefined>(null);
+  const scrollDownArrowRef = useRef<HTMLDivElement | null | undefined>(null);
 
   const [controlledAlignItemWithTrigger, setControlledAlignItemWithTrigger] =
     createSignal(alignItemWithTrigger());
@@ -91,7 +101,7 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
   });
 
   createEffect(() => {
-    refs.alignItemWithTriggerActiveRef = alignItemWithTriggerActive();
+    alignItemWithTriggerActiveRef.current = alignItemWithTriggerActive();
   });
 
   useScrollLock({
@@ -121,7 +131,7 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
   const positionerStyles = () =>
     alignItemWithTriggerActive() ? FIXED : positioning.positionerStyles();
 
-  const defaultProps: JSX.HTMLAttributes<HTMLDivElement> = {
+  const defaultProps = {
     role: 'presentation',
     get hidden() {
       return !mounted();
@@ -138,7 +148,7 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
         ...hiddenStyles,
       };
     },
-  };
+  } satisfies JSX.HTMLAttributes<HTMLDivElement>;
 
   const state: SelectPositioner.State = {
     get open() {
@@ -177,7 +187,7 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
       return;
     }
 
-    if (refs.valuesRef.length === 0) {
+    if (valuesRef.current.length === 0) {
       return;
     }
 
@@ -192,25 +202,25 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
     const val = value();
 
     if (prevSize !== 0 && !store.state.multiple && val !== null) {
-      const selectedValueIndex = findItemIndex(refs.valuesRef, val, isItemEqualToValue());
+      const selectedValueIndex = findItemIndex(valuesRef.current, val, isItemEqualToValue());
       if (selectedValueIndex === -1) {
-        const initialSelectedValue = refs.initialValueRef;
+        const initialSelectedValue = initialValueRef.current;
         const hasInitial =
           initialSelectedValue != null &&
-          findItemIndex(refs.valuesRef, initialSelectedValue, isItemEqualToValue()) !== -1;
+          findItemIndex(valuesRef.current, initialSelectedValue, isItemEqualToValue()) !== -1;
         const nextValue = hasInitial ? initialSelectedValue : null;
         setValue(nextValue, eventDetails);
 
         if (nextValue === null) {
           store.set('selectedIndex', null);
-          refs.selectedItemTextRef = null;
+          selectedItemTextRef.current = null;
         }
       }
     }
 
     if (prevSize !== 0 && store.state.multiple && Array.isArray(val)) {
       const hasVisibleItem = (selectedItemValue: unknown) =>
-        findItemIndex(refs.valuesRef, selectedItemValue, isItemEqualToValue()) !== -1;
+        findItemIndex(valuesRef.current, selectedItemValue, isItemEqualToValue()) !== -1;
       const nextValue = val.filter((selectedItemValue) => hasVisibleItem(selectedItemValue));
       if (
         nextValue.length !== val.length ||
@@ -223,7 +233,7 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
 
         if (nextValue.length === 0) {
           store.set('selectedIndex', null);
-          refs.selectedItemTextRef = null;
+          selectedItemTextRef.current = null;
         }
       }
     }
@@ -236,7 +246,7 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
 
       const stylesToClear: JSX.CSSProperties = { height: '' };
       clearStyles(positionerElement(), stylesToClear);
-      clearStyles(refs.popupRef, stylesToClear);
+      clearStyles(popupRef.current, stylesToClear);
     }
   };
 
@@ -244,15 +254,13 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
     side: renderedSide,
     alignItemWithTriggerActive,
     setControlledAlignItemWithTrigger,
-    refs: {
-      scrollUpArrowRef,
-      scrollDownArrowRef,
-    },
+    scrollUpArrowRef,
+    scrollDownArrowRef,
   }) as SelectPositionerContext;
 
   return (
     <CompositeList
-      refs={{ elements: refs.listRef, labels: refs.labelsRef }}
+      refs={{ elements: listRef.current, labels: labelsRef.current }}
       onMapChange={onMapChange}
     >
       <SelectPositionerContext.Provider value={contextValue}>

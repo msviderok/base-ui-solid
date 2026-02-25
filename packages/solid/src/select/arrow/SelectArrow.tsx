@@ -24,7 +24,7 @@ export function SelectArrow(componentProps: SelectArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
   const { store } = useSelectRootContext();
-  const { side, align, refs, arrowStyles, arrowUncentered, alignItemWithTriggerActive } =
+  const { side, align, arrowRef, arrowStyles, arrowUncentered, alignItemWithTriggerActive } =
     useSelectPositionerContext();
 
   const open = store.useState('open');
@@ -46,7 +46,9 @@ export function SelectArrow(componentProps: SelectArrow.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: refs.setArrowRef,
+    ref: (el) => {
+      arrowRef.current = el;
+    },
     props: [
       {
         get style() {

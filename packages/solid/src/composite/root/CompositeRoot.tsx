@@ -1,6 +1,6 @@
 import { batch, mergeProps as solidMergeProps, type JSX } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
-import { access, splitComponentProps } from '../../solid-helpers';
+import { access, splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
 import { EMPTY_ARRAY, EMPTY_OBJECT } from '../../utils/constants';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import type { BaseUIComponentProps } from '../../utils/types';
@@ -39,7 +39,7 @@ export function CompositeRoot<Metadata extends {}, State extends Record<string, 
   ]);
   const mergedProps = solidMergeProps(
     {
-      refs: EMPTY_ARRAY as Element[],
+      refs: EMPTY_ARRAY as ReactLikeRef<HTMLElement>[],
       props: EMPTY_ARRAY,
       state: EMPTY_OBJECT,
       stopEventPropagation: true,
@@ -68,10 +68,18 @@ export function CompositeRoot<Metadata extends {}, State extends Record<string, 
   };
 
   const element = useRenderElement(() => mergedProps.tag, componentProps, {
-    state: mergedProps.state,
-    ref: [setRootRef, mergedProps.refs],
-    props: [defaultProps, elementProps],
-    stateAttributesMapping: mergedProps.stateAttributesMapping,
+    get state() {
+      return mergedProps.state;
+    },
+    get ref() {
+      return [setRootRef, mergedProps.refs];
+    },
+    get props() {
+      return [defaultProps, mergedProps.props, elementProps];
+    },
+    get stateAttributesMapping() {
+      return mergedProps.stateAttributesMapping;
+    },
   });
 
   return (
@@ -98,7 +106,7 @@ export interface CompositeRootProps<Metadata, State extends Record<string, any>>
   props?: Array<Record<string, any> | (() => Record<string, any>)> | undefined;
   state?: State | undefined;
   stateAttributesMapping?: StateAttributesMapping<State> | undefined;
-  refs?: (HTMLElement | null | undefined)[] | undefined;
+  refs?: ReactLikeRef<HTMLElement | null | undefined>[] | undefined;
   tag?: keyof JSX.IntrinsicElements | undefined;
   orientation?: ('horizontal' | 'vertical' | 'both') | undefined;
   cols?: number | undefined;

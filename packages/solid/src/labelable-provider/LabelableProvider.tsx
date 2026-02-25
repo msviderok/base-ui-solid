@@ -1,4 +1,3 @@
-'use client';
 import { createSignal, type JSX } from 'solid-js';
 import { mergeProps } from '../merge-props';
 import { HTMLProps, type BaseUIHTMLProps } from '../utils/types';

@@ -7,7 +7,7 @@ import { getCombinedFieldValidityData } from './utils/getCombinedFieldValidityDa
 
 export function useField(params: UseFieldParameters) {
   const { setFormRef } = useFormContext();
-  const { invalid, refs, validityData, setValidityData } = useFieldRootContext();
+  const { invalid, markedDirtyRef, validityData, setValidityData } = useFieldRootContext();
   const enabled = () => access(params.enabled) ?? true;
   const value = () => access(params.value);
   const id = () => access(params.id);
@@ -48,7 +48,7 @@ export function useField(params: UseFieldParameters) {
           if (nextValue === undefined) {
             nextValue = params.getValue?.();
           }
-          refs.markedDirtyRef = true;
+          markedDirtyRef.current = true;
           // Synchronously update the validity state so the submit event can be prevented.
           params.commit(nextValue);
         },

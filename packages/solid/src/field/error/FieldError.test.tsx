@@ -46,8 +46,8 @@ describe('<Field.Error />', () => {
     const input = screen.getByRole<HTMLInputElement>('textbox');
 
     fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: 'a' } });
-    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.input(input, { target: { value: 'a' } });
+    fireEvent.input(input, { target: { value: '' } });
     fireEvent.blur(input);
     expect(screen.queryByText('Message')).to.equal(null);
 
@@ -75,10 +75,10 @@ describe('<Field.Error />', () => {
       const input = screen.getByRole<HTMLInputElement>('textbox');
 
       fireEvent.focus(input);
-      fireEvent.change(input, { target: { value: 'a' } });
+      fireEvent.input(input, { target: { value: 'a' } });
       expect(screen.queryByText('Message')).to.equal(null);
 
-      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.input(input, { target: { value: '' } });
       expect(screen.queryByText('Message')).not.to.equal(null);
     });
 
@@ -96,7 +96,7 @@ describe('<Field.Error />', () => {
       const input = screen.getByRole<HTMLInputElement>('textbox');
 
       fireEvent.focus(input);
-      fireEvent.change(input, { target: { value: 'a' } });
+      fireEvent.input(input, { target: { value: 'a' } });
       fireEvent.blur(input);
       expect(screen.queryByText('Message')).to.equal(null);
 

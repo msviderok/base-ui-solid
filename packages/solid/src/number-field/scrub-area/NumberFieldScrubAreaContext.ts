@@ -1,13 +1,12 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 
 export interface NumberFieldScrubAreaContext {
   isScrubbing: Accessor<boolean>;
   isTouchInput: Accessor<boolean>;
   isPointerLockDenied: Accessor<boolean>;
-  refs: {
-    scrubAreaCursorRef: HTMLSpanElement | null | undefined;
-    scrubAreaRef: HTMLSpanElement | null | undefined;
-  };
+  scrubAreaCursorRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
+  scrubAreaRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
   direction: Accessor<'horizontal' | 'vertical'>;
   pixelSensitivity: Accessor<number>;
   teleportDistance: Accessor<number | undefined>;

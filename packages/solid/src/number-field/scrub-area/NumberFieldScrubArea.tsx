@@ -1,7 +1,7 @@
 import { isFirefox, isWebKit } from '@base-ui/utils/detectBrowser';
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { createGenericEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
@@ -37,14 +37,14 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     readOnly,
     incrementValue,
     getStepAmount,
-    refs: numberFieldRootRefs,
     onValueCommitted,
+    lastChangedValueRef,
+    valueRef,
+    inputRef,
   } = useNumberFieldRootContext();
 
-  const refs: NumberFieldScrubAreaContext['refs'] = {
-    scrubAreaCursorRef: null,
-    scrubAreaRef: null,
-  };
+  const scrubAreaCursorRef = useRef<HTMLSpanElement>(null);
+  const scrubAreaRef = useRef<HTMLSpanElement>(null);
 
   let isScrubbingRef = false;
   let didMoveRef = false;
@@ -60,22 +60,22 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
   const [isScrubbing, setIsScrubbing] = createSignal(false);
 
   createEffect(() => {
-    if (!isScrubbing() || !refs.scrubAreaCursorRef) {
+    if (!isScrubbing() || !scrubAreaCursorRef.current) {
       return;
     }
 
-    subscribeToVisualViewportResize(refs.scrubAreaCursorRef, visualScaleRef);
+    subscribeToVisualViewportResize(scrubAreaCursorRef.current, visualScaleRef);
   });
 
   function updateCursorTransform(x: number, y: number) {
-    if (refs.scrubAreaCursorRef) {
-      refs.scrubAreaCursorRef.style.transform = `translate3d(${x}px,${y}px,0) scale(${1 / visualScaleRef.current})`;
+    if (scrubAreaCursorRef.current) {
+      scrubAreaCursorRef.current.style.transform = `translate3d(${x}px,${y}px,0) scale(${1 / visualScaleRef.current})`;
     }
   }
 
   const onScrub = ({ movementX, movementY }: PointerEvent) => {
-    const virtualCursor = refs.scrubAreaCursorRef;
-    const scrubAreaEl = refs.scrubAreaRef;
+    const virtualCursor = scrubAreaCursorRef.current;
+    const scrubAreaEl = scrubAreaRef.current;
 
     if (!virtualCursor || !scrubAreaEl) {
       return;
@@ -113,7 +113,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     setIsScrubbing(scrubbingValue);
     setRootScrubbing(scrubbingValue);
 
-    const virtualCursor = refs.scrubAreaCursorRef;
+    const virtualCursor = scrubAreaCursorRef.current;
     if (!virtualCursor || !scrubbingValue) {
       return;
     }
@@ -130,7 +130,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
 
   createEffect(function registerGlobalScrubbingEventListeners() {
     // Only listen while actively scrubbing; avoids unrelated pointerup events committing.
-    if (!numberFieldRootRefs.inputRef || disabled() || readOnly() || !isScrubbing()) {
+    if (!inputRef.current || disabled() || readOnly() || !isScrubbing()) {
       return;
     }
 
@@ -139,14 +139,14 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     function handleScrubPointerUp(event: PointerEvent) {
       function handler() {
         try {
-          ownerDocument(refs.scrubAreaRef ?? null).exitPointerLock();
+          ownerDocument(scrubAreaRef.current ?? null).exitPointerLock();
         } catch {
           // Ignore errors.
         } finally {
           isScrubbingRef = false;
           onScrubbingChange(false, event);
           onValueCommitted(
-            numberFieldRootRefs.lastChangedValueRef ?? numberFieldRootRefs.valueRef,
+            lastChangedValueRef.current ?? valueRef.current,
             createGenericEventDetails(REASONS.scrub, event),
           );
 
@@ -203,7 +203,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
       }
     }
 
-    const win = ownerWindow(numberFieldRootRefs.inputRef);
+    const win = ownerWindow(inputRef.current);
     win.addEventListener('pointerup', handleScrubPointerUp, true);
     win.addEventListener('pointermove', handleScrubPointerMove, true);
 
@@ -216,7 +216,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
 
   // Prevent scrolling using touch input when scrubbing.
   createEffect(function registerScrubberTouchPreventListener() {
-    const element = refs.scrubAreaRef;
+    const element = scrubAreaRef.current;
     if (!element || disabled() || readOnly()) {
       return;
     }
@@ -252,7 +252,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
 
       if (event.pointerType === 'mouse') {
         event.preventDefault();
-        numberFieldRootRefs.inputRef?.focus();
+        inputRef.current?.focus();
       }
 
       isScrubbingRef = true;
@@ -266,7 +266,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
           // Avoid non-deterministic errors in testing environments. This error sometimes
           // appears:
           // "The root document of this element is not valid for pointer lock."
-          await ownerDocument(refs.scrubAreaRef ?? null).body.requestPointerLock();
+          await ownerDocument(scrubAreaRef.current ?? null).body.requestPointerLock();
           setIsPointerLockDenied(false);
         } catch (error) {
           setIsPointerLockDenied(true);
@@ -282,7 +282,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
   const element = useRenderElement('span', componentProps, {
     state,
     ref: (el) => {
-      refs.scrubAreaRef = el;
+      scrubAreaRef.current = el;
     },
     props: [defaultProps, elementProps],
     stateAttributesMapping,
@@ -292,7 +292,8 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubArea.Props)
     isScrubbing,
     isTouchInput,
     isPointerLockDenied,
-    refs,
+    scrubAreaCursorRef,
+    scrubAreaRef,
     direction,
     pixelSensitivity,
     teleportDistance: () => local.teleportDistance,

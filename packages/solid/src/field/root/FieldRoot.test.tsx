@@ -8,6 +8,7 @@ import { Radio } from '@msviderok/base-ui-solid/radio';
 import { RadioGroup } from '@msviderok/base-ui-solid/radio-group';
 import { Select } from '@msviderok/base-ui-solid/select';
 import { Slider } from '@msviderok/base-ui-solid/slider';
+import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { Switch } from '@msviderok/base-ui-solid/switch';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
@@ -227,7 +228,7 @@ describe('<Field.Root />', () => {
       expect(message).to.equal(null);
 
       fireEvent.focus(control);
-      fireEvent.change(control, { target: { value: 'abc' } });
+      fireEvent.input(control, { target: { value: 'abc' } });
       expect(validateSpy.callCount).to.equal(0);
       expect(screen.queryByText('error')).to.equal(null);
 
@@ -260,11 +261,11 @@ describe('<Field.Root />', () => {
 
       fireEvent.focus(input);
       // revalidate
-      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.input(input, { target: { value: 'ab' } });
       expect(screen.queryByText('value missing')).to.equal(null);
       expect(screen.queryByText('custom error')).not.to.equal(null);
 
-      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.input(input, { target: { value: '' } });
       expect(screen.queryByText('value missing')).not.to.equal(null);
       // expect(screen.queryByText('custom error')).to.equal(null);
     });
@@ -452,7 +453,7 @@ describe('<Field.Root />', () => {
         fireEvent.click(screen.getByText('submit'));
         expect(screen.queryByTestId('error')).not.to.equal(null);
 
-        fireEvent.change(control, { target: { value: 'http://example' } });
+        fireEvent.input(control, { target: { value: 'http://example' } });
         expect(screen.queryByTestId('error')).to.equal(null);
       });
     });
@@ -504,7 +505,7 @@ describe('<Field.Root />', () => {
 
         expect(message).to.equal(null);
 
-        fireEvent.change(control, { target: { value: 't' } });
+        fireEvent.input(control, { target: { value: 't' } });
 
         expect(control).not.to.have.attribute('data-invalid');
 
@@ -540,8 +541,8 @@ describe('<Field.Root />', () => {
         const control = screen.getByTestId('control');
 
         fireEvent.focus(control);
-        fireEvent.change(control, { target: { value: 'a' } });
-        fireEvent.change(control, { target: { value: '' } });
+        fireEvent.input(control, { target: { value: 'a' } });
+        fireEvent.input(control, { target: { value: '' } });
         fireEvent.blur(control);
 
         expect(control).to.have.attribute('data-invalid', '');
@@ -592,8 +593,8 @@ describe('<Field.Root />', () => {
         expect(error).to.equal(null);
 
         fireEvent.focus(control);
-        fireEvent.change(control, { target: { value: 'a' } });
-        fireEvent.change(control, { target: { value: '' } });
+        fireEvent.input(control, { target: { value: 'a' } });
+        fireEvent.input(control, { target: { value: '' } });
         fireEvent.blur(control);
 
         error = screen.getByTestId('error');
@@ -630,13 +631,13 @@ describe('<Field.Root />', () => {
           expect(message).to.equal(null);
 
           fireEvent.focus(control);
-          fireEvent.change(control, { target: { value: 't' } });
+          fireEvent.input(control, { target: { value: 't' } });
           fireEvent.blur(control);
 
           expect(control).not.to.have.attribute('aria-invalid', 'true');
 
           fireEvent.focus(control);
-          fireEvent.change(control, { target: { value: '' } });
+          fireEvent.input(control, { target: { value: '' } });
           fireEvent.blur(control);
 
           expect(control).to.have.attribute('aria-invalid');
@@ -661,19 +662,19 @@ describe('<Field.Root />', () => {
           expect(control).not.to.have.attribute('aria-invalid');
 
           fireEvent.focus(control);
-          fireEvent.change(control, { target: { value: 'tt' } });
+          fireEvent.input(control, { target: { value: 'tt' } });
           fireEvent.blur(control);
 
           expect(control).to.have.attribute('aria-invalid', 'true');
 
           fireEvent.focus(control);
-          fireEvent.change(control, { target: { value: '' } });
+          fireEvent.input(control, { target: { value: '' } });
           fireEvent.blur(control);
 
           expect(control).to.have.attribute('aria-invalid', 'true');
 
           fireEvent.focus(control);
-          fireEvent.change(control, { target: { value: 'email@email.com' } });
+          fireEvent.input(control, { target: { value: 'email@email.com' } });
           fireEvent.blur(control);
 
           expect(control).not.to.have.attribute('aria-invalid');
@@ -695,8 +696,8 @@ describe('<Field.Root />', () => {
           expect(screen.queryByTestId('error')).to.equal(null);
 
           fireEvent.focus(control);
-          fireEvent.change(control, { target: { value: 'a' } });
-          fireEvent.change(control, { target: { value: '' } });
+          fireEvent.input(control, { target: { value: 'a' } });
+          fireEvent.input(control, { target: { value: '' } });
           fireEvent.blur(control);
 
           expect(control).to.have.attribute('aria-invalid', 'true');
@@ -757,8 +758,8 @@ describe('<Field.Root />', () => {
 
           // Mark as touched and dirtied
           fireEvent.focus(control);
-          fireEvent.change(control, { target: { value: 'a' } });
-          fireEvent.change(control, { target: { value: '' } });
+          fireEvent.input(control, { target: { value: 'a' } });
+          fireEvent.input(control, { target: { value: '' } });
           fireEvent.blur(control);
 
           // valueMissing is true, and markedDirtyRef is true, so valid should be false
@@ -887,14 +888,14 @@ describe('<Field.Root />', () => {
         expect(label).not.to.have.attribute('data-dirty');
         expect(description).not.to.have.attribute('data-dirty');
 
-        fireEvent.change(control, { target: { value: 'value' } });
+        fireEvent.input(control, { target: { value: 'value' } });
 
         expect(root).to.have.attribute('data-dirty', '');
         expect(control).to.have.attribute('data-dirty', '');
         expect(label).to.have.attribute('data-dirty', '');
         expect(description).to.have.attribute('data-dirty', '');
 
-        fireEvent.change(control, { target: { value: '' } });
+        fireEvent.input(control, { target: { value: '' } });
 
         expect(root).not.to.have.attribute('data-dirty');
         expect(control).not.to.have.attribute('data-dirty');
@@ -924,14 +925,14 @@ describe('<Field.Root />', () => {
         expect(label).not.to.have.attribute('data-filled');
         expect(description).not.to.have.attribute('data-filled');
 
-        fireEvent.change(control, { target: { value: 'value' } });
+        fireEvent.input(control, { target: { value: 'value' } });
 
         expect(root).to.have.attribute('data-filled', '');
         expect(control).to.have.attribute('data-filled', '');
         expect(label).to.have.attribute('data-filled', '');
         expect(description).to.have.attribute('data-filled', '');
 
-        fireEvent.change(control, { target: { value: '' } });
+        fireEvent.input(control, { target: { value: '' } });
 
         expect(root).not.to.have.attribute('data-filled');
         expect(control).not.to.have.attribute('data-filled');
@@ -1090,14 +1091,14 @@ describe('<Field.Root />', () => {
   describe('actionsRef', () => {
     it('validates the field when the `validate` method is called', async () => {
       function App() {
-        let actionsRef = null as Field.Root.Actions | null;
+        const actionsRef = useRef<Field.Root.Actions>(null);
         return (
           <div>
             <Field.Root name="username" actionsRef={actionsRef}>
               <Field.Control defaultValue="" required />
               <Field.Error data-testid="error" />
             </Field.Root>
-            <button type="button" onClick={() => actionsRef?.validate()}>
+            <button type="button" onClick={() => actionsRef.current?.validate()}>
               validate
             </button>
           </div>

@@ -1,9 +1,9 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import { type SetStoreFunction, type Store } from 'solid-js/store';
 import type { Form } from '../../form';
+import type { ReactLikeRef } from '../../solid-helpers';
 import { EMPTY_OBJECT } from '../../utils/constants';
 import { NOOP } from '../../utils/noop';
-import type { HTMLProps } from '../../utils/types';
 import { DEFAULT_VALIDITY_STATE } from '../utils/constants';
 import type { FieldRoot, FieldValidityData } from './FieldRoot';
 import type { UseFieldValidationReturnValue } from './useFieldValidation';
@@ -30,9 +30,7 @@ export interface FieldRootContext {
   validationDebounceTime: Accessor<number>;
   shouldValidateOnChange: () => boolean;
   state: FieldRoot.State;
-  refs: {
-    markedDirtyRef: boolean;
-  };
+  markedDirtyRef: ReactLikeRef<boolean>;
   validation: UseFieldValidationReturnValue;
 }
 
@@ -68,13 +66,11 @@ export const FieldRootContext = createContext<FieldRootContext>({
     filled: false,
     focused: false,
   },
-  refs: {
-    markedDirtyRef: false,
-  },
+  markedDirtyRef: { current: false },
   validation: {
     getValidationProps: (props = EMPTY_OBJECT) => props,
     getInputValidationProps: (props = EMPTY_OBJECT) => props,
-    inputRef: null,
+    inputRef: { current: null },
     commit: async () => {},
   },
 });

@@ -13,10 +13,8 @@ const defaultScrubAreaContext: NumberFieldScrubAreaContext = {
   direction: () => 'horizontal',
   pixelSensitivity: () => 2,
   teleportDistance: () => undefined,
-  refs: {
-    scrubAreaCursorRef: null,
-    scrubAreaRef: null,
-  },
+  scrubAreaCursorRef: { current: null },
+  scrubAreaRef: { current: null },
 };
 
 // This component doesn't render on WebKit.

@@ -134,7 +134,6 @@ function PopoverComponent(props: Props) {
   const fallbackContext = getEmptyRootContext();
 
   const hoverInteraction = useHover(() => (hover() ? context : fallbackContext), {
-    enabled: hover,
     handleClose: safePolygon({ blockPointerEvents: true }),
   });
   const click = useClick(context);

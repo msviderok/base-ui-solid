@@ -121,7 +121,6 @@ export function MenuComponent(
   const hoverContext = () => (isNested && allowHover() ? context : fallbackContext);
 
   const hover = useHover(hoverContext, {
-    enabled: () => isNested && allowHover(),
     delay: { open: 75 },
     handleClose: safePolygon({ blockPointerEvents: true }),
   });

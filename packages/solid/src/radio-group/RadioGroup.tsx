@@ -104,7 +104,7 @@ export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
     }
 
     groupInputRef = hiddenInput;
-    validation.inputRef = hiddenInput;
+    validation.inputRef.current = hiddenInput;
   }
 
   const registerControlRef = (element: HTMLElement | null | undefined, isDisabled = false) => {
@@ -145,7 +145,7 @@ export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
     id,
     commit: validation.commit,
     value: checkedValue,
-    controlRef,
+    controlRef: () => controlRef,
     name,
     getValue: () => checkedValue() ?? null,
   });

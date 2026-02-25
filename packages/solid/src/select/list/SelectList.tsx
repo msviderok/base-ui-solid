@@ -15,7 +15,7 @@ import { useSelectRootContext } from '../root/SelectRootContext';
 export function SelectList(componentProps: SelectList.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { store, refs } = useSelectRootContext();
+  const { store, scrollHandlerRef } = useSelectRootContext();
   const { alignItemWithTriggerActive } = useSelectPositionerContext();
 
   const hasScrollArrows = store.useState('hasScrollArrows');
@@ -32,7 +32,7 @@ export function SelectList(componentProps: SelectList.Props) {
       return multiple() || undefined;
     },
     onScroll(event) {
-      refs.scrollHandlerRef?.(event.currentTarget);
+      scrollHandlerRef.current?.(event.currentTarget);
     },
     get style() {
       if (alignItemWithTriggerActive()) {

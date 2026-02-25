@@ -1,10 +1,10 @@
-import { createSignal, onMount } from 'solid-js';
+import { createMemo, createSignal, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { useFieldsetRootContext } from '../../fieldset/root/FieldsetRootContext';
 import type { Form } from '../../form';
 import { useFormContext } from '../../form/FormContext';
 import { LabelableProvider } from '../../labelable-provider';
-import { splitComponentProps, type Args } from '../../solid-helpers';
+import { splitComponentProps, useRef, type Args, type ReactLikeRef } from '../../solid-helpers';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { DEFAULT_VALIDITY_STATE, fieldValidityMapping } from '../utils/constants';
@@ -49,9 +49,7 @@ function FieldRootInner(componentProps: FieldRoot.Props) {
   const dirty = () => dirtyProp() ?? dirtyState();
   const touched = () => touchedProp() ?? touchedState();
 
-  const refs = {
-    markedDirtyRef: false,
-  };
+  const markedDirtyRef = useRef(false);
 
   const setDirty: typeof setDirtyUnwrapped = (value) => {
     if (dirtyProp() !== undefined) {
@@ -59,7 +57,7 @@ function FieldRootInner(componentProps: FieldRoot.Props) {
     }
 
     if (value) {
-      refs.markedDirtyRef = true;
+      markedDirtyRef.current = true;
     }
     setDirtyUnwrapped(value);
   };
@@ -74,13 +72,13 @@ function FieldRootInner(componentProps: FieldRoot.Props) {
   const shouldValidateOnChange = () =>
     validationMode() === 'onChange' || (validationMode() === 'onSubmit' && submitAttemptedRef());
 
-  const invalid = () => {
+  const invalid = createMemo(() => {
     const err = errors();
     return Boolean(
       local.invalid ||
       (local.name && {}.hasOwnProperty.call(err, local.name) && err[local.name] !== undefined),
     );
-  };
+  });
 
   const [validityData, setValidityData] = createStore<FieldValidityData>({
     state: DEFAULT_VALIDITY_STATE,
@@ -119,19 +117,21 @@ function FieldRootInner(componentProps: FieldRoot.Props) {
     validityData,
     validationDebounceTime,
     invalid,
-    markedDirtyRef: refs.markedDirtyRef,
+    markedDirtyRef,
     state,
     name: local.name,
     shouldValidateOnChange,
   });
 
   const handleImperativeValidate = () => {
-    refs.markedDirtyRef = true;
+    markedDirtyRef.current = true;
     validation.commit(validityData.value);
   };
 
   onMount(() => {
-    local.actionsRef = { validate: handleImperativeValidate };
+    if (local.actionsRef) {
+      local.actionsRef.current = { validate: handleImperativeValidate };
+    }
   });
 
   const contextValue: FieldRootContext = {
@@ -152,8 +152,8 @@ function FieldRootInner(componentProps: FieldRoot.Props) {
     validationMode,
     validationDebounceTime,
     shouldValidateOnChange,
+    markedDirtyRef,
     state,
-    refs,
     validation,
   };
 
@@ -274,7 +274,7 @@ export interface FieldRootProps extends BaseUIComponentProps<'div', FieldRoot.St
    * A ref to imperative actions.
    * - `validate`: Validates the field when called.
    */
-  actionsRef?: (FieldRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<FieldRoot.Actions | null> | undefined;
 }
 
 export namespace FieldRoot {

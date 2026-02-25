@@ -1290,7 +1290,7 @@ describe('<Popover.Root />', () => {
             touches: [touch1],
           });
 
-          // Wait for the markInsideReactTree timeout to finish
+          // Wait for the markinsidePortal timeout to finish
           await new Promise((resolve) => {
             setTimeout(resolve);
           });

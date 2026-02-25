@@ -1,4 +1,5 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import { useAnchorPositioning, type Side } from '../../utils/useAnchorPositioning';
 
 export interface SelectPositionerContext extends Omit<
@@ -8,10 +9,8 @@ export interface SelectPositionerContext extends Omit<
   side: Accessor<'none' | Side>;
   alignItemWithTriggerActive: Accessor<boolean>;
   setControlledAlignItemWithTrigger: Setter<boolean>;
-  refs: useAnchorPositioning.ReturnValue['refs'] & {
-    scrollUpArrowRef: HTMLDivElement | null | undefined;
-    scrollDownArrowRef: HTMLDivElement | null | undefined;
-  };
+  scrollUpArrowRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  scrollDownArrowRef: ReactLikeRef<HTMLDivElement | null | undefined>;
 }
 
 export const SelectPositionerContext = createContext<SelectPositionerContext | undefined>(

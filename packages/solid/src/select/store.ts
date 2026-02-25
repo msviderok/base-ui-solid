@@ -1,7 +1,7 @@
 import { type Accessor, type JSX } from 'solid-js';
 import { compareItemEquality } from '../utils/itemEquality';
 import { hasNullItemLabel, stringifyAsValue } from '../utils/resolveValueLabel';
-import type { SolidStore } from '../utils/store/SolidStore';
+import type { SolidStore } from '../utils/store/SolidStoreV2';
 import type { HTMLProps } from '../utils/types';
 import { type InteractionType } from '../utils/useEnhancedClickHandler';
 import type { TransitionStatus } from '../utils/useTransitionStatus';

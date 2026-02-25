@@ -37,9 +37,10 @@ describe.skipIf(!isJSDOM)('FloatingPortal', () => {
 
     await flushMicrotasks();
 
-    const parent = screen.getByTestId('floating').parentElement;
-    expect(parent?.hasAttribute('data-base-ui-portal')).toBe(true);
-    expect(parent?.parentElement).toBe(customRoot);
+    const floating = screen.getByTestId('floating');
+    const portalElement = floating.closest('[data-base-ui-portal]');
+    expect(portalElement).not.toBeNull();
+    expect(customRoot.contains(portalElement)).toBe(true);
     customRoot.remove();
   });
 
@@ -49,9 +50,11 @@ describe.skipIf(!isJSDOM)('FloatingPortal', () => {
     render(() => <App container={el} />);
     fireEvent.click(screen.getByTestId('reference'));
     await flushMicrotasks();
-    const parent = screen.getByTestId('floating').parentElement;
-    expect(parent?.hasAttribute('data-base-ui-portal')).toBe(true);
-    expect(parent?.parentElement).toBe(el);
+
+    const floating = screen.getByTestId('floating');
+    const portalElement = floating.closest('[data-base-ui-portal]');
+    expect(portalElement).not.toBeNull();
+    expect(el.contains(portalElement)).toBe(true);
     document.body.removeChild(el);
   });
 
@@ -81,19 +84,23 @@ describe.skipIf(!isJSDOM)('FloatingPortal', () => {
 
     fireEvent.click(screen.getByTestId('reference'));
     await flushMicrotasks();
-    const subRoot = screen.getByTestId('floating').parentElement;
+
+    const floating = screen.getByTestId('floating');
+    const portalElement = floating.closest('[data-base-ui-portal]');
     const root = screen.getByTestId('root');
-    expect(root).toBe(subRoot?.parentElement);
+    expect(portalElement).not.toBeNull();
+    expect(root.contains(portalElement)).toBe(true);
   });
 
   test('reattaches the portal when the container changes', async () => {
     const customRoot = document.createElement('div');
+    customRoot.id = 'custom-root';
     document.body.appendChild(customRoot);
 
     try {
       function RootSwitcher() {
         const [container, setContainer] =
-          createSignal<UseFloatingPortalNodeProps['container']>(null);
+          createSignal<UseFloatingPortalNodeProps['container']>(undefined);
 
         return (
           <>
@@ -108,19 +115,23 @@ describe.skipIf(!isJSDOM)('FloatingPortal', () => {
 
       fireEvent.click(screen.getByTestId('reference'));
 
-      expect((await screen.findByTestId('floating')).parentElement?.parentElement).toBe(
-        document.body,
-      );
+      let floating = await screen.findByTestId('floating');
+      let portalElement = floating.closest('[data-base-ui-portal]')!;
+      expect(document.body.contains(portalElement)).toBe(true);
+      expect(customRoot.contains(portalElement)).toBe(false);
 
       fireEvent.click(screen.getByTestId('use-element'));
 
-      expect((await screen.findByTestId('floating')).parentElement?.parentElement).toBe(customRoot);
+      floating = await screen.findByTestId('floating');
+      portalElement = floating.closest('[data-base-ui-portal]')!;
+      expect(customRoot.contains(portalElement)).toBe(true);
 
       fireEvent.click(screen.getByTestId('use-undefined'));
 
-      const floatingInBodyAgain = await screen.findByTestId('floating');
-      expect(floatingInBodyAgain.parentElement?.parentElement).toBe(document.body);
-      expect(customRoot.contains(floatingInBodyAgain)).toBe(false);
+      floating = await screen.findByTestId('floating');
+      portalElement = floating.closest('[data-base-ui-portal]')!;
+      expect(document.body.contains(portalElement)).toBe(true);
+      expect(customRoot.contains(floating)).toBe(false);
     } finally {
       customRoot.remove();
     }

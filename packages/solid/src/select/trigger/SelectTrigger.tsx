@@ -62,11 +62,13 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
   const {
     store,
     setOpen,
-    refs,
+    selectionRef,
     validation,
     readOnly,
     required,
+    alignItemWithTriggerActiveRef,
     disabled: selectDisabled,
+    keyboardActiveRef,
   } = useSelectRootContext();
 
   const disabled = () => fieldDisabled() || selectDisabled() || disabledProp();
@@ -84,7 +86,7 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
   const id = () => idProp() ?? rootId();
   useLabelableId({ id });
 
-  let positionerRef = positionerElement();
+  const positionerRef = positionerElement();
 
   let triggerRef = null as HTMLElement | null | undefined;
 
@@ -112,17 +114,17 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
       // within 200ms. Delay unselected mouseup to match the safer 400ms window.
       if (shouldDelayUnselectedMouseUpLonger) {
         selectedDelayTimeout.start(SELECTED_DELAY, () => {
-          refs.selectionRef.allowUnselectedMouseUp = true;
-          refs.selectionRef.allowSelectedMouseUp = true;
+          selectionRef.current.allowUnselectedMouseUp = true;
+          selectionRef.current.allowSelectedMouseUp = true;
         });
       } else {
         // mousedown -> move to unselected item -> mouseup should not select within 200ms.
         unselectedDelayTimeout.start(UNSELECTED_DELAY, () => {
-          refs.selectionRef.allowUnselectedMouseUp = true;
+          selectionRef.current.allowUnselectedMouseUp = true;
 
           // mousedown -> mouseup on selected item should not select within 400ms.
           selectedDelayTimeout.start(UNSELECTED_DELAY, () => {
-            refs.selectionRef.allowSelectedMouseUp = true;
+            selectionRef.current.allowSelectedMouseUp = true;
           });
         });
       }
@@ -133,7 +135,7 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
       });
     }
 
-    refs.selectionRef = {
+    selectionRef.current = {
       allowSelectedMouseUp: false,
       allowUnselectedMouseUp: false,
     };
@@ -145,7 +147,7 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
     return listElement()?.id ?? getFloatingFocusElement(positionerElement())?.id;
   });
 
-  const props = createMemo<HTMLProps>(() =>
+  const props = createMemo<any>(() =>
     mergeProps<'button'>(
       triggerProps(),
       {
@@ -168,11 +170,11 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
           buttonRef(el);
           setTriggerElement(el);
         },
-        onFocus(event) {
+        onFocus(event: FocusEvent) {
           setFocused(true);
 
           // The popup element shouldn't obscure the focused trigger.
-          if (open() && refs.alignItemWithTriggerActiveRef) {
+          if (open() && alignItemWithTriggerActiveRef.current) {
             setOpen(false, createChangeEventDetails(REASONS.none, event));
           }
 
@@ -199,17 +201,17 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
           }
         },
         onPointerMove() {
-          refs.keyboardActiveRef = false;
+          keyboardActiveRef.current = false;
         },
         onKeyDown() {
-          refs.keyboardActiveRef = true;
+          keyboardActiveRef.current = true;
         },
-        onMouseDown(event) {
+        onMouseDown(event: MouseEvent) {
           if (open()) {
             return;
           }
 
-          const doc = ownerDocument(event.currentTarget);
+          const doc = ownerDocument(event.currentTarget as Element | null);
 
           function handleMouseUp(mouseEvent: MouseEvent) {
             if (!triggerRef) {

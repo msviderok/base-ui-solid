@@ -106,11 +106,11 @@ export function useHover(
   contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
   props: UseHoverProps = {},
 ): Accessor<ElementProps> {
-  const context = () => access(contextProp);
-  const store = () => {
+  const context = createMemo(() => access(contextProp));
+  const store = createMemo(() => {
     const ctx = context();
     return 'rootStore' in ctx ? ctx.rootStore : ctx;
-  };
+  });
   const open = () => store().useState('open')();
   const floatingElement = () => store().useState('floatingElement')();
   const domReferenceElement = () => store().useState('domReferenceElement')();
@@ -197,13 +197,12 @@ export function useHover(
 
   const closeWithDelay = (event: MouseEvent, runElseBranch = true) => {
     const closeDelay = getDelay(delay(), 'close', pointerTypeRef);
+    const fn = () => store().setOpen(false, createChangeEventDetails(REASONS.triggerHover, event));
     if (closeDelay) {
-      timeout.start(closeDelay, () =>
-        store().setOpen(false, createChangeEventDetails(REASONS.triggerHover, event)),
-      );
+      timeout.start(closeDelay, fn);
     } else if (runElseBranch) {
       timeout.clear();
-      store().setOpen(false, createChangeEventDetails(REASONS.triggerHover, event));
+      fn();
     }
   };
 
@@ -246,12 +245,13 @@ export function useHover(
 
     const isOverInactiveTrigger = domReference && trigger && !contains(domReference, trigger);
 
+    const fn = () => {
+      if (!store().select('open')) {
+        store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, trigger));
+      }
+    };
     if (openDelay) {
-      timeout.start(openDelay, () => {
-        if (!store().select('open')) {
-          store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, trigger));
-        }
-      });
+      timeout.start(openDelay, fn);
     } else if (!open() || isOverInactiveTrigger) {
       store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, trigger));
     }
@@ -459,15 +459,17 @@ export function useHover(
     }
   });
 
+  function cleanup() {
+    cleanupMouseMoveHandler();
+    timeout.clear();
+    restTimeout.clear();
+    clearPointerEvents();
+    interactedInsideRef = false;
+  }
+
   createEffect(
     on(domReferenceElement, () => {
-      onCleanup(() => {
-        cleanupMouseMoveHandler();
-        timeout.clear();
-        restTimeout.clear();
-        clearPointerEvents();
-        interactedInsideRef = false;
-      });
+      onCleanup(cleanup);
     }),
   );
 
@@ -482,10 +484,7 @@ export function useHover(
   const reference = createMemo<ElementProps['reference']>(() => {
     return {
       ref: () => {
-        onCleanup(() => {
-          // @ts-expect-error TODO: even though its not in the types this is valid
-          context().refs?.setReference?.(null);
-        });
+        onCleanup(cleanup);
       },
       onPointerDown: setPointerRef,
       onPointerEnter: setPointerRef,

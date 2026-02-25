@@ -165,11 +165,11 @@ export function useDismiss(
   } | null;
 
   const cancelDismissOnEndTimeout = useTimeout();
-  const clearInsideReactTreeTimeout = useTimeout();
+  const clearinsidePortalTimeout = useTimeout();
 
-  const clearInsideReactTree = () => {
-    clearInsideReactTreeTimeout.clear();
-    dataRef().insideReactTree = false;
+  const clearinsidePortal = () => {
+    clearinsidePortalTimeout.clear();
+    dataRef().insidePortal = false;
   };
 
   let isComposingRef = false;
@@ -244,9 +244,9 @@ export function useDismiss(
     );
   };
 
-  const markInsideReactTree = () => {
-    dataRef().insideReactTree = true;
-    clearInsideReactTreeTimeout.start(0, clearInsideReactTree);
+  const markinsidePortal = () => {
+    dataRef().insidePortal = true;
+    clearinsidePortalTimeout.start(0, clearinsidePortal);
   };
 
   const closeOnPressOutside = (
@@ -259,12 +259,12 @@ export function useDismiss(
     //   return;
     // }
     if (shouldIgnoreEvent(event)) {
-      clearInsideReactTree();
+      clearinsidePortal();
       return;
     }
 
-    if (dataRef().insideReactTree) {
-      clearInsideReactTree();
+    if (dataRef().insidePortal) {
+      clearinsidePortal();
       return;
     }
 
@@ -400,7 +400,7 @@ export function useDismiss(
     }
 
     store().setOpen(false, createChangeEventDetails(REASONS.outsidePress, event));
-    clearInsideReactTree();
+    clearinsidePortal();
   };
 
   const handlePointerDown = (event: PointerEvent) => {
@@ -649,7 +649,7 @@ export function useDismiss(
     });
   });
 
-  createEffect(on(outsidePress, clearInsideReactTree));
+  createEffect(on(outsidePress, clearinsidePortal));
 
   const reference = createMemo<ElementProps['reference']>(() => ({
     onKeyDown: closeOnEscapeKeyDown,
@@ -673,7 +673,7 @@ export function useDismiss(
     endedOrStartedInsideRef = true;
   };
 
-  const markPressStartedInsideReactTree = (event: PointerEvent | MouseEvent) => {
+  const markPressStartedinsidePortal = (event: PointerEvent | MouseEvent) => {
     if (!open() || !enabled() || event.button !== 0) {
       return;
     }
@@ -693,33 +693,33 @@ export function useDismiss(
 
       'on:click': {
         capture: true,
-        handleEvent: markInsideReactTree,
+        handleEvent: markinsidePortal,
       },
       'on:mousedown': {
         capture: true,
         handleEvent: (event) => {
-          markInsideReactTree();
-          markPressStartedInsideReactTree(event);
+          markinsidePortal();
+          markPressStartedinsidePortal(event);
         },
       },
       'on:pointerdown': {
         capture: true,
         handleEvent: (event) => {
-          markInsideReactTree();
-          markPressStartedInsideReactTree(event as PointerEvent);
+          markinsidePortal();
+          markPressStartedinsidePortal(event as PointerEvent);
         },
       },
       'on:mouseup': {
         capture: true,
-        handleEvent: markInsideReactTree,
+        handleEvent: markinsidePortal,
       },
       'on:touchend': {
         capture: true,
-        handleEvent: markInsideReactTree,
+        handleEvent: markinsidePortal,
       },
       'on:touchmove': {
         capture: true,
-        handleEvent: markInsideReactTree,
+        handleEvent: markinsidePortal,
       },
     };
   });

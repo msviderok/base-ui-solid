@@ -23,7 +23,8 @@ export function NumberFieldScrubAreaCursor(componentProps: NumberFieldScrubAreaC
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
   const { state } = useNumberFieldRootContext();
-  const { isScrubbing, isTouchInput, isPointerLockDenied, refs } = useNumberFieldScrubAreaContext();
+  const { isScrubbing, isTouchInput, isPointerLockDenied, scrubAreaCursorRef } =
+    useNumberFieldScrubAreaContext();
 
   const [domElement, setDomElement] = createSignal<Element | null | undefined>(null);
 
@@ -34,7 +35,7 @@ export function NumberFieldScrubAreaCursor(componentProps: NumberFieldScrubAreaC
     enabled: shouldRender,
     state,
     ref: (el) => {
-      refs.scrubAreaCursorRef = el;
+      scrubAreaCursorRef.current = el;
       setDomElement(el);
     },
     props: [

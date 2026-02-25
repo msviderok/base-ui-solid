@@ -1,5 +1,6 @@
 import { combineProps } from '@solid-primitives/props';
-import { type Accessor, type JSX } from 'solid-js';
+import { type JSX } from 'solid-js';
+import { access, type MaybeAccessor } from '../../solid-helpers';
 import type { ElementProps } from '../types';
 import { ACTIVE_KEY, FOCUSABLE_ATTRIBUTE, SELECTED_KEY } from '../utils/constants';
 
@@ -32,12 +33,12 @@ export interface UseInteractionsReturn {
  * TODO: Object.assign from proxy is probably not the best way to do it
  */
 export function useInteractions(
-  propsList: Array<Accessor<ElementProps> | void> = [],
+  propsList: Array<MaybeAccessor<ElementProps> | void> = [],
 ): UseInteractionsReturn {
   return {
     getReferenceProps(userProps) {
       const referenceList = propsList
-        .map((item) => item?.()?.reference)
+        .map((item) => access(item)?.reference)
         .filter((i): i is JSX.HTMLAttributes<any> => !!i);
 
       if (userProps) {
@@ -50,7 +51,7 @@ export function useInteractions(
     },
     getFloatingProps(userProps) {
       const list = propsList
-        .map((item) => item?.()?.floating)
+        .map((item) => access(item)?.floating)
         .filter((i): i is JSX.HTMLAttributes<any> => !!i);
 
       list.unshift({ tabIndex: -1, [FOCUSABLE_ATTRIBUTE as any]: '' });
@@ -64,7 +65,9 @@ export function useInteractions(
       return Object.assign({}, combined);
     },
     getItemProps(userProps) {
-      let list: ElementProps['item'][] = propsList.map((item) => item?.()?.item).filter((i) => !!i);
+      let list: ElementProps['item'][] = propsList
+        .map((item) => access(item)?.item)
+        .filter((i) => !!i);
 
       if (userProps) {
         const userPropsWitoutActiveAndSelected = { ...userProps };
@@ -81,7 +84,7 @@ export function useInteractions(
     },
     getTriggerProps(userProps) {
       const list = propsList
-        .map((item) => item?.()?.trigger)
+        .map((item) => access(item)?.trigger)
         .filter((i): i is JSX.HTMLAttributes<any> => !!i);
 
       if (userProps) {

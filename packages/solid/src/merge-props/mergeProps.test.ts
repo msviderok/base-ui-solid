@@ -436,7 +436,7 @@ describe('mergeProps', () => {
         const tabIndexValue = createMemo(() => mergedProps.tabIndex);
         const staticValue = createMemo(() => mergedProps.id);
 
-        expect(classValue()).to.equal('off static-class');
+        expect(classValue()).to.equal('static-class off');
         expect(styleValue()).to.deep.equal({ color: 'blue', padding: '1px' });
         expect(classListValue()).to.deep.equal({ enabled: false, staticKey: true });
         expect(titleValue()).to.equal('title-0');
@@ -462,7 +462,7 @@ describe('mergeProps', () => {
         setCount(1);
         setMode('b');
 
-        expect(classValue()).to.equal('on static-class');
+        expect(classValue()).to.equal('static-class on');
         expect(styleValue()).to.deep.equal({ color: 'red', padding: '1px' });
         expect(classListValue()).to.deep.equal({ enabled: true, staticKey: true });
         expect(titleValue()).to.equal('title-1');

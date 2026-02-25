@@ -3,7 +3,7 @@ import {
   IndexGuessBehavior,
   useCompositeListItem,
 } from '../../composite/list/useCompositeListItem';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { isMouseWithinBounds } from '../../utils/isMouseWithinBounds';
@@ -32,19 +32,11 @@ export function SelectItem(componentProps: SelectItem.Props) {
   const disabled = () => local.disabled ?? false;
   const nativeButton = () => local.nativeButton ?? false;
 
-  const refs: SelectItemContext['refs'] = {
-    indexRef: 0,
-    textRef: null,
-  };
-
+  const textRef = useRef<HTMLDivElement | null | undefined>(null);
   const listItem = useCompositeListItem({
     label: () => local.label,
-    textRef: () => refs.textRef,
+    textRef: () => textRef.current,
     indexGuessBehavior: IndexGuessBehavior.GuessFromOrder,
-  });
-
-  createEffect(() => {
-    refs.indexRef = listItem.index();
   });
 
   const {
@@ -52,9 +44,12 @@ export function SelectItem(componentProps: SelectItem.Props) {
     getItemProps,
     setOpen,
     setValue,
+    selectionRef,
+    typingRef,
+    valuesRef,
+    keyboardActiveRef,
     multiple,
     highlightItemOnHover,
-    refs: rootRefs,
   } = useSelectRootContext();
 
   const highlightTimeout = useTimeout();
@@ -67,12 +62,17 @@ export function SelectItem(componentProps: SelectItem.Props) {
   const index = listItem.index;
   const hasRegistered = () => index() !== -1;
 
+  const indexRef = useRef(0);
+  createEffect(() => {
+    indexRef.current = listItem.index();
+  });
+
   createEffect(() => {
     if (!hasRegistered()) {
       return;
     }
 
-    const values = rootRefs.valuesRef;
+    const values = valuesRef.current;
     const idx = listItem.index();
     values[idx] = itemValue();
 
@@ -161,7 +161,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
     },
     onMouseEnter() {
       if (
-        !rootRefs.keyboardActiveRef &&
+        !keyboardActiveRef.current &&
         store.state.selectedIndex === null &&
         highlightItemOnHover()
       ) {
@@ -174,7 +174,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
       }
     },
     onMouseLeave(event) {
-      if (!highlightItemOnHover() || rootRefs.keyboardActiveRef || isMouseWithinBounds(event)) {
+      if (!highlightItemOnHover() || keyboardActiveRef.current || isMouseWithinBounds(event)) {
         return;
       }
 
@@ -185,7 +185,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
       });
     },
     onTouchStart() {
-      rootRefs.selectionRef = {
+      selectionRef.current = {
         allowSelectedMouseUp: false,
         allowUnselectedMouseUp: false,
       };
@@ -204,7 +204,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
 
       if (
         disabled() ||
-        (lastKeyRef === ' ' && rootRefs.typingRef) ||
+        (lastKeyRef === ' ' && typingRef.current) ||
         (pointerTypeRef !== 'touch' && !highlighted())
       ) {
         return;
@@ -230,9 +230,8 @@ export function SelectItem(componentProps: SelectItem.Props) {
         return;
       }
 
-      const disallowSelectedMouseUp = !rootRefs.selectionRef.allowSelectedMouseUp && selected();
-      const disallowUnselectedMouseUp =
-        !rootRefs.selectionRef.allowUnselectedMouseUp && !selected();
+      const disallowSelectedMouseUp = !selectionRef.current.allowSelectedMouseUp && selected();
+      const disallowUnselectedMouseUp = !selectionRef.current.allowUnselectedMouseUp && !selected();
 
       if (
         disallowSelectedMouseUp ||
@@ -259,7 +258,8 @@ export function SelectItem(componentProps: SelectItem.Props) {
 
   const contextValue: SelectItemContext = {
     selected,
-    refs,
+    indexRef,
+    textRef,
     selectedByFocus,
     hasRegistered,
   };

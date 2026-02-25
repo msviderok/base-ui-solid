@@ -640,7 +640,6 @@ export function useListNavigation(
       );
       // last enabled index
       const maxGridIndex = cellMap.reduce(
-        // eslint-disable-next-line solid/reactivity
         (foundIndex: number, index, cellIndex) =>
           index != null && !isListIndexDisabled(listRef(), index, disabledIndices())
             ? cellIndex
@@ -823,6 +822,17 @@ export function useListNavigation(
         }
 
         commonOnKeyDown(event);
+
+        // Manually bubble across portals only if propagation wasn't stopped
+        // by commonOnKeyDown (mirrors React's natural bubbling behavior).
+        if (parentId != null && !(event as any).cancelBubble) {
+          const eventObject = new KeyboardEvent('keydown', { key: event.key });
+          const parentNode =
+            tree && parentId != null ? tree?.nodesRef.find((node) => node.id === parentId) : null;
+          if (parentNode) {
+            parentNode.context?.elements.floating()?.dispatchEvent(eventObject);
+          }
+        }
       },
       // TODO SOLID CHECK
       // onKeyDown(event) {

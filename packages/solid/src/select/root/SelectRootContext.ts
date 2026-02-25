@@ -2,6 +2,7 @@ import { createContext, useContext, type Accessor } from 'solid-js';
 import type { SetStoreFunction, Store } from 'solid-js/store';
 import type { UseFieldValidationReturnValue } from '../../field/root/useFieldValidation';
 import { type FloatingEvents, type FloatingRootContext } from '../../floating-ui-solid';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { HTMLProps } from '../../utils/types';
 import type { SelectStore } from '../store';
 import type { SelectRoot } from './SelectRoot';
@@ -21,31 +22,29 @@ export interface SelectRootContext {
   highlightItemOnHover: Accessor<boolean>;
   setValue: (nextValue: any, eventDetails: SelectRoot.ChangeEventDetails) => void;
   setOpen: (open: boolean, eventDetails: SelectRoot.ChangeEventDetails) => void;
-  refs: {
-    listRef: Array<HTMLElement | null | undefined>;
-    popupRef: HTMLDivElement | null | undefined;
-    scrollHandlerRef: ((el: HTMLDivElement) => void) | null;
-    scrollArrowsMountedCountRef: number;
-    valueRef: HTMLSpanElement | null | undefined;
-    valuesRef: Array<any>;
-    labelsRef: Array<string | null>;
-    typingRef: boolean;
-    selectionRef: {
-      allowUnselectedMouseUp: boolean;
-      allowSelectedMouseUp: boolean;
-    };
-    selectedItemTextRef: HTMLSpanElement | null | undefined;
-    keyboardActiveRef: boolean;
-    alignItemWithTriggerActiveRef: boolean;
-    initialValueRef: any;
-  };
+  listRef: ReactLikeRef<Array<HTMLElement | null | undefined>>;
+  popupRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  scrollHandlerRef: ReactLikeRef<((el: HTMLDivElement) => void) | null>;
   handleScrollArrowVisibility: () => void;
+  scrollArrowsMountedCountRef: ReactLikeRef<number>;
   getItemProps: (
     props?: HTMLProps & { active?: boolean | undefined; selected?: boolean | undefined },
   ) => Record<string, unknown>; // PREVENT_COMMIT
   events: FloatingEvents;
+  valueRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
+  valuesRef: ReactLikeRef<Array<any>>;
+  labelsRef: ReactLikeRef<Array<string | null>>;
+  typingRef: ReactLikeRef<boolean>;
+  selectionRef: ReactLikeRef<{
+    allowUnselectedMouseUp: boolean;
+    allowSelectedMouseUp: boolean;
+  }>;
+  selectedItemTextRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
   validation: UseFieldValidationReturnValue;
   onOpenChangeComplete?: ((open: boolean) => void) | undefined;
+  keyboardActiveRef: ReactLikeRef<boolean>;
+  alignItemWithTriggerActiveRef: ReactLikeRef<boolean>;
+  initialValueRef: ReactLikeRef<any>;
 }
 
 export const SelectRootContext = createContext<SelectRootContext | null>(null);

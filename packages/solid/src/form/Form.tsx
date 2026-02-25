@@ -1,11 +1,6 @@
 import { createEffect, createMemo, createSignal, on, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import {
-  access,
-  callEventHandler,
-  splitComponentProps,
-  type MaybeAccessor,
-} from '../solid-helpers';
+import { access, callEventHandler, splitComponentProps, type ReactLikeRef } from '../solid-helpers';
 import { EMPTY_OBJECT } from '../utils/constants';
 import {
   createGenericEventDetails,
@@ -37,7 +32,9 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
 
   const externalErrors = () => local.errors;
   const [formRef, setFormRef] = createStore<FormContext['formRef']>({ fields: {} });
-  const [submitAttemptedRef, setSubmitAttemptedRef] = createSignal(false);
+
+  let submittedRef = false;
+  let submitAttemptedRef = false;
 
   const focusControl = (control: HTMLElement | null | undefined) => {
     if (!control) {
@@ -50,22 +47,25 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
   };
 
   const [errors, setErrors] = createSignal(externalErrors());
-  createEffect(() => setErrors(externalErrors()));
+
+  createEffect(() => {
+    setErrors(externalErrors());
+  });
 
   const invalidFields = createMemo(() =>
     Object.values(formRef.fields).filter((field) => field.validityData.state.valid === false),
   );
 
   createEffect(
-    on(invalidFields, () => {
-      if (!submitAttemptedRef()) {
+    on(invalidFields, (invalid) => {
+      if (!submittedRef) {
         return;
       }
 
-      setSubmitAttemptedRef(false);
+      submittedRef = false;
 
-      if (invalidFields().length) {
-        const controlRef = access(invalidFields()[0].controlRef);
+      if (invalid.length) {
+        const controlRef = access(invalid[0].controlRef);
         focusControl(controlRef);
       }
     }),
@@ -87,7 +87,9 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
   };
 
   onMount(() => {
-    local.actionsRef = { validate: handleImperativeValidate };
+    if (local.actionsRef) {
+      local.actionsRef.current = { validate: handleImperativeValidate };
+    }
   });
 
   const element = useRenderElement('form', componentProps, {
@@ -95,7 +97,7 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
       {
         noValidate: true,
         onSubmit(event) {
-          setSubmitAttemptedRef(true);
+          submitAttemptedRef = true;
 
           // Async validation isn't supported to stop the submit event.
           Object.values(formRef.fields).forEach((field) => field.validate());
@@ -105,7 +107,7 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
             const controlRef = access(invalidFields()[0].controlRef);
             focusControl(controlRef);
           } else {
-            setSubmitAttemptedRef(false);
+            submittedRef = true;
             callEventHandler(local.onSubmit, event as any);
 
             if (local.onFormSubmit) {
@@ -142,8 +144,7 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
     validationMode,
     errors: () => errors() ?? EMPTY_OBJECT,
     clearErrors,
-    submitAttemptedRef,
-    setSubmitAttemptedRef,
+    submitAttemptedRef: () => submitAttemptedRef,
   };
 
   return <FormContext.Provider value={contextValue}>{element()}</FormContext.Provider>;
@@ -199,7 +200,7 @@ export interface FormProps<
    * actionsRef.validate('email');
    * ```
    */
-  actionsRef?: (Form.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<Form.Actions | null> | undefined;
 }
 
 export namespace Form {

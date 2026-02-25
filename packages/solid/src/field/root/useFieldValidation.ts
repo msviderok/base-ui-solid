@@ -1,13 +1,12 @@
-'use client';
 import { EMPTY_OBJECT } from '@base-ui/utils/empty';
-import { useTimeout } from '@base-ui/utils/useTimeout';
 import { reconcile } from 'solid-js/store';
 import type { Form } from '../../form';
 import { useFormContext } from '../../form/FormContext';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { mergeProps } from '../../merge-props';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { access, useRef, type MaybeAccessor, type ReactLikeRef } from '../../solid-helpers';
 import type { BaseUIHTMLProps, HTMLProps } from '../../utils/types';
+import { useTimeout } from '../../utils/useTimeout';
 import { DEFAULT_VALIDITY_STATE } from '../utils/constants';
 import { getCombinedFieldValidityData } from '../utils/getCombinedFieldValidityData';
 import type { FieldRootState, FieldValidityData } from './FieldRoot';
@@ -27,8 +26,7 @@ function isOnlyValueMissing(state: Record<keyof ValidityState, boolean> | undefi
     }
     if (key === 'valueMissing') {
       onlyValueMissing = state[key];
-    }
-    if (state[key]) {
+    } else if (state[key]) {
       onlyValueMissing = false;
     }
   }
@@ -44,17 +42,17 @@ export function useFieldValidation(
   const validityData = () => access(params.validityData);
   const validationDebounceTime = () => access(params.validationDebounceTime);
   const invalid = () => access(params.invalid);
-  const markedDirtyRef = () => access(params.markedDirtyRef);
   const state = () => access(params.state);
   const name = () => access(params.name);
 
   const { controlId, getDescriptionProps } = useLabelableContext();
 
   const timeout = useTimeout();
-  let inputRef = null as HTMLInputElement | null | undefined;
+  const inputRef = useRef<HTMLInputElement | null | undefined>(null);
 
   const commit = async (value: unknown, revalidate = false) => {
-    if (!inputRef) {
+    const inputRefValue = inputRef.current;
+    if (!inputRefValue) {
       return;
     }
 
@@ -63,7 +61,7 @@ export function useFieldValidation(
         return;
       }
 
-      const currentNativeValidity = inputRef.validity;
+      const currentNativeValidity = inputRefValue.validity;
 
       if (!currentNativeValidity.valueMissing) {
         // The 'valueMissing' (required) condition has been resolved by the user typing.
@@ -76,7 +74,7 @@ export function useFieldValidation(
           errors: [],
           initialValue: validityData().initialValue,
         };
-        inputRef.setCustomValidity('');
+        inputRefValue.setCustomValidity('');
 
         const resolvedControlId = controlId();
         if (resolvedControlId) {
@@ -137,7 +135,7 @@ export function useFieldValidation(
 
       // Only make `valueMissing` mark the field invalid if it's been changed
       // to reduce error noise.
-      if (hasOnlyValueMissingError && !markedDirtyRef()) {
+      if (hasOnlyValueMissingError && !params.markedDirtyRef.current) {
         computedState.valid = true;
         computedState.valueMissing = false;
       }
@@ -149,16 +147,16 @@ export function useFieldValidation(
     let result: null | string | string[] = null;
     let validationErrors: string[] = [];
 
-    const nextState = getState(inputRef);
+    const nextState = getState(inputRefValue);
 
     let defaultValidationMessage;
     const validateOnChange = params.shouldValidateOnChange();
 
-    if (inputRef.validationMessage && !validateOnChange) {
+    if (inputRefValue.validationMessage && !validateOnChange) {
       // not validating on change, if there is a `validationMessage` from
       // native validity, set errors and skip calling the custom validate fn
-      defaultValidationMessage = inputRef.validationMessage;
-      validationErrors = [inputRef.validationMessage];
+      defaultValidationMessage = inputRefValue.validationMessage;
+      validationErrors = [inputRefValue.validationMessage];
     } else {
       // call the validate function because either
       // - validating on change, or
@@ -187,21 +185,21 @@ export function useFieldValidation(
 
         if (Array.isArray(result)) {
           validationErrors = result;
-          inputRef.setCustomValidity(result.join('\n'));
+          inputRefValue.setCustomValidity(result.join('\n'));
         } else if (result) {
           validationErrors = [result];
-          inputRef.setCustomValidity(result);
+          inputRefValue.setCustomValidity(result);
         }
       } else if (validateOnChange) {
         // validate function returned no errors, if validating on change
         // we need to clear the custom validity state
-        inputRef.setCustomValidity('');
+        inputRefValue.setCustomValidity('');
         nextState.customError = false;
 
-        if (inputRef.validationMessage) {
-          defaultValidationMessage = inputRef.validationMessage;
-          validationErrors = [inputRef.validationMessage];
-        } else if (inputRef.validity.valid && !nextState.valid) {
+        if (inputRefValue.validationMessage) {
+          defaultValidationMessage = inputRefValue.validationMessage;
+          validationErrors = [inputRefValue.validationMessage];
+        } else if (inputRefValue.validity.valid && !nextState.valid) {
           nextState.valid = true;
         }
       }
@@ -240,7 +238,7 @@ export function useFieldValidation(
   const getInputValidationProps = (externalProps = {}) =>
     mergeProps<'input'>(
       {
-        onChange(event) {
+        onInput(event) {
           // Workaround for https://github.com/facebook/react/issues/9023
           if (event.defaultPrevented) {
             return;
@@ -268,12 +266,11 @@ export function useFieldValidation(
           timeout.clear();
 
           const validationDebounceTimeValue = validationDebounceTime();
+          const commitFn = () => commit(element.value);
           if (validationDebounceTimeValue) {
-            timeout.start(validationDebounceTimeValue, () => {
-              commit(element.value);
-            });
+            timeout.start(validationDebounceTimeValue, commitFn);
           } else {
-            commit(element.value);
+            commitFn();
           }
         },
       },
@@ -297,7 +294,7 @@ export interface UseFieldValidationParameters {
   validityData: MaybeAccessor<FieldValidityData>;
   validationDebounceTime: MaybeAccessor<number>;
   invalid: MaybeAccessor<boolean>;
-  markedDirtyRef: MaybeAccessor<boolean>;
+  markedDirtyRef: ReactLikeRef<boolean>;
   state: MaybeAccessor<FieldRootState>;
   name: MaybeAccessor<string | undefined>;
   shouldValidateOnChange: () => boolean;
@@ -306,6 +303,6 @@ export interface UseFieldValidationParameters {
 export interface UseFieldValidationReturnValue {
   getValidationProps: (props?: HTMLProps | BaseUIHTMLProps) => BaseUIHTMLProps;
   getInputValidationProps: (props?: HTMLProps | BaseUIHTMLProps) => BaseUIHTMLProps;
-  inputRef: HTMLInputElement | null | undefined;
+  inputRef: ReactLikeRef<HTMLInputElement | null | undefined>;
   commit: (value: unknown, revalidate?: boolean) => Promise<void>;
 }

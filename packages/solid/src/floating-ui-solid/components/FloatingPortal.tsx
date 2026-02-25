@@ -1,10 +1,8 @@
 import { EMPTY_OBJECT } from '@base-ui/utils/empty';
-import { isNode } from '@floating-ui/utils/dom';
 import { createChangeEventDetails } from '@msviderok/base-ui-solid/utils/createBaseUIEventDetails';
 import { REASONS } from '@msviderok/base-ui-solid/utils/reasons';
 import type { BaseUIComponentProps } from '@msviderok/base-ui-solid/utils/types';
 import {
-  batch,
   createContext,
   createEffect,
   createMemo,
@@ -18,17 +16,10 @@ import {
   type Ref,
 } from 'solid-js';
 import { Portal } from 'solid-js/web';
-import {
-  access,
-  splitComponentProps,
-  type MaybeAccessor,
-  type MaybeAccessorValue,
-} from '../../solid-helpers';
 import { ownerVisuallyHidden } from '../../utils/constants';
 import { FocusGuard } from '../../utils/FocusGuard';
 import { useId } from '../../utils/useId';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { visuallyHidden } from '../../utils/visuallyHidden';
 import {
   disableFocusInside,
   enableFocusInside,
@@ -86,90 +77,39 @@ export function useFloatingPortalNode(
 ): UseFloatingPortalNodeResult {
   const uniqueId = useId();
   const portalContext = usePortalContext();
-  const parentPortalNode = () => portalContext?.portalNode();
 
-  const [containerElement, setContainerElement] = createSignal<HTMLElement | ShadowRoot | null>(
-    null,
-  );
   const [portalNode, setPortalNode] = createSignal<HTMLElement | null>(null);
-  let containerRef = null as HTMLElement | ShadowRoot | null;
 
-  const setPortalNodeRef = (node: HTMLElement | null) => {
-    if (node !== null) {
-      // the createEffect below watching containerProp / parentPortalNode
-      // sets setPortalNode(null) when the container becomes null or changes.
-      // So even though the ref callback now ignores null, the portal node still gets cleared.
-      setPortalNode(node);
-    }
-  };
-
-  createEffect(() => {
-    // Wait for the container to be resolved if explicitly `null`.
-    if (props.container === null) {
-      if (containerRef) {
-        containerRef = null;
-        batch(() => {
-          setPortalNode(null);
-          setContainerElement(null);
-        });
-      }
-      return;
-    }
-
-    if (uniqueId() == null) {
-      return;
-    }
-
-    const resolvedContainer =
-      (props.container && (isNode(props.container) ? props.container : props.container)) ??
-      parentPortalNode() ??
-      document.body;
-
-    if (resolvedContainer == null) {
-      if (containerRef) {
-        containerRef = null;
-        batch(() => {
-          setPortalNode(null);
-          setContainerElement(null);
-        });
-      }
-      return;
-    }
-
-    if (containerRef !== resolvedContainer) {
-      containerRef = resolvedContainer;
-      batch(() => {
-        setPortalNode(null);
-        setContainerElement(resolvedContainer);
-      });
-    }
-  });
+  const containerElement = createMemo(
+    () => props.container ?? portalContext?.portalNode() ?? document.body,
+  );
 
   const portalElement = useRenderElement('div', props.componentProps ?? EMPTY_OBJECT, {
     ref: (el: HTMLDivElement) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      typeof props.ref === 'function' ? props.ref(el) : (props.ref = el);
-      setPortalNodeRef(el);
+      setPortalNode(el);
+      if (typeof props.ref === 'function') {
+        props.ref(el);
+      } else {
+        props.ref = el;
+      }
     },
-    props: [
-      {
-        get id() {
-          return uniqueId();
+    get props() {
+      return [
+        {
+          id: uniqueId(),
+          [attr]: '',
         },
-        [attr]: '',
-      },
-      props.elementProps,
-    ],
+        props.elementProps as any,
+      ];
+    },
   });
 
-  // This `createPortal` call injects `portalElement` into the `container`.
-  // Another call inside `FloatingPortal`/`FloatingPortalLite` then injects the children into `portalElement`.
   const portalSubtree = createMemo(() => {
-    return (
-      <Show when={containerElement() && portalElement()}>
-        <Portal mount={containerElement()!}>{portalElement()}</Portal>
-      </Show>
-    );
+    const container = containerElement();
+    if (!container) {
+      return null;
+    }
+    return <Portal mount={container}>{portalElement()}</Portal>;
   });
 
   return { portalSubtree, portalNode };
@@ -185,20 +125,27 @@ export function useFloatingPortalNode(
  * @internal
  */
 export function FloatingPortal(
-  componentProps: FloatingPortal.Props<any> & { renderGuards?: MaybeAccessor<boolean | undefined> },
+  componentProps: FloatingPortal.Props<any> & { renderGuards?: boolean | undefined },
 ): JSX.Element {
-  const [, local, elementProps] = splitComponentProps(componentProps, [
-    'renderGuards',
-    'container',
-  ]);
-  const renderGuards = () => access(local.renderGuards);
+  const [local, , elementProps] = splitProps(
+    componentProps,
+    ['container', 'class', 'render', 'renderGuards'],
+    ['children'],
+  );
 
   const { portalNode, portalSubtree } = useFloatingPortalNode({
-    container: local.container,
-    // eslint-disable-next-line solid/reactivity
-    ref: componentProps.ref,
-    componentProps,
-    elementProps,
+    get container() {
+      return local.container;
+    },
+    ref: (el) => {
+      if (typeof componentProps.ref === 'function') {
+        componentProps.ref(el);
+      } else {
+        componentProps.ref = el;
+      }
+    },
+    componentProps: local,
+    elementProps: elementProps as any,
   });
   const [beforeOutsideRef, setBeforeOutsideRef] = createSignal<HTMLSpanElement | null>(null);
   const [afterOutsideRef, setAfterOutsideRef] = createSignal<HTMLSpanElement | null>(null);
@@ -219,13 +166,14 @@ export function FloatingPortal(
     }
   }
 
-  const shouldRenderGuards = () =>
-    typeof renderGuards() === 'boolean'
-      ? renderGuards()!
+  const shouldRenderGuards = createMemo(() =>
+    typeof local.renderGuards === 'boolean'
+      ? local.renderGuards!
       : !!focusManagerState() &&
         !focusManagerState()!.modal &&
         focusManagerState()!.open &&
-        !!portalNode();
+        !!portalNode(),
+  );
 
   createEffect(() => {
     const node = portalNode();
@@ -256,23 +204,23 @@ export function FloatingPortal(
     enableFocusInside(node);
   });
 
+  const portalContextValue = {
+    beforeOutsideRef,
+    afterOutsideRef,
+    beforeInsideRef,
+    afterInsideRef,
+    portalNode,
+    setFocusManagerState,
+    setBeforeOutsideRef,
+    setAfterOutsideRef,
+    setBeforeInsideRef,
+    setAfterInsideRef,
+  };
+
   return (
     <>
       {portalSubtree()}
-      <PortalContext.Provider
-        value={{
-          beforeOutsideRef,
-          setBeforeOutsideRef,
-          afterOutsideRef,
-          setAfterOutsideRef,
-          beforeInsideRef,
-          setBeforeInsideRef,
-          afterInsideRef,
-          setAfterInsideRef,
-          portalNode,
-          setFocusManagerState,
-        }}
-      >
+      <PortalContext.Provider value={portalContextValue}>
         <Show when={shouldRenderGuards() && portalNode()}>
           <FocusGuard
             data-type="outside"
@@ -280,7 +228,11 @@ export function FloatingPortal(
             onFocus={(event) => {
               const node = portalNode()!;
               if (isOutsideEvent(event, node)) {
-                // enableFocusInside(node);
+                // In Solid, `onFocus` maps to the non-bubbling native `focus` event, which fires
+                // before `focusin`. The portal node's capture `focusin` listener calls
+                // `enableFocusInside` too late relative to the inside guard's `onFocus` handler.
+                // Explicitly re-enable here so the inside guard's tabbable search works correctly.
+                enableFocusInside(node);
                 beforeInsideRef()?.focus();
               } else {
                 const domReference = focusManagerState()?.domReference ?? null;
@@ -295,7 +247,9 @@ export function FloatingPortal(
           <span aria-owns={portalNode()!.id} style={ownerVisuallyHidden} />
         </Show>
 
-        <Portal mount={portalNode()!}>{componentProps.children}</Portal>
+        <Show when={portalNode()}>
+          <Portal mount={portalNode()!}>{componentProps.children}</Portal>
+        </Show>
 
         <Show when={shouldRenderGuards() && portalNode()}>
           <FocusGuard
@@ -304,6 +258,7 @@ export function FloatingPortal(
             onFocus={(event) => {
               const node = portalNode()!;
               if (isOutsideEvent(event, node)) {
+                enableFocusInside(node);
                 afterInsideRef()?.focus();
               } else {
                 const domReference = focusManagerState()?.domReference ?? null;

@@ -80,3 +80,11 @@ export function childrenLazy(resolver: () => JSX.Element) {
     return x;
   };
 }
+
+export type ReactLikeRef<T> = { current: T };
+export function useRef<T>(initialValue: T): ReactLikeRef<T>;
+export function useRef<T>(initialValue: T | null): ReactLikeRef<T | null>;
+export function useRef<T>(initialValue: T | undefined): ReactLikeRef<T | undefined> {
+  const ref = { current: initialValue };
+  return ref;
+}

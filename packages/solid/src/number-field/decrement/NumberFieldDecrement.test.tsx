@@ -64,7 +64,7 @@ describe('<NumberField.Decrement />', () => {
     }
 
     const { user } = render(() => <Controlled />);
-    const input = () => screen.getByRole('textbox');
+    const input = screen.getByRole('textbox');
     const increase = screen.getByLabelText('Decrease');
 
     await user.click(screen.getByText('external'));

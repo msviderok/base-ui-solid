@@ -1,4 +1,4 @@
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { access, type MaybeAccessor, type ReactLikeRef } from '../../solid-helpers';
 import {
   createChangeEventDetails,
   createGenericEventDetails,
@@ -43,15 +43,15 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
     isIncrement() ? 'increment-press' : 'decrement-press';
 
   function commitValue(nativeEvent: MouseEvent) {
-    params.refs.allowInputSyncRef = true;
+    params.allowInputSyncRef.current = true;
 
     // The input may be dirty but not yet blurred, so the value won't have been committed.
-    const parsedValue = parseNumber(inputValue(), locale(), params.refs.formatOptionsRef);
+    const parsedValue = parseNumber(inputValue(), locale(), params.formatOptionsRef.current);
 
     if (parsedValue !== null) {
       // The increment value function needs to know the current input value to increment it
       // correctly.
-      params.refs.valueRef = parsedValue;
+      params.valueRef.current = parsedValue;
       params.setValue(
         parsedValue,
         createChangeEventDetails<
@@ -107,7 +107,7 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
 
       const amount = params.getStepAmount(event) ?? DEFAULT_STEP;
 
-      const prev = params.refs.valueRef;
+      const prev = params.valueRef.current;
 
       params.incrementValue(amount, {
         direction: isIncrement() ? 1 : -1,
@@ -115,7 +115,7 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
         reason: pressReason() as any,
       });
 
-      const committed = params.refs.lastChangedValueRef ?? params.refs.valueRef;
+      const committed = params.lastChangedValueRef.current ?? params.valueRef.current;
       if (committed !== prev) {
         params.onValueCommitted(committed, createGenericEventDetails(pressReason(), event));
       }
@@ -128,7 +128,7 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
 
       pointerTypeRef = event.pointerType as 'mouse' | 'touch' | 'pen' | '';
       ignoreClickRef = false;
-      params.refs.isPressedRef = true;
+      params.isPressedRef.current = true;
       incrementDownCoordsRef = { x: event.clientX, y: event.clientY };
 
       commitValue(event);
@@ -138,17 +138,17 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
       // Note: "pen" is sometimes returned for mouse usage on Linux Chrome.
       if (!isTouchPointer) {
         event.preventDefault();
-        params.refs.inputRef?.focus();
+        params.inputRef.current?.focus();
         params.startAutoChange(isIncrement(), event);
       } else {
         // We need to check if the pointerdown was intentional, and not the result of a scroll
         // or pinch-zoom. In that case, we don't want to change the value.
         params.intentionalTouchCheckTimeout.start(TOUCH_TIMEOUT, () => {
-          const moves = params.refs.movesAfterTouchRef;
-          params.refs.movesAfterTouchRef = 0;
+          const moves = params.movesAfterTouchRef.current;
+          params.movesAfterTouchRef.current = 0;
           // Only start auto-change if the touch is still pressed (prevents races
           // with pointerup occurring before the timeout fires on quick taps).
-          const stillPressed = params.refs.isPressedRef;
+          const stillPressed = params.isPressedRef.current;
           if (stillPressed && moves != null && moves < MAX_POINTER_MOVES_AFTER_TOUCH) {
             params.startAutoChange(isIncrement(), event);
             ignoreClickRef = true; // synthesized click should be ignored
@@ -165,17 +165,21 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
       // Ensure we mark the press as released for touch flows even if auto-change never started,
       // so the delayed auto-change check won’t start after a quick tap.
       if (isTouchLikePointerType(event.pointerType)) {
-        params.refs.isPressedRef = false;
+        params.isPressedRef.current = false;
       }
     },
     onPointerMove(event) {
       const isDisabled = disabled() || readOnly();
-      if (isDisabled || !isTouchLikePointerType(event.pointerType) || !params.refs.isPressedRef) {
+      if (
+        isDisabled ||
+        !isTouchLikePointerType(event.pointerType) ||
+        !params.isPressedRef.current
+      ) {
         return;
       }
 
-      if (params.refs.movesAfterTouchRef != null) {
-        params.refs.movesAfterTouchRef += 1;
+      if (params.movesAfterTouchRef.current != null) {
+        params.movesAfterTouchRef.current += 1;
       }
 
       const { x, y } = incrementDownCoordsRef;
@@ -193,7 +197,7 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
       if (
         event.defaultPrevented ||
         isDisabled ||
-        !params.refs.isPressedRef ||
+        !params.isPressedRef.current ||
         isTouchingButtonRef ||
         isTouchLikePointerType(pointerTypeRef)
       ) {
@@ -222,15 +226,13 @@ export function useNumberFieldButton(params: useNumberFieldButton.Parameters) {
 }
 
 export interface UseNumberFieldButtonParameters {
-  refs: {
-    inputRef: HTMLInputElement | null | undefined;
-    allowInputSyncRef: boolean | null;
-    formatOptionsRef: Intl.NumberFormatOptions | undefined;
-    valueRef: number | null;
-    isPressedRef: boolean | null;
-    movesAfterTouchRef: number | null;
-    lastChangedValueRef: number | null;
-  };
+  inputRef: ReactLikeRef<HTMLInputElement | null | undefined>;
+  allowInputSyncRef: ReactLikeRef<boolean | null>;
+  formatOptionsRef: ReactLikeRef<Intl.NumberFormatOptions | undefined>;
+  valueRef: ReactLikeRef<number | null>;
+  isPressedRef: ReactLikeRef<boolean | null>;
+  movesAfterTouchRef: ReactLikeRef<number | null>;
+  lastChangedValueRef: ReactLikeRef<number | null>;
   disabled: MaybeAccessor<boolean>;
   getStepAmount: (event?: EventWithOptionalKeyState) => number | undefined;
   id: MaybeAccessor<string | undefined>;
@@ -249,9 +251,6 @@ export interface UseNumberFieldButtonParameters {
   ) => void;
 }
 
-export interface ReturnValue {
-  props: HTMLProps;
-}
 export interface UseNumberFieldButtonReturnValue {
   props: HTMLProps;
 }

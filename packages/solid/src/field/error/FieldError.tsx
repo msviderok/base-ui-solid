@@ -58,7 +58,7 @@ export function FieldError(componentProps: FieldError.Props) {
     return isRendered;
   });
 
-  const { mounted, transitionStatus, setMounted } = useTransitionStatus(rendered);
+  const { mounted, transitionStatus, setMounted } = useTransitionStatus(() => rendered());
 
   createEffect(() => {
     const idValue = id();
@@ -112,7 +112,7 @@ export function FieldError(componentProps: FieldError.Props) {
 
   useOpenChangeComplete({
     open: rendered,
-    ref: errorRef,
+    ref: () => errorRef,
     onComplete() {
       if (!rendered()) {
         setMounted(false);
@@ -133,8 +133,11 @@ export function FieldError(componentProps: FieldError.Props) {
     state,
     props: [
       {
+        get id() {
+          return id();
+        },
         get children() {
-          return rendered() ? errorMessage() : lastRenderedMessage();
+          return <>{rendered() ? errorMessage() : lastRenderedMessage()}</>;
         },
       },
       elementProps,

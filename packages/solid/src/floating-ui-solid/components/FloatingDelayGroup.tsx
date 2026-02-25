@@ -3,13 +3,12 @@ import {
   createContext,
   createEffect,
   createSignal,
-  mergeProps,
   onCleanup,
   useContext,
   type Accessor,
   type JSX,
 } from 'solid-js';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { useRef, type ReactLikeRef } from '../../solid-helpers';
 import {
   BaseUIChangeEventDetails,
   createChangeEventDetails,
@@ -25,33 +24,25 @@ type CurrentContextRef = {
 } | null;
 
 interface ContextValue {
-  hasProvider: Accessor<boolean>;
-  setHasProvider: (value: boolean) => void;
+  hasProvider: boolean;
   timeoutMs: Accessor<number>;
   setTimeoutMs: (value: number) => void;
-  delayRef: Accessor<Delay>;
-  setDelayRef: (value: Delay) => void;
-  initialDelayRef: Delay;
+  delayRef: ReactLikeRef<Delay>;
+  initialDelayRef: ReactLikeRef<Delay>;
   timeout: Timeout;
-  currentIdRef: Accessor<any>;
-  setCurrentIdRef: (value: any) => void;
-  currentContextRef: Accessor<CurrentContextRef>;
-  setCurrentContextRef: (value: CurrentContextRef) => void;
+  currentIdRef: ReactLikeRef<any>;
+  currentContextRef: ReactLikeRef<CurrentContextRef>;
 }
 
 const FloatingDelayGroupContext = createContext<ContextValue>({
-  hasProvider: () => false,
-  setHasProvider: () => {},
+  hasProvider: false,
   timeoutMs: () => 0,
   setTimeoutMs: () => {},
-  delayRef: () => 0,
-  setDelayRef: () => {},
-  currentIdRef: () => null,
-  setCurrentIdRef: () => {},
-  initialDelayRef: 0,
+  delayRef: { current: 0 },
+  currentIdRef: { current: null },
+  initialDelayRef: { current: 0 },
   timeout: useTimeout(),
-  currentContextRef: () => null,
-  setCurrentContextRef: () => {},
+  currentContextRef: { current: null },
 });
 
 export interface FloatingDelayGroupProps {
@@ -80,31 +71,27 @@ export interface FloatingDelayGroupProps {
  * @internal
  */
 export function FloatingDelayGroup(props: FloatingDelayGroupProps): JSX.Element {
-  // eslint-disable-next-line solid/reactivity
-  const initialDelayRef = props.delay;
-  const [hasProvider, setHasProvider] = createSignal(true);
-  // eslint-disable-next-line solid/reactivity
-  const [timeoutMs, setTimeoutMs] = createSignal(props.timeoutMs ?? 0);
-  const [delayRef, setDelayRef] = createSignal(initialDelayRef);
-  const [currentIdRef, setCurrentIdRef] = createSignal<any>(null);
-  const [currentContextRef, setCurrentContextRef] = createSignal<CurrentContextRef>(null);
+  const initialTimeoutMs = () => props.timeoutMs ?? 0;
+  const initialDelay = () => props.delay;
+
+  const delayRef = useRef(initialDelay());
+  const initialDelayRef = useRef(initialDelay());
+  const currentIdRef = useRef<string | null>(null);
+  const currentContextRef = useRef(null);
   const timeout = useTimeout();
+  const [timeoutMs, setTimeoutMs] = createSignal(initialTimeoutMs());
 
   return (
     <FloatingDelayGroupContext.Provider
       value={{
-        hasProvider,
-        setHasProvider,
+        hasProvider: true,
         timeoutMs,
         setTimeoutMs,
         delayRef,
-        setDelayRef,
         currentIdRef,
-        setCurrentIdRef,
         initialDelayRef,
         timeout,
         currentContextRef,
-        setCurrentContextRef,
       }}
     >
       {props.children}
@@ -116,14 +103,14 @@ interface UseDelayGroupOptions {
   /**
    * Whether the trigger this hook is used in has opened the tooltip.
    */
-  open: MaybeAccessor<boolean>;
+  open: boolean;
 }
 
 interface UseDelayGroupReturn {
   /**
    * The delay reference object.
    */
-  delayRef: Accessor<Delay>;
+  delayRef: ReactLikeRef<Delay>;
   /**
    * Whether animations should be removed.
    */
@@ -131,7 +118,7 @@ interface UseDelayGroupReturn {
   /**
    * Whether a `<FloatingDelayGroup>` provider is present.
    */
-  hasProvider: Accessor<boolean>;
+  hasProvider: boolean;
 }
 
 /**
@@ -140,25 +127,17 @@ interface UseDelayGroupReturn {
  * @see https://floating-ui.com/docs/FloatingDelayGroup
  * @internal
  */
-export function useDelayGroup(
-  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
-  optionsProp: MaybeAccessor<UseDelayGroupOptions>,
-): UseDelayGroupReturn {
-  const context = () => access(contextProp);
-  const options = mergeProps({ open: false }, optionsProp);
-  const store = () => {
-    const ctx = context();
-    return 'rootStore' in ctx ? ctx.rootStore : ctx;
-  };
+export function useDelayGroup(props: {
+  context: FloatingRootContext | FloatingContext;
+  options: UseDelayGroupOptions;
+}): UseDelayGroupReturn {
+  const open = () => props.options.open ?? false;
+  const store = () => ('rootStore' in props.context ? props.context.rootStore : props.context);
   const floatingId = () => store().state.floatingId;
-  const open = () => access(options.open);
 
   const {
     currentIdRef,
-    setCurrentIdRef,
     currentContextRef,
-    setCurrentContextRef,
-    setDelayRef,
     delayRef,
     timeoutMs,
     initialDelayRef,
@@ -171,31 +150,31 @@ export function useDelayGroup(
   function unset() {
     batch(() => {
       setIsInstantPhase(false);
-      currentContextRef()?.setIsInstantPhase(false);
-      setCurrentIdRef(null);
-      setCurrentContextRef(null);
-      setDelayRef(initialDelayRef);
+      currentContextRef?.current?.setIsInstantPhase(false);
+      currentIdRef.current = null;
+      currentContextRef.current = null;
+      delayRef.current = initialDelayRef?.current;
     });
   }
 
   createEffect(() => {
-    if (!currentIdRef()) {
+    if (!currentIdRef.current) {
       return;
     }
 
-    if (!open() && currentIdRef() === floatingId()) {
+    if (!open() && currentIdRef.current === floatingId()) {
       setIsInstantPhase(false);
 
       if (timeoutMs()) {
         const closingId = floatingId();
-        timeout.start(timeoutMs(), () => {
+        const fn = () => {
           // If another tooltip has taken over the group, skip resetting.
-          if (store().state.open || (currentIdRef() && currentIdRef() !== closingId)) {
+          if (store().state.open || (currentIdRef.current && currentIdRef.current !== closingId)) {
             return;
           }
           unset();
-        });
-
+        };
+        timeout.start(timeoutMs(), fn);
         onCleanup(() => timeout.clear());
         return;
       }
@@ -209,18 +188,18 @@ export function useDelayGroup(
       return;
     }
 
-    const prevContext = currentContextRef();
-    const prevId = currentIdRef();
+    const prevContext = currentContextRef.current;
+    const prevId = currentIdRef.current;
 
     // A new tooltip is opening, so cancel any pending timeout that would reset
     // the group's delay back to the initial value.
     timeout.clear();
-    setCurrentContextRef({ onOpenChange: store().setOpen, setIsInstantPhase });
-    setCurrentIdRef(floatingId());
-    setDelayRef({
+    currentContextRef.current = { onOpenChange: store().setOpen, setIsInstantPhase };
+    currentIdRef.current = floatingId();
+    delayRef.current = {
       open: 0,
-      close: getDelay(initialDelayRef, 'close'),
-    });
+      close: getDelay(initialDelayRef.current, 'close'),
+    };
 
     if (prevId !== null && prevId !== floatingId()) {
       setIsInstantPhase(true);
@@ -233,7 +212,7 @@ export function useDelayGroup(
   });
 
   onCleanup(() => {
-    setCurrentContextRef(null);
+    currentContextRef.current = null;
   });
 
   return {

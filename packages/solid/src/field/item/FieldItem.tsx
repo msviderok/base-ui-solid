@@ -17,6 +17,7 @@ import { FieldItemContext } from './FieldItemContext';
  */
 export function FieldItem(componentProps: FieldItem.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['disabled']);
+
   const disabledProp = () => local.disabled ?? false;
 
   const { state, disabled: rootDisabled } = useFieldRootContext(false);

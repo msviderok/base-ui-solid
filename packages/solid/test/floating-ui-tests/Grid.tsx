@@ -1,4 +1,4 @@
-import { createSignal, Index } from 'solid-js';
+import { createSignal, Index, Show } from 'solid-js';
 import {
   FloatingFocusManager,
   useClick,
@@ -56,7 +56,7 @@ export function Main(props: Props) {
         <button ref={refs.setReference} type="button" {...getReferenceProps()}>
           Reference
         </button>
-        {open() && (
+        <Show when={open()}>
           <FloatingFocusManager context={context}>
             <div
               role="menu"
@@ -90,7 +90,7 @@ export function Main(props: Props) {
               </Index>
             </div>
           </FloatingFocusManager>
-        )}
+        </Show>
       </div>
     </>
   );

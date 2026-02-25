@@ -19,7 +19,7 @@ const stateAttributesMapping: StateAttributesMapping<SelectValue.State> = {
 export function SelectValue(componentProps: SelectValue.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['children', 'placeholder']);
 
-  const { store, refs } = useSelectRootContext();
+  const { store, valueRef } = useSelectRootContext();
 
   const value = store.useState('value');
   const items = store.useState('items');
@@ -42,7 +42,7 @@ export function SelectValue(componentProps: SelectValue.Props) {
   const element = useRenderElement('span', componentProps, {
     state,
     ref: (el) => {
-      refs.valueRef = el;
+      valueRef.current = el;
     },
     props: elementProps as any,
     stateAttributesMapping,

@@ -87,7 +87,7 @@ describe('<NumberField />', () => {
     ));
 
     const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: '0.11' } });
+    fireEvent.input(input, { target: { value: '0.11' } });
 
     const hiddenInput = document.querySelector(
       'input[type="number"][name="quantity"]',
@@ -112,7 +112,7 @@ describe('<NumberField />', () => {
     ));
 
     const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: '0.11' } });
+    fireEvent.input(input, { target: { value: '0.11' } });
 
     const hiddenInput = document.querySelector(
       'input[type="number"][name="quantity"]',
@@ -137,7 +137,7 @@ describe('<NumberField />', () => {
     ));
 
     const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: '0.11' } });
+    fireEvent.input(input, { target: { value: '0.11' } });
 
     const hiddenInput = document.querySelector(
       'input[type="number"][name="quantity"]',
@@ -218,7 +218,7 @@ describe('<NumberField />', () => {
       render(() => <NumberField onValueChange={onValueChange} />);
       const input = screen.getByRole('textbox');
 
-      fireEvent.change(input, { target: { value: '12' } });
+      fireEvent.input(input, { target: { value: '12' } });
 
       expect(onValueChange).to.have.property('callCount', 1);
       const [, details] = onValueChange.firstCall.args as [
@@ -233,7 +233,7 @@ describe('<NumberField />', () => {
       render(() => <NumberField defaultValue={5} onValueChange={onValueChange} />);
       const input = screen.getByRole('textbox');
 
-      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.input(input, { target: { value: '' } });
 
       expect(onValueChange).to.have.property('callCount', 1);
       const [, details] = onValueChange.firstCall.args as [
@@ -317,13 +317,13 @@ describe('<NumberField />', () => {
       const input = screen.getByRole('textbox');
 
       // Type '1' -> parseable
-      fireEvent.change(input, { target: { value: '1' } });
+      fireEvent.input(input, { target: { value: '1' } });
       // Type '12' -> parseable
-      fireEvent.change(input, { target: { value: '12' } });
+      fireEvent.input(input, { target: { value: '12' } });
       // Type '12.' -> parseable (treated as 12)
-      fireEvent.change(input, { target: { value: '12.' } });
+      fireEvent.input(input, { target: { value: '12.' } });
       // Type '12.a' -> not parseable, should not fire
-      fireEvent.change(input, { target: { value: '12.a' } });
+      fireEvent.input(input, { target: { value: '12.a' } });
 
       expect(onValueChange.callCount).to.equal(3);
       expect(onValueChange.getCall(0).args[0]).to.equal(1);
@@ -343,14 +343,14 @@ describe('<NumberField />', () => {
 
       // Simulate IME composition of non-numeric text; intermediate values like 'ni'
       fireEvent.compositionStart(input);
-      fireEvent.change(input, { target: { value: 'n' } });
-      fireEvent.change(input, { target: { value: 'ni' } });
+      fireEvent.input(input, { target: { value: 'n' } });
+      fireEvent.input(input, { target: { value: 'ni' } });
       fireEvent.compositionEnd(input);
 
       expect(onValueChange.callCount).to.equal(0);
 
       // Now enter a Han numeral which is parseable
-      fireEvent.change(input, { target: { value: '一' } });
+      fireEvent.input(input, { target: { value: '一' } });
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(1);
 
@@ -369,12 +369,12 @@ describe('<NumberField />', () => {
       const input = screen.getByRole('textbox');
 
       // '-' or '.' alone aren't parseable
-      fireEvent.change(input, { target: { value: '-' } });
-      fireEvent.change(input, { target: { value: '.' } });
+      fireEvent.input(input, { target: { value: '-' } });
+      fireEvent.input(input, { target: { value: '.' } });
       // '0.' is parseable (-> 0)
-      fireEvent.change(input, { target: { value: '0.' } });
-      fireEvent.change(input, { target: { value: '-1' } });
-      fireEvent.change(input, { target: { value: '-1.5' } });
+      fireEvent.input(input, { target: { value: '0.' } });
+      fireEvent.input(input, { target: { value: '-1' } });
+      fireEvent.input(input, { target: { value: '-1.5' } });
 
       expect(onValueChange.callCount).to.equal(3);
       expect(onValueChange.getCall(0).args[0]).to.equal(0);
@@ -411,11 +411,11 @@ describe('<NumberField />', () => {
       ));
       const input = screen.getByRole('textbox');
 
-      fireEvent.change(input, { target: { value: '1' } }); // 1
-      fireEvent.change(input, { target: { value: '1,' } }); // 1 (group symbol)
-      fireEvent.change(input, { target: { value: '1,2' } }); // 12
-      fireEvent.change(input, { target: { value: '1,23' } }); // 123
-      fireEvent.change(input, { target: { value: '1,234' } }); // 1234
+      fireEvent.input(input, { target: { value: '1' } }); // 1
+      fireEvent.input(input, { target: { value: '1,' } }); // 1 (group symbol)
+      fireEvent.input(input, { target: { value: '1,2' } }); // 12
+      fireEvent.input(input, { target: { value: '1,23' } }); // 123
+      fireEvent.input(input, { target: { value: '1,234' } }); // 1234
 
       expect(onValueChange.callCount).to.equal(5);
       expect(onValueChange.getCall(0).args[0]).to.equal(1);
@@ -442,9 +442,9 @@ describe('<NumberField />', () => {
       ));
       const input = screen.getByRole('textbox');
 
-      fireEvent.change(input, { target: { value: '1' } }); // 1
-      fireEvent.change(input, { target: { value: '1,' } }); // 1 (decimal separator typed)
-      fireEvent.change(input, { target: { value: '1,5' } }); // 1.5
+      fireEvent.input(input, { target: { value: '1' } }); // 1
+      fireEvent.input(input, { target: { value: '1,' } }); // 1 (decimal separator typed)
+      fireEvent.input(input, { target: { value: '1,5' } }); // 1.5
 
       expect(onValueChange.callCount).to.equal(3);
       expect(onValueChange.getCall(0).args[0]).to.equal(1);
@@ -469,9 +469,9 @@ describe('<NumberField />', () => {
       const input = screen.getByRole('textbox');
 
       // Typing digits in percent style represents a fraction (12 -> 0.12)
-      fireEvent.change(input, { target: { value: '12' } });
+      fireEvent.input(input, { target: { value: '12' } });
       // Typing with explicit percent sign also remains 0.12
-      fireEvent.change(input, { target: { value: '12%' } });
+      fireEvent.input(input, { target: { value: '12%' } });
 
       expect(onValueChange.callCount).to.equal(2);
       expect(onValueChange.getCall(0).args[0]).to.equal(0.12);
@@ -493,8 +493,8 @@ describe('<NumberField />', () => {
       ));
       const input = screen.getByRole('textbox');
 
-      fireEvent.change(input, { target: { value: '$1' } });
-      fireEvent.change(input, { target: { value: '$1,2' } });
+      fireEvent.input(input, { target: { value: '$1' } });
+      fireEvent.input(input, { target: { value: '$1,2' } });
 
       expect(onValueChange.callCount).to.equal(2);
       expect(onValueChange.getCall(0).args[0]).to.equal(1);
@@ -523,7 +523,7 @@ describe('<NumberField />', () => {
       const formatted = formatter.format(12.34);
       const withoutCurrency = formatted.replace('€', '');
 
-      fireEvent.change(input, { target: { value: withoutCurrency } });
+      fireEvent.input(input, { target: { value: withoutCurrency } });
 
       expect(input).to.have.value(withoutCurrency);
       expect(onValueChange.callCount).to.equal(1);
@@ -558,7 +558,7 @@ describe('<NumberField />', () => {
       const keydownResult = fireEvent.keyDown(input, { key: 'Backspace' });
       expect(keydownResult).to.equal(true);
 
-      fireEvent.change(input, { target: { value: afterBackspace } });
+      fireEvent.input(input, { target: { value: afterBackspace } });
 
       expect(input).to.have.value(afterBackspace);
       expect(onValueChange.callCount).to.equal(1);
@@ -570,7 +570,7 @@ describe('<NumberField />', () => {
       render(() => <NumberField onValueCommitted={onValueCommitted} />);
       const input = screen.getByRole('textbox');
 
-      fireEvent.change(input, { target: { value: '.' } });
+      fireEvent.input(input, { target: { value: '.' } });
       expect(input).to.have.value('.');
       fireEvent.blur(input);
 
@@ -585,7 +585,7 @@ describe('<NumberField />', () => {
       const input = screen.getByRole('textbox');
 
       fireEvent.focus(input);
-      fireEvent.change(input, { target: { value: '123.' } });
+      fireEvent.input(input, { target: { value: '123.' } });
       fireEvent.blur(input);
 
       expect(onValueCommitted.callCount).to.equal(1);
@@ -599,7 +599,7 @@ describe('<NumberField />', () => {
       const input = screen.getByRole('textbox');
 
       fireEvent.focus(input);
-      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.input(input, { target: { value: '' } });
       fireEvent.blur(input);
 
       expect(onValueCommitted.callCount).to.equal(1);
@@ -807,7 +807,7 @@ describe('<NumberField />', () => {
       ));
 
       const input = screen.getByRole('textbox');
-      fireEvent.change(input, { target: { value: '6' } });
+      fireEvent.input(input, { target: { value: '6' } });
 
       const hiddenInput = document.querySelector(
         'input[type="number"][name="quantity"]',
@@ -858,7 +858,7 @@ describe('<NumberField />', () => {
       ));
 
       const input = screen.getByRole('textbox');
-      fireEvent.change(input, { target: { value: '6' } });
+      fireEvent.input(input, { target: { value: '6' } });
 
       const hiddenInput = document.querySelector(
         'input[type="number"][name="quantity"]',
@@ -1267,7 +1267,7 @@ describe('<NumberField />', () => {
       const hiddenInput = document.querySelector('input[type="number"][name="quantity"]');
 
       expect(hiddenInput).not.to.equal(null);
-      fireEvent.change(hiddenInput!, { target: { value: '42' } });
+      fireEvent.input(hiddenInput!, { target: { value: '42' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(42);
@@ -1436,12 +1436,12 @@ describe('<NumberField />', () => {
         const input = screen.getByRole('textbox');
         expect(input).not.to.have.attribute('aria-invalid');
 
-        fireEvent.change(input, { target: { value: '1' } });
+        fireEvent.input(input, { target: { value: '1' } });
         fireEvent.blur(input);
         expect(input).not.to.have.attribute('aria-invalid');
         expect(screen.queryByTestId('error')).to.equal(null);
 
-        fireEvent.change(input, { target: { value: '' } });
+        fireEvent.input(input, { target: { value: '' } });
         fireEvent.blur(input);
         expect(input).not.to.have.attribute('aria-invalid');
         expect(screen.queryByTestId('error')).to.equal(null);
@@ -1452,7 +1452,7 @@ describe('<NumberField />', () => {
         expect(screen.getByTestId('root')).to.have.attribute('data-invalid');
         expect(input).to.have.attribute('data-invalid');
 
-        fireEvent.change(input, { target: { value: '2' } });
+        fireEvent.input(input, { target: { value: '2' } });
         expect(input).not.to.have.attribute('aria-invalid');
         expect(screen.queryByTestId('error')).to.equal(null);
         expect(screen.getByTestId('root')).not.to.have.attribute('data-invalid');
@@ -1460,15 +1460,15 @@ describe('<NumberField />', () => {
         expect(screen.getByTestId('root')).to.have.attribute('data-valid');
         expect(input).to.have.attribute('data-valid');
         // re-invalidate the field value
-        fireEvent.change(input, { target: { value: '1' } });
+        fireEvent.input(input, { target: { value: '1' } });
         expect(input).to.have.attribute('aria-invalid', 'true');
         expect(screen.queryByTestId('error')).to.have.text('custom error');
 
-        fireEvent.change(input, { target: { value: '3' } });
+        fireEvent.input(input, { target: { value: '3' } });
         expect(input).not.to.have.attribute('aria-invalid');
         expect(screen.queryByTestId('error')).to.equal(null);
 
-        fireEvent.change(input, { target: { value: '' } });
+        fireEvent.input(input, { target: { value: '' } });
         expect(input).to.have.attribute('aria-invalid', 'true');
         expect(screen.queryByTestId('error')).to.have.text('valueMissing error');
       });
@@ -1491,7 +1491,7 @@ describe('<NumberField />', () => {
 
         expect(input).not.to.have.attribute('aria-invalid');
 
-        fireEvent.change(input, { target: { value: '1' } });
+        fireEvent.input(input, { target: { value: '1' } });
 
         expect(input).to.have.attribute('aria-invalid', 'true');
       });
@@ -1551,12 +1551,12 @@ describe('<NumberField />', () => {
         const input = screen.getByTestId('input');
         expect(input).not.to.have.attribute('aria-invalid');
 
-        fireEvent.change(input, { target: { value: '1' } });
+        fireEvent.input(input, { target: { value: '1' } });
         expect(input).not.to.have.attribute('aria-invalid');
         fireEvent.blur(input);
         expect(input).to.have.attribute('aria-invalid', 'true');
         // revalidation
-        fireEvent.change(input, { target: { value: '2' } });
+        fireEvent.input(input, { target: { value: '2' } });
         expect(input).not.to.have.attribute('aria-invalid');
         expect(screen.queryByTestId('error')).to.equal(null);
       });
@@ -1578,12 +1578,12 @@ describe('<NumberField />', () => {
 
       input.focus();
 
-      fireEvent.change(input, { target: { value: '0.11' } });
+      fireEvent.input(input, { target: { value: '0.11' } });
       fireEvent.click(screen.getByText('submit'));
 
       expect(handleSubmit.callCount).to.equal(0);
 
-      fireEvent.change(input, { target: { value: '0.1' } });
+      fireEvent.input(input, { target: { value: '0.1' } });
       fireEvent.click(screen.getByText('submit'));
 
       expect(handleSubmit.callCount).to.equal(1);
@@ -1612,13 +1612,13 @@ describe('<NumberField />', () => {
 
       expect(screen.queryByTestId('error')).to.equal(null);
 
-      fireEvent.change(input, { target: { value: '0.11' } });
+      fireEvent.input(input, { target: { value: '0.11' } });
       fireEvent.click(screen.getByText('submit'));
 
       expect(handleSubmit.callCount).to.equal(0);
       expect(screen.getByTestId('error')).to.have.text('step mismatch');
 
-      fireEvent.change(input, { target: { value: '0.1' } });
+      fireEvent.input(input, { target: { value: '0.1' } });
       fireEvent.click(screen.getByText('submit'));
 
       expect(handleSubmit.callCount).to.equal(1);
@@ -1733,7 +1733,7 @@ describe('<NumberField />', () => {
 
       const input = screen.getByRole('textbox');
       // ۱۲٫۳۴ => 12.34
-      fireEvent.change(input, { target: { value: '۱۲٫۳۴' } });
+      fireEvent.input(input, { target: { value: '۱۲٫۳۴' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(12.34);
@@ -1757,7 +1757,7 @@ describe('<NumberField />', () => {
 
       const input = screen.getByRole('textbox');
       // ۱۲٬۳۴۵٫۶۷ => 12345.67
-      fireEvent.change(input, { target: { value: '۱۲٬۳۴۵٫۶۷' } });
+      fireEvent.input(input, { target: { value: '۱۲٬۳۴۵٫۶۷' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(12345.67);
@@ -1782,7 +1782,7 @@ describe('<NumberField />', () => {
 
       const input = screen.getByRole('textbox');
 
-      fireEvent.change(input, { target: { value: '１，２３４．５６' } });
+      fireEvent.input(input, { target: { value: '１，２３４．５６' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(1234.56);
@@ -1807,13 +1807,13 @@ describe('<NumberField />', () => {
       render(() => <App />);
 
       const input = screen.getByRole('textbox');
-      fireEvent.change(input, { target: { value: '١٢٪' } });
+      fireEvent.input(input, { target: { value: '١٢٪' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(0.12);
 
       // reset by typing again
-      fireEvent.change(input, { target: { value: '12؉' } });
+      fireEvent.input(input, { target: { value: '12؉' } });
       expect(onValueChange.callCount).to.equal(2);
       expect(onValueChange.secondCall.args[0]).to.equal(0.012);
     });
@@ -1823,12 +1823,12 @@ describe('<NumberField />', () => {
       render(() => <NumberField onValueChange={onValueChange} />);
 
       const input = screen.getByRole('textbox');
-      fireEvent.change(input, { target: { value: '12' } });
+      fireEvent.input(input, { target: { value: '12' } });
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(12);
 
-      fireEvent.change(input, { target: { value: '12%' } });
-      fireEvent.change(input, { target: { value: '12‰' } });
+      fireEvent.input(input, { target: { value: '12%' } });
+      fireEvent.input(input, { target: { value: '12‰' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(input).to.have.value('12');
@@ -1852,7 +1852,7 @@ describe('<NumberField />', () => {
       render(() => <App />);
 
       const input = screen.getByRole('textbox');
-      fireEvent.change(input, { target: { value: '1234−' } });
+      fireEvent.input(input, { target: { value: '1234−' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(-1234);
@@ -1876,7 +1876,7 @@ describe('<NumberField />', () => {
       render(() => <App />);
 
       const input = screen.getByRole('textbox');
-      fireEvent.change(input, { target: { value: '(1,234.5)' } });
+      fireEvent.input(input, { target: { value: '(1,234.5)' } });
 
       expect(onValueChange.callCount).to.equal(0);
       expect(input).to.have.value('');
@@ -1900,7 +1900,7 @@ describe('<NumberField />', () => {
       render(() => <App />);
 
       const input = screen.getByRole('textbox');
-      fireEvent.change(input, { target: { value: '1.234.567.89' } });
+      fireEvent.input(input, { target: { value: '1.234.567.89' } });
 
       expect(onValueChange.callCount).to.equal(1);
       expect(onValueChange.firstCall.args[0]).to.equal(1234567.89);

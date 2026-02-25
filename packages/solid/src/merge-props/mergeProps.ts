@@ -190,7 +190,7 @@ export function mergeProps<
           return reverseChain(mergedRefs);
         },
         get class() {
-          return reduce(mergedClasses, 'class', (a, b) => `${a} ${b}`);
+          return reduce(mergedClasses, 'class', (a, b) => `${b} ${a}`);
         },
         get classList() {
           return reduce(mergedClassList, 'classList', (a, b) => ({ ...a, ...b }));
@@ -284,7 +284,7 @@ export function mergeProps<
       return reverseChain(cacheRefs);
     },
     get class() {
-      return reduce(cacheClasses, 'class', (a, b) => `${a} ${b}`);
+      return reduce(cacheClasses, 'class', (a, b) => `${b} ${a}`);
     },
     get classList() {
       return reduce(cacheClassList, 'classList', (a, b) => ({ ...a, ...b }));

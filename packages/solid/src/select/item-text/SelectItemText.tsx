@@ -15,15 +15,15 @@ export function SelectItemText(componentProps: SelectItemText.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
   let localRef = null as HTMLElement | null | undefined;
 
-  const { selectedByFocus, hasRegistered, refs: itemRefs } = useSelectItemContext();
-  const { refs: rootRefs } = useSelectRootContext();
+  const { indexRef, textRef, selectedByFocus, hasRegistered } = useSelectItemContext();
+  const { selectedItemTextRef } = useSelectRootContext();
 
   createEffect(
     on([selectedByFocus, hasRegistered], () => {
       const hasNoSelectedItemText =
-        rootRefs.selectedItemTextRef === null || !rootRefs.selectedItemTextRef?.isConnected;
-      if (selectedByFocus() || (hasNoSelectedItemText && itemRefs.indexRef === 0)) {
-        rootRefs.selectedItemTextRef = localRef;
+        selectedItemTextRef.current === null || !selectedItemTextRef.current?.isConnected;
+      if (selectedByFocus() || (hasNoSelectedItemText && indexRef.current === 0)) {
+        selectedItemTextRef.current = localRef;
       }
     }),
   );
@@ -31,7 +31,7 @@ export function SelectItemText(componentProps: SelectItemText.Props) {
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
       localRef = el;
-      itemRefs.textRef = el;
+      textRef.current = el;
     },
     props: elementProps,
   });

@@ -20,21 +20,27 @@ export function NumberFieldIncrement(componentProps: NumberFieldIncrement.Props)
   const nativeButton = () => local.nativeButton ?? true;
 
   const {
+    allowInputSyncRef,
     disabled: contextDisabled,
+    formatOptionsRef,
     getStepAmount,
     id,
     incrementValue,
+    inputRef,
     inputValue,
     intentionalTouchCheckTimeout,
+    isPressedRef,
     locale,
     maxWithDefault,
+    movesAfterTouchRef,
     readOnly,
     setValue,
     startAutoChange,
     state,
     stopAutoChange,
     value,
-    refs,
+    valueRef,
+    lastChangedValueRef,
     onValueCommitted,
   } = useNumberFieldRootContext();
 
@@ -43,6 +49,7 @@ export function NumberFieldIncrement(componentProps: NumberFieldIncrement.Props)
 
   const { props } = useNumberFieldButton({
     isIncrement: true,
+    inputRef,
     startAutoChange,
     stopAutoChange,
     inputValue,
@@ -52,9 +59,14 @@ export function NumberFieldIncrement(componentProps: NumberFieldIncrement.Props)
     setValue,
     getStepAmount,
     incrementValue,
+    allowInputSyncRef,
+    formatOptionsRef,
+    valueRef,
+    isPressedRef,
     intentionalTouchCheckTimeout,
+    movesAfterTouchRef,
     locale,
-    refs,
+    lastChangedValueRef,
     onValueCommitted,
   });
 

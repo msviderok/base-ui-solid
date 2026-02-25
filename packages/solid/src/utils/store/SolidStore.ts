@@ -132,7 +132,6 @@ export class SolidStore<
     });
 
     createEffect(() => {
-      // console.log(isControlled(), controlled);
       if (isControlled() && !Object.is(this.state[key], controlled())) {
         // Set the internal state to match the controlled value.
         this.setState({ ...this.state, [key]: controlled() });
@@ -143,13 +142,11 @@ export class SolidStore<
       createEffect(() => {
         // eslint-disable-next-line
         const cache = ((this as any).controlledValues ??= new Map<keyof State, boolean>());
-        console.log(cache, isControlled());
         if (!cache.has(key)) {
           cache.set(key, isControlled());
         }
 
         const previouslyControlled = cache.get(key);
-        console.log(previouslyControlled, isControlled());
         if (previouslyControlled !== undefined && previouslyControlled !== isControlled()) {
           console.error(
             `A component is changing the ${
@@ -247,7 +244,6 @@ export class SolidStore<
 
       createEffect(
         on(data, (nextValue, prevValue) => {
-          console.log('observe', this.state);
           return listener(nextValue, prevValue, this);
         }),
       );

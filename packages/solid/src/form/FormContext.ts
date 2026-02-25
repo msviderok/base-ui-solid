@@ -1,4 +1,4 @@
-import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
+import { createContext, useContext, type Accessor } from 'solid-js';
 import type { SetStoreFunction, Store } from 'solid-js/store';
 import type { FieldValidityData } from '../field/root/FieldRoot';
 import type { MaybeAccessor } from '../solid-helpers';
@@ -27,7 +27,6 @@ export interface FormContext {
   setFormRef: SetStoreFunction<FormRef>;
   validationMode: Accessor<Form.ValidationMode>;
   submitAttemptedRef: Accessor<boolean>;
-  setSubmitAttemptedRef: Setter<boolean>;
 }
 
 export const FormContext = createContext<FormContext>({
@@ -39,7 +38,6 @@ export const FormContext = createContext<FormContext>({
   clearErrors: NOOP,
   validationMode: () => 'onSubmit' as const,
   submitAttemptedRef: () => false,
-  setSubmitAttemptedRef: NOOP,
 });
 
 export function useFormContext() {

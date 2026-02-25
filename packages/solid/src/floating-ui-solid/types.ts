@@ -2,7 +2,7 @@ import type { VirtualElement } from '@floating-ui/dom';
 import type { Accessor, JSX } from 'solid-js';
 import type { MaybeAccessor } from '../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
-import type { FloatingRootStore } from './components/FloatingRootStore';
+import type { FloatingRootStore } from './components/FloatingRootStoreV2';
 import type { FloatingTreeStore } from './components/FloatingTreeStore';
 import type {
   UsePositionFloatingReturn,

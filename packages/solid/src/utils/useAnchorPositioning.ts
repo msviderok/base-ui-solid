@@ -31,7 +31,13 @@ import {
   type VirtualElement,
 } from '../floating-ui-solid/index';
 import { arrow } from '../floating-ui-solid/middleware/arrow';
-import { access, type MaybeAccessor, type MaybeAccessorValue } from '../solid-helpers';
+import {
+  access,
+  useRef,
+  type MaybeAccessor,
+  type MaybeAccessorValue,
+  type ReactLikeRef,
+} from '../solid-helpers';
 import { DEFAULT_SIDES } from './adaptiveOriginMiddleware';
 import { hide } from './hideMiddleware';
 
@@ -209,7 +215,7 @@ export function useAnchorPositioning(
     } as const;
   });
 
-  let arrowRef = null as Element | null | undefined;
+  const arrowRef = useRef<Element | null | undefined>(null);
   const shiftDisabled = () =>
     collisionAvoidanceAlign() === 'none' && collisionAvoidanceSide() !== 'shift';
   const crossAxisShiftEnabled = () =>
@@ -274,10 +280,10 @@ export function useAnchorPositioning(
                 sticky() || shiftCrossAxis()
                   ? undefined
                   : limitShift((limitData) => {
-                      if (!arrowRef) {
+                      if (!arrowRef.current) {
                         return {};
                       }
-                      const { width, height } = arrowRef.getBoundingClientRect();
+                      const { width, height } = arrowRef.current.getBoundingClientRect();
                       const sideAxis = getSideAxis(getSide(limitData.placement));
                       const arrowSize = sideAxis === 'y' ? width : height;
                       const offsetAmount =
@@ -326,8 +332,8 @@ export function useAnchorPositioning(
         const currentRenderedAxis = getSideAxis(currentRenderedSide);
         const arrowX = middlewareData.arrow?.x || 0;
         const arrowY = middlewareData.arrow?.y || 0;
-        const arrowWidth = arrowRef?.clientWidth || 0;
-        const arrowHeight = arrowRef?.clientHeight || 0;
+        const arrowWidth = arrowRef.current?.clientWidth || 0;
+        const arrowHeight = arrowRef.current?.clientHeight || 0;
         const transformX = arrowX + arrowWidth / 2;
         const transformY = arrowY + arrowHeight / 2;
         const shiftY = Math.abs(middlewareData.shift?.y || 0);
@@ -525,10 +531,7 @@ export function useAnchorPositioning(
     align: renderedAlign,
     physicalSide: renderedSide,
     anchorHidden,
-    refs: {
-      ...refs,
-      arrowRef,
-    },
+    arrowRef,
     context,
     isPositioned,
     update,
@@ -678,9 +681,7 @@ export interface UseAnchorPositioningReturnValue {
   align: Accessor<Align>;
   physicalSide: Accessor<PhysicalSide>;
   anchorHidden: Accessor<boolean>;
-  refs: ReturnType<typeof useFloating>['refs'] & {
-    arrowRef: Element | null | undefined;
-  };
+  arrowRef: ReactLikeRef<Element | null | undefined>;
   context: FloatingContext;
   isPositioned: Accessor<boolean>;
   update: () => void;

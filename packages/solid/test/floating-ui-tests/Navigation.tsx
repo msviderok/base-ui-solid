@@ -41,7 +41,7 @@ interface ItemProps {
 export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorElement>) {
   const [local, elementProps] = splitProps(props, ['children', 'label', 'href']);
   const [open, setOpen] = createSignal(false);
-  const hasChildren = () => !!local.children;
+  const hasChildren = () => 'children' in local;
   const fallbackContext = getEmptyRootContext();
 
   const nodeId = useFloatingNodeId();
@@ -56,7 +56,6 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
 
   const hover = useHover(() => (hasChildren() ? context : fallbackContext), {
     handleClose: safePolygon(),
-    enabled: hasChildren,
   });
   const focus = useFocus(context, {
     enabled: hasChildren,

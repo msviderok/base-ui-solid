@@ -1,11 +1,10 @@
 import { type Accessor, createContext, useContext } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 
 export interface SelectItemContext {
   selected: Accessor<boolean>;
-  refs: {
-    indexRef: number;
-    textRef: HTMLElement | null | undefined;
-  };
+  indexRef: ReactLikeRef<number>;
+  textRef: ReactLikeRef<HTMLElement | null | undefined>;
   selectedByFocus: Accessor<boolean>;
   hasRegistered: Accessor<boolean>;
 }

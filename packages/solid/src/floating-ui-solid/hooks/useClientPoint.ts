@@ -1,6 +1,5 @@
 import { getWindow } from '@floating-ui/utils/dom';
-import { createEffect, createMemo, createSignal, onCleanup, type Accessor } from 'solid-js';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
 import type { ContextData, ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import { contains, getTarget, isMouseLikePointerType } from '../utils';
 
@@ -88,14 +87,14 @@ export interface UseClientPointProps {
    * handlers.
    * @default true
    */
-  enabled?: MaybeAccessor<boolean | undefined>;
+  enabled?: boolean | undefined;
   /**
    * Whether to restrict the client point to an axis and use the reference
    * element (if it exists) as the other axis. This can be useful if the
    * floating element is also interactive.
    * @default 'both'
    */
-  axis?: MaybeAccessor<('x' | 'y' | 'both') | undefined>;
+  axis?: ('x' | 'y' | 'both') | undefined;
   // /**
   //  * An explicitly defined `x` client coordinate.
   //  * @default null
@@ -113,22 +112,17 @@ export interface UseClientPointProps {
  * such as the mouse position. By default, it follows the mouse cursor.
  * @see https://floating-ui.com/docs/useClientPoint
  */
-export function useClientPoint(
-  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
-  props: UseClientPointProps = {},
-): Accessor<ElementProps> {
-  const context = () => access(contextProp);
-  const store = () => {
-    const ctx = context();
-    return 'rootStore' in ctx ? ctx.rootStore : ctx;
-  };
-  const open = () => store().state.open;
-  const floating = () => store().state.floatingElement;
-  const domReference = () => store().state.domReferenceElement;
-  const dataRef = () => store().context.dataRef;
+export function useClientPoint(props: {
+  context: FloatingRootContext | FloatingContext;
+  props: UseClientPointProps;
+}): ElementProps {
+  const store = 'rootStore' in props.context ? props.context.rootStore : props.context;
+  const open = store.useState('open');
+  const floating = store.useState('floatingElement');
+  const domReference = store.useState('domReferenceElement');
 
-  const enabled = () => access(props.enabled) ?? true;
-  const axis = () => access(props.axis) ?? 'both';
+  const enabled = createMemo(() => props.props.enabled ?? true);
+  const axis = createMemo(() => props.props.axis ?? 'both');
 
   let initialRef = false;
 
@@ -137,7 +131,7 @@ export function useClientPoint(
   const setReference = (
     newX: number | null,
     newY: number | null,
-    referenceElement?: Element | null,
+    referenceElement?: Element | null | undefined,
   ) => {
     if (initialRef) {
       return;
@@ -146,21 +140,20 @@ export function useClientPoint(
     // Prevent setting if the open event was not a mouse-like one
     // (e.g. focus to open, then hover over the reference element).
     // Only apply if the event exists.
-    const openEvent = dataRef().openEvent;
+    const openEvent = store.context.dataRef.openEvent;
     if (openEvent && !isMouseBasedEvent(openEvent as Event | null)) {
       return;
     }
 
-    store().set(
-      'positionReference',
-      createVirtualElement(referenceElement ?? domReference(), {
-        x: newX,
-        y: newY,
-        axis: axis(),
-        dataRef: dataRef(),
-        pointerType: pointerType(),
-      }),
-    );
+    const newVirtualElement = createVirtualElement(referenceElement ?? domReference(), {
+      x: newX,
+      y: newY,
+      axis: axis(),
+      dataRef: store.context.dataRef,
+      pointerType: pointerType(),
+    });
+
+    store.set('positionReference', newVirtualElement);
   };
 
   const handleReferenceEnterOrMove = (event: MouseEvent) => {
@@ -173,7 +166,9 @@ export function useClientPoint(
   // mouse even if the floating element is transitioning out. On touch
   // devices, this is undesirable because the floating element will move to
   // the dismissal touch point.
-  const openCheck = () => (isMouseLikePointerType(pointerType()) ? floating() : open());
+  const openCheck = () => {
+    return isMouseLikePointerType(pointerType()) ? floating() : open();
+  };
 
   function handleMouseMove(event: MouseEvent) {
     const target = getTarget(event) as Element | null;
@@ -187,25 +182,27 @@ export function useClientPoint(
     }
   }
 
-  createEffect(() => {
-    if (!openCheck() || !enabled()) {
-      return;
-    }
+  createEffect(
+    on([open, floating, enabled], () => {
+      if (!openCheck() || !enabled()) {
+        return;
+      }
 
-    const win = getWindow(floating());
+      const win = getWindow(floating());
 
-    const openEvent = dataRef().openEvent;
-    if (!openEvent || isMouseBasedEvent(openEvent)) {
-      win.addEventListener('mousemove', handleMouseMove);
+      const openEvent = store.context.dataRef.openEvent;
+      if (!openEvent || isMouseBasedEvent(openEvent)) {
+        win.addEventListener('mousemove', handleMouseMove);
 
-      onCleanup(() => {
-        win.removeEventListener('mousemove', handleMouseMove);
-      });
-      return;
-    }
+        onCleanup(() => {
+          win.removeEventListener('mousemove', handleMouseMove);
+        });
+        return;
+      }
 
-    store().set('positionReference', domReference());
-  });
+      store.set('positionReference', domReference());
+    }),
+  );
 
   createEffect(() => {
     if (enabled() && !floating()) {
@@ -219,41 +216,32 @@ export function useClientPoint(
     }
   });
 
-  const reference = createMemo<ElementProps['reference']>(() => {
-    function setPointerTypeRef(event: PointerEvent) {
-      setPointerType(event.pointerType);
-    }
+  function setPointerTypeRef(event: PointerEvent) {
+    setPointerType(event.pointerType);
+  }
 
-    return {
-      onPointerDown: setPointerTypeRef,
-      onPointerEnter: setPointerTypeRef,
-      onMouseMove: handleReferenceEnterOrMove,
-      onMouseEnter: handleReferenceEnterOrMove,
-    };
-  });
+  const reference: ElementProps['reference'] = {
+    onPointerDown: setPointerTypeRef,
+    onPointerEnter: setPointerTypeRef,
+    onMouseMove: handleReferenceEnterOrMove,
+    onMouseEnter: handleReferenceEnterOrMove,
+  };
 
-  /**
-   * TODO: This is needed to fix the "cleans up window listener when closing or
-   * disabling" test but it's probably not the best way to do it
-   */
-  const floatingProps = createMemo<ElementProps['floating']>(() => {
-    return {
-      ref: () => {
-        onCleanup(() => {
-          // @ts-expect-error even though its not in the types this is valid
-          context().refs.setFloating(null);
-        });
-      },
-    };
-  });
-
-  const returnValue = createMemo<ElementProps>(() => {
-    if (!enabled()) {
-      return {};
-    }
-
-    return { reference: reference(), trigger: reference(), floating: floatingProps() };
-  });
-
-  return returnValue;
+  return {
+    get reference() {
+      return reference;
+    },
+    get trigger() {
+      return reference;
+    },
+    get floating() {
+      return {
+        ref: () => {
+          onCleanup(() => {
+            store.set('floatingElement', null);
+          });
+        },
+      };
+    },
+  };
 }

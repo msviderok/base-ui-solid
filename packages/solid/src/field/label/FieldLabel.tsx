@@ -47,7 +47,7 @@ export function FieldLabel(componentProps: FieldLabel.Props) {
       return;
     }
 
-    const controlElement = ownerDocument(event.currentTarget ?? any).getElementById(controlIdValue);
+    const controlElement = ownerDocument(event.currentTarget as any).getElementById(controlIdValue);
     if (isHTMLElement(controlElement)) {
       controlElement.focus({
         // Available from Chrome 144+ (January 2026).

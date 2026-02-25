@@ -193,7 +193,7 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
 
         const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
-        const dialogJsx = (
+        const dialogJsx = () => (
           <div
             role="dialog"
             data-testid={props.id}
@@ -206,17 +206,15 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
         return (
           <>
             <button {...getReferenceProps({ ref: refs.setReference })} />
-            {isOpen() && (
-              <>
-                {props.modal == null ? (
-                  dialogJsx
-                ) : (
-                  <FloatingFocusManager context={context} modal={props.modal}>
-                    {dialogJsx}
+            <Show when={isOpen()}>
+              <Show when={props.modal} fallback={dialogJsx()}>
+                {(modal) => (
+                  <FloatingFocusManager context={context} modal={modal()}>
+                    {dialogJsx()}
                   </FloatingFocusManager>
                 )}
-              </>
-            )}
+              </Show>
+            </Show>
           </>
         );
       }
@@ -855,7 +853,7 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
       return (
         <>
           <button {...getReferenceProps({ ref: refs.setReference })}>{props.triggerText}</button>
-          {open() && (
+          <Show when={open()}>
             <FloatingPortal container={props.portalContainer?.()}>
               <FloatingFocusManager context={context} modal={false}>
                 <div {...getFloatingProps({ ref: refs.setFloating })} style={floatingStyles()}>
@@ -863,7 +861,7 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
                 </div>
               </FloatingFocusManager>
             </FloatingPortal>
-          )}
+          </Show>
         </>
       );
     }
@@ -888,9 +886,11 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
 
     render(() => <App />);
 
+    console.log('click 1');
     await userEvent.click(screen.getByText('open 1'));
     expect(screen.getByText('open 2')).toBeInTheDocument();
 
+    console.log('click 2');
     await userEvent.click(screen.getByText('open 2'));
     await flushMicrotasks();
 

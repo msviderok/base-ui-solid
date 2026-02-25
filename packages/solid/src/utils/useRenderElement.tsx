@@ -111,16 +111,11 @@ export function useRenderElement<
   }) as (props?: HTMLProps) => Enabled extends false ? null : JSX.Element;
 }
 
-type RenderFunctionProps<
-  TagName extends keyof JSX.IntrinsicElements | undefined,
-  State,
-> = TagName extends keyof JSX.IntrinsicElements
-  ? JSX.IntrinsicElements[TagName]
-  :
-      | BaseUIComponentProps<TagName, State>
-      | JSX.HTMLAttributes<
-          TagName extends keyof JSX.IntrinsicElements ? JSX.IntrinsicElements[TagName] : any
-        >;
+type RenderFunctionProps<TagName extends keyof JSX.IntrinsicElements | undefined, State> =
+  | BaseUIComponentProps<TagName, State>
+  | JSX.HTMLAttributes<
+      TagName extends keyof JSX.IntrinsicElements ? JSX.IntrinsicElements[TagName] : any
+    >;
 
 export type UseRenderElementParameters<
   State extends Record<string, MaybeAccessor<any>>,
