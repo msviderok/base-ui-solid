@@ -619,7 +619,7 @@ describe('useListNavigation', () => {
 
       fireEvent.click(screen.getByRole('button'));
       expect(screen.getByRole('menu')).toBeInTheDocument();
-      fireEvent.keyDown(document, { key: 'ArrowDown' });
+      fireEvent.keyDown(screen.getByTestId('floating'), { key: 'ArrowDown' });
       await waitFor(() => {
         expect(screen.getAllByRole('option')[8]).toHaveFocus();
       });
