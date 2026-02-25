@@ -2,7 +2,7 @@ import { flushMicrotasks } from '#test-utils';
 import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
-import { createSignal, For, Index, splitProps } from 'solid-js';
+import { createSignal, For, Index, Show, splitProps } from 'solid-js';
 import { describe, it, vi } from 'vitest';
 import { Main as ComplexGrid } from '../../../test/floating-ui-tests/ComplexGrid';
 import { Main as EmojiPicker } from '../../../test/floating-ui-tests/EmojiPicker';
@@ -1120,29 +1120,29 @@ describe('useListNavigation', () => {
         /* eslint-disable jsx-a11y/role-has-required-aria-props */
         <>
           <input role="combobox" ref={refs.setReference} {...getReferenceProps()} />
-          {open() && (
+          <Show when={open()}>
             <div role="menu" {...getFloatingProps({ ref: refs.setFloating })}>
               <ul>
-                <For each={['one', 'two', 'three']}>
+                <Index each={['one', 'two', 'three']}>
                   {(string, index) => (
                     // eslint-disable-next-line jsx-a11y/role-supports-aria-props
                     <li
-                      data-testid={`item-${index()}`}
-                      aria-selected={activeIndex() === index()}
+                      data-testid={`item-${index}`}
+                      aria-selected={activeIndex() === index}
                       tabIndex={-1}
                       {...getItemProps({
                         ref(node) {
-                          listRef[index()] = node as HTMLLIElement;
+                          listRef[index] = node as HTMLLIElement;
                         },
                       })}
                     >
-                      {string}
+                      {string()}
                     </li>
                   )}
-                </For>
+                </Index>
               </ul>
             </div>
-          )}
+          </Show>
         </>
       );
     }

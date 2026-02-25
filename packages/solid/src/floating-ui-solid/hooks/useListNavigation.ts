@@ -346,7 +346,7 @@ export function useListNavigation(
 
       const shouldScrollIntoView =
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        item() && (forceScrollIntoView || !isPointerModalityRef);
+        item && (forceScrollIntoView || !isPointerModalityRef);
 
       if (shouldScrollIntoView) {
         // JSDOM doesn't support `.scrollIntoView()` but it's widely supported
@@ -495,60 +495,56 @@ export function useListNavigation(
 
   const hasActiveIndex = () => activeIndex() != null;
 
-  const item = createMemo<ElementProps['item']>(() => {
-    function syncCurrentTarget(event: Event) {
-      if (!open()) {
+  function syncCurrentTarget(event: Event) {
+    if (!open()) {
+      return;
+    }
+    const index = listRef().indexOf(event.currentTarget as HTMLElement);
+    if (index !== -1 && indexRef !== index) {
+      indexRef = index;
+      onNavigate(event);
+    }
+  }
+
+  const item: ElementProps['item'] = {
+    onFocus(event) {
+      forceSyncFocusRef = true;
+      syncCurrentTarget(event);
+    },
+    onClick: ({ currentTarget }) => currentTarget.focus({ preventScroll: true }), // Safari
+    onMouseMove(event) {
+      forceSyncFocusRef = true;
+      forceScrollIntoViewRef = false;
+      if (focusItemOnHover()) {
+        syncCurrentTarget(event);
+      }
+    },
+    onPointerLeave(event) {
+      if (!open() || !isPointerModalityRef || event.pointerType === 'touch') {
         return;
       }
-      const index = listRef().indexOf(event.currentTarget as HTMLElement);
-      if (index !== -1 && indexRef !== index) {
-        indexRef = index;
-        onNavigate(event);
+
+      forceSyncFocusRef = true;
+
+      const relatedTarget = event.relatedTarget as HTMLElement | null;
+
+      if (!focusItemOnHover() || listRef().includes(relatedTarget)) {
+        return;
       }
-    }
 
-    const itemProps: ElementProps['item'] = {
-      onFocus(event) {
-        forceSyncFocusRef = true;
-        syncCurrentTarget(event);
-      },
-      onClick: ({ currentTarget }) => currentTarget.focus({ preventScroll: true }), // Safari
-      onMouseMove(event) {
-        forceSyncFocusRef = true;
-        forceScrollIntoViewRef = false;
-        if (focusItemOnHover()) {
-          syncCurrentTarget(event);
-        }
-      },
-      onPointerLeave(event) {
-        if (!open() || !isPointerModalityRef || event.pointerType === 'touch') {
-          return;
-        }
+      if (!resetOnPointerLeave()) {
+        return;
+      }
 
-        forceSyncFocusRef = true;
+      enqueueFocus(null, { sync: true });
+      indexRef = -1;
+      onNavigate(event);
 
-        const relatedTarget = event.relatedTarget as HTMLElement | null;
-
-        if (!focusItemOnHover() || listRef().includes(relatedTarget)) {
-          return;
-        }
-
-        if (!resetOnPointerLeave()) {
-          return;
-        }
-
-        enqueueFocus(null, { sync: true });
-        indexRef = -1;
-        onNavigate(event);
-
-        if (!virtual()) {
-          floatingFocusElement()?.focus({ preventScroll: true });
-        }
-      },
-    };
-
-    return itemProps;
-  });
+      if (!virtual()) {
+        floatingFocusElement()?.focus({ preventScroll: true });
+      }
+    },
+  };
 
   const getParentOrientation = () => {
     if (parentOrientation()) {
@@ -563,6 +559,14 @@ export function useListNavigation(
     isPointerModalityRef = false;
     forceSyncFocusRef = true;
 
+    const listRefResolved = listRef();
+    const disabledIndicesResolved = disabledIndices();
+    const orientationResolved = orientation();
+    const rtlResolved = rtl();
+    const colsResolved = cols();
+    const floatingEl = floatingElement();
+    const loopFocusResolved = loopFocus();
+
     // When composing a character, Chrome fires ArrowDown twice. Firefox/Safari
     // don't appear to suffer from this. `event.isComposing` is avoided due to
     // Safari not supporting it properly (although it's not needed in the first
@@ -574,11 +578,14 @@ export function useListNavigation(
     // If the floating element is animating out, ignore navigation. Otherwise,
     // the `activeIndex` gets set to 0 despite not being open so the next time
     // the user ArrowDowns, the first item won't be focused.
-    if (!open() && event.currentTarget === floatingFocusElement() && !dataRef().__closing) {
+    if (!open() && event.currentTarget === floatingEl && !dataRef().__closing) {
       return;
     }
 
-    if (nested() && isCrossOrientationCloseKey(event.key, orientation(), rtl(), cols())) {
+    if (
+      nested() &&
+      isCrossOrientationCloseKey(event.key, orientationResolved, rtlResolved, colsResolved)
+    ) {
       // If the nested list's close key is also the parent navigation key,
       // let the parent navigate. Otherwise, stop propagating the event.
       if (!isMainOrientationKey(event.key, getParentOrientation())) {
@@ -608,8 +615,8 @@ export function useListNavigation(
     }
 
     const currentIndex = indexRef;
-    const minIndex = getMinListIndex(listRef(), disabledIndices());
-    const maxIndex = getMaxListIndex(listRef(), disabledIndices());
+    const minIndex = getMinListIndex(listRefResolved, disabledIndicesResolved);
+    const maxIndex = getMaxListIndex(listRefResolved, disabledIndicesResolved);
 
     if (!typeableComboboxReference()) {
       if (event.key === 'Home') {
@@ -626,83 +633,83 @@ export function useListNavigation(
     }
 
     // Grid navigation.
-    if (cols() > 1) {
-      const sizes = Array.from({ length: listRef().length }, () => ({
+    if (colsResolved > 1) {
+      const sizes = Array.from({ length: listRefResolved.length }, () => ({
         width: 1,
         height: 1,
       }));
       // To calculate movements on the grid, we use hypothetical cell indices
       // as if every item was 1x1, then convert back to real indices.
 
-      const cellMap = createGridCellMap(sizes, cols(), false);
+      const cellMap = createGridCellMap(sizes, colsResolved, false);
       const minGridIndex = cellMap.findIndex(
-        (index) => index != null && !isListIndexDisabled(listRef(), index, disabledIndices()),
+        (index) =>
+          index != null && !isListIndexDisabled(listRefResolved, index, disabledIndicesResolved),
       );
       // last enabled index
       const maxGridIndex = cellMap.reduce(
         (foundIndex: number, index, cellIndex) =>
-          index != null && !isListIndexDisabled(listRef(), index, disabledIndices())
+          index != null && !isListIndexDisabled(listRefResolved, index, disabledIndicesResolved)
             ? cellIndex
             : foundIndex,
         -1,
       );
 
-      const index =
-        cellMap[
-          getGridNavigatedIndex(
-            cellMap.map((itemIndex) => (itemIndex != null ? listRef()[itemIndex] : null)),
-            {
-              event,
-              orientation: orientation(),
-              loopFocus: loopFocus(),
-              rtl: rtl(),
-              cols: cols(),
-              // treat undefined (empty grid spaces) as disabled indices so we
-              // don't end up in them
-              disabledIndices: getGridCellIndices(
-                [
-                  ...listRef().map((_, listIndex) =>
-                    isListIndexDisabled(listRef(), listIndex, disabledIndices())
-                      ? listIndex
-                      : undefined,
-                  ),
-                  undefined,
-                ],
-                cellMap,
+      const navigatedIndex = getGridNavigatedIndex(
+        cellMap.map((itemIndex) => (itemIndex != null ? listRefResolved[itemIndex] : null)),
+        {
+          event,
+          orientation: orientationResolved,
+          loopFocus: loopFocusResolved,
+          rtl: rtlResolved,
+          cols: colsResolved,
+          // treat undefined (empty grid spaces) as disabled indices so we
+          // don't end up in them
+          disabledIndices: getGridCellIndices(
+            [
+              ...listRefResolved.map((_, listIndex) =>
+                isListIndexDisabled(listRefResolved, listIndex, disabledIndicesResolved)
+                  ? listIndex
+                  : undefined,
               ),
-              minIndex: minGridIndex,
-              maxIndex: maxGridIndex,
-              prevIndex: getGridCellIndexOfCorner(
-                indexRef > maxIndex ? minIndex : indexRef,
-                sizes,
-                cellMap,
-                cols(),
-                // use a corner matching the edge closest to the direction
-                // we're moving in so we don't end up in the same item. Prefer
-                // top/left over bottom/right.
-                // eslint-disable-next-line no-nested-ternary
-                event.key === ARROW_DOWN
-                  ? 'bl'
-                  : event.key === (rtl() ? ARROW_LEFT : ARROW_RIGHT)
-                    ? 'tr'
-                    : 'tl',
-              ),
-              stopEvent: true,
-            },
-          )
-        ];
+              undefined,
+            ],
+            cellMap,
+          ),
+          minIndex: minGridIndex,
+          maxIndex: maxGridIndex,
+          prevIndex: getGridCellIndexOfCorner(
+            indexRef > maxIndex ? minIndex : indexRef,
+            sizes,
+            cellMap,
+            colsResolved,
+            // use a corner matching the edge closest to the direction
+            // we're moving in so we don't end up in the same item. Prefer
+            // top/left over bottom/right.
+            // eslint-disable-next-line no-nested-ternary
+            event.key === ARROW_DOWN
+              ? 'bl'
+              : event.key === (rtlResolved ? ARROW_LEFT : ARROW_RIGHT)
+                ? 'tr'
+                : 'tl',
+          ),
+          stopEvent: true,
+        },
+      );
+
+      const index = cellMap[navigatedIndex];
 
       if (index != null) {
         indexRef = index;
         onNavigate(event);
       }
 
-      if (orientation() === 'both') {
+      if (orientationResolved === 'both') {
         return;
       }
     }
 
-    if (isMainOrientationKey(event.key, orientation())) {
+    if (isMainOrientationKey(event.key, orientationResolved)) {
       stopEvent(event);
 
       // Reset the index if no item is focused.
@@ -711,7 +718,7 @@ export function useListNavigation(
         !virtual() &&
         activeElement((event.currentTarget as any)?.ownerDocument) === event.currentTarget
       ) {
-        const newIndex = isMainOrientationToEndKey(event.key, orientation(), rtl())
+        const newIndex = isMainOrientationToEndKey(event.key, orientationResolved, rtlResolved)
           ? minIndex
           : maxIndex;
         indexRef = newIndex;
@@ -720,10 +727,10 @@ export function useListNavigation(
         return;
       }
 
-      if (isMainOrientationToEndKey(event.key, orientation(), rtl())) {
-        if (loopFocus()) {
+      if (isMainOrientationToEndKey(event.key, orientationResolved, rtlResolved)) {
+        if (loopFocusResolved) {
           if (currentIndex >= maxIndex) {
-            if (allowEscape() && currentIndex !== listRef().length) {
+            if (allowEscape() && currentIndex !== listRefResolved.length) {
               indexRef = -1;
             } else {
               // Give time for virtualizers to update the listRef.
@@ -731,50 +738,50 @@ export function useListNavigation(
               indexRef = minIndex;
             }
           } else {
-            indexRef = findNonDisabledListIndex(listRef(), {
+            indexRef = findNonDisabledListIndex(listRefResolved, {
               startingIndex: currentIndex,
-              disabledIndices: disabledIndices(),
+              disabledIndices: disabledIndicesResolved,
             });
           }
         } else {
           const newIndex = Math.min(
             maxIndex,
-            findNonDisabledListIndex(listRef(), {
+            findNonDisabledListIndex(listRefResolved, {
               startingIndex: currentIndex,
-              disabledIndices: disabledIndices(),
+              disabledIndices: disabledIndicesResolved,
             }),
           );
           indexRef = newIndex;
         }
-      } else if (loopFocus()) {
+      } else if (loopFocusResolved) {
         if (currentIndex <= minIndex) {
           if (allowEscape() && currentIndex !== -1) {
-            indexRef = listRef().length;
+            indexRef = listRefResolved.length;
           } else {
             // Give time for virtualizers to update the listRef.
             forceSyncFocusRef = false;
             indexRef = maxIndex;
           }
         } else {
-          indexRef = findNonDisabledListIndex(listRef(), {
+          indexRef = findNonDisabledListIndex(listRefResolved, {
             startingIndex: currentIndex,
             decrement: true,
-            disabledIndices: disabledIndices(),
+            disabledIndices: disabledIndicesResolved,
           });
         }
       } else {
         const newIndex = Math.max(
           minIndex,
-          findNonDisabledListIndex(listRef(), {
+          findNonDisabledListIndex(listRefResolved, {
             startingIndex: currentIndex,
             decrement: true,
-            disabledIndices: disabledIndices(),
+            disabledIndices: disabledIndicesResolved,
           }),
         );
         indexRef = newIndex;
       }
 
-      if (isIndexOutOfListBounds(listRef(), indexRef)) {
+      if (isIndexOutOfListBounds(listRefResolved, indexRef)) {
         indexRef = -1;
       }
 
@@ -981,7 +988,7 @@ export function useListNavigation(
       return {};
     }
 
-    return { reference: reference(), floating: floating(), item: item(), trigger: trigger() };
+    return { reference: reference(), floating: floating(), item, trigger: trigger() };
   });
 
   return returnValue;

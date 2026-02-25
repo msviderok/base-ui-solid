@@ -1,4 +1,4 @@
-import { createSignal, Index } from 'solid-js';
+import { createSignal, Index, Show } from 'solid-js';
 import {
   FloatingFocusManager,
   useClick,
@@ -33,7 +33,7 @@ export function Main(props: Props) {
   const { floatingStyles, refs, context } = useFloating({
     open,
     onOpenChange: setOpen,
-    placement: () => 'bottom-start',
+    placement: 'bottom-start',
   });
 
   const disabledIndices = [0, 1, 2, 3, 4, 5, 6, 9, 14, 23, 35];
@@ -65,7 +65,7 @@ export function Main(props: Props) {
         <button ref={refs.setReference} type="button" {...getReferenceProps()}>
           Reference
         </button>
-        {open() && (
+        <Show when={open()}>
           <FloatingFocusManager context={context}>
             <div
               ref={refs.setFloating}
@@ -99,7 +99,7 @@ export function Main(props: Props) {
               </Index>
             </div>
           </FloatingFocusManager>
-        )}
+        </Show>
       </div>
     </>
   );
