@@ -313,19 +313,20 @@ export function useListNavigation(
   let previousMountedRef = false;
   let previousOpenRef = false;
 
-  const focusItem = () => {
-    function runFocus(item: HTMLElement) {
-      if (virtual()) {
-        tree?.events.emit('virtualfocus', item);
-      } else {
-        enqueueFocus(item, {
-          sync: forceSyncFocusRef,
-          preventScroll: true,
-        });
-      }
+  function runFocus(item: HTMLElement) {
+    if (virtual()) {
+      tree?.events.emit('virtualfocus', item);
+    } else {
+      enqueueFocus(item, {
+        sync: forceSyncFocusRef,
+        preventScroll: true,
+      });
     }
+  }
 
-    const initialItem = listRef()?.[indexRef];
+  const focusItem = () => {
+    const listRefResolved = listRef();
+    const initialItem = listRefResolved?.[indexRef];
     const forceScrollIntoView = forceScrollIntoViewRef;
     if (initialItem) {
       runFocus(initialItem);
@@ -334,7 +335,7 @@ export function useListNavigation(
     const scheduler = forceSyncFocusRef ? (v: () => void) => v() : requestAnimationFrame;
 
     scheduler(() => {
-      const waitedItem = listRef()[indexRef] || initialItem;
+      const waitedItem = listRefResolved[indexRef] || initialItem;
 
       if (!waitedItem) {
         return;
@@ -417,6 +418,9 @@ export function useListNavigation(
         (keyRef != null || (focusItemOnOpenRef === true && keyRef == null))
       ) {
         let runs = 0;
+        const orientationResolved = orientation();
+        const rtlResolved = rtl();
+        const nestedResolved = nested();
         const waitForListPopulated = () => {
           if (list[0] == null) {
             // Avoid letting the browser paint if possible on the first try,
@@ -430,7 +434,9 @@ export function useListNavigation(
           } else {
             // initially focus the first non-disabled item
             indexRef =
-              keyRef == null || isMainOrientationToEndKey(keyRef, orientation(), rtl()) || nested()
+              keyRef == null ||
+              isMainOrientationToEndKey(keyRef, orientationResolved, rtlResolved) ||
+              nestedResolved
                 ? getMinListIndex(list)
                 : getMaxListIndex(list);
             keyRef = null;
@@ -827,17 +833,6 @@ export function useListNavigation(
         }
 
         commonOnKeyDown(event);
-
-        // Manually bubble across portals only if propagation wasn't stopped
-        // by commonOnKeyDown (mirrors React's natural bubbling behavior).
-        if (parentId != null && !(event as any).cancelBubble) {
-          const eventObject = new KeyboardEvent('keydown', { key: event.key });
-          const parentNode =
-            tree && parentId != null ? tree?.nodesRef.find((node) => node.id === parentId) : null;
-          if (parentNode) {
-            parentNode.context?.elements.floating()?.dispatchEvent(eventObject);
-          }
-        }
       },
       // TODO SOLID CHECK
       // onKeyDown(event) {
