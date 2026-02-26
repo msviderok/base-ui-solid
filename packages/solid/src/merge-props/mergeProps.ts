@@ -332,7 +332,7 @@ export function mergeProps<
  * https://github.com/solidjs-community/solid-primitives/blob/0cbdb59bb42f50de5e08000027789ae3d4c80280/packages/utils/src/index.ts#L82-L94
  * Returns a function that will call all functions in the reversed order with the same arguments.
  */
-function reverseChain<Args extends [] | any[]>(
+export function reverseChain<Args extends [] | any[]>(
   callbacks: (((...args: Args) => any) | undefined)[],
 ): (...args: Args) => void {
   return (...args: Args) => {

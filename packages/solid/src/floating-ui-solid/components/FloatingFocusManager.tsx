@@ -6,6 +6,7 @@ import { CLICK_TRIGGER_IDENTIFIER } from '@msviderok/base-ui-solid/utils/constan
 import type { FloatingUIOpenChangeDetails } from '@msviderok/base-ui-solid/utils/types';
 import { createEffect, createMemo, createSignal, on, onCleanup, Show, type JSX } from 'solid-js';
 import { focusable, isTabbable, tabbable, type FocusableElement } from 'tabbable';
+import { defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { FocusGuard } from '../../utils/FocusGuard';
 import { REASONS } from '../../utils/reasons';
@@ -251,45 +252,42 @@ export interface FloatingFocusManagerProps {
  * @see https://floating-ui.com/docs/FloatingFocusManager
  * @internal
  */
-export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Element {
-  const disabled = () => props.disabled ?? false;
-  const initialFocus = () => props.initialFocus ?? true;
-  const returnFocus = () => props.returnFocus ?? true;
-  const restoreFocus = () => props.restoreFocus ?? false;
-  const modal = () => props.modal ?? true;
-  const closeOnFocusOut = () => props.closeOnFocusOut ?? true;
-  const openInteractionType = () => props.openInteractionType ?? '';
+export function FloatingFocusManager(componentProps: FloatingFocusManagerProps): JSX.Element {
+  const props = defaultProps(componentProps, {
+    disabled: false,
+    initialFocus: true,
+    returnFocus: true,
+    restoreFocus: false,
+    modal: true,
+    closeOnFocusOut: true,
+    openInteractionType: '',
+  });
 
-  const store = () => ('rootStore' in props.context ? props.context.rootStore : props.context);
-  const open = () => store().state.open;
-  const domReference = () => store().state.domReferenceElement;
-  const floating = () => store().state.floatingElement;
-  const events = () => store().context.events;
-  const dataRef = () => store().context.dataRef;
+  const store = createMemo(() =>
+    'rootStore' in props.context ? props.context.rootStore : props.context,
+  );
+  const open = createMemo(() => store().select('open'));
+  const domReference = createMemo(() => store().select('domReferenceElement'));
+  const floating = createMemo(() => store().select('floatingElement'));
+  const events = createMemo(() => store().context.events);
+  const dataRef = createMemo(() => store().context.dataRef);
 
   const getNodeId = () => store().context.dataRef.floatingContext?.nodeId();
 
-  const ignoreInitialFocus = () => initialFocus() === false;
+  const ignoreInitialFocus = createMemo(() => props.initialFocus === false);
   // If the reference is a combobox and is typeable (e.g. input/textarea),
   // there are different focus semantics. The guards should not be rendered, but
   // aria-hidden should be applied to all nodes still. Further, the visually
   // hidden dismiss button should only appear at the end of the list, not the
   // start.
-  const isUntrappedTypeableCombobox = () =>
-    isTypeableCombobox(domReference()) && ignoreInitialFocus();
+  const isUntrappedTypeableCombobox = createMemo(
+    () => isTypeableCombobox(domReference()) && ignoreInitialFocus(),
+  );
 
   const orderRef: Array<'reference' | 'floating' | 'content'> = ['content'];
 
-  // eslint-disable-next-line solid/reactivity
   const tree = useFloatingTree(props.externalTree);
   const portalContext = usePortalContext();
-
-  const [startDismissButtonRef, setStartDismissButtonRef] = createSignal<HTMLButtonElement | null>(
-    null,
-  );
-  const [endDismissButtonRef, setEndDismissButtonRef] = createSignal<HTMLButtonElement | null>(
-    null,
-  );
 
   const [beforeGuardRef, setBeforeGuardRef] = createSignal<HTMLSpanElement>();
   const [afterGuardRef, setAfterGuardRef] = createSignal<HTMLSpanElement>();
@@ -343,7 +341,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     const relatedTarget = event.relatedTarget as HTMLElement | null;
     const currentTarget = event.currentTarget as HTMLElement | null;
     const target = getTarget(event) as HTMLElement | null;
-    const isModal = modal();
+    const isModal = props.modal;
     const untrappedTypeableCombobox = isUntrappedTypeableCombobox();
     const floatingElement = floatingFocusElement();
     const doc = ownerDocument(floatingElement);
@@ -352,7 +350,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     const floatingValue = floating();
     const nodeId = getNodeId();
     const portalNode = portalContext?.portalNode();
-    const restoreFocusValue = restoreFocus();
+    const restoreFocusValue = props.restoreFocus;
     const tabbableContent = getTabbableContent() as Array<Element | null>;
     const triggers = store().context.triggerElements;
     const isRelatedFocusGuard =
@@ -527,7 +525,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   }
 
   createEffect(() => {
-    if (disabled() || !modal()) {
+    if (props.disabled || !props.modal) {
       return;
     }
 
@@ -540,7 +538,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
 
   // Track the last interaction type at the document level to disambiguate focus events
   createEffect(() => {
-    if (disabled() || !open()) {
+    if (props.disabled || !open()) {
       return;
     }
 
@@ -581,7 +579,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   });
 
   createEffect(() => {
-    if (disabled() || !closeOnFocusOut()) {
+    if (props.disabled || !props.closeOnFocusOut) {
       return;
     }
 
@@ -620,10 +618,17 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   // Focus the initial element when the floating element opens.
   createEffect(
     on(
-      [disabled, open, floatingFocusElement, ignoreInitialFocus, initialFocus, openInteractionType],
+      [
+        () => props.disabled,
+        open,
+        floatingFocusElement,
+        ignoreInitialFocus,
+        () => props.initialFocus,
+        () => props.openInteractionType,
+      ],
       () => {
         const floatingEl = floatingFocusElement();
-        if (!open() || disabled() || !isHTMLElement(floatingEl)) {
+        if (!open() || props.disabled || !isHTMLElement(floatingEl)) {
           return;
         }
 
@@ -634,10 +639,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         // eslint-disable-next-line solid/reactivity
         queueMicrotask(() => {
           const focusableElements = getTabbableElements(floatingEl);
-          const initialFocusValueOrFn = initialFocus();
+          const initialFocusValueOrFn = props.initialFocus;
           const resolvedInitialFocus =
             typeof initialFocusValueOrFn === 'function'
-              ? initialFocusValueOrFn(openInteractionType() || '')
+              ? initialFocusValueOrFn(props.openInteractionType || '')
               : initialFocusValueOrFn;
 
           // `null`/`undefined` should fallback to default behavior in case of an empty ref.
@@ -687,8 +692,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
       floating(),
       rootAncestorComboboxDomReference,
       ...portalNodes,
-      startDismissButtonRef(),
-      endDismissButtonRef(),
       beforeGuardRef(),
       afterGuardRef(),
       portalContext?.beforeOutsideRef() ?? null,
@@ -701,17 +704,17 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
 
   // Hide everything outside the floating tree from assistive tech while open.
   createEffect(() => {
-    if (disabled() || !floating() || !open()) {
+    if (props.disabled || !floating() || !open()) {
       return;
     }
 
-    const cleanup = markOthers(insideElements(), modal() || isUntrappedTypeableCombobox());
+    const cleanup = markOthers(insideElements(), props.modal || isUntrappedTypeableCombobox());
     onCleanup(() => cleanup());
   });
 
   createEffect(() => {
     const floatingEl = floatingFocusElement();
-    if (disabled() || !floatingEl) {
+    if (props.disabled || !floatingEl) {
       return;
     }
 
@@ -734,11 +737,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     }
 
     function getReturnElement() {
-      const returnFocusValueOrFn = returnFocus();
       let resolvedReturnFocusValue =
-        typeof returnFocusValueOrFn === 'function'
-          ? returnFocusValueOrFn(closeTypeRef)
-          : returnFocusValueOrFn;
+        typeof props.returnFocus === 'function'
+          ? props.returnFocus(closeTypeRef)
+          : props.returnFocus;
 
       // `null` should fallback to default behavior in case of an empty ref.
       if (resolvedReturnFocusValue === undefined || resolvedReturnFocusValue === false) {
@@ -775,8 +777,8 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
       const returnElement = getReturnElement();
       // This is `returnElement`, if it's tabbable, or its first tabbable child.
       const tabbableReturnElement = getFirstTabbableElement(returnElement);
-      const returnFocusValue = returnFocus();
-      const hasExplicitReturnFocus = typeof returnFocus() !== 'boolean';
+      const returnFocusValue = props.returnFocus;
+      const hasExplicitReturnFocus = typeof props.returnFocus !== 'boolean';
 
       queueMicrotask(() => {
         if (
@@ -820,13 +822,13 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   // Synchronize the `context` & `modal` value to the FloatingPortal context.
   // It will decide whether or not it needs to render its own guards.
   createEffect(() => {
-    if (disabled() || !portalContext) {
+    if (props.disabled || !portalContext) {
       return;
     }
 
     portalContext.setFocusManagerState({
-      modal: modal(),
-      closeOnFocusOut: closeOnFocusOut(),
+      modal: props.modal,
+      closeOnFocusOut: props.closeOnFocusOut,
       open: open(),
       onOpenChange: store().setOpen,
       domReference: domReference(),
@@ -838,7 +840,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   // Keep the floating element tabIndex in sync and clear stale focus records.
   createEffect(() => {
     const floatingEl = floatingFocusElement();
-    if (disabled() || !floatingEl) {
+    if (props.disabled || !floatingEl) {
       return;
     }
 
@@ -848,9 +850,9 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
 
   const shouldRenderGuards = createMemo(
     () =>
-      !disabled() &&
-      (modal() ? !isUntrappedTypeableCombobox() : true) &&
-      (isInsidePortal() || modal()),
+      !props.disabled &&
+      (props.modal ? !isUntrappedTypeableCombobox() : true) &&
+      (isInsidePortal() || props.modal),
   );
 
   return (
@@ -860,12 +862,11 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
           data-type="inside"
           ref={(el) => {
             setBeforeGuardRef(el);
-            // eslint-disable-next-line solid/reactivity
             props.beforeContentFocusGuardRef = el;
             portalContext?.setBeforeInsideRef(el);
           }}
           onFocus={(event) => {
-            if (modal()) {
+            if (props.modal) {
               const els = getTabbableElements();
               enqueueFocus(els[els.length - 1]);
             } else if (portalContext?.portalNode()) {
@@ -889,10 +890,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             portalContext?.setAfterInsideRef(el);
           }}
           onFocus={(event) => {
-            if (modal()) {
+            if (props.modal) {
               enqueueFocus(getTabbableElements()[0]);
             } else if (portalContext?.portalNode()) {
-              if (closeOnFocusOut()) {
+              if (props.closeOnFocusOut) {
                 preventReturnFocusRef = true;
               }
 

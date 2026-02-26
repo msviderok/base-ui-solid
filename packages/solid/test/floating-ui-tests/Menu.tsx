@@ -73,10 +73,7 @@ interface MenuProps {
 
 /** @internal */
 export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTMLButtonElement>) {
-  const props = defaultProps(componentProps, {
-    keepMounted: false,
-    openOnFocus: false,
-  });
+  const props = defaultProps(componentProps, { keepMounted: false, openOnFocus: false });
   const [local, elementProps] = splitProps(props, [
     'children',
     'label',
@@ -125,11 +122,10 @@ export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTM
     whileElementsMounted: autoUpdate,
   });
   const fallbackContext = getEmptyRootContext();
-  const hoverContext = () => (isNested && allowHover() ? context : fallbackContext);
 
   const hover = useHover({
     get context() {
-      return hoverContext();
+      return isNested && allowHover() ? context : fallbackContext;
     },
     props: {
       delay: { open: 75 },
@@ -143,7 +139,9 @@ export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTM
       get toggle() {
         return !isNested || !allowHover();
       },
-      ignoreMouse: isNested,
+      get ignoreMouse() {
+        return isNested;
+      },
     },
   });
   const focus = useFocus({
@@ -165,7 +163,9 @@ export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTM
       get activeIndex() {
         return activeIndex();
       },
-      nested: isNested,
+      get nested() {
+        return isNested;
+      },
       onNavigate: setActiveIndex,
       get orientation() {
         return orientation();
@@ -181,7 +181,9 @@ export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTM
       get listRef() {
         return compositeListRefs.labels;
       },
-      onMatch: (index) => (isOpen() ? setActiveIndex(index) : undefined),
+      get onMatch() {
+        return isOpen() ? setActiveIndex : undefined;
+      },
       get activeIndex() {
         return activeIndex();
       },
@@ -303,11 +305,11 @@ export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTM
         )}
       >
         {props.label}
-        {isNested && (
+        <Show when={isNested}>
           <span aria-hidden="true" class="ml-4">
             Icon
           </span>
-        )}
+        </Show>
       </button>
       <MenuContext.Provider
         value={{
@@ -322,7 +324,7 @@ export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTM
         }}
       >
         <CompositeList refs={compositeListRefs}>
-          {(props.keepMounted || isOpen()) && (
+          <Show when={props.keepMounted || isOpen()}>
             <FloatingPortal>
               <FloatingFocusManager
                 context={context}
@@ -358,7 +360,7 @@ export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTM
                 </div>
               </FloatingFocusManager>
             </FloatingPortal>
-          )}
+          </Show>
         </CompositeList>
       </MenuContext.Provider>
     </FloatingNode>

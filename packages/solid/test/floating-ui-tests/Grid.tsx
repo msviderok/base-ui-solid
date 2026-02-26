@@ -39,7 +39,9 @@ export function Main(componentProps: Props) {
   const listNavigation = useListNavigation({
     context,
     props: {
-      listRef,
+      get listRef() {
+        return listRef;
+      },
       get activeIndex() {
         return activeIndex();
       },
