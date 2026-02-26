@@ -62,31 +62,22 @@ export function useInteractions(propsList: Array<ElementProps> = []): UseInterac
 
   return {
     getReferenceProps(userProps) {
-      return mergeProps(...lists().reference, userProps);
+      return mergeProps([...lists().reference, userProps], { callAllHandlers: true });
     },
     getFloatingProps(userProps) {
       return mergeProps(
-        { tabIndex: -1, [FOCUSABLE_ATTRIBUTE as any]: '' },
-        ...lists().floating,
-        userProps,
+        [{ tabIndex: -1, [FOCUSABLE_ATTRIBUTE as any]: '' }, ...lists().floating, userProps],
+        { callAllHandlers: true },
       );
     },
     getItemProps(userProps) {
-      // let list = [...lists().item];
-
-      // if (userProps) {
-      //   const userPropsWitoutActiveAndSelected = { ...userProps };
-      //   delete userPropsWitoutActiveAndSelected[ACTIVE_KEY];
-      //   delete userPropsWitoutActiveAndSelected[SELECTED_KEY];
-      //   list.push(userPropsWitoutActiveAndSelected as ElementProps['item']);
-      // }
-
-      // list = list.map((item) => (typeof item === 'function' ? item(userProps ?? {}) : item));
-      // return mergeProps(list);
-      return mergeProps(...lists().item, { ...userProps, active: undefined, selected: undefined });
+      return mergeProps(
+        [...lists().item, { ...userProps, active: undefined, selected: undefined }],
+        { callAllHandlers: true },
+      );
     },
     getTriggerProps(userProps) {
-      return mergeProps(...lists().trigger, userProps);
+      return mergeProps([...lists().trigger, userProps], { callAllHandlers: true });
     },
   };
 }

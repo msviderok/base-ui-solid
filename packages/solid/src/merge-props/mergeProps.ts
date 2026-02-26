@@ -21,6 +21,20 @@ import type { BaseUIEvent, WithBaseUIEvent } from '../utils/types';
 
 type EventHandler = (...args: any[]) => unknown;
 
+export interface MergePropsOptions {
+  /**
+   * When true, all event handlers execute and the first non-undefined
+   * result is returned (matching React's useInteractions mergeProps behavior).
+   * When false/omitted, uses the default preventable chaining where
+   * `event.preventBaseUIHandler()` can stop earlier handlers.
+   */
+  callAllHandlers?: boolean;
+}
+
+function isMergePropsOptions(value: unknown): value is MergePropsOptions {
+  return typeof value === 'object' && value !== null && 'callAllHandlers' in value;
+}
+
 function trueFn() {
   return true;
 }
@@ -146,7 +160,7 @@ export function mergeProps<
   E extends ElementType | undefined = undefined,
   Args extends Array<any> = PropsInput<E extends ElementType ? E : any>[],
   R = PropsOf<E extends ElementType ? E : any>,
->(sources: Args): R;
+>(sources: Args, options?: MergePropsOptions): R;
 export function mergeProps<
   E extends ElementType | undefined = undefined,
   Args extends Array<any> = PropsInput<E extends ElementType ? E : any>[],
@@ -157,9 +171,21 @@ export function mergeProps<
   Args extends Array<any> = PropsInput<E extends ElementType ? E : any>[],
   R = PropsOf<E extends ElementType ? E : any>,
 >(...args: Args): R {
-  const sources = (Array.isArray(args[0]) ? args[0] : args) as Args;
+  let rawArgs = args as unknown[];
+  let options: MergePropsOptions | undefined;
+
+  // Detect options as the last argument
+  const lastArg = rawArgs[rawArgs.length - 1];
+  if (isMergePropsOptions(lastArg)) {
+    options = lastArg;
+    rawArgs = rawArgs.slice(0, -1);
+  }
+
+  const sources = (Array.isArray(rawArgs[0]) ? rawArgs[0] : rawArgs) as Args;
+  const callAll = options?.callAllHandlers === true;
 
   let cachedListeners = {} as Record<string, EventHandler | undefined>;
+  let cachedListenerArrays = {} as Record<string, EventHandler[]>;
   let cacheStyles = [] as JSX.HTMLAttributes<any>[];
   let cacheRefs = [] as Array<Ref<any>>;
   let cacheClasses = [] as JSX.HTMLAttributes<any>[];
@@ -176,7 +202,9 @@ export function mergeProps<
   for (let props of sources) {
     let propsOverride = false;
     if (typeof props === 'function') {
-      const mergedListeners = Object.assign({}, cachedListeners);
+      const mergedListeners = callAll
+        ? buildCallAllListeners(Object.assign({}, cachedListenerArrays))
+        : Object.assign({}, cachedListeners);
       const mergedStyles = Object.assign([], cacheStyles);
       const mergedRefs = Object.assign([], cacheRefs);
       const mergedClasses = Object.assign([], cacheClasses);
@@ -215,6 +243,7 @@ export function mergeProps<
       props = props(mergedForGetter);
 
       cachedListeners = {};
+      cachedListenerArrays = {};
       cacheStyles = [];
       cacheRefs = [];
       cacheClasses = [];
@@ -266,7 +295,14 @@ export function mergeProps<
               : void 0;
 
         if (callback) {
-          cachedListeners[name] = mergeEventHandlers(cachedListeners[name], callback);
+          if (callAll) {
+            if (!cachedListenerArrays[name]) {
+              cachedListenerArrays[name] = [];
+            }
+            cachedListenerArrays[name].push(callback);
+          } else {
+            cachedListeners[name] = mergeEventHandlers(cachedListeners[name], callback);
+          }
         }
       }
     }
@@ -275,7 +311,9 @@ export function mergeProps<
     merge = propsOverride ? (props ?? {}) : solidMergeProps(merge, props);
   }
 
-  const mergedListeners = { ...cachedListeners };
+  const mergedListeners = callAll
+    ? buildCallAllListeners(cachedListenerArrays)
+    : { ...cachedListeners };
   const localMerged = {
     get style() {
       return reduce(cacheStyles, 'style', combineStyle);
@@ -341,6 +379,19 @@ export function reverseChain<Args extends [] | any[]>(
       callback?.(...args);
     }
   };
+}
+
+function buildCallAllListeners(
+  listenerArrays: Record<string, EventHandler[]>,
+): Record<string, EventHandler> {
+  const result = {} as Record<string, EventHandler>;
+  for (const name in listenerArrays) {
+    const handlers = listenerArrays[name];
+    result[name] = (...args: any[]) => {
+      return handlers.map((fn) => fn(...args)).find((val) => val !== undefined);
+    };
+  }
+  return result;
 }
 
 function mergeEventHandlers(

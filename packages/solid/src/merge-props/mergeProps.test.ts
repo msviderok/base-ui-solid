@@ -289,6 +289,119 @@ describe('mergeProps', () => {
     expect(observedFlag).to.equal(true);
   });
 
+  describe('callAllHandlers option', () => {
+    it('executes all event handlers when callAllHandlers is true', () => {
+      const log: string[] = [];
+
+      const mergedProps = mergeProps<'button'>(
+        {
+          onClick() {
+            log.push('1');
+          },
+        },
+        {
+          onClick() {
+            log.push('2');
+          },
+        },
+        {
+          onClick() {
+            log.push('3');
+          },
+        },
+        { callAllHandlers: true },
+      );
+
+      callEventHandler(mergedProps.onClick as any, new MouseEvent('click') as any);
+      expect(log).to.deep.equal(['1', '2', '3']);
+    });
+
+    it('returns the first non-undefined result from handlers', () => {
+      const mergedProps = mergeProps<'button'>(
+        {
+          onClick() {
+            return undefined;
+          },
+        },
+        {
+          onClick() {
+            return 'second';
+          },
+        },
+        {
+          onClick() {
+            return 'third';
+          },
+        },
+        { callAllHandlers: true },
+      );
+
+      const result = (mergedProps.onClick as any)(new MouseEvent('click'));
+      expect(result).to.equal('second');
+    });
+
+    it('does not use preventable chaining when callAllHandlers is true', () => {
+      const log: string[] = [];
+
+      const mergedProps = mergeProps<'button'>(
+        {
+          onClick() {
+            log.push('1');
+          },
+        },
+        {
+          onClick() {
+            log.push('2');
+          },
+        },
+        {
+          onClick() {
+            log.push('3');
+          },
+        },
+        { callAllHandlers: true },
+      );
+
+      callEventHandler(mergedProps.onClick as any, new MouseEvent('click') as any);
+      // All handlers run in source order (not reverse like preventable chaining)
+      expect(log).to.deep.equal(['1', '2', '3']);
+    });
+
+    it('works with array syntax', () => {
+      const log: string[] = [];
+
+      const mergedProps = mergeProps<'button'>(
+        [
+          {
+            onClick() {
+              log.push('1');
+            },
+          },
+          {
+            onClick() {
+              log.push('2');
+            },
+          },
+        ],
+        { callAllHandlers: true },
+      );
+
+      callEventHandler(mergedProps.onClick as any, new MouseEvent('click') as any);
+      expect(log).to.deep.equal(['1', '2']);
+    });
+
+    it('still merges non-event props normally', () => {
+      const mergedProps = mergeProps<'button'>(
+        { title: 'first' },
+        { title: 'second', role: 'button' },
+        { callAllHandlers: true },
+      );
+
+      expect(mergedProps.title).to.equal('second');
+      expect(mergedProps.role).to.equal('button');
+    });
+  });
+
   describe('props getters', () => {
     it('calls the props getter with the props defined after it', () => {
       let observedProps;
