@@ -1,6 +1,5 @@
-import { combineProps } from '@solid-primitives/props';
-import { type JSX } from 'solid-js';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { createMemo, type JSX } from 'solid-js';
+import { mergeProps } from '../../merge-props';
 import type { ElementProps } from '../types';
 import { ACTIVE_KEY, FOCUSABLE_ATTRIBUTE, SELECTED_KEY } from '../utils/constants';
 
@@ -32,68 +31,62 @@ export interface UseInteractionsReturn {
  *
  * TODO: Object.assign from proxy is probably not the best way to do it
  */
-export function useInteractions(
-  propsList: Array<MaybeAccessor<ElementProps> | void> = [],
-): UseInteractionsReturn {
+export function useInteractions(propsList: Array<ElementProps> = []): UseInteractionsReturn {
+  const lists = createMemo(() => {
+    const referenceList: JSX.HTMLAttributes<any>[] = [];
+    const floatingList: JSX.HTMLAttributes<any>[] = [];
+    const itemList: ElementProps['item'][] = [];
+    const triggerList: JSX.HTMLAttributes<any>[] = [];
+    for (const item of propsList) {
+      if (item?.reference) {
+        referenceList.push(item.reference);
+      }
+      if (item?.floating) {
+        floatingList.push(item.floating);
+      }
+      if (item?.item) {
+        itemList.push(item.item);
+      }
+      if (item?.trigger) {
+        triggerList.push(item.trigger);
+      }
+    }
+
+    return {
+      reference: referenceList.filter(Boolean),
+      floating: floatingList.filter(Boolean),
+      item: itemList.filter(Boolean),
+      trigger: triggerList.filter(Boolean),
+    };
+  });
+
   return {
     getReferenceProps(userProps) {
-      const referenceList = propsList
-        .map((item) => access(item)?.reference)
-        .filter((i): i is JSX.HTMLAttributes<any> => !!i);
-
-      if (userProps) {
-        referenceList.push(userProps);
-      }
-
-      const combined = combineProps(referenceList);
-
-      return Object.assign({}, combined);
+      return mergeProps(...lists().reference, userProps);
     },
     getFloatingProps(userProps) {
-      const list = propsList
-        .map((item) => access(item)?.floating)
-        .filter((i): i is JSX.HTMLAttributes<any> => !!i);
-
-      list.unshift({ tabIndex: -1, [FOCUSABLE_ATTRIBUTE as any]: '' });
-
-      if (userProps) {
-        list.push(userProps);
-      }
-
-      const combined = combineProps(list);
-
-      return Object.assign({}, combined);
+      return mergeProps(
+        { tabIndex: -1, [FOCUSABLE_ATTRIBUTE as any]: '' },
+        ...lists().floating,
+        userProps,
+      );
     },
     getItemProps(userProps) {
-      let list: ElementProps['item'][] = propsList
-        .map((item) => access(item)?.item)
-        .filter((i) => !!i);
+      // let list = [...lists().item];
 
-      if (userProps) {
-        const userPropsWitoutActiveAndSelected = { ...userProps };
-        delete userPropsWitoutActiveAndSelected[ACTIVE_KEY];
-        delete userPropsWitoutActiveAndSelected[SELECTED_KEY];
-        list.push(userPropsWitoutActiveAndSelected as ElementProps['item']);
-      }
+      // if (userProps) {
+      //   const userPropsWitoutActiveAndSelected = { ...userProps };
+      //   delete userPropsWitoutActiveAndSelected[ACTIVE_KEY];
+      //   delete userPropsWitoutActiveAndSelected[SELECTED_KEY];
+      //   list.push(userPropsWitoutActiveAndSelected as ElementProps['item']);
+      // }
 
-      list = list.map((item) => (typeof item === 'function' ? item(userProps ?? {}) : item));
-
-      const combined = combineProps(list);
-
-      return Object.assign({}, combined);
+      // list = list.map((item) => (typeof item === 'function' ? item(userProps ?? {}) : item));
+      // return mergeProps(list);
+      return mergeProps(...lists().item, { ...userProps, active: undefined, selected: undefined });
     },
     getTriggerProps(userProps) {
-      const list = propsList
-        .map((item) => access(item)?.trigger)
-        .filter((i): i is JSX.HTMLAttributes<any> => !!i);
-
-      if (userProps) {
-        list.push(userProps);
-      }
-
-      const combined = combineProps(list);
-
-      return Object.assign({}, combined);
+      return mergeProps(...lists().trigger, userProps);
     },
   };
 }

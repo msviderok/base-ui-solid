@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-shadow */
 import { flushMicrotasks } from '#test-utils';
 import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { test, vi } from 'vitest';
 import { Popover } from '../../../test/floating-ui-tests/Popover';
 import { REASONS } from '../../utils/reasons';
@@ -14,17 +13,23 @@ function App(props: UseHoverProps & { showReference?: boolean }) {
   const showReference = () => props.showReference ?? true;
   const [open, setOpen] = createSignal(false);
   const { refs, context } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
   });
 
-  const hover = useHover(context, props);
+  const hover = useHover({ context, props });
   const { getReferenceProps, getFloatingProps } = useInteractions([hover]);
 
   return (
     <>
-      {showReference() && <button {...getReferenceProps({ ref: refs.setReference })} />}
-      {open() && <div role="tooltip" {...getFloatingProps({ ref: refs.setFloating })} />}
+      <Show when={showReference()}>
+        <button {...getReferenceProps({ ref: refs.setReference })} />
+      </Show>
+      <Show when={open()}>
+        <div role="tooltip" {...getFloatingProps({ ref: refs.setFloating })} />
+      </Show>
     </>
   );
 }
@@ -225,20 +230,24 @@ describe.skipIf(!isJSDOM)('useHover', () => {
     function App() {
       const [isOpen, setIsOpen] = createSignal(false);
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange(nextOpen, data) {
           setIsOpen(nextOpen);
           expect(data?.reason).toBe(REASONS.triggerHover);
         },
       });
 
-      const hover = useHover(context);
+      const hover = useHover({ context });
       const { getReferenceProps, getFloatingProps } = useInteractions([hover]);
 
       return (
         <>
           <button ref={refs.setReference} {...getReferenceProps()} />
-          {isOpen() && <div role="tooltip" ref={refs.setFloating} {...getFloatingProps()} />}
+          <Show when={isOpen()}>
+            <div role="tooltip" ref={refs.setFloating} {...getFloatingProps()} />
+          </Show>
         </>
       );
     }

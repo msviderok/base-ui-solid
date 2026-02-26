@@ -7,6 +7,7 @@ import {
   useInteractions,
   useListNavigation,
 } from '../../src/floating-ui-solid';
+import { defaultProps } from '../../src/solid-helpers';
 
 interface Props {
   orientation?: 'horizontal' | 'both';
@@ -14,34 +15,47 @@ interface Props {
 }
 
 /** @internal */
-export function Main(props: Props) {
-  const orientation = () => props.orientation ?? 'horizontal';
-  const loopFocus = () => props.loopFocus ?? false;
+export function Main(componentProps: Props) {
+  const props = defaultProps(componentProps, {
+    orientation: 'horizontal',
+    loopFocus: false,
+  });
   const [open, setOpen] = createSignal(false);
   const [activeIndex, setActiveIndex] = createSignal<number | null>(null);
 
   const listRef: Array<HTMLElement | null> = [];
 
   const { floatingStyles, refs, context } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
     placement: 'bottom-start',
   });
 
   const disabledIndices = [0, 1, 2, 3, 4, 5, 6, 7, 10, 15, 45, 48];
 
-  const click = useClick(context);
-  const listNavigation = useListNavigation(context, {
-    listRef,
-    activeIndex,
-    onNavigate: setActiveIndex,
-    cols: 5,
-    orientation,
-    loopFocus,
-    openOnArrowKeyDown: false,
-    disabledIndices,
+  const click = useClick({ context });
+  const listNavigation = useListNavigation({
+    context,
+    props: {
+      listRef,
+      get activeIndex() {
+        return activeIndex();
+      },
+      onNavigate: setActiveIndex,
+      cols: 5,
+      get orientation() {
+        return props.orientation;
+      },
+      get loopFocus() {
+        return props.loopFocus;
+      },
+      openOnArrowKeyDown: false,
+      disabledIndices,
+    },
   });
-  const dismiss = useDismiss(context);
+  const dismiss = useDismiss({ context });
 
   const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
     click,

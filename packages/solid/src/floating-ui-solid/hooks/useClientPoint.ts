@@ -1,5 +1,6 @@
 import { getWindow } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
+import { defaultProps } from '../../solid-helpers';
 import type { ContextData, ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import { contains, getTarget, isMouseLikePointerType } from '../utils';
 
@@ -95,16 +96,6 @@ export interface UseClientPointProps {
    * @default 'both'
    */
   axis?: ('x' | 'y' | 'both') | undefined;
-  // /**
-  //  * An explicitly defined `x` client coordinate.
-  //  * @default null
-  //  */
-  // x?: MaybeAccessor<number | null | undefined>;
-  // /**
-  //  * An explicitly defined `y` client coordinate.
-  //  * @default null
-  //  */
-  // y?: MaybeAccessor<number | null | undefined>;
 }
 
 /**
@@ -112,17 +103,21 @@ export interface UseClientPointProps {
  * such as the mouse position. By default, it follows the mouse cursor.
  * @see https://floating-ui.com/docs/useClientPoint
  */
-export function useClientPoint(props: {
+export function useClientPoint(parameters: {
   context: FloatingRootContext | FloatingContext;
-  props: UseClientPointProps;
+  props?: UseClientPointProps;
 }): ElementProps {
-  const store = 'rootStore' in props.context ? props.context.rootStore : props.context;
-  const open = store.useState('open');
-  const floating = store.useState('floatingElement');
-  const domReference = store.useState('domReferenceElement');
+  const props = defaultProps(parameters.props ?? {}, {
+    enabled: true,
+    axis: 'both',
+  });
 
-  const enabled = createMemo(() => props.props.enabled ?? true);
-  const axis = createMemo(() => props.props.axis ?? 'both');
+  const store = createMemo(() =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
+  );
+  const open = createMemo(() => store().select('open'));
+  const floating = createMemo(() => store().select('floatingElement'));
+  const domReference = createMemo(() => store().select('domReferenceElement'));
 
   let initialRef = false;
 
@@ -140,7 +135,7 @@ export function useClientPoint(props: {
     // Prevent setting if the open event was not a mouse-like one
     // (e.g. focus to open, then hover over the reference element).
     // Only apply if the event exists.
-    const openEvent = store.context.dataRef.openEvent;
+    const openEvent = store().context.dataRef.openEvent;
     if (openEvent && !isMouseBasedEvent(openEvent as Event | null)) {
       return;
     }
@@ -148,12 +143,12 @@ export function useClientPoint(props: {
     const newVirtualElement = createVirtualElement(referenceElement ?? domReference(), {
       x: newX,
       y: newY,
-      axis: axis(),
-      dataRef: store.context.dataRef,
+      axis: props.axis,
+      dataRef: store().context.dataRef,
       pointerType: pointerType(),
     });
 
-    store.set('positionReference', newVirtualElement);
+    store().set('positionReference', newVirtualElement);
   };
 
   const handleReferenceEnterOrMove = (event: MouseEvent) => {
@@ -183,14 +178,14 @@ export function useClientPoint(props: {
   }
 
   createEffect(
-    on([open, floating, enabled], () => {
-      if (!openCheck() || !enabled()) {
+    on([open, floating, () => props.enabled], () => {
+      if (!openCheck() || !props.enabled) {
         return;
       }
 
       const win = getWindow(floating());
 
-      const openEvent = store.context.dataRef.openEvent;
+      const openEvent = store().context.dataRef.openEvent;
       if (!openEvent || isMouseBasedEvent(openEvent)) {
         win.addEventListener('mousemove', handleMouseMove);
 
@@ -200,18 +195,18 @@ export function useClientPoint(props: {
         return;
       }
 
-      store.set('positionReference', domReference());
+      store().set('positionReference', domReference());
     }),
   );
 
   createEffect(() => {
-    if (enabled() && !floating()) {
+    if (props.enabled && !floating()) {
       initialRef = false;
     }
   });
 
   createEffect(() => {
-    if (!enabled() && open()) {
+    if (!props.enabled && open()) {
       initialRef = true;
     }
   });
@@ -237,9 +232,7 @@ export function useClientPoint(props: {
     get floating() {
       return {
         ref: () => {
-          onCleanup(() => {
-            store.set('floatingElement', null);
-          });
+          onCleanup(() => store().set('floatingElement', null));
         },
       };
     },

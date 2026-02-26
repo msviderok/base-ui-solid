@@ -8,8 +8,8 @@ import {
   isLastTraversableNode,
   isWebKit,
 } from '@floating-ui/utils/dom';
-import { createEffect, createMemo, on, onCleanup, type Accessor } from 'solid-js';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { createEffect, createMemo, on, onCleanup } from 'solid-js';
+import { access, defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { useTimeout } from '../../utils/useTimeout';
@@ -50,26 +50,26 @@ export interface UseDismissProps {
    * handlers.
    * @default true
    */
-  enabled?: MaybeAccessor<boolean | undefined>;
+  enabled?: boolean | undefined;
   /**
    * Whether to dismiss the floating element upon pressing the `esc` key.
    * @default true
    */
-  escapeKey?: MaybeAccessor<boolean | undefined>;
+  escapeKey?: boolean | undefined;
   /**
    * Whether to dismiss the floating element upon pressing the reference
    * element. You likely want to ensure the `move` option in the `useHover()`
    * Hook has been disabled when this is in use.
    * @default false
    */
-  referencePress?: MaybeAccessor<boolean | undefined>;
+  referencePress?: boolean | undefined;
   /**
    * The type of event to use to determine a "press".
    * - `down` is `pointerdown` on mouse input, but special iOS-like touch handling on touch input.
    * - `up` is lazy on both mouse + touch input (equivalent to `click`).
    * @default 'down'
    */
-  referencePressEvent?: MaybeAccessor<PressType | undefined>;
+  referencePressEvent?: PressType | undefined;
   /**
    * Whether to dismiss the floating element upon pressing outside of the
    * floating element.
@@ -89,27 +89,28 @@ export interface UseDismissProps {
    * - `intentional` requires the user to click outside intentionally, firing on `pointerup` for mouse, and requiring minimal `touchmove`s for touch.
    * - `sloppy` fires on `pointerdown` for mouse, while for touch it fires on `touchend` (within 1 second) or while scrolling away after `touchstart`.
    */
-  outsidePressEvent?: MaybeAccessor<
+  outsidePressEvent?:
     | PressType
     | {
         mouse: PressType;
         touch: PressType;
       }
-    | undefined
-  >;
+    | undefined;
+
   /**
    * Whether to dismiss the floating element upon scrolling an overflow
    * ancestor.
    * @default false
    */
-  ancestorScroll?: MaybeAccessor<boolean | undefined>;
+  ancestorScroll?: boolean | undefined;
   /**
    * Determines whether event listeners bubble upwards through a tree of
    * floating elements.
    */
-  bubbles?: MaybeAccessor<
-    boolean | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined } | undefined
-  >;
+  bubbles?:
+    | boolean
+    | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined }
+    | undefined;
   /**
    * External FlatingTree to use when the one provided by context can't be used.
    */
@@ -121,28 +122,30 @@ export interface UseDismissProps {
  * the user presses the `escape` key or outside of the floating element.
  * @see https://floating-ui.com/docs/useDismiss
  */
-export function useDismiss(
-  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
-  props: UseDismissProps = {},
-): Accessor<ElementProps> {
-  const context = () => access(contextProp);
-  const store = () => {
-    const ctx = context();
-    return 'rootStore' in ctx ? ctx.rootStore : ctx;
-  };
-  const open = () => store().state.open;
-  const floatingElement = () => store().state.floatingElement;
-  const referenceElement = () => store().state.referenceElement;
-  const domReferenceElement = () => store().state.domReferenceElement;
-  const dataRef = () => store().context.dataRef;
+export function useDismiss(parameters: {
+  context: FloatingRootContext | FloatingContext;
+  props?: UseDismissProps;
+}): ElementProps {
+  const props = defaultProps(parameters.props ?? {}, {
+    enabled: true,
+    escapeKey: true,
+    outsidePress: true,
+    outsidePressEvent: 'sloppy',
+    referencePress: false,
+    referencePressEvent: 'sloppy',
+    ancestorScroll: false,
+  });
 
-  const enabled = () => access(props.enabled) ?? true;
-  const escapeKey = () => access(props.escapeKey) ?? true;
-  const outsidePressEvent = () => access(props.outsidePressEvent) ?? 'sloppy';
-  const referencePress = () => access(props.referencePress) ?? false;
-  const referencePressEvent = () => access(props.referencePressEvent) ?? 'sloppy';
-  const ancestorScroll = () => access(props.ancestorScroll) ?? false;
-  const bubbles = () => normalizeProp(access(props.bubbles));
+  const store = createMemo(() =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
+  );
+  const dataRef = () => store().context.dataRef;
+  const open = createMemo(() => store().select('open'));
+  const floatingElement = createMemo(() => store().select('floatingElement'));
+  const referenceElement = createMemo(() => store().select('referenceElement'));
+  const domReferenceElement = createMemo(() => store().select('domReferenceElement'));
+
+  const bubbles = createMemo(() => normalizeProp(props.bubbles));
 
   const tree = useFloatingTree(props.externalTree);
   const outsidePress = createMemo(() => {
@@ -183,13 +186,11 @@ export function useDismiss(
     const type = currentPointerTypeRef as 'pen' | 'mouse' | 'touch' | '';
     const computedType = type === 'pen' || !type ? 'mouse' : type;
 
-    const resolved = outsidePressEvent();
-
-    if (typeof resolved === 'string') {
-      return resolved;
+    if (typeof props.outsidePressEvent === 'string') {
+      return props.outsidePressEvent;
     }
 
-    return resolved[computedType];
+    return props.outsidePressEvent[computedType];
   };
 
   const closeOnEscapeKeyDown = (event: KeyboardEvent) => {
@@ -197,7 +198,7 @@ export function useDismiss(
       return;
     }
 
-    if (!open() || !enabled() || !escapeKey() || event.key !== 'Escape') {
+    if (!open() || !props.enabled || !props.escapeKey || event.key !== 'Escape') {
       return;
     }
 
@@ -408,7 +409,7 @@ export function useDismiss(
       getOutsidePressEvent() !== 'sloppy' ||
       event.pointerType === 'touch' ||
       !open() ||
-      !enabled ||
+      !props.enabled ||
       isEventTargetWithin(event, floatingElement()) ||
       isEventTargetWithin(event, domReferenceElement())
     ) {
@@ -422,7 +423,7 @@ export function useDismiss(
     if (
       getOutsidePressEvent() !== 'sloppy' ||
       !open() ||
-      !enabled ||
+      !props.enabled ||
       isEventTargetWithin(event, floatingElement()) ||
       isEventTargetWithin(event, domReferenceElement())
     ) {
@@ -551,7 +552,7 @@ export function useDismiss(
   };
 
   createEffect(() => {
-    if (!open() || !enabled()) {
+    if (!open() || !props.enabled) {
       return;
     }
 
@@ -588,7 +589,7 @@ export function useDismiss(
 
     doc.addEventListener('pointerdown', trackPointerType, true);
 
-    if (escapeKey()) {
+    if (props.escapeKey) {
       doc.addEventListener('keydown', closeOnEscapeKeyDown);
       doc.addEventListener('compositionstart', handleCompositionStart);
       doc.addEventListener('compositionend', handleCompositionEnd);
@@ -618,15 +619,15 @@ export function useDismiss(
 
     let ancestors: (Element | Window | VisualViewport)[] = [];
 
-    if (ancestorScroll()) {
+    if (props.ancestorScroll) {
       const domReference = domReferenceElement();
       if (isElement(domReference)) {
         ancestors = getOverflowAncestors(domReference);
       }
 
-      const floating = floatingElement();
-      if (isElement(floating)) {
-        ancestors = ancestors.concat(getOverflowAncestors(floating));
+      const floatingEl = floatingElement();
+      if (isElement(floatingEl)) {
+        ancestors = ancestors.concat(getOverflowAncestors(floatingEl));
       }
 
       const reference = referenceElement();
@@ -653,12 +654,12 @@ export function useDismiss(
 
   const reference = createMemo<ElementProps['reference']>(() => ({
     onKeyDown: closeOnEscapeKeyDown,
-    ...(referencePress() && {
-      [bubbleHandlerKeys[referencePressEvent()]]: (event: Event) => {
+    ...(props.referencePress && {
+      [bubbleHandlerKeys[props.referencePressEvent]](event: Event) {
         store().setOpen(false, createChangeEventDetails(REASONS.triggerPress, event as any));
       },
-      ...(referencePressEvent() !== 'intentional' && {
-        onClick: (event) => {
+      ...(props.referencePressEvent !== 'intentional' && {
+        onClick(event) {
           store().setOpen(false, createChangeEventDetails(REASONS.triggerPress, event));
         },
       }),
@@ -674,63 +675,63 @@ export function useDismiss(
   };
 
   const markPressStartedinsidePortal = (event: PointerEvent | MouseEvent) => {
-    if (!open() || !enabled() || event.button !== 0) {
+    if (!open() || !props.enabled || event.button !== 0) {
       return;
     }
     endedOrStartedInsideRef = true;
   };
 
-  const floating = createMemo<ElementProps['floating']>(() => {
-    return {
-      onKeyDown: closeOnEscapeKeyDown,
+  const floating: ElementProps['floating'] = {
+    onKeyDown: closeOnEscapeKeyDown,
 
-      // `onMouseDown` may be blocked if `event.preventDefault()` is called in
-      // `onPointerDown`, such as with <NumberField.ScrubArea>.
-      // See https://github.com/mui/base-ui/pull/3379
-      onPointerDown: handlePressedInside,
-      onMouseDown: handlePressedInside,
-      onMouseUp: handlePressedInside,
+    // `onMouseDown` may be blocked if `event.preventDefault()` is called in
+    // `onPointerDown`, such as with <NumberField.ScrubArea>.
+    // See https://github.com/mui/base-ui/pull/3379
+    onPointerDown: handlePressedInside,
+    onMouseDown: handlePressedInside,
+    onMouseUp: handlePressedInside,
 
-      'on:click': {
-        capture: true,
-        handleEvent: markinsidePortal,
+    'on:click': {
+      capture: true,
+      handleEvent: markinsidePortal,
+    },
+    'on:mousedown': {
+      capture: true,
+      handleEvent: (event) => {
+        markinsidePortal();
+        markPressStartedinsidePortal(event);
       },
-      'on:mousedown': {
-        capture: true,
-        handleEvent: (event) => {
-          markinsidePortal();
-          markPressStartedinsidePortal(event);
-        },
+    },
+    'on:pointerdown': {
+      capture: true,
+      handleEvent: (event) => {
+        markinsidePortal();
+        markPressStartedinsidePortal(event as PointerEvent);
       },
-      'on:pointerdown': {
-        capture: true,
-        handleEvent: (event) => {
-          markinsidePortal();
-          markPressStartedinsidePortal(event as PointerEvent);
-        },
-      },
-      'on:mouseup': {
-        capture: true,
-        handleEvent: markinsidePortal,
-      },
-      'on:touchend': {
-        capture: true,
-        handleEvent: markinsidePortal,
-      },
-      'on:touchmove': {
-        capture: true,
-        handleEvent: markinsidePortal,
-      },
-    };
-  });
+    },
+    'on:mouseup': {
+      capture: true,
+      handleEvent: markinsidePortal,
+    },
+    'on:touchend': {
+      capture: true,
+      handleEvent: markinsidePortal,
+    },
+    'on:touchmove': {
+      capture: true,
+      handleEvent: markinsidePortal,
+    },
+  };
 
-  const returnValue = createMemo<ElementProps>(() => {
-    if (!enabled()) {
-      return {};
-    }
-
-    return { reference: reference(), floating: floating(), trigger: reference() };
-  });
-
-  return returnValue;
+  return {
+    get reference() {
+      return props.enabled ? reference() : undefined;
+    },
+    get floating() {
+      return props.enabled ? floating : undefined;
+    },
+    get trigger() {
+      return props.enabled ? reference() : undefined;
+    },
+  };
 }

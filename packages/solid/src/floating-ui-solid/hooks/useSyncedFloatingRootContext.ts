@@ -1,11 +1,11 @@
 import { isElement } from '@floating-ui/utils/dom';
-import { createEffect } from 'solid-js';
-import { type MaybeAccessor, access } from '../../solid-helpers';
+import { createEffect, createMemo } from 'solid-js';
+import { defaultProps } from '../../solid-helpers';
 import { BaseUIChangeEventDetails } from '../../types';
 import { PopupStoreContext, PopupStoreSelectors, PopupStoreState } from '../../utils/popups';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../../utils/store/SolidStoreV2';
 import { useId } from '../../utils/useId';
-import { FloatingRootState, FloatingRootStore } from '../components/FloatingRootStore';
+import { FloatingRootState, FloatingRootStore } from '../components/FloatingRootStoreV2';
 import { useFloatingParentNodeId } from '../components/FloatingTree';
 
 export interface UseSyncedFloatingRootContextOptions<State extends PopupStoreState<any>> {
@@ -17,7 +17,7 @@ export interface UseSyncedFloatingRootContextOptions<State extends PopupStoreSta
   /**
    * Whether the Popup element is passed to Floating UI as the floating element instead of the default Positioner.
    */
-  treatPopupAsFloatingElement?: MaybeAccessor<boolean | undefined>;
+  treatPopupAsFloatingElement?: boolean | undefined;
   onOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails<string>): void;
 }
 
@@ -28,28 +28,41 @@ export interface UseSyncedFloatingRootContextOptions<State extends PopupStoreSta
 export function useSyncedFloatingRootContext<State extends PopupStoreState<any>>(
   options: UseSyncedFloatingRootContextOptions<State>,
 ): FloatingRootStore {
-  const treatPopupAsFloatingElement = () => access(options.treatPopupAsFloatingElement) ?? false;
-  const noEmit = () => options.noEmit ?? false;
+  const props = defaultProps(options, { noEmit: false, treatPopupAsFloatingElement: false });
+
   const floatingId = useId();
   const nested = useFloatingParentNodeId() != null;
 
-  const open = options.popupStore.useState('open');
-  const referenceElement = options.popupStore.useState('activeTriggerElement');
-  const floatingElement = () =>
-    options.popupStore.useState(
-      treatPopupAsFloatingElement() ? 'popupElement' : 'positionerElement',
-    )();
+  const open = createMemo(() => props.popupStore.select('open'));
+  const referenceElement = createMemo(() => props.popupStore.select('activeTriggerElement'));
+  const floatingElement = createMemo(() =>
+    props.popupStore.select(
+      props.treatPopupAsFloatingElement ? 'popupElement' : 'positionerElement',
+    ),
+  );
 
-  const store = new FloatingRootStore({
-    open,
-    referenceElement,
-    floatingElement,
-    triggerElements: options.popupStore.context.triggerElements,
+  const store = FloatingRootStore({
+    get open() {
+      return open();
+    },
+    get referenceElement() {
+      return referenceElement();
+    },
+    get floatingElement() {
+      return floatingElement();
+    },
+    get triggerElements() {
+      return options.popupStore.context.triggerElements;
+    },
     onOpenChange: options.onOpenChange,
-    floatingId,
-    nested,
+    get floatingId() {
+      return floatingId();
+    },
+    get nested() {
+      return nested;
+    },
     get noEmit() {
-      return noEmit();
+      return props.noEmit;
     },
   });
 
@@ -71,13 +84,6 @@ export function useSyncedFloatingRootContext<State extends PopupStoreState<any>>
     }
 
     store.update(valuesToSync);
-  });
-
-  createEffect(() => {
-    // TODO: When `setOpen` is a part of the PopupStore API, we don't need to sync it.
-    store.context.onOpenChange = options.onOpenChange;
-    store.context.nested = nested;
-    store.context.noEmit = noEmit();
   });
 
   return store;

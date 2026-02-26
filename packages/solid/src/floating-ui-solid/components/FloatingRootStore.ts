@@ -1,6 +1,5 @@
 import { SolidStore } from '@msviderok/base-ui-solid/utils/store/SolidStore';
 import { createStore } from 'solid-js/store';
-import { access, type MaybeAccessor } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import type { PopupTriggerMap } from '../../utils/popups';
 import type { FloatingUIOpenChangeDetails } from '../../utils/types';

@@ -1,6 +1,6 @@
 import { isElement } from '@floating-ui/utils/dom';
 import { createEffect } from 'solid-js';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { defaultProps } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { PopupTriggerMap } from '../../utils/popups';
 import { useId } from '../../utils/useId';
@@ -9,24 +9,24 @@ import { useFloatingParentNodeId } from '../components/FloatingTree';
 import type { ReferenceType } from '../types';
 
 export interface UseFloatingRootContextOptions {
-  open?: MaybeAccessor<boolean | undefined>;
+  open?: boolean | undefined;
   onOpenChange?: (open: boolean, eventDetails: BaseUIChangeEventDetails<string>) => void;
   elements?:
     | {
-        reference?: MaybeAccessor<(ReferenceType | null) | undefined>;
-        floating?: MaybeAccessor<(HTMLElement | null) | undefined>;
+        reference?: (ReferenceType | null) | undefined;
+        floating?: (HTMLElement | null) | undefined;
       }
     | undefined;
 }
 
 export function useFloatingRootContext(options: UseFloatingRootContextOptions): FloatingRootStore {
-  const open = () => access(options.open) ?? false;
+  const props = defaultProps(options, { open: false });
   const floatingId = useId();
   const nested = useFloatingParentNodeId() != null;
 
   if (process.env.NODE_ENV !== 'production') {
     createEffect(() => {
-      const optionDomReference = access(options.elements?.reference);
+      const optionDomReference = props.elements?.reference;
       if (optionDomReference && !isElement(optionDomReference)) {
         console.error(
           'Cannot pass a virtual element to the `elements.reference` option,',
@@ -39,14 +39,14 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
 
   const store = FloatingRootStore({
     get open() {
-      return open();
+      return props.open;
     },
     onOpenChange: options.onOpenChange,
     get referenceElement() {
-      return access(options.elements?.reference) ?? null;
+      return props.elements?.reference ?? null;
     },
     get floatingElement() {
-      return access(options.elements?.floating) ?? null;
+      return props.elements?.floating ?? null;
     },
     triggerElements: new PopupTriggerMap(),
     get floatingId() {
@@ -58,19 +58,20 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
 
   createEffect(() => {
     const valuesToSync: Writeable<Partial<FloatingRootState>> = {
-      open: open(),
+      open: props.open,
       floatingId: floatingId(),
     };
 
     // Only sync elements that are defined to avoid overwriting existing ones
     if (options.elements?.reference !== undefined) {
-      const ref = access(options.elements.reference);
-      valuesToSync.referenceElement = ref;
-      valuesToSync.domReferenceElement = isElement(ref) ? ref : null;
+      valuesToSync.referenceElement = props.elements?.reference;
+      valuesToSync.domReferenceElement = isElement(props.elements?.reference)
+        ? props.elements?.reference
+        : null;
     }
 
     if (options.elements?.floating !== undefined) {
-      valuesToSync.floatingElement = access(options.elements.floating);
+      valuesToSync.floatingElement = options.elements.floating;
     }
 
     store.update(valuesToSync);

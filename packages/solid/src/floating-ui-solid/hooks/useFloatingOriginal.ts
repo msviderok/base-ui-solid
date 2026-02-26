@@ -10,9 +10,8 @@ import {
   type JSX,
 } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { access, defaultProps } from '../../solid-helpers';
 import type {
-  Accessorify,
   ComputePositionConfig,
   ComputePositionReturn,
   Prettify,
@@ -23,41 +22,37 @@ import type {
 export type UsePositionData = ComputePositionReturn & { isPositioned: boolean };
 
 export type UsePositionOptions<RT extends ReferenceType = ReferenceType> = Prettify<
-  Partial<Accessorify<ComputePositionConfig, 'maybeAccessor'>> & {
+  Partial<ComputePositionConfig> & {
     /**
      * A callback invoked when both the reference and floating elements are
      * mounted, and cleaned up when either is unmounted. This is useful for
      * setting up event listeners (e.g. pass `autoUpdate`).
      */
-    whileElementsMounted?:
-      | ((reference: RT, floating: HTMLElement, update: () => void) => () => void)
-      | {
-          fn: (reference: RT, floating: HTMLElement, update: () => void) => () => void;
-          enabled: MaybeAccessor<boolean | undefined>;
-        };
+    whileElementsMounted?: (reference: RT, floating: HTMLElement, update: () => void) => () => void;
+
     /**
      * Object containing the reference and floating elements.
      */
     elements?: {
-      reference?: MaybeAccessor<RT | null | undefined>;
-      floating?: MaybeAccessor<HTMLElement | null | undefined>;
+      reference?: RT | null | undefined;
+      floating?: HTMLElement | null | undefined;
     };
     /**
      * The `open` state of the floating element to synchronize with the
      * `isPositioned` value.
      * @default false
      */
-    open?: MaybeAccessor<boolean | undefined>;
+    open?: boolean | undefined;
     /**
      * Whether to use `transform` for positioning instead of `top` and `left`
      * (layout) in the `floatingStyles` object.
      * @default true
      */
-    transform?: MaybeAccessor<boolean | undefined>;
+    transform?: boolean | undefined;
   }
 >;
 
-export interface UsePositionFloatingSharedReturn extends Accessorify<UsePositionData> {
+export interface UsePositionFloatingSharedReturn extends UsePositionData {
   /**
    * Update the position of the floating element, re-rendering the component
    * if required.
@@ -66,7 +61,7 @@ export interface UsePositionFloatingSharedReturn extends Accessorify<UsePosition
   /**
    * Pre-configured positioning styles to apply to the floating element.
    */
-  floatingStyles: Accessor<JSX.CSSProperties>;
+  floatingStyles: JSX.CSSProperties;
 }
 
 export type UsePositionFloatingReturn<RT extends ReferenceType = ReferenceType> = Prettify<
@@ -100,38 +95,25 @@ export type UsePositionFloatingReturn<RT extends ReferenceType = ReferenceType> 
 >;
 
 /**
+ * @internal
  * This is a Solid port of the React useFloating hook
  * https://github.com/floating-ui/floating-ui/blob/3286d01bc1425150ad5aaa22aee062fe70fa8f5c/packages/react-dom/src/useFloating.ts
  */
 export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
   options: UseFloatingOptions = {},
 ): UsePositionFloatingReturn<RT> {
-  const open = createMemo(() => access(options.open));
-  const placement = createMemo(() => access(options.placement) ?? 'bottom');
-  const strategy = createMemo(() => access(options.strategy) ?? 'absolute');
-  const middleware = createMemo(() => access(options.middleware) ?? []);
-  const referenceProp = createMemo(() => access(options.elements?.reference));
-  const floatingProp = createMemo(() => access(options.elements?.floating));
-  const transform = createMemo(() => access(options.transform) ?? true);
-  const whileElementsMountedFn = createMemo(() => {
-    if (options.whileElementsMounted == null) {
-      return null;
-    }
-
-    if (typeof options.whileElementsMounted === 'function') {
-      return options.whileElementsMounted;
-    }
-
-    return access(options.whileElementsMounted.enabled) ? options.whileElementsMounted.fn : null;
+  const props = defaultProps(options, {
+    placement: 'bottom',
+    strategy: 'absolute',
+    middleware: [],
+    transform: true,
   });
 
   const [data, setData] = createStore<UsePositionData>({
     x: 0,
     y: 0,
-    // eslint-disable-next-line solid/reactivity
-    strategy: access(strategy()),
-    // eslint-disable-next-line solid/reactivity
-    placement: access(placement()),
+    strategy: access(props.strategy),
+    placement: access(props.placement),
     middlewareData: {},
     isPositioned: false,
   });
@@ -139,8 +121,10 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
   const [reference, setReference] = createSignal<RT | null | undefined>(null);
   const [floating, setFloating] = createSignal<HTMLElement | null | undefined>(null);
 
-  const referenceEl = createMemo(() => (referenceProp() as RT | null | undefined) ?? reference());
-  const floatingEl = createMemo(() => floatingProp() ?? floating());
+  const referenceEl = createMemo(
+    () => (props.elements?.reference as RT | null | undefined) ?? reference(),
+  );
+  const floatingEl = createMemo(() => props.elements?.floating ?? floating());
 
   let isMountedRef = false;
 
@@ -152,12 +136,12 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
     }
 
     const config: ComputePositionConfig = {
-      placement: placement(),
-      strategy: strategy(),
-      middleware: middleware(),
+      placement: props.placement,
+      strategy: props.strategy,
+      middleware: props.middleware,
     };
 
-    const platform = access(options.platform);
+    const platform = options.platform;
     if (platform) {
       config.platform = platform;
     }
@@ -171,7 +155,7 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
             // but still mounted (such as when transitioning out). To ensure
             // `isPositioned` will be `false` initially on the next open, avoid
             // setting it to `true` when `open === false` (must be specified).
-            isPositioned: access(options.open) !== false,
+            isPositioned: options.open !== false,
           }),
         );
       }
@@ -179,7 +163,7 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
   }
 
   createEffect(() => {
-    if (access(options.open) === false && data.isPositioned) {
+    if (options.open === false && data.isPositioned) {
       setData('isPositioned', false);
     }
   });
@@ -193,13 +177,12 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
   });
 
   createEffect(
-    on([referenceEl, floatingEl, whileElementsMountedFn, open], () => {
+    on([referenceEl, floatingEl, () => props.whileElementsMounted, () => options.open], () => {
       const r = referenceEl();
       const f = floatingEl();
       if (r && f) {
-        const whileElementsMounted = whileElementsMountedFn();
-        if (whileElementsMounted) {
-          const cleanup = whileElementsMounted(r, f, update);
+        if (props.whileElementsMounted) {
+          const cleanup = props.whileElementsMounted(r, f, update);
           onCleanup(cleanup);
           return;
         }
@@ -220,7 +203,7 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
 
   const floatingStyles = createMemo<JSX.CSSProperties>(() => {
     const initialStyles: JSX.CSSProperties = {
-      position: strategy(),
+      position: props.strategy,
       left: 0,
       top: 0,
     };
@@ -233,7 +216,7 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
     const x = roundByDPR(el, data.x);
     const y = roundByDPR(el, data.y);
 
-    if (transform()) {
+    if (props.transform) {
       return {
         ...initialStyles,
         transform: `translate(${x}px, ${y}px)`,
@@ -242,7 +225,7 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
     }
 
     return {
-      position: strategy(),
+      position: props.strategy,
       left: `${x}px`,
       top: `${y}px`,
     };
@@ -252,13 +235,27 @@ export function useFloatingOriginal<RT extends ReferenceType = ReferenceType>(
     update,
     refs,
     elements,
-    floatingStyles,
-    isPositioned: () => data.isPositioned,
-    placement: () => data.placement,
-    strategy: () => data.strategy,
-    middlewareData: () => data.middlewareData,
-    x: () => data.x,
-    y: () => data.y,
+    get floatingStyles() {
+      return floatingStyles();
+    },
+    get isPositioned() {
+      return data.isPositioned;
+    },
+    get placement() {
+      return data.placement;
+    },
+    get strategy() {
+      return data.strategy;
+    },
+    get middlewareData() {
+      return data.middlewareData;
+    },
+    get x() {
+      return data.x;
+    },
+    get y() {
+      return data.y;
+    },
   };
 }
 

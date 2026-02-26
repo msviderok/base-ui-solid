@@ -1,4 +1,4 @@
-import { createSignal, splitProps, type JSX } from 'solid-js';
+import { createSignal, Show, splitProps, type JSX } from 'solid-js';
 import {
   flip,
   FloatingFocusManager,
@@ -47,21 +47,40 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
   const nodeId = useFloatingNodeId();
 
   const { floatingStyles, refs, context } = useFloating({
-    open,
-    nodeId,
+    get open() {
+      return open();
+    },
+    get nodeId() {
+      return nodeId();
+    },
     onOpenChange: setOpen,
     middleware: [offset(8), flip(), shift()],
     placement: 'right-start',
   });
 
-  const hover = useHover(() => (hasChildren() ? context : fallbackContext), {
-    handleClose: safePolygon(),
+  const hover = useHover({
+    get context() {
+      return hasChildren() ? context : fallbackContext;
+    },
+    props: {
+      handleClose: safePolygon(),
+    },
   });
-  const focus = useFocus(context, {
-    enabled: hasChildren,
+  const focus = useFocus({
+    context,
+    props: {
+      get enabled() {
+        return hasChildren();
+      },
+    },
   });
-  const dismiss = useDismiss(context, {
-    enabled: hasChildren,
+  const dismiss = useDismiss({
+    context,
+    props: {
+      get enabled() {
+        return hasChildren();
+      },
+    },
   });
 
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss]);
@@ -86,7 +105,7 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
         </a>
       </li>
       <FloatingPortal>
-        {open() && (
+        <Show when={open()}>
           <FloatingFocusManager context={context} modal={false} initialFocus={false}>
             <div
               data-testid="subnavigation"
@@ -101,7 +120,7 @@ export function NavigationItem(props: ItemProps & JSX.HTMLAttributes<HTMLAnchorE
               <ul class="flex flex-col">{local.children}</ul>
             </div>
           </FloatingFocusManager>
-        )}
+        </Show>
       </FloatingPortal>
     </FloatingNode>
   );

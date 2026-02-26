@@ -40,20 +40,38 @@ function Listbox(props: { children: JSX.Element }) {
     setActiveIndex(index);
   }
 
-  const listNav = useListNavigation(context, {
-    listRef: compositeListRefs.elements,
-    activeIndex,
-    selectedIndex,
-    onNavigate: setActiveIndex,
-    focusItemOnHover: false,
+  const listNav = useListNavigation({
+    context,
+    props: {
+      get listRef() {
+        return compositeListRefs.elements;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      get selectedIndex() {
+        return selectedIndex();
+      },
+      onNavigate: setActiveIndex,
+      focusItemOnHover: false,
+    },
   });
-  const typeahead = useTypeahead(context, {
-    listRef: compositeListRefs.labels,
-    activeIndex,
-    selectedIndex,
-    onMatch: handleTypeaheadMatch,
+  const typeahead = useTypeahead({
+    context,
+    props: {
+      get listRef() {
+        return compositeListRefs.labels;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      get selectedIndex() {
+        return selectedIndex();
+      },
+      onMatch: handleTypeaheadMatch,
+    },
   });
-  const role = useRole(context, { role: 'listbox' });
+  const role = useRole({ context, props: { role: 'listbox' } });
 
   const { getFloatingProps, getItemProps } = useInteractions([listNav, typeahead, role]);
 

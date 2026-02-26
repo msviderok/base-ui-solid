@@ -7,10 +7,8 @@ import {
   onCleanup,
   onMount,
   mergeProps as solidMergeProps,
-  type Accessor,
 } from 'solid-js';
-import type { MaybeAccessor } from '../../solid-helpers';
-import { access } from '../../solid-helpers';
+import { access, defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { FloatingUIOpenChangeDetails } from '../../utils/types';
@@ -70,6 +68,13 @@ export function getDelay(
   return value?.[prop];
 }
 
+function getRestMs(value: number | (() => number)) {
+  if (typeof value === 'function') {
+    return value();
+  }
+  return value;
+}
+
 export interface UseHoverProps {
   /**
    * Accepts an event handler that runs on `mousemove` to control when the
@@ -82,19 +87,19 @@ export interface UseHoverProps {
    * before changing the `open` state.
    * @default 0
    */
-  restMs?: MaybeAccessor<number | undefined>;
+  restMs?: (number | (() => number)) | undefined;
   /**
    * Waits for the specified time when the event listener runs before changing
    * the `open` state.
    * @default 0
    */
-  delay?: MaybeAccessor<Delay | undefined>;
+  delay?: (Delay | (() => Delay)) | undefined;
   /**
    * Whether moving the cursor over the floating element will open it, without a
    * regular hover event required.
    * @default true
    */
-  move?: MaybeAccessor<boolean | undefined>;
+  move?: boolean | undefined;
 }
 
 /**
@@ -102,23 +107,25 @@ export interface UseHoverProps {
  * CSS `:hover`.
  * @see https://floating-ui.com/docs/useHover
  */
-export function useHover(
-  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
-  props: UseHoverProps = {},
-): Accessor<ElementProps> {
-  const context = createMemo(() => access(contextProp));
-  const store = createMemo(() => {
-    const ctx = context();
-    return 'rootStore' in ctx ? ctx.rootStore : ctx;
+export function useHover(parameters: {
+  context: FloatingRootContext | FloatingContext;
+  props?: UseHoverProps;
+}): ElementProps {
+  const props = defaultProps(parameters.props ?? {}, {
+    handleClose: null,
+    restMs: 0,
+    delay: 0,
+    move: true,
   });
-  const open = () => store().useState('open')();
-  const floatingElement = () => store().useState('floatingElement')();
-  const domReferenceElement = () => store().useState('domReferenceElement')();
+
+  const store = createMemo(() =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
+  );
+  const open = createMemo(() => store().select('open'));
+  const floatingElement = createMemo(() => store().select('floatingElement'));
+  const domReferenceElement = createMemo(() => store().select('domReferenceElement'));
   const dataRef = () => store().context.dataRef;
   const events = () => store().context.events;
-  const delay = () => access(props.delay) ?? 0;
-  const restMs = () => access(props.restMs) ?? 0;
-  const move = () => access(props.move) ?? true;
 
   const tree = useFloatingTree();
   const parentId = useFloatingParentNodeId();
@@ -196,7 +203,7 @@ export function useHover(
   });
 
   const closeWithDelay = (event: MouseEvent, runElseBranch = true) => {
-    const closeDelay = getDelay(delay(), 'close', pointerTypeRef);
+    const closeDelay = getDelay(props.delay, 'close', pointerTypeRef);
     const fn = () => store().setOpen(false, createChangeEventDetails(REASONS.triggerHover, event));
     if (closeDelay) {
       timeout.start(closeDelay, fn);
@@ -234,11 +241,11 @@ export function useHover(
     timeout.clear();
     blockMouseMoveRef = false;
 
-    if (restMs() > 0 && !getDelay(delay(), 'open')) {
+    if (getRestMs(props.restMs) > 0 && !getDelay(props.delay, 'open')) {
       return;
     }
 
-    const openDelay = getDelay(delay(), 'open', pointerTypeRef);
+    const openDelay = getDelay(props.delay, 'open', pointerTypeRef);
     const trigger = (event.currentTarget as HTMLElement) ?? undefined;
 
     const domReference = store().select('domReferenceElement');
@@ -297,6 +304,7 @@ export function useHover(
           }
         },
       });
+
       const handler = props.handleClose(mergedProps);
 
       doc.addEventListener('mousemove', handler);
@@ -374,7 +382,7 @@ export function useHover(
         trigger.addEventListener('mouseleave', onScrollMouseLeave);
       }
 
-      if (move()) {
+      if (props.move) {
         trigger.addEventListener('mousemove', onReferenceMouseEnter, {
           once: true,
         });
@@ -395,7 +403,7 @@ export function useHover(
           trigger.removeEventListener('mouseleave', onScrollMouseLeave);
         }
 
-        if (move()) {
+        if (props.move) {
           trigger.removeEventListener('mousemove', onReferenceMouseEnter);
         }
 
@@ -481,55 +489,55 @@ export function useHover(
     pointerTypeRef = event.pointerType;
   }
 
-  const reference = createMemo<ElementProps['reference']>(() => {
-    return {
-      ref: () => {
-        onCleanup(cleanup);
-      },
-      onPointerDown: setPointerRef,
-      onPointerEnter: setPointerRef,
-      onMouseMove(event) {
-        const trigger = event.currentTarget as HTMLElement;
+  const reference: ElementProps['reference'] = {
+    ref: () => {
+      onCleanup(cleanup);
+    },
+    onPointerDown: setPointerRef,
+    onPointerEnter: setPointerRef,
+    onMouseMove(event) {
+      const trigger = event.currentTarget as HTMLElement;
 
-        // `true` when there are multiple triggers per floating element and user hovers over the one that
-        // wasn't used to open the floating element.
-        const isOverInactiveTrigger =
-          store().select('domReferenceElement') &&
-          !contains(store().select('domReferenceElement'), event.target as Element);
+      // `true` when there are multiple triggers per floating element and user hovers over the one that
+      // wasn't used to open the floating element.
+      const isOverInactiveTrigger =
+        store().select('domReferenceElement') &&
+        !contains(store().select('domReferenceElement'), event.target as Element);
 
-        function handleMouseMove() {
-          if (!blockMouseMoveRef && (!store().select('open') || isOverInactiveTrigger)) {
-            store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, trigger));
-          }
+      function handleMouseMove() {
+        if (!blockMouseMoveRef && (!store().select('open') || isOverInactiveTrigger)) {
+          store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, trigger));
         }
+      }
 
-        if ((store().select('open') && !isOverInactiveTrigger) || restMs() === 0) {
-          return;
-        }
+      if ((store().select('open') && !isOverInactiveTrigger) || getRestMs(props.restMs) === 0) {
+        return;
+      }
 
-        // Ignore insignificant movements to account for tremors.
-        if (
-          !isOverInactiveTrigger &&
-          restTimeoutPendingRef &&
-          event.movementX ** 2 + event.movementY ** 2 < 2
-        ) {
-          return;
-        }
+      // Ignore insignificant movements to account for tremors.
+      if (
+        !isOverInactiveTrigger &&
+        restTimeoutPendingRef &&
+        event.movementX ** 2 + event.movementY ** 2 < 2
+      ) {
+        return;
+      }
 
-        restTimeout.clear();
+      restTimeout.clear();
 
-        if (pointerTypeRef === 'touch') {
-          handleMouseMove();
-        } else if (isOverInactiveTrigger) {
-          handleMouseMove();
-        } else {
-          restTimeoutPendingRef = true;
-          restTimeout.start(restMs(), handleMouseMove);
-        }
-      },
-    };
-  });
-
-  const returnValue = createMemo<ElementProps>(() => ({ reference: reference() }));
-  return returnValue;
+      if (pointerTypeRef === 'touch') {
+        handleMouseMove();
+      } else if (isOverInactiveTrigger) {
+        handleMouseMove();
+      } else {
+        restTimeoutPendingRef = true;
+        restTimeout.start(getRestMs(props.restMs), handleMouseMove);
+      }
+    },
+  };
+  return {
+    get reference() {
+      return reference;
+    },
+  };
 }

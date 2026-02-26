@@ -119,39 +119,50 @@ export function Main() {
     context,
     placement: resultantPlacement,
   } = useFloating({
-    placement: () => placement() ?? 'bottom-start',
-    open,
+    get placement() {
+      return placement() ?? 'bottom-start';
+    },
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
     // We don't want flipping to occur while searching, as the floating element
     // will resize and cause disorientation.
-    middleware: () => [
-      offset(8),
-      ...(placement() ? [] : [flip()]),
-      arrow({
-        element: arrowRef!,
-        padding: 20,
-      }),
-    ],
+    get middleware() {
+      return [
+        offset(8),
+        ...(placement() ? [] : [flip()]),
+        arrow({
+          element: arrowRef!,
+          padding: 20,
+        }),
+      ];
+    },
     whileElementsMounted: autoUpdate,
   });
 
-  const click = useClick(context);
-  const dismiss = useDismiss(context);
-  const role = useRole(context, { role: 'menu' });
+  const click = useClick({ context });
+  const dismiss = useDismiss({ context });
+  const role = useRole({ context, props: { role: 'menu' } });
 
   // Handles opening the floating element via the Choose Emoji button.
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
-  const listNavigation = useListNavigation(context, {
-    listRef,
-    onNavigate: (index) => (open() ? setActiveIndex(index) : undefined),
-    activeIndex,
-    cols: 3,
-    orientation: 'horizontal',
-    loopFocus: true,
-    focusItemOnOpen: false,
-    virtual: true,
-    allowEscape: true,
+  const listNavigation = useListNavigation({
+    context,
+    props: {
+      listRef,
+      onNavigate: (index) => (open() ? setActiveIndex(index) : undefined),
+      get activeIndex() {
+        return activeIndex();
+      },
+      cols: 3,
+      orientation: 'horizontal',
+      loopFocus: true,
+      focusItemOnOpen: false,
+      virtual: true,
+      allowEscape: true,
+    },
   });
   // Handles the list navigation where the reference is the inner input, not
   // the button that opens the floating element.

@@ -1,8 +1,13 @@
 import { isMac, isSafari } from '@base-ui/utils/detectBrowser';
 import { ownerDocument } from '@base-ui/utils/owner';
 import { getWindow, isElement, isHTMLElement } from '@floating-ui/utils/dom';
-import { createEffect, createMemo, onCleanup, type Accessor } from 'solid-js';
+import { createEffect, createMemo, onCleanup } from 'solid-js';
+import { defaultProps } from '../../solid-helpers';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
+import type { FloatingUIOpenChangeDetails } from '../../utils/types';
 import { useTimeout } from '../../utils/useTimeout';
+import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import {
   activeElement,
   contains,
@@ -11,12 +16,6 @@ import {
   isTypeableElement,
   matchesFocusVisible,
 } from '../utils';
-
-import { access, type MaybeAccessor } from '../../solid-helpers';
-import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
-import { REASONS } from '../../utils/reasons';
-import type { FloatingUIOpenChangeDetails } from '../../utils/types';
-import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import { createAttribute } from '../utils/createAttribute';
 
 const isMacSafari = isMac && isSafari;
@@ -27,12 +26,12 @@ export interface UseFocusProps {
    * handlers.
    * @default true
    */
-  enabled?: MaybeAccessor<boolean | undefined>;
+  enabled?: boolean | undefined;
   /**
    * Waits for the specified time before opening.
    * @default undefined
    */
-  delay?: MaybeAccessor<number | undefined>;
+  delay?: number | undefined;
 }
 
 /**
@@ -40,19 +39,17 @@ export interface UseFocusProps {
  * `:focus`.
  * @see https://floating-ui.com/docs/useFocus
  */
-export function useFocus(
-  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
-  props: UseFocusProps = {},
-): Accessor<ElementProps> {
-  const context = () => access(contextProp);
-  const store = () => {
-    const ctx = context();
-    return 'rootStore' in ctx ? ctx.rootStore : ctx;
-  };
+export function useFocus(parameters: {
+  context: FloatingRootContext | FloatingContext;
+  props?: UseFocusProps;
+}): ElementProps {
+  const props = defaultProps(parameters.props ?? {}, { enabled: true });
+
+  const store = createMemo(() =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
+  );
   const events = () => store().context.events;
   const dataRef = () => store().context.dataRef;
-  const enabled = () => access(props.enabled) ?? true;
-  const delay = () => access(props.delay);
 
   let blockFocusRef = false;
   // Track which reference should be blocked from re-opening after Escape/press dismissal.
@@ -76,7 +73,7 @@ export function useFocus(
 
   createEffect(() => {
     const domReference = store().select('domReferenceElement');
-    if (!enabled()) {
+    if (!props.enabled) {
       return;
     }
 
@@ -118,7 +115,7 @@ export function useFocus(
   }
 
   createEffect(() => {
-    if (!enabled()) {
+    if (!props.enabled) {
       return;
     }
 
@@ -128,7 +125,7 @@ export function useFocus(
     });
   });
 
-  const reference = createMemo<ElementProps['reference']>(() => ({
+  const reference: ElementProps['reference'] = {
     onMouseLeave: () => {
       blockFocusRef = false;
       blockedReferenceRef = null;
@@ -164,12 +161,11 @@ export function useFocus(
       );
 
       const { currentTarget } = event;
-      const delayValue = delay();
 
       if (
         (store().select('open') && movedFromOtherEnabledTrigger) ||
-        delayValue === 0 ||
-        delayValue === undefined
+        props.delay === 0 ||
+        props.delay === undefined
       ) {
         store().setOpen(
           true,
@@ -178,7 +174,7 @@ export function useFocus(
         return;
       }
 
-      timeout.start(delayValue, () => {
+      timeout.start(props.delay, () => {
         if (blockFocusRef) {
           return;
         }
@@ -237,15 +233,14 @@ export function useFocus(
         store().setOpen(false, createChangeEventDetails(REASONS.triggerFocus, event));
       });
     },
-  }));
+  };
 
-  const returnValue = createMemo<ElementProps>(() => {
-    if (!enabled()) {
-      return {};
-    }
-
-    return { reference: reference(), trigger: reference() };
-  });
-
-  return returnValue;
+  return {
+    get reference() {
+      return props.enabled ? reference : undefined;
+    },
+    get trigger() {
+      return props.enabled ? reference : undefined;
+    },
+  };
 }

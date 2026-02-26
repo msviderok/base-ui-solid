@@ -15,7 +15,9 @@ function expectLocation({ x, y }: Coords) {
 function App(props: { enabled?: boolean; axis?: 'both' | 'x' | 'y'; useTriggerProps?: boolean }) {
   const [isOpen, setIsOpen] = createSignal(false);
   const { refs, elements, context } = useFloating({
-    open: isOpen,
+    get open() {
+      return isOpen();
+    },
     onOpenChange: setIsOpen,
   });
   const clientPoint = useClientPoint({

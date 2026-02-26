@@ -81,14 +81,16 @@ function App(
   let ref: HTMLButtonElement | undefined;
   const [open, setOpen] = createSignal(false);
   const { refs, context } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
   });
 
   return (
     <>
       <button data-testid="reference" ref={refs.setReference} onClick={() => setOpen((v) => !v)} />
-      {open() && (
+      <Show when={open()}>
         <FloatingFocusManager
           {...props}
           initialFocus={() => {
@@ -107,7 +109,7 @@ function App(
             {props.children}
           </div>
         </FloatingFocusManager>
-      )}
+      </Show>
       <div tabIndex={0} data-testid="last">
         outside
       </div>
@@ -127,13 +129,17 @@ function Dialog(props: DialogProps) {
   const nodeId = useFloatingNodeId();
 
   const { refs, context } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
-    nodeId,
+    get nodeId() {
+      return nodeId();
+    },
   });
 
-  const click = useClick(context);
-  const dismiss = useDismiss(context, { bubbles: false });
+  const click = useClick({ context });
+  const dismiss = useDismiss({ context, props: { bubbles: false } });
 
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
@@ -142,13 +148,13 @@ function Dialog(props: DialogProps) {
       <Dynamic component={props.children} {...getReferenceProps({ ref: refs.setReference })} />
 
       <FloatingPortal>
-        {open() && (
+        <Show when={open()}>
           <FloatingFocusManager context={context}>
             <div {...getFloatingProps({ ref: refs.setFloating })}>
               <Dynamic component={props.render} close={() => setOpen(false)} />
             </div>
           </FloatingFocusManager>
-        )}
+        </Show>
       </FloatingPortal>
     </FloatingNode>
   );
@@ -323,20 +329,22 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const [removed, setRemoved] = createSignal(false);
 
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
-        const click = useClick(context);
+        const click = useClick({ context });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
         return (
           <>
-            {!removed() && (
+            <Show when={!removed()}>
               <button ref={refs.setReference} {...getReferenceProps()} data-testid="reference" />
-            )}
-            {isOpen() && (
+            </Show>
+            <Show when={isOpen()}>
               <FloatingPortal>
                 <FloatingFocusManager context={context}>
                   <div ref={refs.setFloating} {...getFloatingProps()}>
@@ -352,7 +360,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
                   </div>
                 </FloatingFocusManager>
               </FloatingPortal>
-            )}
+            </Show>
             <button data-testid="fallback" />
           </>
         );
@@ -377,20 +385,22 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const [removed, setRemoved] = createSignal(false);
 
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
-        const click = useClick(context);
+        const click = useClick({ context });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
         return (
           <>
-            {!removed() && (
+            <Show when={!removed()}>
               <button ref={refs.setReference} {...getReferenceProps()} data-testid="reference" />
-            )}
-            {isOpen() && (
+            </Show>
+            <Show when={isOpen()}>
               <FloatingPortal>
                 <FloatingFocusManager context={context} modal={false}>
                   <div ref={refs.setFloating} {...getFloatingProps()}>
@@ -406,7 +416,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
                   </div>
                 </FloatingFocusManager>
               </FloatingPortal>
-            )}
+            </Show>
             <button data-testid="fallback" />
           </>
         );
@@ -431,12 +441,14 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
           const [isOpen, setIsOpen] = createSignal(false);
 
           const { refs, context } = useFloating({
-            open: isOpen,
+            get open() {
+              return isOpen();
+            },
             onOpenChange: setIsOpen,
           });
 
-          const click = useClick(context);
-          const dismiss = useDismiss(context);
+          const click = useClick({ context });
+          const dismiss = useDismiss({ context });
 
           const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
@@ -445,11 +457,11 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
               <button ref={refs.setReference} {...getReferenceProps()}>
                 reference
               </button>
-              {isOpen() && (
+              <Show when={isOpen()}>
                 <FloatingFocusManager context={context}>
                   <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating" />
                 </FloatingFocusManager>
-              )}
+              </Show>
             </>
           );
         }
@@ -484,12 +496,14 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const [isOpen, setIsOpen] = createSignal(false);
 
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
-        const click = useClick(context);
-        const dismiss = useDismiss(context);
+        const click = useClick({ context });
+        const dismiss = useDismiss({ context });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
@@ -498,11 +512,11 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             <button ref={refs.setReference} {...getReferenceProps()}>
               reference
             </button>
-            {isOpen() && (
+            <Show when={isOpen()}>
               <FloatingFocusManager context={context}>
                 <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating" />
               </FloatingFocusManager>
-            )}
+            </Show>
           </>
         );
       }
@@ -526,22 +540,27 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       function App() {
         const [isOpen, setIsOpen] = createSignal(false);
 
-        const { refs, context } = useFloating({ open: isOpen, onOpenChange: setIsOpen });
+        const { refs, context } = useFloating({
+          get open() {
+            return isOpen();
+          },
+          onOpenChange: setIsOpen,
+        });
 
-        const click = useClick(context);
+        const click = useClick({ context });
         const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
         return (
           <>
             <button data-testid="reference" ref={refs.setReference} {...getReferenceProps()} />
             <FloatingPortal>
-              {isOpen() && (
+              <Show when={isOpen()}>
                 <FloatingFocusManager context={context} returnFocus={() => undefined}>
                   <div ref={refs.setFloating} {...getFloatingProps()}>
                     <button data-testid="close" onClick={() => setIsOpen(false)} />
                   </div>
                 </FloatingFocusManager>
-              )}
+              </Show>
             </FloatingPortal>
           </>
         );
@@ -596,19 +615,21 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [open, setOpen] = createSignal(false);
 
       const { floatingStyles, refs, context } = useFloating({
-        open,
+        get open() {
+          return open();
+        },
         onOpenChange: setOpen,
       });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([
-        useClick(context),
-        useDismiss(context),
+        useClick({ context }),
+        useDismiss({ context }),
       ]);
 
       return (
         <>
           <Dynamic component={props.children} {...getReferenceProps({ ref: refs.setReference })} />
-          {open() && (
+          <Show when={open()}>
             <FloatingPortal container={props.portalRef}>
               <FloatingFocusManager context={context} modal={false}>
                 <div ref={refs.setFloating} style={floatingStyles()} {...getFloatingProps()}>
@@ -616,7 +637,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
                 </div>
               </FloatingFocusManager>
             </FloatingPortal>
-          )}
+          </Show>
         </>
       );
     }
@@ -775,7 +796,9 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       function App() {
         const [open, setOpen] = createSignal(false);
         const { refs, context } = useFloating({
-          open,
+          get open() {
+            return open();
+          },
           onOpenChange: setOpen,
         });
 
@@ -789,11 +812,11 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             />
             <button data-testid="btn-1" />
             <button data-testid="btn-2" />
-            {open() && (
+            <Show when={open()}>
               <FloatingFocusManager context={context} modal={false}>
                 <div role="listbox" ref={refs.setFloating} data-testid="floating" />
               </FloatingFocusManager>
-            )}
+            </Show>
           </>
         );
       }
@@ -811,7 +834,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
 
     test('fallback to floating element when it has no tabbable content', async () => {
       function App() {
-        const { refs, context } = useFloating({ open: () => true });
+        const { refs, context } = useFloating({ open: true });
         return (
           <>
             <button data-testid="reference" ref={refs.setReference} />
@@ -850,14 +873,18 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const open = () => (props.open !== undefined ? props.open : internalOpen());
 
         const { refs, context } = useFloating({
-          open,
+          get open() {
+            return open();
+          },
           onOpenChange: setOpen,
-          nodeId,
+          get nodeId() {
+            return nodeId();
+          },
         });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([
-          useClick(context),
-          useDismiss(context, { bubbles: () => false }),
+          useClick({ context }),
+          useDismiss({ context, props: { bubbles: false } }),
         ]);
 
         return (
@@ -950,7 +977,9 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       function App() {
         const [isOpen, setIsOpen] = createSignal(false);
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
@@ -966,11 +995,11 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
               <button data-testid="btn-1" />
               <button data-testid="btn-2" />
             </div>
-            {isOpen() && (
+            <Show when={isOpen()}>
               <FloatingFocusManager context={context}>
                 <div ref={refs.setFloating} data-testid="floating" />
               </FloatingFocusManager>
-            )}
+            </Show>
           </>
         );
       }
@@ -998,7 +1027,9 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       function App() {
         const [isOpen, setIsOpen] = createSignal(false);
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
@@ -1014,11 +1045,11 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
               <button data-testid="btn-1" />
               <button data-testid="btn-2" />
             </div>
-            {isOpen() && (
+            <Show when={isOpen()}>
               <FloatingFocusManager context={context} modal={false}>
                 <div role="listbox" ref={refs.setFloating} data-testid="floating" />
               </FloatingFocusManager>
-            )}
+            </Show>
           </>
         );
       }
@@ -1051,7 +1082,9 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const [disabled, setDisabled] = createSignal(true);
 
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
@@ -1063,11 +1096,11 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
               onClick={() => setIsOpen((v) => !v)}
             />
             <button data-testid="toggle" onClick={() => setDisabled((v) => !v)} />
-            {isOpen() && (
+            <Show when={isOpen()}>
               <FloatingFocusManager context={context} disabled={disabled()}>
                 <div ref={refs.setFloating} data-testid="floating" role="dialog" />
               </FloatingFocusManager>
-            )}
+            </Show>
           </>
         );
       }
@@ -1091,11 +1124,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const [disabled, setDisabled] = createSignal(false);
 
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
-        const click = useClick(context);
+        const click = useClick({ context });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
@@ -1103,11 +1138,11 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
           <>
             <button data-testid="reference" ref={refs.setReference} {...getReferenceProps()} />
             <button data-testid="toggle" onClick={() => setDisabled((v) => !v)} />
-            {isOpen() && (
+            <Show when={isOpen()}>
               <FloatingFocusManager context={context} disabled={disabled()}>
                 <div ref={refs.setFloating} data-testid="floating" {...getFloatingProps()} />
               </FloatingFocusManager>
-            )}
+            </Show>
           </>
         );
       }
@@ -1124,12 +1159,14 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         const [isOpen, setIsOpen] = createSignal(false);
 
         const { refs, context } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
-        const click = useClick(context);
-        const dismiss = useDismiss(context);
+        const click = useClick({ context });
+        const dismiss = useDismiss({ context });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
@@ -1181,7 +1218,9 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       function App() {
         const [open, setOpen] = createSignal(false);
         const { refs, context } = useFloating({
-          open,
+          get open() {
+            return open();
+          },
           onOpenChange: setOpen,
         });
 
@@ -1190,13 +1229,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             <span tabIndex={0} data-testid="first" />
             <button data-testid="reference" ref={refs.setReference} onClick={() => setOpen(true)} />
             <FloatingPortal>
-              {open() && (
+              <Show when={open()}>
                 <FloatingFocusManager context={context} modal={false}>
                   <div data-testid="floating" ref={refs.setFloating}>
                     <span tabIndex={0} data-testid="inside" />
                   </div>
                 </FloatingFocusManager>
-              )}
+              </Show>
             </FloatingPortal>
             <span tabIndex={0} data-testid="last" />
           </>
@@ -1220,7 +1259,9 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       function App() {
         const [open, setOpen] = createSignal(false);
         const { refs, context } = useFloating({
-          open,
+          get open() {
+            return open();
+          },
           onOpenChange: setOpen,
         });
 
@@ -1229,13 +1270,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             <span tabIndex={0} data-testid="first" />
             <button data-testid="reference" ref={refs.setReference} onClick={() => setOpen(true)} />
             <FloatingPortal>
-              {open() && (
+              <Show when={open()}>
                 <FloatingFocusManager context={context} modal={false}>
                   <div data-testid="floating" ref={refs.setFloating}>
                     <span tabIndex={0} data-testid="inside" />
                   </div>
                 </FloatingFocusManager>
-              )}
+              </Show>
             </FloatingPortal>
             <span tabIndex={0} data-testid="last" />
           </>
@@ -1309,18 +1350,20 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       let twoRef: HTMLButtonElement | undefined;
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const click = useClick(context);
+      const click = useClick({ context });
       const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
       return (
         <>
           <button onClick={() => setRemoved(true)}>remove</button>
           <button ref={refs.setReference} {...getReferenceProps()} data-testid="reference" />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager
               context={context}
               restoreFocus={restoreFocus()}
@@ -1328,11 +1371,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             >
               <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating">
                 <button>one</button>
-                {!removed() && <button ref={twoRef}>two</button>}
+                <Show when={!removed()}>
+                  <button ref={twoRef}>two</button>
+                </Show>
                 <button>three</button>
               </div>
             </FloatingFocusManager>
-          )}
+          </Show>
         </>
       );
     }
@@ -1387,13 +1432,15 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, floatingStyles, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const role = useRole(context);
-      const dismiss = useDismiss(context);
-      const click = useClick(context);
+      const role = useRole({ context });
+      const dismiss = useDismiss({ context });
+      const click = useClick({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([role, dismiss, click]);
 
@@ -1405,14 +1452,14 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             data-testid="input"
             role="combobox"
           />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context}>
               <div ref={refs.setFloating} style={floatingStyles()} {...getFloatingProps()}>
                 <button>one</button>
                 <button>two</button>
               </div>
             </FloatingFocusManager>
-          )}
+          </Show>
         </div>
       );
     }
@@ -1434,13 +1481,15 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, floatingStyles, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const role = useRole(context);
-      const dismiss = useDismiss(context);
-      const click = useClick(context);
+      const role = useRole({ context });
+      const dismiss = useDismiss({ context });
+      const click = useClick({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([role, dismiss, click]);
 
@@ -1452,7 +1501,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             data-testid="input"
             role="combobox"
           />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingPortal>
               <FloatingFocusManager context={context} initialFocus={false} modal={false}>
                 <div ref={refs.setFloating} style={floatingStyles()} {...getFloatingProps()}>
@@ -1461,7 +1510,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
                 </div>
               </FloatingFocusManager>
             </FloatingPortal>
-          )}
+          </Show>
           <button>outside</button>
         </>
       );
@@ -1480,11 +1529,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
   test('returns focus to last connected element', async () => {
     function Drawer(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
       const { refs, context } = useFloating({
-        open: () => props.open,
+        get open() {
+          return props.open;
+        },
         // eslint-disable-next-line solid/reactivity
         onOpenChange: props.onOpenChange,
       });
-      const dismiss = useDismiss(context);
+      const dismiss = useDismiss({ context });
       const { getFloatingProps } = useInteractions([dismiss]);
 
       return (
@@ -1501,19 +1552,21 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isDrawerOpen, setIsDrawerOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const dismiss = useDismiss(context);
-      const click = useClick(context);
+      const dismiss = useDismiss({ context });
+      const click = useClick({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
       return (
         <>
           <button ref={refs.setReference} data-testid="parent-reference" {...getReferenceProps()} />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context}>
               <div ref={refs.setFloating} {...getFloatingProps()}>
                 Parent Floating
@@ -1528,8 +1581,10 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
                 />
               </div>
             </FloatingFocusManager>
-          )}
-          {isDrawerOpen() && <Drawer open={isDrawerOpen()} onOpenChange={setIsDrawerOpen} />}
+          </Show>
+          <Show when={isDrawerOpen()}>
+            <Drawer open={isDrawerOpen()} onOpenChange={setIsDrawerOpen} />
+          </Show>
         </>
       );
     }
@@ -1550,11 +1605,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const role = useRole(context);
+      const role = useRole({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([role]);
 
@@ -1566,13 +1623,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
               onClick: () => setIsOpen((v) => !v),
             })}
           />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context}>
               <div ref={refs.setFloating} data-testid="outer">
                 <div {...getFloatingProps()} data-testid="inner" />
               </div>
             </FloatingFocusManager>
-          )}
+          </Show>
         </>
       );
     }
@@ -1590,11 +1647,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const click = useClick(context);
+      const click = useClick({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
@@ -1606,13 +1665,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             data-testid="input"
             role="combobox"
           />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context} initialFocus={false}>
               <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating">
                 <button tabIndex={-1}>one</button>
               </div>
             </FloatingFocusManager>
-          )}
+          </Show>
           <button data-testid="after" />
         </>
       );
@@ -1632,11 +1691,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const click = useClick(context);
+      const click = useClick({ context });
       const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
       return (
@@ -1647,13 +1708,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             data-testid="input"
             role="combobox"
           />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context} initialFocus={false} modal>
               <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating">
                 <button tabIndex={-1}>one</button>
               </div>
             </FloatingFocusManager>
-          )}
+          </Show>
           <button data-testid="after" />
         </>
       );
@@ -1689,22 +1750,24 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const hover = useHover(context);
+      const hover = useHover({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([hover]);
 
       return (
         <>
           <button ref={refs.setReference} {...getReferenceProps()} data-testid="reference" />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context}>
               <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating" />
             </FloatingFocusManager>
-          )}
+          </Show>
         </>
       );
     }
@@ -1730,22 +1793,24 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const hover = useHover(context);
+      const hover = useHover({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([hover]);
 
       return (
         <>
           <button ref={refs.setReference} {...getReferenceProps()} data-testid="reference" />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context}>
               <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating" />
             </FloatingFocusManager>
-          )}
+          </Show>
           <button>outside</button>
         </>
       );
@@ -1765,18 +1830,20 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
       return (
         <>
           <button data-testid="reference" ref={refs.setReference} onClick={() => setIsOpen(true)} />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context} initialFocus={false} modal={false}>
               <div ref={refs.setFloating} data-testid="floating" role="dialog" />
             </FloatingFocusManager>
-          )}
+          </Show>
         </>
       );
     }
@@ -1797,11 +1864,13 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const click = useClick(context);
+      const click = useClick({ context });
       const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
       return (
@@ -1814,7 +1883,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
           >
             ref
           </button>
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context} initialFocus={false} modal={false}>
               <div
                 ref={refs.setFloating}
@@ -1825,7 +1894,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
                 floating
               </div>
             </FloatingFocusManager>
-          )}
+          </Show>
         </>
       );
     }
@@ -1842,18 +1911,20 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
       return (
         <>
           <button data-testid="reference" ref={refs.setReference} onClick={() => setIsOpen(true)} />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingFocusManager context={context} modal={false}>
               <div ref={refs.setFloating} data-testid="floating" role="dialog" />
             </FloatingFocusManager>
-          )}
+          </Show>
         </>
       );
     }
@@ -1875,17 +1946,19 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
       const [isOpen, setIsOpen] = createSignal(false);
 
       const { refs, context } = useFloating({
-        open: isOpen,
+        get open() {
+          return isOpen();
+        },
         onOpenChange: setIsOpen,
       });
 
-      const click = useClick(context);
+      const click = useClick({ context });
       const { getReferenceProps, getFloatingProps } = useInteractions([click]);
 
       return (
         <>
           <button data-testid="reference" ref={refs.setReference} {...getReferenceProps()} />
-          {isOpen() && (
+          <Show when={isOpen()}>
             <FloatingPortal>
               <FloatingFocusManager context={context} modal={false}>
                 <div
@@ -1898,7 +1971,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
                 </div>
               </FloatingFocusManager>
             </FloatingPortal>
-          )}
+          </Show>
         </>
       );
     }

@@ -1,4 +1,15 @@
-import { children, onMount, splitProps, type Accessor, type JSX, type SplitProps } from 'solid-js';
+import {
+  children,
+  createMemo,
+  onMount,
+  mergeProps as solidMergeProps,
+  splitProps,
+  type Accessor,
+  type JSX,
+  type MergeProps,
+  type SplitProps,
+} from 'solid-js';
+import type { FloatingContext, FloatingRootContext } from './floating-ui-solid';
 
 export function callEventHandler<T, E extends Event>(
   eventHandler: JSX.EventHandlerUnion<T, E> | undefined,
@@ -87,4 +98,24 @@ export function useRef<T>(initialValue: T | null): ReactLikeRef<T | null>;
 export function useRef<T>(initialValue: T | undefined): ReactLikeRef<T | undefined> {
   const ref = { current: initialValue };
   return ref;
+}
+
+type Simplify<T> = T extends any ? { [K in keyof T]: T[K] } : T;
+type OnlyDeclaredProps<P, D extends Partial<P>> = {
+  -readonly [K in keyof D]-?: D[K] | Exclude<P[K extends keyof P ? K : never], undefined>;
+};
+
+export type PropsMergeWithDefault<P, D extends Partial<P>> = Simplify<{
+  [K in keyof (P & OnlyDeclaredProps<P, D>)]: K extends keyof D
+    ? OnlyDeclaredProps<P, D>[K]
+    : P[K extends keyof P ? K : never];
+}>;
+
+export function defaultProps<
+  P,
+  D extends Partial<P>,
+  C extends { [K in Extract<keyof D, keyof P> as keyof D]?: D[K] },
+>(props: P, defaults: D extends C ? D : C) {
+  // eslint-disable-next-line solid/reactivity
+  return solidMergeProps(defaults, props) as PropsMergeWithDefault<P, D>;
 }

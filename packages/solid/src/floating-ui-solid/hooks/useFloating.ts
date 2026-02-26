@@ -21,8 +21,8 @@ import { useFloatingRootContext } from './useFloatingRootContext';
 
 export function useFloating(options: UseFloatingOptions = {}): UseFloatingReturn {
   const internalRootStore = useFloatingRootContext(options);
+  const rootContext = createMemo(() => options.rootContext || internalRootStore);
 
-  const rootContext = () => access(options.rootContext) || internalRootStore;
   const rootContextElements = {
     reference: () => rootContext().useState('referenceElement')(),
     floating: () => rootContext().useState('floatingElement')(),
@@ -123,13 +123,13 @@ export function useFloating(options: UseFloatingOptions = {}): UseFloatingReturn
   const context: FloatingContext = {
     // from UsePositionFloatingReturn
     update: position.update,
-    floatingStyles: position.floatingStyles,
-    isPositioned: position.isPositioned,
-    placement: position.placement,
-    strategy: position.strategy,
-    middlewareData: position.middlewareData,
-    x: position.x,
-    y: position.y,
+    floatingStyles: () => position.floatingStyles,
+    isPositioned: () => position.isPositioned,
+    placement: () => position.placement,
+    strategy: () => position.strategy,
+    middlewareData: () => position.middlewareData,
+    x: () => position.x,
+    y: () => position.y,
 
     // from FloatingRootContext
     get dataRef() {
@@ -167,13 +167,13 @@ export function useFloating(options: UseFloatingOptions = {}): UseFloatingReturn
 
   return {
     update: position.update,
-    floatingStyles: position.floatingStyles,
-    isPositioned: position.isPositioned,
-    placement: position.placement,
-    strategy: position.strategy,
-    middlewareData: position.middlewareData,
-    x: position.x,
-    y: position.y,
+    floatingStyles: () => position.floatingStyles,
+    isPositioned: () => position.isPositioned,
+    placement: () => position.placement,
+    strategy: () => position.strategy,
+    middlewareData: () => position.middlewareData,
+    x: () => position.x,
+    y: () => position.y,
     context,
     refs,
     elements,

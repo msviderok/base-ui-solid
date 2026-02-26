@@ -38,7 +38,9 @@ function App(
 ) {
   const [open, setOpen] = createSignal(true);
   const { context, refs } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange(openArg, data) {
       setOpen(openArg);
       const reason = data?.reason;
@@ -62,7 +64,7 @@ function App(
     },
   });
 
-  const dismiss = useDismiss(context, props);
+  const dismiss = useDismiss({ context, props });
   const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
   return (
@@ -150,11 +152,13 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
         const [isOpen, setIsOpen] = createSignal(true);
 
         const { context, refs } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
-        const dismiss = useDismiss(context);
+        const dismiss = useDismiss({ context });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
@@ -185,11 +189,13 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
         const [isOpen, setIsOpen] = createSignal(true);
 
         const { context, refs } = useFloating({
-          open: isOpen,
+          get open() {
+            return isOpen();
+          },
           onOpenChange: setIsOpen,
         });
 
-        const dismiss = useDismiss(context);
+        const dismiss = useDismiss({ context });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
@@ -309,11 +315,13 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
       function App() {
         const [open, setOpen] = createSignal(true);
         const { context, refs } = useFloating({
-          open,
+          get open() {
+            return open();
+          },
           onOpenChange: setOpen,
         });
 
-        const dismiss = useDismiss(context);
+        const dismiss = useDismiss({ context });
         const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
         return (
@@ -354,24 +362,28 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
       const nodeId = useFloatingNodeId();
 
       const { context, refs } = useFloating({
-        open,
+        get open() {
+          return open();
+        },
         onOpenChange: setOpen,
-        nodeId,
+        get nodeId() {
+          return nodeId();
+        },
       });
 
-      const dismiss = useDismiss(context, others);
+      const dismiss = useDismiss({ context, props: others });
       const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
       return (
         <FloatingNode id={nodeId()}>
           <button {...getReferenceProps({ ref: refs.setReference })} />
-          {open() && (
+          <Show when={open()}>
             <FloatingFocusManager context={context}>
               <div {...getFloatingProps({ ref: refs.setFloating })} data-testid={local.testId}>
                 {local.children}
               </div>
             </FloatingFocusManager>
-          )}
+          </Show>
         </FloatingNode>
       );
     }
@@ -505,18 +517,22 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
           const [tooltipOpen, setTooltipOpen] = createSignal(false);
 
           const popover = useFloating({
-            open: popoverOpen,
+            get open() {
+              return popoverOpen();
+            },
             onOpenChange: setPopoverOpen,
           });
           const tooltip = useFloating({
-            open: tooltipOpen,
+            get open() {
+              return tooltipOpen();
+            },
             onOpenChange: setTooltipOpen,
           });
 
-          const popoverInteractions = useInteractions([useDismiss(popover.context)]);
+          const popoverInteractions = useInteractions([useDismiss({ context: popover.context })]);
           const tooltipInteractions = useInteractions([
-            useFocus(tooltip.context),
-            useDismiss(tooltip.context),
+            useFocus({ context: tooltip.context }),
+            useDismiss({ context: tooltip.context }),
           ]);
 
           return (
@@ -710,18 +726,22 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
       const nodeId = useFloatingNodeId();
 
       const { context, refs } = useFloating({
-        open,
+        get open() {
+          return open();
+        },
         onOpenChange: setOpen,
-        nodeId,
+        get nodeId() {
+          return nodeId();
+        },
       });
 
-      const dismiss = useDismiss(context, others);
+      const dismiss = useDismiss({ context, props: others });
       const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
       return (
         <FloatingNode id={nodeId()}>
           <button {...getReferenceProps({ ref: refs.setReference })} />
-          {open() && (
+          <Show when={open()}>
             <FloatingPortal>
               <FloatingFocusManager context={context}>
                 <div {...getFloatingProps({ ref: refs.setFloating })}>
@@ -730,7 +750,7 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
                 </div>
               </FloatingFocusManager>
             </FloatingPortal>
-          )}
+          </Show>
         </FloatingNode>
       );
     }
@@ -841,12 +861,14 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
     }) {
       const [open, setOpen] = createSignal(false);
       const { context, refs, floatingStyles } = useFloating({
-        open,
+        get open() {
+          return open();
+        },
         onOpenChange: setOpen,
       });
 
-      const click = useClick(context);
-      const dismiss = useDismiss(context);
+      const click = useClick({ context });
+      const dismiss = useDismiss({ context });
 
       const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
@@ -886,11 +908,9 @@ describe.skipIf(!isJSDOM)('useDismiss', () => {
 
     render(() => <App />);
 
-    console.log('click 1');
     await userEvent.click(screen.getByText('open 1'));
     expect(screen.getByText('open 2')).toBeInTheDocument();
 
-    console.log('click 2');
     await userEvent.click(screen.getByText('open 2'));
     await flushMicrotasks();
 

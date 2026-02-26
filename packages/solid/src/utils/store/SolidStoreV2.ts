@@ -19,6 +19,8 @@ export function SolidStore<
   const context = initialContext;
   const [state, setState] = createInitialStore(initialState);
 
+  const store = createMemo(() => ('rootStore' in context ? context.rootStore : context));
+
   function update(statePart: Partial<State>) {
     setState(statePart as any);
   }
@@ -197,6 +199,9 @@ export function SolidStore<
     useContextCallback,
     useStateSetter,
     observe,
+    get store() {
+      return store();
+    },
   };
 }
 

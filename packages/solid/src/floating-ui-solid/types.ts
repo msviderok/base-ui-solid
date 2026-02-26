@@ -126,7 +126,7 @@ export interface ContextData {
 
 export type FloatingRootContext = FloatingRootStore;
 
-export interface FloatingContext extends UsePositionFloatingSharedReturn {
+export interface FloatingContext extends Accessorify<UsePositionFloatingSharedReturn> {
   open: Accessor<boolean>;
   onOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails<string>): void;
   events: FloatingEvents;
@@ -184,11 +184,11 @@ export interface UseFloatingOptions extends Omit<UsePositionOptions, 'elements'>
         /**
          * Externally passed reference element. Store in state.
          */
-        reference?: MaybeAccessor<(ReferenceType | null) | undefined>;
+        reference?: (ReferenceType | null) | undefined;
         /**
          * Externally passed floating element. Store in state.
          */
-        floating?: MaybeAccessor<(HTMLElement | null) | undefined>;
+        floating?: (HTMLElement | null) | undefined;
       }
     | undefined;
   /**
@@ -199,7 +199,7 @@ export interface UseFloatingOptions extends Omit<UsePositionOptions, 'elements'>
   /**
    * Unique node id when using `FloatingTree`.
    */
-  nodeId?: MaybeAccessor<string | undefined>;
+  nodeId?: string | undefined;
   /**
    * External FlatingTree to use when the one provided by context can't be used.
    */

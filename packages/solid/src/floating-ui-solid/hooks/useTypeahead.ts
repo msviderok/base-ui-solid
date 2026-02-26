@@ -1,5 +1,5 @@
-import { createEffect, createMemo, type Accessor } from 'solid-js';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { createEffect, createMemo } from 'solid-js';
+import { defaultProps } from '../../solid-helpers';
 import { useTimeout } from '../../utils/useTimeout';
 import type { ElementProps, FloatingContext, FloatingRootContext } from '../types';
 import { contains, stopEvent } from '../utils';
@@ -10,12 +10,12 @@ export interface UseTypeaheadProps {
    * elements of the list.
    * @default empty list
    */
-  listRef: MaybeAccessor<Array<string | null>>;
+  listRef: Array<string | null>;
   /**
    * The index of the active (focused or highlighted) item in the list.
    * @default null
    */
-  activeIndex: MaybeAccessor<number | null>;
+  activeIndex: number | null;
   /**
    * Callback invoked with the matching index if found as the user types.
    */
@@ -29,17 +29,17 @@ export interface UseTypeaheadProps {
    * handlers.
    * @default true
    */
-  enabled?: MaybeAccessor<boolean | undefined>;
+  enabled?: boolean | undefined;
   /**
    * The number of milliseconds to wait before resetting the typed string.
    * @default 750
    */
-  resetMs?: MaybeAccessor<number | undefined>;
+  resetMs?: number | undefined;
   /**
    * The index of the selected item in the list, if available.
    * @default null
    */
-  selectedIndex?: MaybeAccessor<(number | null) | undefined>;
+  selectedIndex?: (number | null) | undefined;
 }
 
 /**
@@ -47,30 +47,29 @@ export interface UseTypeaheadProps {
  * types, often used in tandem with `useListNavigation()`.
  * @see https://floating-ui.com/docs/useTypeahead
  */
-export function useTypeahead(
-  contextProp: MaybeAccessor<FloatingRootContext | FloatingContext>,
-  props: UseTypeaheadProps,
-): Accessor<ElementProps> {
-  const context = () => access(contextProp);
-  const store = () => {
-    const ctx = context();
-    return 'rootStore' in ctx ? ctx.rootStore : ctx;
-  };
-  const open = () => store().useState('open')();
+export function useTypeahead(parameters: {
+  context: FloatingRootContext | FloatingContext;
+  props?: UseTypeaheadProps;
+}): ElementProps {
+  const props = defaultProps(parameters.props ?? ({} as Required<UseTypeaheadProps>), {
+    enabled: true,
+    resetMs: 750,
+    selectedIndex: null,
+  });
+
+  const store = createMemo(() =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
+  );
   const dataRef = () => store().context.dataRef;
-  const listRef = () => access(props.listRef);
-  const activeIndex = () => access(props.activeIndex);
-  const enabled = () => access(props.enabled) ?? true;
-  const resetMs = () => access(props.resetMs) ?? 750;
-  const selectedIndex = () => access(props.selectedIndex) ?? null;
+  const open = createMemo(() => store().select('open'));
 
   const timeout = useTimeout();
   let stringRef = '';
-  let prevIndexRef: number | null = selectedIndex() ?? activeIndex() ?? -1;
+  let prevIndexRef: number | null = props.selectedIndex ?? props.activeIndex ?? -1;
   let matchIndexRef: number | null = null;
 
   createEffect(() => {
-    if (!open() && selectedIndex() !== null) {
+    if (!open() && props.selectedIndex !== null) {
       return;
     }
 
@@ -85,7 +84,7 @@ export function useTypeahead(
   createEffect(() => {
     // Sync arrow key navigation but not typeahead navigation.
     if (open() && stringRef === '') {
-      prevIndexRef = selectedIndex() ?? activeIndex() ?? -1;
+      prevIndexRef = props.selectedIndex ?? props.activeIndex ?? -1;
     }
   });
 
@@ -114,10 +113,8 @@ export function useTypeahead(
       return str ? list.indexOf(str) : -1;
     }
 
-    const listContent = listRef();
-
     if (stringRef.length > 0 && stringRef[0] !== ' ') {
-      if (getMatchingIndex(listContent, listContent, stringRef) === -1) {
+      if (getMatchingIndex(props.listRef, props.listRef, stringRef) === -1) {
         setTypingChange(false);
       } else if (event.key === ' ') {
         stopEvent(event);
@@ -125,7 +122,7 @@ export function useTypeahead(
     }
 
     if (
-      listContent == null ||
+      props.listRef == null ||
       // Character key.
       event.key.length !== 1 ||
       // Modifier key.
@@ -144,12 +141,12 @@ export function useTypeahead(
     // Capture whether this is a new typing session before mutating the string.
     const isNewSession = stringRef === '';
     if (isNewSession) {
-      prevIndexRef = selectedIndex() ?? activeIndex() ?? -1;
+      prevIndexRef = props.selectedIndex ?? props.activeIndex ?? -1;
     }
 
     // Bail out if the list contains a word like "llama" or "aaron". TODO:
     // allow it in this case, too.
-    const allowRapidSuccessionOfFirstLetter = listContent.every((text) =>
+    const allowRapidSuccessionOfFirstLetter = props.listRef.every((text) =>
       text ? text[0]?.toLocaleLowerCase() !== text[1]?.toLocaleLowerCase() : true,
     );
 
@@ -161,22 +158,25 @@ export function useTypeahead(
     }
 
     stringRef += event.key;
-    timeout.start(resetMs(), () => {
+    const fn = () => {
       stringRef = '';
       prevIndexRef = matchIndexRef;
       setTypingChange(false);
-    });
+    };
+    timeout.start(props.resetMs, fn);
 
     // Compute the starting index for this search.
     // If this is a new typing session (string is empty), base it on the current
     // selection/active item; otherwise continue from the last matched index.
-    const prevIndex = isNewSession ? (selectedIndex() ?? activeIndex() ?? -1) : prevIndexRef;
+    const prevIndex = isNewSession
+      ? (props.selectedIndex ?? props.activeIndex ?? -1)
+      : prevIndexRef;
 
     const index = getMatchingIndex(
-      listContent,
+      props.listRef,
       [
-        ...listContent.slice((prevIndexRef || 0) + 1),
-        ...listContent.slice(0, (prevIndexRef || 0) + 1),
+        ...props.listRef.slice((prevIndex || 0) + 1),
+        ...props.listRef.slice(0, (prevIndex || 0) + 1),
       ],
       stringRef,
     );
@@ -209,25 +209,27 @@ export function useTypeahead(
     setTypingChange(false);
   };
 
-  const reference = createMemo<ElementProps['reference']>(() => ({ onKeyDown, onBlur }));
-
-  const floating = createMemo<ElementProps['floating']>(() => ({
+  const reference: ElementProps['reference'] = {
     onKeyDown,
-    onKeyUp: (event) => {
+    onBlur,
+  };
+
+  const floating: ElementProps['floating'] = {
+    onKeyDown,
+    onKeyUp(event) {
       if (event.key === ' ') {
         setTypingChange(false);
       }
     },
     onBlur,
-  }));
+  };
 
-  const returnValue = createMemo<ElementProps>(() => {
-    if (!enabled()) {
-      return {};
-    }
-
-    return { reference: reference(), floating: floating() };
-  });
-
-  return returnValue;
+  return {
+    get reference() {
+      return props.enabled ? reference : undefined;
+    },
+    get floating() {
+      return props.enabled ? floating : undefined;
+    },
+  };
 }

@@ -37,7 +37,7 @@ import {
   useTypeahead,
 } from '../../src/floating-ui-solid';
 import { getEmptyRootContext } from '../../src/floating-ui-solid/utils/getEmptyRootContext';
-import { callEventHandler } from '../../src/solid-helpers';
+import { callEventHandler, defaultProps } from '../../src/solid-helpers';
 
 type MenuContextType = {
   getItemProps: ReturnType<typeof useInteractions>['getItemProps'];
@@ -72,7 +72,11 @@ interface MenuProps {
 }
 
 /** @internal */
-export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonElement>) {
+export function MenuComponent(componentProps: MenuProps & JSX.HTMLAttributes<HTMLButtonElement>) {
+  const props = defaultProps(componentProps, {
+    keepMounted: false,
+    openOnFocus: false,
+  });
   const [local, elementProps] = splitProps(props, [
     'children',
     'label',
@@ -81,8 +85,6 @@ export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonEl
     'orientation',
     'openOnFocus',
   ]);
-  const keepMounted = () => local.keepMounted ?? false;
-  const openOnFocus = () => local.openOnFocus ?? false;
   const [isOpen, setIsOpen] = createSignal(false);
   const [activeIndex, setActiveIndex] = createSignal<number | null>(null);
   const [allowHover, setAllowHover] = createSignal(false);
@@ -103,45 +105,87 @@ export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonEl
   const item = useCompositeListItem();
 
   const { floatingStyles, refs, context } = useFloating({
-    nodeId,
-    open: isOpen,
+    get nodeId() {
+      return nodeId();
+    },
+    get open() {
+      return isOpen();
+    },
     onOpenChange: setIsOpen,
-    placement: isNested ? 'right-start' : 'bottom-start',
-    middleware: [
-      offset({ mainAxis: isNested ? 0 : 4, alignmentAxis: isNested ? -4 : 0 }),
-      flip(),
-      shift(),
-    ],
+    get placement() {
+      return isNested ? 'right-start' : 'bottom-start';
+    },
+    get middleware() {
+      return [
+        offset({ mainAxis: isNested ? 0 : 4, alignmentAxis: isNested ? -4 : 0 }),
+        flip(),
+        shift(),
+      ];
+    },
     whileElementsMounted: autoUpdate,
   });
   const fallbackContext = getEmptyRootContext();
   const hoverContext = () => (isNested && allowHover() ? context : fallbackContext);
 
-  const hover = useHover(hoverContext, {
-    delay: { open: 75 },
-    handleClose: safePolygon({ blockPointerEvents: true }),
+  const hover = useHover({
+    get context() {
+      return hoverContext();
+    },
+    props: {
+      delay: { open: 75 },
+      handleClose: safePolygon({ blockPointerEvents: true }),
+    },
   });
-  const click = useClick(context, {
-    event: 'mousedown',
-    toggle: () => !isNested || !allowHover(),
-    ignoreMouse: isNested,
+  const click = useClick({
+    context,
+    props: {
+      event: 'mousedown',
+      get toggle() {
+        return !isNested || !allowHover();
+      },
+      ignoreMouse: isNested,
+    },
   });
-  const focus = useFocus(context, { enabled: openOnFocus });
-  const role = useRole(context, { role: 'menu' });
-  const dismiss = useDismiss(context, { bubbles: true });
-  const listNavigation = useListNavigation(context, {
-    listRef: compositeListRefs.elements,
-    activeIndex,
-    nested: isNested,
-    onNavigate: setActiveIndex,
-    orientation,
-    // eslint-disable-next-line solid/reactivity
-    cols: local.cols,
+  const focus = useFocus({
+    context,
+    props: {
+      get enabled() {
+        return props.openOnFocus;
+      },
+    },
   });
-  const typeahead = useTypeahead(context, {
-    listRef: compositeListRefs.labels,
-    onMatch: (index) => (isOpen() ? setActiveIndex(index) : undefined),
-    activeIndex,
+  const role = useRole({ context, props: { role: 'menu' } });
+  const dismiss = useDismiss({ context, props: { bubbles: true } });
+  const listNavigation = useListNavigation({
+    context,
+    props: {
+      get listRef() {
+        return compositeListRefs.elements;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      nested: isNested,
+      onNavigate: setActiveIndex,
+      get orientation() {
+        return orientation();
+      },
+      get cols() {
+        return local.cols;
+      },
+    },
+  });
+  const typeahead = useTypeahead({
+    context,
+    props: {
+      get listRef() {
+        return compositeListRefs.labels;
+      },
+      onMatch: (index) => (isOpen() ? setActiveIndex(index) : undefined),
+      get activeIndex() {
+        return activeIndex();
+      },
+    },
   });
 
   const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
@@ -278,7 +322,7 @@ export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonEl
         }}
       >
         <CompositeList refs={compositeListRefs}>
-          {(keepMounted() || isOpen()) && (
+          {(props.keepMounted || isOpen()) && (
             <FloatingPortal>
               <FloatingFocusManager
                 context={context}
@@ -297,7 +341,7 @@ export function MenuComponent(props: MenuProps & JSX.HTMLAttributes<HTMLButtonEl
                     ...floatingStyles(),
                     '--cols': local.cols,
                     // eslint-disable-next-line no-nested-ternary
-                    visibility: !keepMounted() ? undefined : isOpen() ? 'visible' : 'hidden',
+                    visibility: !props.keepMounted ? undefined : isOpen() ? 'visible' : 'hidden',
                   }}
                   aria-hidden={!isOpen()}
                   /**

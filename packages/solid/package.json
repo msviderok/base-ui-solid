@@ -94,12 +94,11 @@
     "@base-ui/utils": "workspace:*",
     "@floating-ui/dom": "^1.7.2",
     "@floating-ui/utils": "^0.2.10",
-    "@solid-primitives/props": "^3.2.2",
-    "@solidjs/router": "^0.15.3",
     "babel-preset-solid": "^1.9.10",
     "tabbable": "^6.4.0"
   },
   "devDependencies": {
+    "@solidjs/router": "^0.15.3",
     "@solidjs/testing-library": "0.8.10",
     "@testing-library/user-event": "14.6.1",
     "@types/chai": "5.2.3",

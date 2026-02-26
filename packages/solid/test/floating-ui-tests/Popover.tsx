@@ -21,6 +21,7 @@ import {
 } from '../../src/floating-ui-solid';
 import type { Placement } from '../../src/floating-ui-solid/types';
 import { getEmptyRootContext } from '../../src/floating-ui-solid/utils/getEmptyRootContext';
+import { defaultProps } from '../../src/solid-helpers';
 
 /** @internal */
 export function Main() {
@@ -111,18 +112,25 @@ interface Props {
 }
 
 /** @internal */
-function PopoverComponent(props: Props) {
+function PopoverComponent(componentProps: Props) {
+  const props = defaultProps(componentProps, {
+    modal: true,
+    bubbles: true,
+    hover: false,
+  });
   const [open, setOpen] = createSignal(false);
-
-  const modal = () => props.modal ?? true;
-  const bubbles = () => props.bubbles ?? true;
-  const hover = () => props.hover ?? false;
 
   const nodeId = useFloatingNodeId();
   const { floatingStyles, refs, context } = useFloating({
-    nodeId,
-    open,
-    placement: () => props.placement,
+    get nodeId() {
+      return nodeId();
+    },
+    get open() {
+      return open();
+    },
+    get placement() {
+      return props.placement;
+    },
     onOpenChange: setOpen,
     middleware: [offset(10), flip(), shift()],
     whileElementsMounted: autoUpdate,
@@ -133,12 +141,17 @@ function PopoverComponent(props: Props) {
   const descriptionId = `${id}-description`;
   const fallbackContext = getEmptyRootContext();
 
-  const hoverInteraction = useHover(() => (hover() ? context : fallbackContext), {
-    handleClose: safePolygon({ blockPointerEvents: true }),
+  const hoverInteraction = useHover({
+    get context() {
+      return props.hover ? context : fallbackContext;
+    },
+    props: {
+      handleClose: safePolygon({ blockPointerEvents: true }),
+    },
   });
-  const click = useClick(context);
-  const role = useRole(context);
-  const dismiss = useDismiss(context, { bubbles });
+  const click = useClick({ context });
+  const role = useRole({ context });
+  const dismiss = useDismiss({ context, props: { bubbles: props.bubbles } });
 
   const { getReferenceProps, getFloatingProps } = useInteractions([
     hoverInteraction,
@@ -158,8 +171,8 @@ function PopoverComponent(props: Props) {
       />
 
       <FloatingPortal>
-        {open() && (
-          <FloatingFocusManager context={context} modal={modal()}>
+        <Show when={open()}>
+          <FloatingFocusManager context={context} modal={props.modal}>
             <div
               class="border-slate-900/10 rounded border bg-white bg-clip-padding px-4 py-6 shadow-md"
               ref={refs.setFloating}
@@ -176,7 +189,7 @@ function PopoverComponent(props: Props) {
               />
             </div>
           </FloatingFocusManager>
-        )}
+        </Show>
       </FloatingPortal>
     </FloatingNode>
   );

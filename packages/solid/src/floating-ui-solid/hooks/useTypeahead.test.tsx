@@ -1,8 +1,7 @@
-import userEvent from '@testing-library/user-event';
-import { vi } from 'vitest';
-
 import { render, screen, waitFor } from '@solidjs/testing-library';
-import { createSignal, For, type JSX } from 'solid-js';
+import userEvent from '@testing-library/user-event';
+import { createSignal, Index, Show, type JSX } from 'solid-js';
+import { vi } from 'vitest';
 import { Main } from '../../../test/floating-ui-tests/Menu';
 import { useClick, useFloating, useInteractions, useTypeahead } from '../index';
 import type { UseTypeaheadProps } from './useTypeahead';
@@ -23,20 +22,38 @@ const useImpl = (
   const [open, setOpen] = createSignal(true);
   const [activeIndex, setActiveIndex] = createSignal<null | number>(null);
   const { refs, context } = useFloating({
-    open: () => props.open ?? open(),
-    onOpenChange: (opened) => props.onOpenChange?.(opened) ?? setOpen(opened),
-  });
-  const typeahead = useTypeahead(context, {
-    listRef: () => props.list ?? ['one', 'two', 'three'],
-    activeIndex,
-    onMatch(index) {
-      setActiveIndex(index);
-      props.onMatch?.(index);
+    get open() {
+      return props.open ?? open();
     },
-    onTypingChange: (isTyping) => props.onTypingChange?.(isTyping),
+    get onOpenChange() {
+      return props.onOpenChange ?? setOpen;
+    },
   });
-  const click = useClick(context, {
-    enabled: addUseClick,
+  const typeahead = useTypeahead({
+    context,
+    props: {
+      get listRef() {
+        return props.list ?? ['one', 'two', 'three'];
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      onMatch(index) {
+        setActiveIndex(index);
+        props.onMatch?.(index);
+      },
+      get onTypingChange() {
+        return props.onTypingChange;
+      },
+    },
+  });
+  const click = useClick({
+    context,
+    props: {
+      get enabled() {
+        return addUseClick();
+      },
+    },
   });
 
   const { getReferenceProps, getFloatingProps } = useInteractions([typeahead, click]);
@@ -165,21 +182,21 @@ describe('useTypeahead', () => {
         >
           <input ref={inputRef} readOnly />
         </div>
-        {open() && (
+        <Show when={open()}>
           <div {...getFloatingProps()}>
-            <For each={props.list}>
+            <Index each={props.list}>
               {(value, i) => (
                 <div
                   role="option"
-                  tabIndex={i() === activeIndex() ? 0 : -1}
-                  aria-selected={i() === activeIndex()}
+                  tabIndex={i === activeIndex() ? 0 : -1}
+                  aria-selected={i === activeIndex()}
                 >
-                  {value}
+                  {value()}
                 </div>
               )}
-            </For>
+            </Index>
           </div>
-        )}
+        </Show>
       </>
     );
   }

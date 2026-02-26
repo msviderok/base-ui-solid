@@ -1,7 +1,8 @@
 import { ownerDocument } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
-import { createEffect, onCleanup, mergeProps as solidMergeProps } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 import { produce } from 'solid-js/store';
+import { defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { useFloatingParentNodeId, useFloatingTree } from '../components/FloatingTree';
@@ -37,7 +38,7 @@ export function useHoverFloatingInteraction(parameters: {
   context: FloatingRootContext | FloatingContext;
   parameters: UseHoverFloatingInteractionProps;
 }): void {
-  const params = solidMergeProps(parameters.parameters, { enabled: true, closeDelay: 0 });
+  const props = defaultProps(parameters.parameters, { enabled: true, closeDelay: 0 });
   const store =
     'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context;
 
@@ -66,7 +67,7 @@ export function useHoverFloatingInteraction(parameters: {
     isTargetInsideEnabledTrigger(target, store.context.triggerElements);
 
   const closeWithDelay = (event: MouseEvent, runElseBranch = true) => {
-    const closeDelay = getDelay(params.closeDelay, instance.pointerType);
+    const closeDelay = getDelay(props.closeDelay, instance.pointerType);
     if (closeDelay && !instance.handler) {
       instance.openChangeTimeout.start(closeDelay, () =>
         store.setOpen(false, createChangeEventDetails(REASONS.triggerHover, event)),
@@ -121,7 +122,7 @@ export function useHoverFloatingInteraction(parameters: {
   });
 
   createEffect(() => {
-    if (!params.enabled) {
+    if (!props.enabled) {
       return;
     }
 
@@ -161,7 +162,7 @@ export function useHoverFloatingInteraction(parameters: {
   });
 
   createEffect(() => {
-    if (!params.enabled) {
+    if (!props.enabled) {
       return;
     }
 

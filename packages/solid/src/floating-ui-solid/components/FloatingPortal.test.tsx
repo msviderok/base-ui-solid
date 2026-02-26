@@ -13,7 +13,9 @@ interface AppProps {
 function App(props: AppProps) {
   const [open, setOpen] = createSignal(false);
   const { refs } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
   });
 

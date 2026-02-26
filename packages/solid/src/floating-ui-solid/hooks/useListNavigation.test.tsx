@@ -21,19 +21,28 @@ function App(
   const [activeIndex, setActiveIndex] = createSignal<null | number>(null);
   const listRef: Array<HTMLLIElement | null> = [];
   const { refs, context } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
   });
 
   const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
-    useClick(context),
-    useListNavigation(context, {
-      ...props,
-      listRef,
-      activeIndex,
-      onNavigate(index) {
-        setActiveIndex(index);
-        props.onNavigate?.(index, undefined);
+    useClick({ context }),
+    useListNavigation({
+      context,
+      get props() {
+        return {
+          ...props,
+          listRef,
+          get activeIndex() {
+            return activeIndex();
+          },
+          onNavigate(index: number | null) {
+            setActiveIndex(index);
+            props.onNavigate?.(index, undefined);
+          },
+        };
       },
     }),
   ]);
@@ -41,7 +50,7 @@ function App(
   return (
     <>
       <button {...getReferenceProps({ ref: refs.setReference })} />
-      {open() && (
+      <Show when={open()}>
         <div role="menu" {...getFloatingProps({ ref: refs.setFloating })}>
           <ul>
             <Index each={['one', 'two', 'three']}>
@@ -73,7 +82,7 @@ function App(
             </Index>
           </ul>
         </div>
-      )}
+      </Show>
     </>
   );
 }
@@ -187,17 +196,24 @@ describe('useListNavigation', () => {
       const listRef: Array<HTMLElement | null> = [];
 
       const { x, y, strategy, context, refs } = useFloating({
-        open,
+        get open() {
+          return open();
+        },
         onOpenChange: setOpen,
       });
 
-      const dismiss = useDismiss(context);
-      const listNavigation = useListNavigation(context, {
-        listRef,
-        activeIndex,
-        onNavigate: setActiveIndex,
-        virtual: true,
-        loopFocus: true,
+      const dismiss = useDismiss({ context });
+      const listNavigation = useListNavigation({
+        context,
+        props: {
+          listRef,
+          get activeIndex() {
+            return activeIndex();
+          },
+          onNavigate: setActiveIndex,
+          virtual: true,
+          loopFocus: true,
+        },
       });
 
       const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
@@ -231,7 +247,7 @@ describe('useListNavigation', () => {
             })}
             data-testid="reference"
           />
-          {open() && (
+          <Show when={open()}>
             <div
               {...getFloatingProps({
                 ref: refs.setFloating,
@@ -267,7 +283,7 @@ describe('useListNavigation', () => {
                 </For>
               </ul>
             </div>
-          )}
+          </Show>
           <div data-testid="active-index">{activeIndex()}</div>
         </>
       );
@@ -1100,15 +1116,22 @@ describe('useListNavigation', () => {
       const listRef: Array<HTMLLIElement | null> = [];
       const [activeIndex, setActiveIndex] = createSignal<null | number>(null);
       const { refs, context } = useFloating({
-        open,
+        get open() {
+          return open();
+        },
         onOpenChange: setOpen,
       });
 
-      const click = useClick(context);
-      const listNavigation = useListNavigation(context, {
-        listRef: () => listRef,
-        activeIndex,
-        onNavigate: setActiveIndex,
+      const click = useClick({ context });
+      const listNavigation = useListNavigation({
+        context,
+        props: {
+          listRef,
+          get activeIndex() {
+            return activeIndex();
+          },
+          onNavigate: setActiveIndex,
+        },
       });
 
       const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([

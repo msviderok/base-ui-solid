@@ -21,7 +21,9 @@ function Tooltip(props: Props) {
   const [open, setOpen] = createSignal(false);
 
   const { x, y, refs, strategy, context } = useFloating({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: setOpen,
   });
 
@@ -33,7 +35,7 @@ function Tooltip(props: Props) {
       },
     },
   });
-  const hover = useHover(context, { delay: () => delayRef.current });
+  const hover = useHover({ context, props: { delay: () => delayRef.current } });
   const { getReferenceProps } = useInteractions([hover]);
 
   let renderCount = 0;
