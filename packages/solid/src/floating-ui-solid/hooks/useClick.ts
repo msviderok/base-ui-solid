@@ -1,4 +1,3 @@
-import { createMemo } from 'solid-js';
 import { defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
@@ -68,9 +67,10 @@ export function useClick(parameters: {
     reason: REASONS.triggerPress,
   });
 
-  const store = createMemo(() =>
-    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
-  );
+  const store = () => {
+    const context = parameters.context;
+    return 'rootStore' in context ? context.rootStore : context;
+  };
   const dataRef = () => store().context.dataRef;
 
   let pointerTypeRef: 'mouse' | 'pen' | 'touch' | undefined | ({} & string);

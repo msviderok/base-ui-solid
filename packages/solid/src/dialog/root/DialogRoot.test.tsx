@@ -6,8 +6,15 @@ import { defaultProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import type { Component } from 'solid-js';
-import { createSignal, Show, splitProps } from 'solid-js';
+import {
+  createSignal,
+  Show,
+  mergeProps as solidMergeProps,
+  splitProps,
+  type Component,
+  type JSX,
+} from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 import { REASONS } from '../../utils/reasons';
 
 describe('<Dialog.Root />', () => {
@@ -41,12 +48,14 @@ describe('<Dialog.Root />', () => {
         <TestDialog
           rootProps={{ modal: false, open: true }}
           popupProps={{
-            children: (
-              <>
-                <Dialog.Title>title text</Dialog.Title>
-                <Dialog.Description>description text</Dialog.Description>
-              </>
-            ),
+            get children() {
+              return (
+                <>
+                  <Dialog.Title>title text</Dialog.Title>
+                  <Dialog.Description>description text</Dialog.Description>
+                </>
+              );
+            },
           }}
           includeBackdrop
         />
@@ -453,7 +462,9 @@ describe('<Dialog.Root />', () => {
               popupProps={
                 {
                   'data-testid': 'level-1',
-                  children: <button onClick={() => setOpenNested(true)}>Open nested 1</button>,
+                  get children() {
+                    return <button onClick={() => setOpenNested(true)}>Open nested 1</button>;
+                  },
                 } as Dialog.Popup.Props
               }
             />
@@ -462,7 +473,9 @@ describe('<Dialog.Root />', () => {
               popupProps={
                 {
                   'data-testid': 'level-2',
-                  children: <button onClick={() => setOpenNested2(true)}>Open nested 2</button>,
+                  get children() {
+                    return <button onClick={() => setOpenNested2(true)}>Open nested 2</button>;
+                  },
                 } as Dialog.Popup.Props
               }
             />
@@ -633,8 +646,12 @@ describe('<Dialog.Root />', () => {
                 <Menu.Popup>
                   <TestDialog
                     triggerProps={{ children: 'Open dialog' }}
-                    triggerWrapper={(trigger) => (p) => (
-                      <Menu.Item {...p} closeOnClick={false} render={trigger} nativeButton />
+                    triggerWrapper={(trigger) => (
+                      <Menu.Item
+                        closeOnClick={false}
+                        render={{ component: trigger }}
+                        nativeButton
+                      />
                     )}
                   />
                 </Menu.Popup>
@@ -1066,14 +1083,14 @@ type TestDialogProps = {
   popupProps?: Dialog.Popup.Props;
   omitTrigger?: boolean;
   includeBackdrop?: boolean;
-  triggerWrapper?: (trigger: Component) => Component;
+  triggerWrapper?: (trigger: Component) => JSX.Element;
 };
 
 function ContainedTriggerDialog(componentProps: TestDialogProps) {
   const props = defaultProps(componentProps, {
     omitTrigger: false,
     includeBackdrop: false,
-    triggerWrapper: (trigger) => trigger,
+    triggerWrapper: (trigger) => <Dynamic component={trigger} />,
   });
 
   const [localTriggerProps, restTriggerProps] = splitProps(props.triggerProps ?? {}, ['children']);
@@ -1117,14 +1134,16 @@ function ContainedTriggerDialog(componentProps: TestDialogProps) {
   );
 }
 
-function DetachedTriggerDialog(props: Omit<TestDialogProps, 'omitTrigger'>) {
+function DetachedTriggerDialog(componentProps: Omit<TestDialogProps, 'omitTrigger'>) {
+  const props = defaultProps(componentProps, {
+    triggerWrapper: (trigger) => <Dynamic component={trigger} />,
+  });
   const [localTriggerProps, restTriggerProps] = splitProps(props.triggerProps ?? {}, ['children']);
-  const triggerWrapper = props.triggerWrapper ?? ((trigger) => trigger);
   const dialogHandle = Dialog.createHandle();
 
   return (
     <>
-      {triggerWrapper((p) => (
+      {props.triggerWrapper((p) => (
         <Dialog.Trigger {...p} data-testid="trigger" {...restTriggerProps} handle={dialogHandle}>
           {localTriggerProps.children ?? 'Open'}
         </Dialog.Trigger>
@@ -1138,14 +1157,16 @@ function DetachedTriggerDialog(props: Omit<TestDialogProps, 'omitTrigger'>) {
   );
 }
 
-function MultipleDetachedTriggersDialog(props: Omit<TestDialogProps, 'omitTrigger'>) {
+function MultipleDetachedTriggersDialog(componentProps: Omit<TestDialogProps, 'omitTrigger'>) {
+  const props = defaultProps(componentProps, {
+    triggerWrapper: (trigger) => <Dynamic component={trigger} />,
+  });
   const [localTriggerProps, restTriggerProps] = splitProps(props.triggerProps ?? {}, ['children']);
-  const triggerWrapper = props.triggerWrapper ?? ((trigger) => trigger);
   const dialogHandle = Dialog.createHandle();
 
   return (
     <>
-      {triggerWrapper((p) => (
+      {props.triggerWrapper((p) => (
         <Dialog.Trigger {...p} data-testid="trigger" {...restTriggerProps} handle={dialogHandle}>
           {localTriggerProps.children ?? 'Open'}
         </Dialog.Trigger>

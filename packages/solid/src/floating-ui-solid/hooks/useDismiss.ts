@@ -283,14 +283,14 @@ export function useDismiss(parameters: {
     }
 
     if (isEventTargetInsidePortal(event)) {
-      dataRef().insidePortal = true;
+      markinsidePortal();
       /**
        * TODO: explain this properly
        * If the target is inside a portal OR its dismisal is managed externally then don't dismiss here
        */
       const managed = (event.target as HTMLElement)?.hasAttribute(createAttribute('managed'));
 
-      if (!tree && !managed) {
+      if (!tree && !managed && typeof outsidePress() !== 'function') {
         return;
       }
     }

@@ -44,7 +44,7 @@ export function DialogTrigger<Payload>(componentProps: DialogTrigger.Props<Paylo
   });
 
   const thisTriggerId = useBaseUiId(idProp);
-  const floatingContext = createMemo(() => store()?.context.floatingRootContext);
+  const floatingContext = () => store()?.context.floatingRootContext;
   const isOpenedByThisTrigger = createMemo(() =>
     store()?.select('isOpenedByTrigger', thisTriggerId),
   );
