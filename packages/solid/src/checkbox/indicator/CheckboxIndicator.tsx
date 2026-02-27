@@ -20,7 +20,7 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
   const [local, elementProps] = splitProps(componentProps, ['keepMounted']);
   const keepMounted = () => local.keepMounted ?? false;
 
-  const rootState = useCheckboxRootContext();
+  const { state: rootState } = useCheckboxRootContext();
 
   const rendered = () => rootState.checked || rootState.indeterminate;
 
@@ -59,7 +59,9 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
     ref: (el) => {
       indicatorRef = el;
     },
-    stateAttributesMapping,
+    get stateAttributesMapping() {
+      return stateAttributesMapping;
+    },
     props: elementProps,
     enabled: shouldRender,
   });

@@ -5,18 +5,20 @@ import { expect } from 'chai';
 import { createSignal } from 'solid-js';
 import { CheckboxRootContext } from '../root/CheckboxRootContext';
 
-const testContext = () => ({
-  checked: true,
-  disabled: false,
-  readOnly: false,
-  required: false,
-  indeterminate: false,
-  dirty: false,
-  touched: false,
-  valid: null,
-  filled: false,
-  focused: false,
-});
+const testContext = {
+  state: {
+    checked: true,
+    disabled: false,
+    readOnly: false,
+    required: false,
+    indeterminate: false,
+    dirty: false,
+    touched: false,
+    valid: null,
+    filled: false,
+    focused: false,
+  },
+};
 
 describe('<Checkbox.Indicator />', () => {
   beforeEach(() => {
@@ -29,7 +31,7 @@ describe('<Checkbox.Indicator />', () => {
     refInstanceof: window.HTMLSpanElement,
     render: (node, props) =>
       render(() => (
-        <CheckboxRootContext.Provider value={testContext()}>
+        <CheckboxRootContext.Provider value={testContext}>
           {node(props!)}
         </CheckboxRootContext.Provider>
       )),

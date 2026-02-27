@@ -101,26 +101,30 @@ export function CheckboxGroup(componentProps: CheckboxGroup.Props) {
   const resolvedValue = () => value() ?? EMPTY_ARRAY;
 
   createEffect(
-    on(resolvedValue, () => {
-      batch(() => {
-        if (fieldName()) {
-          clearErrors(fieldName());
-        }
+    on(
+      resolvedValue,
+      () => {
+        batch(() => {
+          if (fieldName()) {
+            clearErrors(fieldName());
+          }
 
-        const initialValue = Array.isArray(validityData.initialValue)
-          ? (validityData.initialValue as readonly string[])
-          : EMPTY_ARRAY;
+          const initialValue = Array.isArray(validityData.initialValue)
+            ? (validityData.initialValue as readonly string[])
+            : EMPTY_ARRAY;
 
-        setFilled(resolvedValue().length > 0);
-        setDirty(!areArraysEqual(resolvedValue(), initialValue));
+          setFilled(resolvedValue().length > 0);
+          setDirty(!areArraysEqual(resolvedValue(), initialValue));
 
-        if (shouldValidateOnChange()) {
-          validation.commit(resolvedValue());
-        } else {
-          validation.commit(resolvedValue(), true);
-        }
-      });
-    }),
+          if (shouldValidateOnChange()) {
+            validation.commit(resolvedValue());
+          } else {
+            validation.commit(resolvedValue(), true);
+          }
+        });
+      },
+      { defer: true },
+    ),
   );
 
   const state: CheckboxGroup.State = solidMergeProps(fieldState, {

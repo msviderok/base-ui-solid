@@ -1,7 +1,9 @@
 import { createContext, useContext } from 'solid-js';
 import type { CheckboxRoot } from './CheckboxRoot';
 
-export type CheckboxRootContext = CheckboxRoot.State;
+export type CheckboxRootContext = {
+  state: CheckboxRoot.State;
+};
 
 export const CheckboxRootContext = createContext<CheckboxRootContext>();
 

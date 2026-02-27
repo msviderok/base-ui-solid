@@ -5,6 +5,7 @@ import {
   createSignal,
   on,
   onCleanup,
+  Show,
   mergeProps as solidMergeProps,
   splitProps,
 } from 'solid-js';
@@ -139,8 +140,9 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
         get indeterminate() {
           return localGroup.indeterminate ?? indeterminate();
         },
-        // eslint-disable-next-line solid/reactivity
-        onCheckedChange: localGroup.onCheckedChange,
+        get onCheckedChange() {
+          return localGroup.onCheckedChange;
+        },
       },
     };
   });
@@ -158,7 +160,7 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
     native: nativeButton,
   });
 
-  const validation = () => groupContext?.validation ?? localValidation;
+  const validation = createMemo(() => groupContext?.validation ?? localValidation);
 
   const [checked, setCheckedState] = useControlled({
     controlled: () => {
@@ -206,6 +208,7 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
   });
 
   let inputRef = null as HTMLInputElement | null | undefined;
+  let lastClickEvent: PointerEvent | undefined;
 
   createEffect(() => {
     if (inputRef) {
@@ -217,21 +220,25 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
   });
 
   createEffect(
-    on(checked, () => {
-      if (groupContext && !parent()) {
-        return;
-      }
+    on(
+      checked,
+      () => {
+        if (groupContext && !parent()) {
+          return;
+        }
 
-      clearErrors(name());
-      setFilled(checked());
-      setDirty(checked() !== validityData.initialValue);
+        clearErrors(name());
+        setFilled(checked());
+        setDirty(checked() !== validityData.initialValue);
 
-      if (shouldValidateOnChange()) {
-        validation().commit(checked());
-      } else {
-        validation().commit(checked(), true);
-      }
-    }),
+        if (shouldValidateOnChange()) {
+          validation().commit(checked());
+        } else {
+          validation().commit(checked(), true);
+        }
+      },
+      { defer: true },
+    ),
   );
 
   const inputProps = createMemo<BaseUIHTMLProps<HTMLInputElement>>(() => {
@@ -273,7 +280,10 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
 
           batch(() => {
             const nextChecked = event.target.checked;
-            const details = createChangeEventDetails(REASONS.none, event);
+            // Use the stored click event if available, as the native `change` event
+            // doesn't carry keyboard modifier properties (shiftKey, ctrlKey, etc.)
+            const details = createChangeEventDetails(REASONS.none, lastClickEvent ?? event);
+            lastClickEvent = undefined;
 
             groupProps().local.onCheckedChange?.(nextChecked, details);
             local.onCheckedChange?.(nextChecked, details);
@@ -309,10 +319,12 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
       groupContext ? validation().getValidationProps : validation().getInputValidationProps,
     );
   });
-  const computedChecked = () =>
-    isGroupedWithParent() ? Boolean(groupProps().local.checked) : checked();
-  const computedIndeterminate = () =>
-    isGroupedWithParent() ? groupProps().local.indeterminate || indeterminate() : indeterminate();
+  const computedChecked = createMemo(() =>
+    isGroupedWithParent() ? Boolean(groupProps().local.checked) : checked(),
+  );
+  const computedIndeterminate = createMemo(() =>
+    isGroupedWithParent() ? groupProps().local.indeterminate || indeterminate() : indeterminate(),
+  );
 
   createEffect(() => {
     const val = value();
@@ -402,15 +414,15 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
 
             event.preventDefault();
 
-            inputRef?.dispatchEvent(
-              new PointerEvent('click', {
-                bubbles: true,
-                shiftKey: event.shiftKey,
-                ctrlKey: event.ctrlKey,
-                altKey: event.altKey,
-                metaKey: event.metaKey,
-              }),
-            );
+            const clickEvent = new PointerEvent('click', {
+              bubbles: true,
+              shiftKey: event.shiftKey,
+              ctrlKey: event.ctrlKey,
+              altKey: event.altKey,
+              metaKey: event.metaKey,
+            });
+            lastClickEvent = clickEvent;
+            inputRef?.dispatchEvent(clickEvent);
           },
         },
         getDescriptionProps,
@@ -423,12 +435,18 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
     stateAttributesMapping,
   });
 
+  const contextValue = { state };
+
   return (
-    <CheckboxRootContext.Provider value={state}>
+    <CheckboxRootContext.Provider value={contextValue}>
       {element()}
-      {!checked() && !groupContext && name() && !parent() && local.uncheckedValue !== undefined && (
+      <Show
+        when={
+          !checked() && !groupContext && name() && !parent() && local.uncheckedValue !== undefined
+        }
+      >
         <input type="hidden" name={name()} value={local.uncheckedValue} />
-      )}
+      </Show>
       <input {...(inputProps() as any)} />
     </CheckboxRootContext.Provider>
   );
