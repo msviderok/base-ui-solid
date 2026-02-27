@@ -112,9 +112,8 @@ export function useClientPoint(parameters: {
     axis: 'both',
   });
 
-  const store = createMemo(() =>
-    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
-  );
+  const store = () =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context;
   const open = createMemo(() => store().select('open'));
   const floating = createMemo(() => store().select('floatingElement'));
   const domReference = createMemo(() => store().select('domReferenceElement'));

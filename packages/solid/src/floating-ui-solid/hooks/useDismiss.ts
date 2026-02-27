@@ -144,9 +144,8 @@ export function useDismiss(parameters: {
     ancestorScroll: false,
   });
 
-  const store = createMemo(() =>
-    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
-  );
+  const store = () =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context;
   const dataRef = () => store().context.dataRef;
   const open = createMemo(() => store().select('open'));
   const floatingElement = createMemo(() => store().select('floatingElement'));

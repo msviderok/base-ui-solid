@@ -8,7 +8,7 @@ import {
   type Accessor,
   type JSX,
 } from 'solid-js';
-import { useRef, type ReactLikeRef } from '../../solid-helpers';
+import { defaultProps, useRef, type ReactLikeRef } from '../../solid-helpers';
 import {
   BaseUIChangeEventDetails,
   createChangeEventDetails,
@@ -70,8 +70,8 @@ export interface FloatingDelayGroupProps {
  * @see https://floating-ui.com/docs/FloatingDelayGroup
  * @internal
  */
-export function FloatingDelayGroup(props: FloatingDelayGroupProps): JSX.Element {
-  const initialTimeoutMs = () => props.timeoutMs ?? 0;
+export function FloatingDelayGroup(componentProps: FloatingDelayGroupProps): JSX.Element {
+  const props = defaultProps(componentProps, { timeoutMs: 0 });
   const initialDelay = () => props.delay;
 
   const delayRef = useRef(initialDelay());
@@ -79,7 +79,7 @@ export function FloatingDelayGroup(props: FloatingDelayGroupProps): JSX.Element 
   const currentIdRef = useRef<string | null>(null);
   const currentContextRef = useRef(null);
   const timeout = useTimeout();
-  const [timeoutMs, setTimeoutMs] = createSignal(initialTimeoutMs());
+  const [timeoutMs, setTimeoutMs] = createSignal(props.timeoutMs);
 
   return (
     <FloatingDelayGroupContext.Provider
@@ -127,12 +127,12 @@ interface UseDelayGroupReturn {
  * @see https://floating-ui.com/docs/FloatingDelayGroup
  * @internal
  */
-export function useDelayGroup(props: {
+export function useDelayGroup(parameters: {
   context: FloatingRootContext | FloatingContext;
   options: UseDelayGroupOptions;
 }): UseDelayGroupReturn {
-  const open = () => props.options.open ?? false;
-  const store = () => ('rootStore' in props.context ? props.context.rootStore : props.context);
+  const options = defaultProps(parameters.options ?? {}, { open: false });
+  const store = () => ('rootStore' in parameters.context ? parameters.context.rootStore : parameters.context);
   const floatingId = () => store().state.floatingId;
 
   const {
@@ -162,7 +162,7 @@ export function useDelayGroup(props: {
       return;
     }
 
-    if (!open() && currentIdRef.current === floatingId()) {
+    if (!options.open && currentIdRef.current === floatingId()) {
       setIsInstantPhase(false);
 
       if (timeoutMs()) {
@@ -184,7 +184,7 @@ export function useDelayGroup(props: {
   });
 
   createEffect(() => {
-    if (!open()) {
+    if (!options.open) {
       return;
     }
 

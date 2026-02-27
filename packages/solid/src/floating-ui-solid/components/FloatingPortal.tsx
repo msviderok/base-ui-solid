@@ -16,6 +16,7 @@ import {
   type Ref,
 } from 'solid-js';
 import { Portal } from 'solid-js/web';
+import { defaultProps } from '../../solid-helpers';
 import { ownerVisuallyHidden } from '../../utils/constants';
 import { FocusGuard } from '../../utils/FocusGuard';
 import { useId } from '../../utils/useId';
@@ -73,8 +74,9 @@ export interface UseFloatingPortalNodeResult {
  * @see https://floating-ui.com/docs/FloatingPortal#usefloatingportalnode
  */
 export function useFloatingPortalNode(
-  props: UseFloatingPortalNodeProps = {},
+  componentProps: UseFloatingPortalNodeProps = {},
 ): UseFloatingPortalNodeResult {
+  const props = defaultProps(componentProps, { componentProps: EMPTY_OBJECT });
   const uniqueId = useId();
   const portalContext = usePortalContext();
 
@@ -84,7 +86,7 @@ export function useFloatingPortalNode(
     () => props.container ?? portalContext?.portalNode() ?? document.body,
   );
 
-  const portalElement = useRenderElement('div', props.componentProps ?? EMPTY_OBJECT, {
+  const portalElement = useRenderElement('div', props.componentProps, {
     ref: (el: HTMLDivElement) => {
       setPortalNode(el);
       if (typeof props.ref === 'function') {

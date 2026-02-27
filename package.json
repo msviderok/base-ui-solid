@@ -70,6 +70,7 @@
     "test:solid:webkit": "cross-env VITEST_ENV=webkit pnpm test:solid:_unit",
     "test:solid:webkit:ui": "pnpm test:solid:webkit --browser.headless=false",
     "test:solid:browsers": "cross-env VITEST_ENV=all-browsers pnpm test:solid:_unit",
+    "test:solid:subset": "pnpm test:solid:_unit src/alert-dialog src/avatar src/button src/collapsible src/composite src/dialog src/field src/fieldset src/form src/floating-ui-solid src/use-render src/use-button src/utils",
     "typescript": "tsc -b tsconfig.json",
     "inline-scripts": "tsx ./scripts/inlineScripts.mts",
     "use-react-18": "code-infra set-version-overrides --pkg react@18"

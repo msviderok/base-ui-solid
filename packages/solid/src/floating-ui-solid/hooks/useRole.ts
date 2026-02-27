@@ -34,9 +34,8 @@ export function useRole(parameters: {
 }): ElementProps {
   const props = defaultProps(parameters.props ?? {}, { role: 'dialog' });
 
-  const store = createMemo(() =>
-    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
-  );
+  const store = () =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context;
   const open = createMemo(() => store().select('open'));
   const defaultFloatingId = createMemo(() => store().select('floatingId'));
   const domReference = createMemo(() => store().select('domReferenceElement'));

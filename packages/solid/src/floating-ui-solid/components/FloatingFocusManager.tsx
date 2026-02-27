@@ -263,9 +263,9 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
     openInteractionType: '',
   });
 
-  const store = createMemo(() => {
+  const store = () => {
     return 'rootStore' in props.context ? props.context.rootStore : props.context;
-  });
+  };
   const open = createMemo(() => store().select('open'));
   const domReference = createMemo(() => store().select('domReferenceElement'));
   const floating = createMemo(() => store().select('floatingElement'));

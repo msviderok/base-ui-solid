@@ -45,9 +45,8 @@ export function useFocus(parameters: {
 }): ElementProps {
   const props = defaultProps(parameters.props ?? {}, { enabled: true });
 
-  const store = createMemo(() =>
-    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context,
-  );
+  const store = () =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context;
   const events = () => store().context.events;
   const dataRef = () => store().context.dataRef;
 

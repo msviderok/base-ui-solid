@@ -9,7 +9,7 @@ import { batch, createMemo, createSignal, onMount, Show, type Component, type JS
 import { delegateEvents, Dynamic, render as solidRender } from 'solid-js/web';
 import { test } from 'vitest';
 import { Main as Navigation } from '../../../test/floating-ui-tests/Navigation';
-import { autofocus } from '../../solid-helpers';
+import { autofocus, defaultProps } from '../../solid-helpers';
 import {
   FloatingFocusManager,
   FloatingNode,
@@ -864,8 +864,8 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
         sideChildren?: JSX.Element;
       }
 
-      const Dialog = (props: Props) => {
-        const modal = () => props.modal ?? true;
+      const Dialog = (componentProps: Props) => {
+        const props = defaultProps(componentProps, { modal: true });
         const [internalOpen, setOpen] = createSignal(false);
         const nodeId = useFloatingNodeId();
         const open = () => (props.open !== undefined ? props.open : internalOpen());
@@ -893,7 +893,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
             />
             <FloatingPortal>
               <Show when={open()}>
-                <FloatingFocusManager context={context} modal={modal()}>
+                <FloatingFocusManager context={context} modal={props.modal}>
                   <div {...getFloatingProps({ ref: refs.setFloating })}>
                     <Dynamic component={props.render} close={() => setOpen(false)} />
                   </div>
@@ -1341,8 +1341,8 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
   });
 
   describe('restoreFocus', () => {
-    function App(props: { restoreFocus?: boolean }) {
-      const restoreFocus = () => props.restoreFocus ?? true;
+    function App(componentProps: { restoreFocus?: boolean }) {
+      const props = defaultProps(componentProps, { restoreFocus: true });
       const [isOpen, setIsOpen] = createSignal(false);
       const [removed, setRemoved] = createSignal(false);
       let twoRef: HTMLButtonElement | undefined;
@@ -1364,7 +1364,7 @@ describe.skipIf(!isJSDOM)('FloatingFocusManager', () => {
           <Show when={isOpen()}>
             <FloatingFocusManager
               context={context}
-              restoreFocus={restoreFocus()}
+              restoreFocus={props.restoreFocus}
               initialFocus={twoRef}
             >
               <div ref={refs.setFloating} {...getFloatingProps()} data-testid="floating">

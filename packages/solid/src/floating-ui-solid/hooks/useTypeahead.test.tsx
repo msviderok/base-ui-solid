@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { createSignal, Index, Show, type JSX } from 'solid-js';
+import { defaultProps } from '../../solid-helpers';
 import { vi } from 'vitest';
 import { Main } from '../../../test/floating-ui-tests/Menu';
 import { useClick, useFloating, useInteractions, useTypeahead } from '../index';
@@ -11,14 +12,14 @@ beforeEach(() => {
 });
 
 const useImpl = (
-  props: Pick<UseTypeaheadProps, 'onMatch' | 'onTypingChange'> & {
+  componentProps: Pick<UseTypeaheadProps, 'onMatch' | 'onTypingChange'> & {
     list?: Array<string>;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     addUseClick?: boolean;
   },
 ) => {
-  const addUseClick = () => props.addUseClick ?? false;
+  const props = defaultProps(componentProps, { addUseClick: false });
   const [open, setOpen] = createSignal(true);
   const [activeIndex, setActiveIndex] = createSignal<null | number>(null);
   const { refs, context } = useFloating({
@@ -51,7 +52,7 @@ const useImpl = (
     context,
     props: {
       get enabled() {
-        return addUseClick();
+        return props.addUseClick;
       },
     },
   });

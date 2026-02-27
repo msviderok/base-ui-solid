@@ -3,14 +3,15 @@ import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { createSignal, Show } from 'solid-js';
+import { defaultProps } from '../../solid-helpers';
 import { test, vi } from 'vitest';
 import { Popover } from '../../../test/floating-ui-tests/Popover';
 import { REASONS } from '../../utils/reasons';
 import { useFloating, useHover, useInteractions } from '../index';
 import type { UseHoverProps } from './useHover';
 
-function App(props: UseHoverProps & { showReference?: boolean }) {
-  const showReference = () => props.showReference ?? true;
+function App(componentProps: UseHoverProps & { showReference?: boolean }) {
+  const props = defaultProps(componentProps, { showReference: true });
   const [open, setOpen] = createSignal(false);
   const { refs, context } = useFloating({
     get open() {
@@ -24,7 +25,7 @@ function App(props: UseHoverProps & { showReference?: boolean }) {
 
   return (
     <>
-      <Show when={showReference()}>
+      <Show when={props.showReference}>
         <button {...getReferenceProps({ ref: refs.setReference })} />
       </Show>
       <Show when={open()}>
