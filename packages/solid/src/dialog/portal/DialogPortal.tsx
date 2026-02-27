@@ -25,15 +25,16 @@ export function DialogPortal(props: DialogPortal.Props) {
   return (
     <Show when={shouldRender()}>
       <DialogPortalContext.Provider value={keepMounted}>
-        <FloatingPortal {...portalProps}>
-          {mounted() && modal() === true && (
+        <FloatingPortal {...portalProps} ref={props.ref}>
+          <Show when={mounted() && modal() === true}>
             <InternalBackdrop
+              managed
               ref={(el) => {
-                store.context.refs.internalBackdropRef = el;
+                store.context.internalBackdropRef.current = el;
               }}
               inert={!open()}
             />
-          )}
+          </Show>
           {props.children}
         </FloatingPortal>
       </DialogPortalContext.Provider>

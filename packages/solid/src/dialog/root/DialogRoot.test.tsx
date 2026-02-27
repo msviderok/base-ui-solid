@@ -2,6 +2,7 @@ import { createRenderer, flushMicrotasks, isJSDOM, popupConformanceTests } from 
 import { Dialog } from '@msviderok/base-ui-solid/dialog';
 import { Menu } from '@msviderok/base-ui-solid/menu';
 import { Select } from '@msviderok/base-ui-solid/select';
+import { defaultProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
@@ -670,8 +671,10 @@ describe('<Dialog.Root />', () => {
     describe('prop: actionsRef', () => {
       it('unmounts the dialog when the `unmount` method is called', async () => {
         const actionsRef = {
-          unmount: spy(),
-          close: spy(),
+          current: {
+            unmount: spy(),
+            close: spy(),
+          },
         };
 
         const { user } = render(() => (
@@ -698,7 +701,7 @@ describe('<Dialog.Root />', () => {
           expect(screen.queryByRole('dialog')).not.to.equal(null);
         });
 
-        actionsRef.unmount();
+        actionsRef.current.unmount();
 
         await waitFor(() => {
           expect(screen.queryByRole('dialog')).to.equal(null);
@@ -1066,10 +1069,12 @@ type TestDialogProps = {
   triggerWrapper?: (trigger: Component) => Component;
 };
 
-function ContainedTriggerDialog(props: TestDialogProps) {
-  const omitTrigger = () => props.omitTrigger ?? false;
-  const includeBackdrop = () => props.includeBackdrop ?? false;
-  const triggerWrapper = props.triggerWrapper ?? ((trigger) => trigger);
+function ContainedTriggerDialog(componentProps: TestDialogProps) {
+  const props = defaultProps(componentProps, {
+    omitTrigger: false,
+    includeBackdrop: false,
+    triggerWrapper: (trigger) => trigger,
+  });
 
   const [localTriggerProps, restTriggerProps] = splitProps(props.triggerProps ?? {}, ['children']);
   const [localPopupProps, restPopupProps] = splitProps(props.popupProps ?? {}, ['children']);
@@ -1077,8 +1082,8 @@ function ContainedTriggerDialog(props: TestDialogProps) {
 
   return (
     <Dialog.Root {...props.rootProps}>
-      <Show when={!omitTrigger()}>
-        {triggerWrapper((p) => (
+      <Show when={!props.omitTrigger}>
+        {props.triggerWrapper((p) => (
           <Dialog.Trigger {...p} data-testid="trigger" {...restTriggerProps}>
             {localTriggerProps.children ?? 'Open'}
           </Dialog.Trigger>
@@ -1087,7 +1092,7 @@ function ContainedTriggerDialog(props: TestDialogProps) {
       <Dialog.Portal {...restPortalProps}>
         {localPortalProps.children ?? (
           <>
-            <Show when={includeBackdrop()}>
+            <Show when={props.includeBackdrop}>
               <Dialog.Backdrop
                 data-testid="backdrop"
                 style={{ position: 'fixed', 'z-index': 10, inset: 0 }}

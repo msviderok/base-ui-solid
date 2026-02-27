@@ -1,7 +1,7 @@
 import { createRenderer } from '#test-utils';
 import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
-import { SinonSpy, spy } from 'sinon';
+import { spy } from 'sinon';
 import { createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { SolidStore as SolidStoreV2 } from './SolidStoreV2';

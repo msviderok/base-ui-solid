@@ -3,7 +3,7 @@ import { DialogStore } from '../dialog/store/DialogStore';
 
 export function createAlertDialogHandle<Payload>(): DialogHandle<Payload> {
   return new DialogHandle<Payload>(
-    new DialogStore<Payload>({
+    DialogStore<Payload>({
       modal: true,
       disablePointerDismissal: true,
       role: 'alertdialog',

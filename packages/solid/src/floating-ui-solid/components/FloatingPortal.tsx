@@ -61,7 +61,7 @@ export interface UseFloatingPortalNodeProps {
   ref?: Ref<HTMLDivElement> | undefined;
   container?: (HTMLElement | ShadowRoot | null) | undefined;
   componentProps?: useRenderElement.ComponentProps<any, any> | undefined;
-  elementProps?: JSX.HTMLAttributes<HTMLDivElement> | undefined;
+  elementProps?: useRenderElement.ComponentProps<any, HTMLDivElement> | undefined;
 }
 
 export interface UseFloatingPortalNodeResult {

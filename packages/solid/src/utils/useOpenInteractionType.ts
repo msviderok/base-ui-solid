@@ -1,5 +1,5 @@
 import { isIOS } from '@base-ui/utils/detectBrowser';
-import { createEffect, createSignal } from 'solid-js';
+import { createSignal } from 'solid-js';
 import { access, type MaybeAccessor } from '../solid-helpers';
 import { InteractionType, useEnhancedClickHandler } from './useEnhancedClickHandler';
 

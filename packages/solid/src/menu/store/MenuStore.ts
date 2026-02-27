@@ -1,6 +1,7 @@
 import { EMPTY_OBJECT } from '@base-ui/utils/empty';
-import type { Accessor } from 'solid-js';
+import { type Accessor, mergeProps as solidMergeProps } from 'solid-js';
 import { FloatingTreeStore } from '../../floating-ui-solid/components/FloatingTreeStore';
+import type { ReactLikeRef } from '../../solid-helpers';
 import {
   createInitialPopupStoreState,
   PopupStoreContext,
@@ -8,7 +9,7 @@ import {
   PopupStoreState,
   PopupTriggerMap,
 } from '../../utils/popups';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../../utils/store/SolidStoreV2';
 import { HTMLProps } from '../../utils/types';
 import { MenuParent, MenuRoot } from '../root/MenuRoot';
 
@@ -32,16 +33,14 @@ export type State<Payload> = PopupStoreState<Payload> & {
 };
 
 type Context = PopupStoreContext<MenuRoot.ChangeEventDetails> & {
-  refs: {
-    positionerRef: HTMLElement | null | undefined;
-    popupRef: HTMLElement | null | undefined;
-    typingRef: boolean;
-    itemDomElements: (HTMLElement | null | undefined)[];
-    itemLabels: (string | null)[];
-    allowMouseUpTriggerRef: boolean;
-    triggerFocusTargetRef: HTMLElement | null | undefined;
-    beforeContentFocusGuardRef: HTMLElement | null | undefined;
-  };
+  readonly positionerRef: ReactLikeRef<HTMLElement | null | undefined>;
+  readonly popupRef: ReactLikeRef<HTMLElement | null | undefined>;
+  readonly typingRef: ReactLikeRef<boolean>;
+  readonly itemDomElements: ReactLikeRef<(HTMLElement | null | undefined)[]>;
+  readonly itemLabels: ReactLikeRef<(string | null)[]>;
+  allowMouseUpTriggerRef: ReactLikeRef<boolean>;
+  readonly triggerFocusTargetRef: ReactLikeRef<HTMLElement | null | undefined>;
+  readonly beforeContentFocusGuardRef: ReactLikeRef<HTMLElement | null | undefined>;
 };
 
 const selectors = {
@@ -95,62 +94,42 @@ const selectors = {
   },
 };
 
-export class MenuStore<Payload> extends SolidStore<State<Payload>, Context, typeof selectors> {
-  constructor(initialState?: Partial<State<Payload>>) {
-    super(
-      createInitialState(initialState),
-      {
-        refs: {
-          positionerRef: null,
-          popupRef: null,
-          typingRef: false,
-          itemDomElements: [],
-          itemLabels: [],
-          allowMouseUpTriggerRef: false,
-          triggerFocusTargetRef: null,
-          beforeContentFocusGuardRef: null,
-        },
-        onOpenChangeComplete: undefined,
-        triggerElements: new PopupTriggerMap(),
-      },
-      selectors,
-    );
+export function MenuStore<Payload>(initialState?: Partial<State<Payload>>) {
+  const [state, setState, floatingRootContext] = createInitialState(initialState);
+  const store = SolidStore<State<Payload>, Context, typeof selectors>(
+    [state, setState],
+    {
+      positionerRef: { current: null },
+      popupRef: { current: null },
+      typingRef: { current: false },
+      itemDomElements: { current: [] },
+      itemLabels: { current: [] },
+      allowMouseUpTriggerRef: { current: false },
+      triggerFocusTargetRef: { current: null },
+      beforeContentFocusGuardRef: { current: null },
+      onOpenChangeComplete: undefined,
+      triggerElements: new PopupTriggerMap(),
+      floatingRootContext,
+    },
+    selectors,
+  );
 
-    // Set up propagation of state from parent menu if applicable.
-    this.unsubscribeParentListener = this.observe('parent', (parent) => {
-      this.unsubscribeParentListener?.();
-
-      if (parent.type === 'menu') {
-        this.unsubscribeParentListener = parent.store.subscribe(() => {
-          this.notifyAll();
-        });
-
-        this.context.refs.allowMouseUpTriggerRef = parent.store.context.allowMouseUpTriggerRef;
-        return;
-      }
-
-      if (parent.type !== undefined) {
-        this.context.refs.allowMouseUpTriggerRef = parent.context.refs.allowMouseUpTriggerRef;
-      }
-
-      this.unsubscribeParentListener = null;
-    });
-  }
-
-  setOpen(open: boolean, eventDetails: Omit<MenuRoot.ChangeEventDetails, 'preventUnmountOnClose'>) {
-    this.state.floatingRootContext.context.events.emit('setOpen', { open, eventDetails });
-  }
-
-  public static useStore<Payload>(
-    externalStore: MenuStore<Payload> | undefined,
-    initialState: Partial<State<Payload>>,
+  function setOpen(
+    open: boolean,
+    eventDetails: Omit<MenuRoot.ChangeEventDetails, 'preventUnmountOnClose'>,
   ) {
-    const internalStore = new MenuStore<Payload>(initialState);
-
-    return externalStore ?? internalStore;
+    store.context.floatingRootContext.context.events.emit('setOpen', { open, eventDetails });
   }
 
-  private unsubscribeParentListener: (() => void) | null = null;
+  function useStore<_Payload>(
+    externalStore: MenuStore<_Payload> | undefined,
+    _initialState: Partial<State<_Payload>>,
+  ) {
+    return externalStore ?? MenuStore<_Payload>(_initialState);
+  }
+
+  const merged = solidMergeProps(store, { setOpen });
+  return merged;
 }
 
 function createInitialState<Payload>(initialState?: Partial<State<Payload>>) {
@@ -176,3 +155,5 @@ function createInitialState<Payload>(initialState?: Partial<State<Payload>>) {
     ...initialState,
   });
 }
+
+export type MenuStore<Payload> = ReturnType<typeof MenuStore<Payload>>;

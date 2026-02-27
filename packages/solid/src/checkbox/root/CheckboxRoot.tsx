@@ -218,18 +218,18 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
 
   createEffect(
     on(checked, () => {
-      if (groupContext && !parent) {
+      if (groupContext && !parent()) {
         return;
       }
 
       clearErrors(name());
-      setFilled(checked);
-      setDirty(checked !== validityData.initialValue);
+      setFilled(checked());
+      setDirty(checked() !== validityData.initialValue);
 
       if (shouldValidateOnChange()) {
-        validation().commit(checked);
+        validation().commit(checked());
       } else {
-        validation().commit(checked, true);
+        validation().commit(checked(), true);
       }
     }),
   );
@@ -256,7 +256,7 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
         },
         ref: (el) => {
           inputRef = el;
-          validation().inputRef = el;
+          validation().inputRef.current = el;
         },
         get style() {
           return name() ? visuallyHiddenInput : visuallyHidden;
@@ -353,8 +353,8 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
     state,
     ref: (el) => {
       buttonRef(el);
-      setControlRef(el);
-      groupContext?.registerControlRef(el);
+      setControlRef(el as any);
+      groupContext?.registerControlRef(el as any);
     },
     get props() {
       return [
@@ -395,7 +395,7 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
               }
             });
           },
-          onClick(event: PointerEvent) {
+          onClick(event: MouseEvent) {
             if (readOnly() || disabled()) {
               return;
             }

@@ -13,7 +13,7 @@ export class DialogHandle<Payload> {
   public readonly store: DialogStore<Payload>;
 
   constructor(store?: DialogStore<Payload>) {
-    this.store = store ?? new DialogStore<Payload>();
+    this.store = store ?? DialogStore<Payload>();
   }
 
   /**

@@ -55,8 +55,8 @@ export type BaseUIComponentProps<
   RenderFnElement extends ValidComponent = ValidComponent,
 > = WithBaseUIEvent<
   ElementType extends keyof JSX.IntrinsicElements
-    ? Omit<ComponentProps<ElementType>, 'class'>
-    : Omit<JSX.HTMLAttributes<any>, 'class'>
+    ? Omit<ComponentProps<ElementType>, 'class' | 'style'>
+    : Omit<JSX.HTMLAttributes<any>, 'class' | 'style'>
 > & {
   /**
    * CSS class applied to the element, or a function that

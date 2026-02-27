@@ -1,6 +1,8 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
 
-export const DialogPortalContext = createContext<Accessor<boolean | undefined>>(() => undefined);
+export const DialogPortalContext = createContext<Accessor<boolean | undefined> | undefined>(
+  undefined,
+);
 
 export function useDialogPortalContext() {
   const value = useContext(DialogPortalContext);

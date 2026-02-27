@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-loop-func */
 /**
  * Based on the original implementation of combineProps from @solid-primitives/props:
  * https://github.com/solidjs-community/solid-primitives/blob/0cbdb59bb42f50de5e08000027789ae3d4c80280/packages/props/src/combineProps.ts

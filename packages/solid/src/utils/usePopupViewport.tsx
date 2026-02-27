@@ -9,7 +9,7 @@ import {
 } from 'solid-js';
 import { useDirection } from '../direction-provider';
 import { Dimensions } from '../floating-ui-solid/types';
-import type { SolidStore } from './store/SolidStore';
+import type { SolidStore } from './store/SolidStoreV2';
 import { Side } from './useAnchorPositioning';
 import { useAnimationFrame } from './useAnimationFrame';
 import { useAnimationsFinished } from './useAnimationsFinished';

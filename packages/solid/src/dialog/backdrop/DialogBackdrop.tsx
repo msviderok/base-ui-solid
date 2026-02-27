@@ -39,7 +39,7 @@ export function DialogBackdrop(componentProps: DialogBackdrop.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      store.context.refs.backdropRef = el;
+      store.context.backdropRef.current = el;
     },
     stateAttributesMapping,
     props: [

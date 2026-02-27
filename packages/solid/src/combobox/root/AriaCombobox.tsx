@@ -976,12 +976,19 @@ export function AriaCombobox<Value = any, Mode extends SelectionMode = 'none'>(
   );
 
   const floatingRootContext = useFloatingRootContext({
-    open: () => (inline() ? true : open()),
-    onOpenChange: (nextOpen, eventDetails) =>
-      setOpen(nextOpen, eventDetails as AriaCombobox.ChangeEventDetails),
+    get open() {
+      return inline() ? true : open();
+    },
+    onOpenChange(nextOpen, eventDetails) {
+      setOpen(nextOpen, eventDetails as AriaCombobox.ChangeEventDetails);
+    },
     elements: {
-      reference: () => (inputInsidePopup() ? triggerElement() : inputElement()),
-      floating: positionerElement,
+      get reference() {
+        return inputInsidePopup() ? triggerElement() : inputElement();
+      },
+      get floating() {
+        return positionerElement();
+      },
     },
   });
 
@@ -999,102 +1006,142 @@ export function AriaCombobox<Value = any, Mode extends SelectionMode = 'none'>(
     return undefined;
   });
 
-  const role = createMemo<ElementProps>(() => {
-    const isPlainInput = inputElement()?.tagName === 'INPUT';
-    const shouldApplyAria = isPlainInput || open();
+  const role: ElementProps = {
+    get reference() {
+      const isPlainInput = inputElement()?.tagName === 'INPUT';
+      const shouldApplyAria = isPlainInput || open();
 
-    const reference = isPlainInput
-      ? ({
-          autoComplete: 'off',
-          spellCheck: 'false',
-          autoCorrect: 'off',
-          autoCapitalize: 'none',
-        } as HTMLProps<HTMLInputElement>)
-      : {};
+      const refData = isPlainInput
+        ? ({
+            autoComplete: 'off',
+            spellCheck: 'false',
+            autoCorrect: 'off',
+            autoCapitalize: 'none',
+          } as HTMLProps<HTMLInputElement>)
+        : {};
 
-    if (shouldApplyAria) {
-      reference.role = 'combobox';
-      reference['aria-expanded'] = ariaExpanded();
-      reference['aria-haspopup'] = ariaHasPopup();
-      reference['aria-controls'] = open() ? listElement()?.id : undefined;
-      reference['aria-autocomplete'] = autoComplete();
-    }
+      if (shouldApplyAria) {
+        refData.role = 'combobox';
+        refData['aria-expanded'] = ariaExpanded();
+        refData['aria-haspopup'] = ariaHasPopup();
+        refData['aria-controls'] = open() ? listElement()?.id : undefined;
+        refData['aria-autocomplete'] = autoComplete();
+      }
 
-    return {
-      reference,
-      floating: { role: 'presentation' },
-    } as any;
-  });
-
-  const click = useClick(floatingRootContext, {
-    enabled: () => !readOnly() && !disabled() && openOnInputClick(),
-    event: 'mousedown-only',
-    toggle: false,
-    // Apply a small delay for touch to let iOS viewport centering settle.
-    // This avoids top-bottom flip flickers if the preferred position is "top" when first tapping.
-    touchOpenDelay: () => (inputInsidePopup() ? 0 : 50),
-    reason: REASONS.inputPress,
-  });
-
-  const dismiss = useDismiss(floatingRootContext, {
-    enabled: () => !readOnly() && !disabled() && !inline(),
-    outsidePressEvent: {
-      mouse: 'sloppy',
-      // The visual viewport (affected by the mobile software keyboard) can be
-      // somewhat small. The user may want to scroll the screen to see more of
-      // the popup.
-      touch: 'intentional',
+      return refData as any;
     },
-    // Without a popup, let the Escape key bubble the event up to other popups' handlers.
-    bubbles: () => (inline() ? true : undefined),
-    outsidePress(event) {
-      const target = getTarget(event) as Element | null;
-      return (
-        !contains(triggerElement(), target) &&
-        !contains(clearRef, target) &&
-        !contains(chipsContainerRef, target)
-      );
+    floating: { role: 'presentation' },
+  };
+
+  const click = useClick({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !readOnly() && !disabled() && openOnInputClick();
+      },
+      event: 'mousedown-only',
+      toggle: false,
+      // Apply a small delay for touch to let iOS viewport centering settle.
+      // This avoids top-bottom flip flickers if the preferred position is "top" when first tapping.
+      get touchOpenDelay() {
+        return inputInsidePopup() ? 0 : 50;
+      },
+      reason: REASONS.inputPress,
     },
   });
 
-  const listNavigation = useListNavigation(floatingRootContext, {
-    enabled: () => !readOnly() && !disabled(),
-    id,
-    listRef,
-    activeIndex,
-    selectedIndex,
-    virtual: true,
-    loopFocus,
-    allowEscape: () => loopFocus() && !autoHighlightMode(),
-    focusItemOnOpen: () =>
-      queryChangedAfterOpen() || (selectionMode() === 'none' && !autoHighlightMode())
-        ? false
-        : 'auto',
-    focusItemOnHover: highlightItemOnHover,
-    resetOnPointerLeave: () => !keepHighlight(),
-    // `cols` > 1 enables grid navigation.
-    // Since <Combobox.Row> infers column sizes (and is required when building a grid),
-    // it works correctly even with a value of `2`.
-    // Floating UI tests don't require `role="row"` wrappers, so retains the number API.
-    cols: () => (grid() ? 2 : 1),
-    orientation: () => (grid() ? 'horizontal' : undefined),
-    disabledIndices: EMPTY_ARRAY as number[],
-    onNavigate(nextActiveIndex, event) {
-      // Retain the highlight only while actually transitioning out or closed.
-      if ((!event && !open()) || transitionStatus() === 'ending') {
-        return;
-      }
+  const dismiss = useDismiss({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !readOnly() && !disabled() && !inline();
+      },
+      outsidePressEvent: {
+        mouse: 'sloppy',
+        // The visual viewport (affected by the mobile software keyboard) can be
+        // somewhat small. The user may want to scroll the screen to see more of
+        // the popup.
+        touch: 'intentional',
+      },
+      // Without a popup, let the Escape key bubble the event up to other popups' handlers.
+      get bubbles() {
+        return inline() ? true : undefined;
+      },
+      outsidePress(event) {
+        const target = getTarget(event) as Element | null;
+        return (
+          !contains(triggerElement(), target) &&
+          !contains(clearRef, target) &&
+          !contains(chipsContainerRef, target)
+        );
+      },
+    },
+  });
 
-      if (!event) {
-        setIndices({
-          activeIndex: nextActiveIndex,
-        });
-      } else {
-        setIndices({
-          activeIndex: nextActiveIndex,
-          type: keyboardActiveRef ? 'keyboard' : 'pointer',
-        });
-      }
+  const listNavigation = useListNavigation({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !readOnly() && !disabled();
+      },
+      get id() {
+        return id();
+      },
+      get listRef() {
+        return listRef;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      get selectedIndex() {
+        return selectedIndex();
+      },
+      virtual: true,
+      get loopFocus() {
+        return loopFocus();
+      },
+      get allowEscape() {
+        return loopFocus() && !autoHighlightMode();
+      },
+      get focusItemOnOpen() {
+        return queryChangedAfterOpen() || (selectionMode() === 'none' && !autoHighlightMode())
+          ? false
+          : 'auto';
+      },
+      get focusItemOnHover() {
+        return highlightItemOnHover();
+      },
+      get resetOnPointerLeave() {
+        return !keepHighlight();
+      },
+      // `cols` > 1 enables grid navigation.
+      // Since <Combobox.Row> infers column sizes (and is required when building a grid),
+      // it works correctly even with a value of `2`.
+      // Floating UI tests don't require `role="row"` wrappers, so retains the number API.
+      get cols() {
+        return grid() ? 2 : 1;
+      },
+      get orientation() {
+        return grid() ? 'horizontal' : undefined;
+      },
+      disabledIndices: EMPTY_ARRAY as number[],
+      onNavigate(nextActiveIndex, event) {
+        // Retain the highlight only while actually transitioning out or closed.
+        if ((!event && !open()) || transitionStatus() === 'ending') {
+          return;
+        }
+
+        if (!event) {
+          setIndices({
+            activeIndex: nextActiveIndex,
+          });
+        } else {
+          setIndices({
+            activeIndex: nextActiveIndex,
+            type: keyboardActiveRef ? 'keyboard' : 'pointer',
+          });
+        }
+      },
     },
   });
 

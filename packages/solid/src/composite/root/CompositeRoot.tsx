@@ -1,6 +1,6 @@
-import { batch, mergeProps as solidMergeProps, type JSX } from 'solid-js';
+import { batch, type JSX } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
-import { access, splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
+import { access, defaultProps, splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
 import { EMPTY_ARRAY, EMPTY_OBJECT } from '../../utils/constants';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import type { BaseUIComponentProps } from '../../utils/types';
@@ -37,48 +37,45 @@ export function CompositeRoot<Metadata extends {}, State extends Record<string, 
     'tag',
     'rootRef',
   ]);
-  const mergedProps = solidMergeProps(
-    {
-      refs: EMPTY_ARRAY as ReactLikeRef<HTMLElement>[],
-      props: EMPTY_ARRAY,
-      state: EMPTY_OBJECT,
-      stopEventPropagation: true,
-      highlightItemOnHover: false,
-      tag: 'div',
-    } as typeof local,
-    local,
-  );
+  const props = defaultProps(local, {
+    refs: EMPTY_ARRAY as ReactLikeRef<HTMLElement>[],
+    props: EMPTY_ARRAY as Array<Record<string, any> | (() => Record<string, any>)>,
+    state: EMPTY_OBJECT as State,
+    stopEventPropagation: true,
+    highlightItemOnHover: false,
+    tag: 'div',
+  });
 
   const direction = useDirection();
   const {
-    props: defaultProps,
+    props: rootDefaultProps,
     highlightedIndex,
     onHighlightedIndexChange,
     onMapChange: onMapChangeUnwrapped,
     relayKeyboardEvent,
     setRootRef,
     refs: elementsRefs,
-  } = useCompositeRoot(mergedProps, direction);
+  } = useCompositeRoot(props, direction);
 
   const contextValue: CompositeRootContext = {
     highlightedIndex,
-    highlightItemOnHover: () => access(mergedProps.highlightItemOnHover) ?? false,
+    highlightItemOnHover: () => access(props.highlightItemOnHover) ?? false,
     onHighlightedIndexChange,
     relayKeyboardEvent,
   };
 
-  const element = useRenderElement(() => mergedProps.tag, componentProps, {
+  const element = useRenderElement(() => props.tag, componentProps, {
     get state() {
-      return mergedProps.state;
+      return props.state;
     },
     get ref() {
-      return [setRootRef, mergedProps.refs];
+      return [setRootRef, props.refs];
     },
     get props() {
-      return [defaultProps, mergedProps.props, elementProps];
+      return [rootDefaultProps, props.props, elementProps];
     },
     get stateAttributesMapping() {
-      return mergedProps.stateAttributesMapping;
+      return props.stateAttributesMapping;
     },
   });
 
@@ -88,7 +85,7 @@ export function CompositeRoot<Metadata extends {}, State extends Record<string, 
         refs={elementsRefs}
         onMapChange={(newMap) => {
           batch(() => {
-            mergedProps.onMapChange?.(newMap);
+            props.onMapChange?.(newMap);
             onMapChangeUnwrapped(newMap);
           });
         }}

@@ -1,6 +1,6 @@
 import { expectType } from '@base-ui/utils/testUtils';
 import type { Accessor } from 'solid-js';
-import { SolidStore } from './SolidStore';
+import { SolidStore } from './SolidStoreV2';
 
 interface TestState {
   count: number | undefined;
@@ -22,7 +22,7 @@ const selectors = {
   },
 };
 
-const store = new SolidStore<TestState, Record<string, never>, typeof selectors>(
+const store = SolidStore<TestState, Record<string, never>, typeof selectors>(
   { count: 0, text: '' },
   undefined,
   selectors,
@@ -93,9 +93,9 @@ const unsubscribeFromSelector = store.observe(
 );
 expectType<() => void, typeof unsubscribeFromSelector>(unsubscribeFromSelector);
 
-// @ts-expect-error listener must match selector return type
+// @ts-expect-error
 store.observe(
-  (state) => state.text.length,
+  (state: { text: string | any[] }) => state.text.length,
   (newValue: string) => {
     expectType<string, typeof newValue>(newValue);
   },

@@ -90,11 +90,19 @@ export interface UseDismissProps {
    * - `sloppy` fires on `pointerdown` for mouse, while for touch it fires on `touchend` (within 1 second) or while scrolling away after `touchstart`.
    */
   outsidePressEvent?:
-    | PressType
-    | {
-        mouse: PressType;
-        touch: PressType;
-      }
+    | (
+        | PressType
+        | {
+            mouse: PressType;
+            touch: PressType;
+          }
+        | (() =>
+            | PressType
+            | {
+                mouse: PressType;
+                touch: PressType;
+              })
+      )
     | undefined;
 
   /**
@@ -186,11 +194,16 @@ export function useDismiss(parameters: {
     const type = currentPointerTypeRef as 'pen' | 'mouse' | 'touch' | '';
     const computedType = type === 'pen' || !type ? 'mouse' : type;
 
-    if (typeof props.outsidePressEvent === 'string') {
-      return props.outsidePressEvent;
+    const resolved =
+      typeof props.outsidePressEvent === 'function'
+        ? props.outsidePressEvent()
+        : props.outsidePressEvent;
+
+    if (typeof resolved === 'string') {
+      return resolved;
     }
 
-    return props.outsidePressEvent[computedType];
+    return resolved[computedType];
   };
 
   const closeOnEscapeKeyDown = (event: KeyboardEvent) => {

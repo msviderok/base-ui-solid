@@ -53,7 +53,7 @@ export function CompositeList<Metadata>(props: CompositeList.Props<Metadata>) {
       produce((prevNodes) => {
         prevNodes[uid] = {
           element: node,
-          metadata: { ...(prevNodes[uid]?.metadata ?? {}), ...access(metadata) },
+          metadata: { ...(prevNodes[uid]?.metadata ?? {}), ...(access(metadata) as any) },
         };
       }),
     );

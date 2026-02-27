@@ -325,58 +325,96 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   };
 
   const floatingContext = useFloatingRootContext({
-    open,
-    onOpenChange: (open, eventDetails) => setOpen(open, eventDetails as any),
+    get open() {
+      return open();
+    },
+    onOpenChange(nextOpen, eventDetails) {
+      setOpen(nextOpen, eventDetails as SelectRoot.ChangeEventDetails);
+    },
     elements: {
-      reference: triggerElement,
-      floating: positionerElement,
+      get reference() {
+        return triggerElement();
+      },
+      get floating() {
+        return positionerElement();
+      },
     },
   });
 
-  const click = useClick(floatingContext, {
-    enabled: () => !readOnly() && !disabled(),
-    event: 'mousedown',
-  });
-
-  const dismiss = useDismiss(floatingContext, {
-    bubbles: false,
-  });
-
-  const listNavigation = useListNavigation(floatingContext, {
-    enabled: () => !readOnly() && !disabled(),
-    listRef: listRef.current,
-    activeIndex,
-    selectedIndex,
-    disabledIndices: EMPTY_ARRAY as number[],
-    onNavigate(nextActiveIndex) {
-      // Retain the highlight while transitioning out.
-      if (nextActiveIndex === null && !open()) {
-        return;
-      }
-
-      store.set('activeIndex', nextActiveIndex);
+  const click = useClick({
+    context: floatingContext,
+    props: {
+      get enabled() {
+        return !readOnly() && !disabled();
+      },
+      event: 'mousedown',
     },
-    // Implement our own listeners since `onPointerLeave` on each option fires while scrolling with
-    // the `alignItemWithTrigger=true`, causing a performance issue on Chrome.
-    focusItemOnHover: false,
   });
 
-  const typeahead = useTypeahead(floatingContext, {
-    enabled: () => !readOnly() && !disabled() && (open() || !multiple()),
-    listRef: labelsRef.current,
-    activeIndex,
-    selectedIndex,
-    onMatch(index) {
-      if (open()) {
-        store.set('activeIndex', index);
-      } else {
-        setValue(valuesRef.current[index], createChangeEventDetails('none'));
-      }
+  const dismiss = useDismiss({
+    context: floatingContext,
+    props: {
+      bubbles: false,
     },
-    onTypingChange(typing) {
-      // FIXME: Floating UI doesn't support allowing space to select an item while the popup is
-      // closed and the trigger isn't a native <button>.
-      typingRef.current = typing;
+  });
+
+  const listNavigation = useListNavigation({
+    context: floatingContext,
+    props: {
+      get enabled() {
+        return !readOnly() && !disabled();
+      },
+      get listRef() {
+        return listRef.current;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      get selectedIndex() {
+        return selectedIndex();
+      },
+      disabledIndices: EMPTY_ARRAY as number[],
+      onNavigate(nextActiveIndex) {
+        // Retain the highlight while transitioning out.
+        if (nextActiveIndex === null && !open()) {
+          return;
+        }
+
+        store.set('activeIndex', nextActiveIndex);
+      },
+      // Implement our own listeners since `onPointerLeave` on each option fires while scrolling with
+      // the `alignItemWithTrigger=true`, causing a performance issue on Chrome.
+      focusItemOnHover: false,
+    },
+  });
+
+  const typeahead = useTypeahead({
+    context: floatingContext,
+    props: {
+      get enabled() {
+        return !readOnly() && !disabled() && (open() || !multiple());
+      },
+      get listRef() {
+        return labelsRef.current;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      get selectedIndex() {
+        return selectedIndex();
+      },
+      onMatch(index) {
+        if (open()) {
+          store.set('activeIndex', index);
+        } else {
+          setValue(valuesRef.current[index], createChangeEventDetails('none'));
+        }
+      },
+      onTypingChange(typing) {
+        // FIXME: Floating UI doesn't support allowing space to select an item while the popup is
+        // closed and the trigger isn't a native <button>.
+        typingRef.current = typing;
+      },
     },
   });
 

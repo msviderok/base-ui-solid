@@ -27,9 +27,6 @@ export function FloatingPortalLite(componentProps: FloatingPortalLite.Props<any>
     },
     componentProps: local,
     elementProps,
-    get children() {
-      return componentProps.children;
-    },
   });
 
   return <>{portalSubtree()}</>;

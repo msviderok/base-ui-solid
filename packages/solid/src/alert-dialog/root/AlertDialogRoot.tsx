@@ -1,9 +1,10 @@
-import type { Accessor } from 'solid-js';
+import { untrack, type Accessor } from 'solid-js';
 import type { DialogRoot } from '../../dialog/root/DialogRoot';
 import { DialogRootContext, useDialogRootContext } from '../../dialog/root/DialogRootContext';
 import { useDialogRoot } from '../../dialog/root/useDialogRoot';
 import { DialogHandle } from '../../dialog/store/DialogHandle';
 import { DialogStore } from '../../dialog/store/DialogStore';
+import { ComponentWithPayload, type ReactLikeRef } from '../../solid-helpers';
 import { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 
 /**
@@ -21,28 +22,30 @@ export function AlertDialogRoot<Payload>(props: AlertDialogRoot.Props<Payload>) 
   const parentDialogRootContext = useDialogRootContext();
   const nested = () => Boolean(parentDialogRootContext);
 
-  const store =
-    props.handle?.store ??
-    new DialogStore<Payload>({
-      get open() {
-        return defaultOpen();
-      },
-      get openProp() {
-        return openProp();
-      },
-      get activeTriggerId() {
-        return defaultTriggerIdProp();
-      },
-      get triggerIdProp() {
-        return triggerIdProp();
-      },
-      modal: true,
-      disablePointerDismissal: true,
-      get nested() {
-        return nested();
-      },
-      role: 'alertdialog',
-    });
+  const store = untrack(
+    () =>
+      props.handle?.store ??
+      DialogStore<Payload>({
+        get open() {
+          return defaultOpen();
+        },
+        get openProp() {
+          return openProp();
+        },
+        get activeTriggerId() {
+          return defaultTriggerIdProp();
+        },
+        get triggerIdProp() {
+          return triggerIdProp();
+        },
+        modal: true,
+        disablePointerDismissal: true,
+        get nested() {
+          return nested();
+        },
+        role: 'alertdialog',
+      }),
+  );
 
   store.useControlledProp('openProp', openProp);
   store.useControlledProp('triggerIdProp', triggerIdProp);
@@ -54,9 +57,15 @@ export function AlertDialogRoot<Payload>(props: AlertDialogRoot.Props<Payload>) 
 
   useDialogRoot({
     store,
-    actionsRef: props.actionsRef,
-    parentContext: parentDialogRootContext?.store.context,
-    onOpenChange: props.onOpenChange,
+    get actionsRef() {
+      return props.actionsRef;
+    },
+    get parentContext() {
+      return parentDialogRootContext?.store.context;
+    },
+    get onOpenChange() {
+      return props.onOpenChange;
+    },
     get triggerIdProp() {
       return triggerIdProp();
     },
@@ -66,9 +75,7 @@ export function AlertDialogRoot<Payload>(props: AlertDialogRoot.Props<Payload>) 
 
   return (
     <DialogRootContext.Provider value={contextValue as DialogRootContext}>
-      {typeof props.children === 'function'
-        ? props.children({ payload: payload() })
-        : props.children}
+      <ComponentWithPayload payload={payload} children={props.children} />
     </DialogRootContext.Provider>
   );
 }
@@ -90,7 +97,7 @@ export interface AlertDialogRootProps<Payload = unknown> extends Omit<
    * Useful when the dialog's animation is controlled by an external library.
    * - `close`: Closes the dialog imperatively when called.
    */
-  actionsRef?: (AlertDialogRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<AlertDialogRoot.Actions | null> | undefined;
   /**
    * A handle to associate the alert dialog with a trigger.
    * If specified, allows external triggers to control the alert dialog's open state.

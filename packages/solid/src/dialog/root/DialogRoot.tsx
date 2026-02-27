@@ -1,4 +1,5 @@
 import { type Accessor, type JSX, onMount } from 'solid-js';
+import { ComponentWithPayload, type ReactLikeRef } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { type PayloadChildRenderFunction } from '../../utils/popups';
 import { REASONS } from '../../utils/reasons';
@@ -26,7 +27,7 @@ export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
 
   const store =
     props.handle?.store ??
-    new DialogStore<Payload>({
+    DialogStore<Payload>({
       get open() {
         return defaultOpen();
       },
@@ -34,7 +35,7 @@ export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
         return openProp();
       },
       get activeTriggerId() {
-        return triggerIdProp() !== undefined ? triggerIdProp() : defaultTriggerIdProp();
+        return defaultTriggerIdProp();
       },
       get triggerIdProp() {
         return triggerIdProp();
@@ -63,17 +64,7 @@ export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
   store.useControlledProp('openProp', openProp);
   store.useControlledProp('triggerIdProp', triggerIdProp);
 
-  store.useSyncedValues({
-    get disablePointerDismissal() {
-      return disablePointerDismissal();
-    },
-    get nested() {
-      return nested();
-    },
-    get modal() {
-      return modal();
-    },
-  });
+  store.useSyncedValues({ disablePointerDismissal, nested, modal });
   store.useContextCallback('onOpenChange', props.onOpenChange);
   store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
 
@@ -81,9 +72,15 @@ export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
 
   useDialogRoot({
     store,
-    actionsRef: props.actionsRef,
-    parentContext: parentDialogRootContext?.store.context,
-    onOpenChange: props.onOpenChange,
+    get actionsRef() {
+      return props.actionsRef;
+    },
+    get parentContext() {
+      return parentDialogRootContext?.store.context;
+    },
+    get onOpenChange() {
+      return props.onOpenChange;
+    },
     get triggerIdProp() {
       return triggerIdProp();
     },
@@ -93,9 +90,7 @@ export function DialogRoot<Payload>(props: DialogRoot.Props<Payload>) {
 
   return (
     <DialogRootContext.Provider value={contextValue as DialogRootContext}>
-      {typeof props.children === 'function'
-        ? props.children({ payload: payload() })
-        : props.children}
+      <ComponentWithPayload payload={payload} children={props.children} />
     </DialogRootContext.Provider>
   );
 }
@@ -140,7 +135,7 @@ export interface DialogRootProps<Payload = unknown> {
    * Useful when the dialog's animation is controlled by an external library.
    * - `close`: Closes the dialog imperatively when called.
    */
-  actionsRef?: DialogRoot.Actions | null | undefined;
+  actionsRef?: ReactLikeRef<DialogRoot.Actions | null> | undefined;
   /**
    * A handle to associate the dialog with a trigger.
    * If specified, allows external triggers to control the dialog's open state.

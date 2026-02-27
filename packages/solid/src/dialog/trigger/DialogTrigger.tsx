@@ -1,6 +1,5 @@
-import { createEffect, type JSX } from 'solid-js';
+import { createEffect, createMemo } from 'solid-js';
 import { useClick, useInteractions } from '../../floating-ui-solid';
-import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button/useButton';
 import { CLICK_TRIGGER_IDENTIFIER } from '../../utils/constants';
@@ -45,8 +44,10 @@ export function DialogTrigger<Payload>(componentProps: DialogTrigger.Props<Paylo
   });
 
   const thisTriggerId = useBaseUiId(idProp);
-  const floatingContext = () => store()?.useState('floatingRootContext')();
-  const isOpenedByThisTrigger = () => store()?.useState('isOpenedByTrigger', thisTriggerId)();
+  const floatingContext = createMemo(() => store()?.context.floatingRootContext);
+  const isOpenedByThisTrigger = createMemo(() =>
+    store()?.select('isOpenedByTrigger', thisTriggerId),
+  );
 
   let triggerElementRef = null as Element | null | undefined;
 
@@ -54,12 +55,16 @@ export function DialogTrigger<Payload>(componentProps: DialogTrigger.Props<Paylo
     get triggerId() {
       return thisTriggerId();
     },
-    triggerElement: triggerElementRef,
+    get triggerElement() {
+      return triggerElementRef;
+    },
     get store() {
       return store();
     },
     stateUpdates: {
-      payload: local.payload,
+      get payload() {
+        return local.payload;
+      },
     },
   });
 
@@ -68,7 +73,16 @@ export function DialogTrigger<Payload>(componentProps: DialogTrigger.Props<Paylo
     native,
   });
 
-  const click = useClick(floatingContext, { enabled: () => floatingContext() != null });
+  const click = useClick({
+    get context() {
+      return floatingContext();
+    },
+    props: {
+      get enabled() {
+        return floatingContext() != null;
+      },
+    },
+  });
 
   const localInteractionProps = useInteractions([click]);
 
@@ -81,7 +95,7 @@ export function DialogTrigger<Payload>(componentProps: DialogTrigger.Props<Paylo
     },
   };
 
-  const rootTriggerProps = () => store()?.useState('triggerProps', isMountedByThisTrigger)();
+  const rootTriggerProps = () => store()?.select('triggerProps', isMountedByThisTrigger);
 
   const element = useRenderElement('button', componentProps, {
     state,

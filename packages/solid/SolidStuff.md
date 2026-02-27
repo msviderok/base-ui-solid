@@ -19,6 +19,49 @@
 - in Solid onInput must be used instaed of onChange to trigger change on every keystroke (as it is in DOM)
 - do not put components into createMemo, learned the hard way
 
+## `floatingRootContext` nuance (React parity)
+
+- dynamic replacement is required in `NavigationMenu` (`setFloatingRootContext(context)` on active trigger, reset to `undefined` on close/unmount)
+- outside `NavigationMenu`, context identity is intended to stay stable (`useFloatingRootContext` / `useSyncedFloatingRootContext` create once, then `store.update(...)` fields)
+- popup stores start with `getEmptyRootContext()` and then switch once to the real synced context; after that, updates are field-level and identity-stable
+
+### References
+
+- dynamic replacement (`NavigationMenu`):
+  - `packages/react/src/navigation-menu/root/NavigationMenuRoot.tsx:77`
+  - `packages/react/src/navigation-menu/root/NavigationMenuRoot.tsx:100`
+  - `packages/react/src/navigation-menu/root/NavigationMenuRoot.tsx:141`
+  - `packages/react/src/navigation-menu/trigger/NavigationMenuTrigger.tsx:156`
+  - `packages/react/src/navigation-menu/trigger/NavigationMenuTrigger.tsx:178`
+- stable identity hooks (`create once`, `update fields`):
+  - `packages/react/src/floating-ui-react/hooks/useFloatingRootContext.ts:40`
+  - `packages/react/src/floating-ui-react/hooks/useFloatingRootContext.ts:54`
+  - `packages/react/src/floating-ui-react/hooks/useFloatingRootContext.ts:70`
+  - `packages/react/src/floating-ui-react/hooks/useSyncedFloatingRootContext.ts:26`
+  - `packages/react/src/floating-ui-react/hooks/useSyncedFloatingRootContext.ts:27`
+  - `packages/react/src/floating-ui-react/hooks/useSyncedFloatingRootContext.ts:44`
+  - `packages/react/src/floating-ui-react/hooks/useSyncedFloatingRootContext.ts:58`
+  - `packages/react/src/floating-ui-react/hooks/useSyncedFloatingRootContext.ts:74`
+- popup-store placeholder + one-time switch + identity-checked sync:
+  - `packages/react/src/utils/popups/store.ts:84`
+  - `packages/react/src/floating-ui-react/utils/getEmptyRootContext.ts:5`
+  - `packages/react/src/popover/root/PopoverRoot.tsx:118`
+  - `packages/react/src/popover/root/PopoverRoot.tsx:148`
+  - `packages/react/src/dialog/root/useDialogRoot.ts:60`
+  - `packages/react/src/dialog/root/useDialogRoot.ts:157`
+  - `packages/react/src/menu/root/MenuRoot.tsx:394`
+  - `packages/react/src/menu/root/MenuRoot.tsx:544`
+  - `packages/react/src/preview-card/store/PreviewCardStore.ts:115`
+  - `packages/react/src/preview-card/store/PreviewCardStore.ts:122`
+  - `packages/react/src/preview-card/store/PreviewCardStore.ts:124`
+  - `packages/react/src/tooltip/store/TooltipStore.ts:125`
+  - `packages/react/src/tooltip/store/TooltipStore.ts:132`
+  - `packages/react/src/tooltip/store/TooltipStore.ts:134`
+  - `packages/utils/src/store/ReactStore.ts:87`
+  - `packages/utils/src/store/ReactStore.ts:107`
+  - `packages/utils/src/store/Store.ts:80`
+  - `packages/utils/src/store/Store.ts:82`
+
 # TODO
 
 - Toast demo:

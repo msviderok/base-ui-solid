@@ -9,7 +9,7 @@ export class MenuHandle<Payload> {
   public readonly store: MenuStore<Payload>;
 
   constructor() {
-    this.store = new MenuStore<Payload>();
+    this.store = MenuStore<Payload>();
   }
 
   /**

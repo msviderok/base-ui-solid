@@ -2,14 +2,16 @@ import {
   children,
   createMemo,
   onMount,
+  Show,
   mergeProps as solidMergeProps,
   splitProps,
   type Accessor,
+  type Component,
   type JSX,
-  type MergeProps,
   type SplitProps,
 } from 'solid-js';
-import type { FloatingContext, FloatingRootContext } from './floating-ui-solid';
+import { Dynamic } from 'solid-js/web';
+import type { PayloadChildRenderFunction } from './utils/popups';
 
 export function callEventHandler<T, E extends Event>(
   eventHandler: JSX.EventHandlerUnion<T, E> | undefined,
@@ -118,4 +120,16 @@ export function defaultProps<
 >(props: P, defaults: D extends C ? D : C) {
   // eslint-disable-next-line solid/reactivity
   return solidMergeProps(defaults, props) as PropsMergeWithDefault<P, D>;
+}
+
+export function ComponentWithPayload<Payload>(props: {
+  children: JSX.Element | PayloadChildRenderFunction<Payload>;
+  payload: Accessor<Payload | undefined>;
+}) {
+  const c = children(() => props.children as any);
+  return (
+    <Show when={typeof c === 'function' && c} fallback={<>{c}</>}>
+      {(resolvedChildren) => <Dynamic component={resolvedChildren()} payload={props.payload()} />}
+    </Show>
+  );
 }

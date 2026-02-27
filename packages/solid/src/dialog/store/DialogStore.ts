@@ -1,3 +1,5 @@
+import { mergeProps as solidMergeProps } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import {
   createInitialPopupStoreState,
   PopupStoreContext,
@@ -5,7 +7,7 @@ import {
   PopupStoreState,
   PopupTriggerMap,
 } from '../../utils/popups';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../../utils/store/SolidStoreV2';
 import type { FloatingUIOpenChangeDetails } from '../../utils/types';
 import { type InteractionType } from '../../utils/useEnhancedClickHandler';
 import { type DialogRoot } from '../root/DialogRoot';
@@ -23,12 +25,10 @@ export type State<Payload> = PopupStoreState<Payload> & {
 };
 
 type Context = PopupStoreContext<DialogRoot.ChangeEventDetails> & {
-  readonly refs: {
-    popupRef: HTMLElement | null | undefined;
-    backdropRef: HTMLDivElement | null | undefined;
-    internalBackdropRef: HTMLDivElement | null | undefined;
-    outsidePressEnabledRef: boolean;
-  };
+  readonly popupRef: ReactLikeRef<HTMLElement | null | undefined>;
+  readonly backdropRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  readonly internalBackdropRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  readonly outsidePressEnabledRef: ReactLikeRef<boolean>;
   readonly onNestedDialogOpen?: ((ownChildrenCount: number) => void) | undefined;
   readonly onNestedDialogClose?: (() => void) | undefined;
 };
@@ -46,40 +46,38 @@ const selectors = {
   role: (state: State<unknown>) => state.role,
 };
 
-export class DialogStore<Payload> extends SolidStore<State<Payload>, Context, typeof selectors> {
-  constructor(initialState?: Partial<State<Payload>>) {
-    super(
-      createInitialState<Payload>(initialState),
-      {
-        refs: {
-          popupRef: null,
-          backdropRef: null,
-          internalBackdropRef: null,
-          outsidePressEnabledRef: true,
-        },
-        triggerElements: new PopupTriggerMap(),
-        onOpenChange: undefined,
-        onOpenChangeComplete: undefined,
-      },
-      selectors,
-    );
-  }
+export function DialogStore<Payload>(initialState?: Partial<State<Payload>>) {
+  const [state, setState, floatingRootContext] = createInitialState<Payload>(initialState);
+  const store = SolidStore<State<Payload>, Context, typeof selectors>(
+    [state, setState],
+    {
+      popupRef: { current: null },
+      backdropRef: { current: null },
+      internalBackdropRef: { current: null },
+      outsidePressEnabledRef: { current: true },
+      triggerElements: new PopupTriggerMap(),
+      onOpenChange: undefined,
+      onOpenChangeComplete: undefined,
+      floatingRootContext,
+    },
+    selectors,
+  );
 
-  public setOpen = (
+  function setOpen(
     nextOpen: boolean,
     eventDetails: Omit<DialogRoot.ChangeEventDetails, 'preventUnmountOnClose'>,
-  ) => {
+  ) {
     (eventDetails as DialogRoot.ChangeEventDetails).preventUnmountOnClose = () => {
-      this.set('preventUnmountingOnClose', true);
+      store.set('preventUnmountingOnClose', true);
     };
 
-    if (!nextOpen && eventDetails.trigger == null && this.state.activeTriggerId != null) {
+    if (!nextOpen && eventDetails.trigger == null && store.state.activeTriggerId != null) {
       // When closing the dialog, pass the old trigger to the onOpenChange event
       // so it's not reset too early (potentially causing focus issues in controlled scenarios).
-      eventDetails.trigger = this.state.activeTriggerElement ?? undefined;
+      eventDetails.trigger = store.state.activeTriggerElement ?? undefined;
     }
 
-    this.context.onOpenChange?.(nextOpen, eventDetails as DialogRoot.ChangeEventDetails);
+    store.context.onOpenChange?.(nextOpen, eventDetails as DialogRoot.ChangeEventDetails);
 
     if (eventDetails.isCanceled) {
       return;
@@ -89,10 +87,10 @@ export class DialogStore<Payload> extends SolidStore<State<Payload>, Context, ty
       open: nextOpen,
       nativeEvent: eventDetails.event,
       reason: eventDetails.reason,
-      nested: this.state.nested,
+      nested: store.state.nested,
     };
 
-    this.state.floatingRootContext.context.events?.emit('openchange', details);
+    store.context.floatingRootContext.context.events?.emit('openchange', details);
 
     const updatedState: Partial<State<Payload>> = {
       open: nextOpen,
@@ -106,8 +104,11 @@ export class DialogStore<Payload> extends SolidStore<State<Payload>, Context, ty
       updatedState.activeTriggerElement = eventDetails.trigger ?? null;
     }
 
-    this.update(updatedState);
-  };
+    store.update(updatedState);
+  }
+
+  const merged = solidMergeProps(store, { setOpen });
+  return merged;
 }
 
 function createInitialState<Payload>(initialState: Partial<State<Payload>> = {}) {
@@ -125,3 +126,5 @@ function createInitialState<Payload>(initialState: Partial<State<Payload>> = {})
     ...initialState,
   });
 }
+
+export type DialogStore<Payload> = ReturnType<typeof DialogStore<Payload>>;

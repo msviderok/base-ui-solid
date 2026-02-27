@@ -92,10 +92,10 @@ describe('<Dialog.Popup />', () => {
         );
       }
 
-      render(() => <TestComponent />);
+      const { user } = render(() => <TestComponent />);
 
       const trigger = screen.getByText('Open');
-      trigger.click();
+      await user.click(trigger);
 
       const input2 = screen.getByTestId('input-2');
       expect(input2).to.toHaveFocus();
@@ -126,10 +126,10 @@ describe('<Dialog.Popup />', () => {
         );
       }
 
-      render(() => <TestComponent />);
+      const { user } = render(() => <TestComponent />);
 
       const trigger = screen.getByText('Open');
-      trigger.click();
+      await user.click(trigger);
 
       const input2 = screen.getByTestId('input-2');
       expect(input2).to.toHaveFocus();

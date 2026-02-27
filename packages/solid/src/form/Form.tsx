@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, on, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { access, callEventHandler, splitComponentProps, type ReactLikeRef } from '../solid-helpers';
+import { callEventHandler, splitComponentProps, type ReactLikeRef } from '../solid-helpers';
 import { EMPTY_OBJECT } from '../utils/constants';
 import {
   createGenericEventDetails,
@@ -65,7 +65,7 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
       submittedRef = false;
 
       if (invalid.length) {
-        const controlRef = access(invalid[0].controlRef);
+        const controlRef = invalid[0].controlRef;
         focusControl(controlRef);
       }
     }),
@@ -96,7 +96,7 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
     props: [
       {
         noValidate: true,
-        onSubmit(event) {
+        onSubmit(event: SubmitEvent) {
           submitAttemptedRef = true;
 
           // Async validation isn't supported to stop the submit event.
@@ -104,7 +104,7 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
 
           if (invalidFields().length) {
             event.preventDefault();
-            const controlRef = access(invalidFields()[0].controlRef);
+            const controlRef = invalidFields()[0].controlRef;
             focusControl(controlRef);
           } else {
             submittedRef = true;

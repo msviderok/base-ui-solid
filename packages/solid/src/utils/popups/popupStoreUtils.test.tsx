@@ -12,12 +12,14 @@ import {
 } from './';
 
 function createStore() {
+  const [state, setState, floatingRootContext] = createInitialPopupStoreState();
   return SolidStore<PopupStoreState<unknown>, PopupStoreContext<unknown>, PopupStoreSelectors>(
-    createInitialPopupStoreState(),
+    [state, setState],
     {
       triggerElements: new PopupTriggerMap(),
-      popupRef: null,
+      popupRef: { current: null },
       onOpenChangeComplete: undefined,
+      floatingRootContext,
     },
   );
 }

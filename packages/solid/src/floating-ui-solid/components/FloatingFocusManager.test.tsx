@@ -5,7 +5,7 @@ import { flushMicrotasks } from '#test-utils';
 import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
-import { batch, createSignal, onMount, Show, type Component, type JSX } from 'solid-js';
+import { batch, createMemo, createSignal, onMount, Show, type Component, type JSX } from 'solid-js';
 import { delegateEvents, Dynamic, render as solidRender } from 'solid-js/web';
 import { test } from 'vitest';
 import { Main as Navigation } from '../../../test/floating-ui-tests/Navigation';
@@ -87,17 +87,15 @@ function App(
     onOpenChange: setOpen,
   });
 
+  const resolvedInitialFocus = createMemo(() => {
+    return props.initialFocus === 'two' ? () => ref : props.initialFocus;
+  });
+
   return (
     <>
       <button data-testid="reference" ref={refs.setReference} onClick={() => setOpen((v) => !v)} />
       <Show when={open()}>
-        <FloatingFocusManager
-          {...props}
-          initialFocus={() => {
-            return props.initialFocus === 'two' ? ref : props.initialFocus;
-          }}
-          context={context}
-        >
+        <FloatingFocusManager {...props} initialFocus={resolvedInitialFocus()} context={context}>
           <div role="dialog" ref={refs.setFloating} data-testid="floating">
             <button data-testid="one">close</button>
             <button data-testid="two" ref={ref}>

@@ -1,3 +1,4 @@
+import { createMemo } from 'solid-js';
 import { COMPOSITE_KEYS } from '../../composite/composite';
 import { FloatingFocusManager } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
@@ -37,7 +38,7 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
 
   const descriptionElementId = store.useState('descriptionElementId');
   const disablePointerDismissal = store.useState('disablePointerDismissal');
-  const floatingRootContext = store.useState('floatingRootContext');
+  const floatingRootContext = store.context.floatingRootContext;
   const rootPopupProps = store.useState('popupProps');
   const modal = store.useState('modal');
   const mounted = store.useState('mounted');
@@ -51,7 +52,9 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
 
   useOpenChangeComplete({
     open,
-    ref: store.context.refs.popupRef,
+    get ref() {
+      return store.context.popupRef.current;
+    },
     onComplete() {
       if (open()) {
         store.context.onOpenChangeComplete?.(true);
@@ -63,13 +66,10 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
   // (this is required for Android specifically as iOS handles this automatically).
   function defaultInitialFocus(interactionType: InteractionType) {
     if (interactionType === 'touch') {
-      return store.context.refs.popupRef;
+      return store.context.popupRef.current;
     }
     return true;
   }
-
-  const resolvedInitialFocus = () =>
-    local.initialFocus === undefined ? defaultInitialFocus : local.initialFocus;
 
   const nestedDialogOpen = () => nestedOpenDialogCount() > 0;
 
@@ -90,46 +90,56 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    props: [
-      rootPopupProps,
-      {
-        get 'aria-labelledby'() {
-          return titleElementId() ?? undefined;
+    get props() {
+      return [
+        rootPopupProps(),
+        {
+          get 'aria-labelledby'() {
+            return titleElementId() ?? undefined;
+          },
+          get 'aria-describedby'() {
+            return descriptionElementId() ?? undefined;
+          },
+          get role() {
+            return role();
+          },
+          tabIndex: -1,
+          get hidden() {
+            return !mounted();
+          },
+          onKeyDown(event: KeyboardEvent) {
+            if (COMPOSITE_KEYS.has(event.key)) {
+              event.stopPropagation();
+            }
+          },
+          get style() {
+            return {
+              [DialogPopupCssVars.nestedDialogs]: nestedOpenDialogCount(),
+            };
+          },
         },
-        get 'aria-describedby'() {
-          return descriptionElementId() ?? undefined;
-        },
-        get role() {
-          return role();
-        },
-        tabIndex: -1,
-        get hidden() {
-          return !mounted();
-        },
-        onKeyDown(event: KeyboardEvent) {
-          if (COMPOSITE_KEYS.has(event.key)) {
-            event.stopPropagation();
-          }
-        },
-        get style() {
-          return {
-            [DialogPopupCssVars.nestedDialogs]: nestedOpenDialogCount(),
-          };
-        },
-      },
-      elementProps,
-    ],
+        elementProps,
+      ];
+    },
     ref: (el) => {
-      store.context.refs.popupRef = el;
+      store.context.popupRef.current = el;
       store.useStateSetter('popupElement')(el);
     },
     stateAttributesMapping,
   });
 
+  const resolvedInitialFocus = createMemo(() => {
+    if (local.initialFocus == null) {
+      return defaultInitialFocus;
+    }
+
+    return local.initialFocus;
+  });
+
   return (
     <>
       <FloatingFocusManager
-        context={floatingRootContext()}
+        context={floatingRootContext}
         openInteractionType={openMethod()}
         disabled={!mounted()}
         closeOnFocusOut={!disablePointerDismissal()}

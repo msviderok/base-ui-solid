@@ -2,6 +2,7 @@ import { createRenderer, flushMicrotasks, isJSDOM, popupConformanceTests } from 
 import { Field } from '@msviderok/base-ui-solid/field';
 import { Form } from '@msviderok/base-ui-solid/form';
 import { Select } from '@msviderok/base-ui-solid/select';
+import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { spy } from 'sinon';
 import { createSignal, For } from 'solid-js';
@@ -687,9 +688,9 @@ describe('<Select.Root />', () => {
 
   describe('prop: actionsRef', () => {
     it('unmounts the select when the `unmount` method is called', async () => {
-      const actionsRef = {
+      const actionsRef = useRef({
         unmount: spy(),
-      };
+      });
 
       const { user } = render(() => (
         <Select.Root actionsRef={actionsRef}>
@@ -720,7 +721,7 @@ describe('<Select.Root />', () => {
       await new Promise((resolve) => {
         requestAnimationFrame(resolve);
       });
-      actionsRef.unmount();
+      actionsRef.current?.unmount();
 
       await waitFor(() => {
         expect(screen.queryByRole('listbox')).to.equal(null);

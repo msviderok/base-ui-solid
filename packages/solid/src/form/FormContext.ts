@@ -1,7 +1,6 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
 import type { SetStoreFunction, Store } from 'solid-js/store';
 import type { FieldValidityData } from '../field/root/FieldRoot';
-import type { MaybeAccessor } from '../solid-helpers';
 import { NOOP } from '../utils/noop';
 import type { Form } from './Form';
 
@@ -14,7 +13,7 @@ type FormRef = {
       name: string | undefined;
       validate: (flushSync?: boolean | undefined) => void;
       validityData: FieldValidityData;
-      controlRef: MaybeAccessor<HTMLElement | null | undefined>;
+      controlRef: HTMLElement | null | undefined;
       getValue: () => unknown;
     }
   >;

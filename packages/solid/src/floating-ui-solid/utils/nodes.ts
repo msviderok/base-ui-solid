@@ -4,7 +4,7 @@ import type { FloatingNodeType } from '../types';
 
 export function getNodeChildren(
   nodes: Array<FloatingNodeType>,
-  id: string | undefined,
+  id: string | null | undefined,
   onlyOpenChildren = true,
 ): Array<FloatingNodeType> {
   const directChildren = nodes.filter(
@@ -16,11 +16,11 @@ export function getNodeChildren(
   ]);
 }
 
-export function getDeepestNode(nodes: Array<FloatingNodeType>, id: string | undefined) {
-  let deepestNodeId: string | undefined;
+export function getDeepestNode(nodes: Array<FloatingNodeType>, id: string | null | undefined) {
+  let deepestNodeId: string | null | undefined;
   let maxDepth = -1;
 
-  function findDeepest(nodeId: string | undefined, depth: number) {
+  function findDeepest(nodeId: string | null | undefined, depth: number) {
     if (depth > maxDepth) {
       deepestNodeId = nodeId;
       maxDepth = depth;

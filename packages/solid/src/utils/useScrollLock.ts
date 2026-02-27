@@ -15,7 +15,7 @@ function hasInsetScrollbars(referenceElement: Element | null | undefined) {
   if (typeof document === 'undefined') {
     return false;
   }
-  const doc = ownerDocument(referenceElement);
+  const doc = ownerDocument(referenceElement ?? null);
   const win = ownerWindow(doc);
   return win.innerWidth - doc.documentElement.clientWidth > 0;
 }

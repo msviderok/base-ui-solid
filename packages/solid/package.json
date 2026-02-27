@@ -87,7 +87,8 @@
     "test:package": "publint ./build && attw --pack ./build --exclude-entrypoints package.json",
     "release": "pnpm build && pnpm publish",
     "test": "cross-env VITEST_ENV=jsdom vitest",
-    "typescript": "tsc -b tsconfig.json"
+    "typescript": "tsc -b tsconfig.json",
+    "ts:specific": "pnpm --filter \"@msviderok/base-ui-solid\" exec tsc -p tsconfig.build.json --noEmit --skipLibCheck"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.6",

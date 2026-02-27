@@ -11,7 +11,7 @@ import { useImplicitActiveTrigger, useOpenStateTransitions } from '../../utils/p
 import { REASONS } from '../../utils/reasons';
 import { useOpenInteractionType } from '../../utils/useOpenInteractionType';
 import { useScrollLock } from '../../utils/useScrollLock';
-import { DialogStore } from '../store/DialogStore';
+import { type DialogStore } from '../store/DialogStore';
 import { type DialogRoot } from './DialogRoot';
 
 export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.ReturnValue {
@@ -53,10 +53,6 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
     params.store.setOpen(false, createDialogEventDetails(REASONS.imperativeAction));
   };
 
-  onMount(() => {
-    params.actionsRef = { unmount: forceUnmount, close: handleImperativeClose };
-  });
-
   const floatingRootContext = useSyncedFloatingRootContext({
     popupStore: params.store,
     onOpenChange: params.store.setOpen,
@@ -64,55 +60,71 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
     noEmit: true,
   });
 
+  params.store.context.floatingRootContext = floatingRootContext;
+
+  onMount(() => {
+    if (params.actionsRef) {
+      params.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
+    }
+  });
+
   const [ownNestedOpenDialogs, setOwnNestedOpenDialogs] = createSignal(0);
   const isTopmost = () => ownNestedOpenDialogs() === 0;
 
-  const role = useRole(floatingRootContext);
-  const dismiss = useDismiss(floatingRootContext, {
-    outsidePressEvent() {
-      if (params.store.context.refs.internalBackdropRef || params.store.context.refs.backdropRef) {
-        return 'intentional';
-      }
-      // Ensure `aria-hidden` on outside elements is removed immediately
-      // on outside press when trapping focus.
-      return {
-        mouse: modal() === 'trap-focus' ? 'sloppy' : 'intentional',
-        touch: 'sloppy',
-      };
-    },
-    outsidePress(event) {
-      if (!params.store.context.refs.outsidePressEnabledRef) {
-        return false;
-      }
-
-      // For mouse events, only accept left button (button 0)
-      // For touch events, a single touch is equivalent to left button
-      if ('button' in event && event.button !== 0) {
-        return false;
-      }
-      if ('touches' in event && event.touches.length !== 1) {
-        return false;
-      }
-      const target = getTarget(event) as Element | null;
-      if (isTopmost() && !disablePointerDismissal()) {
-        const eventTarget = target as Element | null;
-        // Only close if the click occurred on the dialog's owning backdrop.
-        // This supports multiple modal dialogs that aren't nested in the React tree:
-        // https://github.com/mui/base-ui/issues/1320
-        if (modal()) {
-          return params.store.context.refs.internalBackdropRef ||
-            params.store.context.refs.backdropRef
-            ? params.store.context.refs.internalBackdropRef === eventTarget ||
-                params.store.context.refs.backdropRef === eventTarget ||
-                (contains(eventTarget, popupElement()) &&
-                  !eventTarget?.hasAttribute('data-base-ui-portal'))
-            : true;
+  const role = useRole({ context: floatingRootContext });
+  const dismiss = useDismiss({
+    context: floatingRootContext,
+    props: {
+      outsidePressEvent() {
+        if (
+          params.store.context.internalBackdropRef.current ||
+          params.store.context.backdropRef.current
+        ) {
+          return 'intentional';
         }
-        return true;
-      }
-      return false;
+        // Ensure `aria-hidden` on outside elements is removed immediately
+        // on outside press when trapping focus.
+        return {
+          mouse: modal() === 'trap-focus' ? 'sloppy' : 'intentional',
+          touch: 'sloppy',
+        };
+      },
+      outsidePress(event) {
+        if (!params.store.context.outsidePressEnabledRef.current) {
+          return false;
+        }
+
+        // For mouse events, only accept left button (button 0)
+        // For touch events, a single touch is equivalent to left button
+        if ('button' in event && event.button !== 0) {
+          return false;
+        }
+        if ('touches' in event && event.touches.length !== 1) {
+          return false;
+        }
+        const target = getTarget(event) as Element | null;
+        if (isTopmost() && !disablePointerDismissal()) {
+          const eventTarget = target as Element | null;
+          // Only close if the click occurred on the dialog's owning backdrop.
+          // This supports multiple modal dialogs that aren't nested in the React tree:
+          // https://github.com/mui/base-ui/issues/1320
+          if (modal()) {
+            return params.store.context.internalBackdropRef.current ||
+              params.store.context.backdropRef.current
+              ? params.store.context.internalBackdropRef.current === eventTarget ||
+                  params.store.context.backdropRef.current === eventTarget ||
+                  (contains(eventTarget, popupElement()) &&
+                    !eventTarget?.hasAttribute('data-base-ui-portal'))
+              : true;
+          }
+          return true;
+        }
+        return false;
+      },
+      get escapeKey() {
+        return isTopmost();
+      },
     },
-    escapeKey: isTopmost,
   });
 
   useScrollLock({
@@ -148,26 +160,14 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
 
   const activeTriggerProps = createMemo(() => getReferenceProps(triggerProps));
   const inactiveTriggerProps = createMemo(() => getTriggerProps(triggerProps));
-
   const popupProps = createMemo(() => getFloatingProps());
 
   params.store.useSyncedValues({
-    get openMethod() {
-      return openMethod();
-    },
-    get activeTriggerProps() {
-      return activeTriggerProps();
-    },
-    get inactiveTriggerProps() {
-      return inactiveTriggerProps();
-    },
-    get popupProps() {
-      return popupProps();
-    },
-    floatingRootContext,
-    get nestedOpenDialogCount() {
-      return ownNestedOpenDialogs();
-    },
+    openMethod,
+    activeTriggerProps,
+    inactiveTriggerProps,
+    popupProps,
+    nestedOpenDialogCount: ownNestedOpenDialogs,
   });
 }
 

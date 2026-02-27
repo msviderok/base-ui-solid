@@ -2,6 +2,7 @@ import { type Accessor } from 'solid-js';
 import { createStore, type SetStoreFunction } from 'solid-js/store';
 import { FloatingRootContext } from '../../floating-ui-solid';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
+import type { ReactLikeRef } from '../../solid-helpers';
 import { EMPTY_OBJECT } from '../constants';
 import { HTMLProps } from '../types';
 import { TransitionStatus } from '../useTransitionStatus';
@@ -28,8 +29,6 @@ export type PopupStoreState<Payload> = {
    * The current enter/exit transition status of the popup.
    */
   transitionStatus: TransitionStatus;
-
-  floatingRootContext: FloatingRootContext;
   /**
    * Whether to prevent unmounting the popup when closed.
    * Useful for interactling with JS animation libraries that control unmounting themselves.
@@ -79,12 +78,12 @@ export type PopupStoreState<Payload> = {
 export function createInitialPopupStoreState<Payload, State extends PopupStoreState<Payload>>(
   initialState: Partial<State> = {},
 ) {
+  const floatingRootContext = getEmptyRootContext();
   const [state, setState] = createStore({
     open: false,
     openProp: undefined,
     mounted: false,
     transitionStatus: 'idle',
-    floatingRootContext: getEmptyRootContext(),
     preventUnmountingOnClose: false,
     payload: undefined,
     activeTriggerId: null,
@@ -97,7 +96,11 @@ export function createInitialPopupStoreState<Payload, State extends PopupStoreSt
     popupProps: EMPTY_OBJECT,
     ...initialState,
   });
-  return [state, setState] as unknown as [State, SetStoreFunction<State>];
+  return [state, setState, floatingRootContext] as unknown as [
+    State,
+    SetStoreFunction<State>,
+    FloatingRootContext,
+  ];
 }
 
 export type PopupStoreContext<ChangeEventDetails> = {
@@ -108,7 +111,8 @@ export type PopupStoreContext<ChangeEventDetails> = {
   /**
    * Reference to the popup element.
    */
-  readonly popupRef: HTMLElement | null | undefined;
+  readonly popupRef: ReactLikeRef<HTMLElement | null | undefined>;
+  floatingRootContext: FloatingRootContext;
   /**
    * Callback fired when the open state changes.
    */
@@ -127,7 +131,6 @@ export const popupStoreSelectors = {
   open: (state: S) => state.openProp ?? state.open,
   mounted: (state: S) => state.mounted,
   transitionStatus: (state: S) => state.transitionStatus,
-  floatingRootContext: (state: S) => state.floatingRootContext,
   preventUnmountingOnClose: (state: S) => state.preventUnmountingOnClose,
   payload: (state: S) => state.payload,
   activeTriggerId: activeTriggerIdSelector,

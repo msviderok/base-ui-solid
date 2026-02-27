@@ -5,6 +5,7 @@ import {
   createMemo,
   createSignal,
   onCleanup,
+  untrack,
   type Accessor,
   type JSX,
 } from 'solid-js';
@@ -425,15 +426,28 @@ export function useAnchorPositioning(
     get rootContext() {
       return params.floatingRootContext;
     },
-    placement,
-    middleware,
-    strategy: positionMethod,
-    whileElementsMounted: {
-      enabled: () => !keepMounted(),
-      fn: (...args) => autoUpdate(...args, autoUpdateOptions()),
+    get placement() {
+      return placement();
     },
-    nodeId,
-    externalTree: params.externalTree,
+    get middleware() {
+      return middleware();
+    },
+    get strategy() {
+      return positionMethod();
+    },
+    get whileElementsMounted(): UseFloatingOptions['whileElementsMounted'] {
+      if (keepMounted()) {
+        return undefined;
+      }
+
+      return (...args) => untrack(() => autoUpdate(...args, autoUpdateOptions()));
+    },
+    get nodeId() {
+      return nodeId();
+    },
+    get externalTree() {
+      return params.externalTree;
+    },
   });
 
   // Default to `fixed` when not positioned to prevent `autoFocus` scroll jumps.

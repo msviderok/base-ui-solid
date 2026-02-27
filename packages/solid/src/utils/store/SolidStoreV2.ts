@@ -19,8 +19,6 @@ export function SolidStore<
   const context = initialContext;
   const [state, setState] = createInitialStore(initialState);
 
-  const store = createMemo(() => ('rootStore' in context ? context.rootStore : context));
-
   function update(statePart: Partial<State>) {
     setState(statePart as any);
   }
@@ -41,7 +39,7 @@ export function SolidStore<
   }
 
   function useSyncedValues<Keys extends keyof State>(
-    statePart: Accessor<Partial<State>> | Partial<{ [Key in Keys]: Accessor<State[Key]> }>,
+    statePart: Accessor<Partial<State>> | Partial<{ [Key in Keys]: MaybeAccessor<State[Key]> }>,
   ) {
     const partialState = createMemo(
       () => access(statePart) as Partial<{ [Key in Keys]: MaybeAccessor<State[Key]> }>,
@@ -199,9 +197,6 @@ export function SolidStore<
     useContextCallback,
     useStateSetter,
     observe,
-    get store() {
-      return store();
-    },
   };
 }
 

@@ -263,9 +263,9 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
     openInteractionType: '',
   });
 
-  const store = createMemo(() =>
-    'rootStore' in props.context ? props.context.rootStore : props.context,
-  );
+  const store = createMemo(() => {
+    return 'rootStore' in props.context ? props.context.rootStore : props.context;
+  });
   const open = createMemo(() => store().select('open'));
   const domReference = createMemo(() => store().select('domReferenceElement'));
   const floating = createMemo(() => store().select('floatingElement'));
@@ -517,6 +517,7 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
     if (pointerDownOutsideRef) {
       return;
     }
+
     dataRef().insidePortal = true;
     const fn = () => {
       dataRef().insidePortal = false;
@@ -639,20 +640,20 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
         // eslint-disable-next-line solid/reactivity
         queueMicrotask(() => {
           const focusableElements = getTabbableElements(floatingEl);
-          const initialFocusValueOrFn = props.initialFocus;
           const resolvedInitialFocus =
-            typeof initialFocusValueOrFn === 'function'
-              ? initialFocusValueOrFn(props.openInteractionType || '')
-              : initialFocusValueOrFn;
+            typeof props.initialFocus === 'function'
+              ? props.initialFocus(props.openInteractionType || '')
+              : props.initialFocus;
 
-          // `null`/`undefined` should fallback to default behavior in case of an empty ref.
-          if (resolvedInitialFocus === false) {
+          // `null` should fallback to default behavior in case of an empty ref.
+          // `false`/`undefined` (void) means do nothing.
+          if (resolvedInitialFocus === false || resolvedInitialFocus === undefined) {
             return;
           }
 
           let elToFocus: FocusableElement | null | undefined;
 
-          if (resolvedInitialFocus === true || resolvedInitialFocus == null) {
+          if (resolvedInitialFocus === true || resolvedInitialFocus === null) {
             elToFocus = focusableElements[0] || floatingEl;
           } else {
             elToFocus = resolvedInitialFocus;
