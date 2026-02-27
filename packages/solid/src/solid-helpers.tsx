@@ -6,11 +6,9 @@ import {
   mergeProps as solidMergeProps,
   splitProps,
   type Accessor,
-  type Component,
   type JSX,
   type SplitProps,
 } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
 import type { PayloadChildRenderFunction } from './utils/popups';
 
 export function callEventHandler<T, E extends Event>(
@@ -126,10 +124,15 @@ export function ComponentWithPayload<Payload>(props: {
   children: JSX.Element | PayloadChildRenderFunction<Payload>;
   payload: Accessor<Payload | undefined>;
 }) {
-  const c = children(() => props.children as any);
+  const cachedChildren = children(() => props.children as any);
+  const childrenFn = createMemo(() => {
+    const child = cachedChildren();
+    return typeof child === 'function' ? (child as PayloadChildRenderFunction<Payload>) : null;
+  });
+
   return (
-    <Show when={typeof c === 'function' && c} fallback={<>{c}</>}>
-      {(resolvedChildren) => <Dynamic component={resolvedChildren()} payload={props.payload()} />}
+    <Show when={childrenFn()} fallback={<>{cachedChildren()}</>}>
+      {(fn) => <>{fn()({ payload: props.payload() })}</>}
     </Show>
   );
 }
