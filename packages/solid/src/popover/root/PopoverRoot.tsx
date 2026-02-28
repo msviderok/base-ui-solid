@@ -16,6 +16,7 @@ import {
   useRole,
   useSyncedFloatingRootContext,
 } from '../../floating-ui-solid';
+import { ComponentWithPayload } from '../../solid-helpers';
 import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
@@ -138,19 +139,23 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
     popupStore: store,
     onOpenChange: store.setOpen,
   });
+  store.context.floatingRootContext = floatingRootContext;
 
-  const dismiss = useDismiss(floatingRootContext, {
-    outsidePressEvent: {
-      // Ensure `aria-hidden` on outside elements is removed immediately
-      // on outside press when trapping focus.
-      get mouse() {
-        return modal() === 'trap-focus' ? 'sloppy' : 'intentional';
+  const dismiss = useDismiss({
+    context: floatingRootContext,
+    props: {
+      outsidePressEvent: {
+        // Ensure `aria-hidden` on outside elements is removed immediately
+        // on outside press when trapping focus.
+        get mouse() {
+          return modal() === 'trap-focus' ? 'sloppy' : 'intentional';
+        },
+        touch: 'sloppy',
       },
-      touch: 'sloppy',
     },
   });
 
-  const role = useRole(floatingRootContext);
+  const role = useRole({ context: floatingRootContext });
 
   const { getReferenceProps, getFloatingProps, getTriggerProps } = useInteractions([dismiss, role]);
 
@@ -158,25 +163,20 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   const inactiveTriggerProps = createMemo(() => getTriggerProps(interactionTypeTriggerProps));
   const popupProps = createMemo(() => getFloatingProps());
 
-  createEffect(() => {
-    store.useSyncedValues({
-      modal: modal(),
-      openMethod: openMethod(),
-      activeTriggerProps: activeTriggerProps(),
-      inactiveTriggerProps: inactiveTriggerProps(),
-      popupProps: popupProps(),
-      floatingRootContext,
-      nested: useFloatingParentNodeId() != null,
-    });
+  store.useSyncedValues({
+    modal,
+    openMethod,
+    activeTriggerProps,
+    inactiveTriggerProps,
+    popupProps,
+    nested: () => useFloatingParentNodeId() != null,
   });
 
   const popoverContext: PopoverRootContext<Payload> = { store };
 
   return (
     <PopoverRootContext.Provider value={popoverContext as PopoverRootContext<unknown>}>
-      {typeof props.children === 'function'
-        ? props.children({ payload: payload() })
-        : props.children}
+      <ComponentWithPayload payload={payload} children={props.children} />
     </PopoverRootContext.Provider>
   );
 }
@@ -188,9 +188,11 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
  * Documentation: [Base UI Popover](https://base-ui.com/react/components/popover)
  */
 export function PopoverRoot<Payload = unknown>(props: PopoverRoot.Props<Payload>) {
+  const context = usePopoverRootContext(true);
+
   return (
     <Show
-      when={usePopoverRootContext(true)}
+      when={context}
       fallback={
         <FloatingTree>
           <PopoverRootComponent {...props} />

@@ -52,7 +52,7 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
   const keepMounted = usePopoverPortalContext();
   const nodeId = useFloatingNodeId();
 
-  const floatingRootContext = store.useState('floatingRootContext');
+  const floatingRootContext = store.context.floatingRootContext;
   const mounted = store.useState('mounted');
   const open = store.useState('open');
   const openReason = store.useState('openChangeReason');
@@ -69,9 +69,7 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
 
   const positioning = useAnchorPositioning({
     anchor: () => local.anchor,
-    get floatingRootContext() {
-      return floatingRootContext();
-    },
+    floatingRootContext,
     positionMethod,
     mounted,
     side,
@@ -115,7 +113,7 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
   // When the current trigger element changes, enable transitions on the
   // positioner temporarily
   createEffect(() => {
-    const currentTriggerElement = floatingRootContext()?.select('domReferenceElement');
+    const currentTriggerElement = floatingRootContext.select('domReferenceElement');
     const prevTriggerElement = prevTriggerElementRef;
 
     if (currentTriggerElement) {
@@ -176,7 +174,7 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
         <InternalBackdrop
           managed
           ref={(el) => {
-            store.context.refs.internalBackdropRef = el;
+            store.context.internalBackdropRef.current = el;
           }}
           inert={!open()}
           cutout={triggerElement()}

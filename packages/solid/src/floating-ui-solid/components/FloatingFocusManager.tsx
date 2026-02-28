@@ -737,11 +737,13 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
       domReferenceEl.insertAdjacentElement('afterend', fallbackEl);
     }
 
+    const returnFocusValue = props.returnFocus;
+
     function getReturnElement() {
       let resolvedReturnFocusValue =
-        typeof props.returnFocus === 'function'
-          ? props.returnFocus(closeTypeRef)
-          : props.returnFocus;
+        typeof returnFocusValue === 'function'
+          ? returnFocusValue(closeTypeRef)
+          : returnFocusValue;
 
       // `null` should fallback to default behavior in case of an empty ref.
       if (resolvedReturnFocusValue === undefined || resolvedReturnFocusValue === false) {
@@ -778,8 +780,7 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
       const returnElement = getReturnElement();
       // This is `returnElement`, if it's tabbable, or its first tabbable child.
       const tabbableReturnElement = getFirstTabbableElement(returnElement);
-      const returnFocusValue = props.returnFocus;
-      const hasExplicitReturnFocus = typeof props.returnFocus !== 'boolean';
+      const hasExplicitReturnFocus = typeof returnFocusValue !== 'boolean';
 
       queueMicrotask(() => {
         if (
@@ -863,7 +864,6 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
           data-type="inside"
           ref={(el) => {
             setBeforeGuardRef(el);
-            console.log(props.beforeContentFocusGuardRef);
             if (props.beforeContentFocusGuardRef) {
               props.beforeContentFocusGuardRef.current = el;
             }

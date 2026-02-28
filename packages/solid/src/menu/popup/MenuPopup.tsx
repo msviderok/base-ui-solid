@@ -51,6 +51,10 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
   const closeDelay = store.useState('closeDelay');
   const activeTriggerElement = store.useState('activeTriggerElement');
 
+  createEffect(() => {
+    store.context.hasExplicitFinalFocus = local.finalFocus !== undefined;
+  });
+
   const isContextMenu = () => parent().type === 'context-menu';
 
   useOpenChangeComplete({
@@ -152,7 +156,7 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
     local.finalFocus === undefined ? shouldReturnFocus() : local.finalFocus,
   );
 
-  const initialFocus = createMemo(() => parent().type === 'menu');
+  const initialFocus = createMemo(() => parent().type !== 'menu');
 
   return (
     <FloatingFocusManager

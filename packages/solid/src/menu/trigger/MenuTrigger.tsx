@@ -233,7 +233,8 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   });
 
   const lastOpenChangeReason = store.useState('lastOpenChangeReason');
-  const stickIfOpen = useStickIfOpen(isOpenedByThisTrigger, lastOpenChangeReason);
+  const [hoverResetTick, setHoverResetTick] = createSignal(0);
+  const stickIfOpen = useStickIfOpen(isOpenedByThisTrigger, lastOpenChangeReason, hoverResetTick);
 
   const click = useClick({
     context: floatingRootContext,
@@ -305,6 +306,11 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
       get id() {
         return thisTriggerId();
       },
+      onMouseEnter: () => {
+        if (isOpenedByThisTrigger() && lastOpenChangeReason() === REASONS.triggerHover) {
+          setHoverResetTick((value) => value + 1);
+        }
+      },
       onMouseDown: (event: MouseEvent) => {
         if (store.select('open')) {
           return;
@@ -318,13 +324,19 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
         const doc = ownerDocument(event.currentTarget as any);
         doc.addEventListener('mouseup', handleDocumentMouseUp, { once: true });
       },
-      get role() {
-        return isInMenubar() ? 'menuitem' : undefined;
-      },
     },
     mixedToggleHandlers(),
     elementProps,
     getButtonProps,
+    {
+      get role() {
+        if (isInMenubar()) {
+          return 'menuitem';
+        }
+
+        return nativeButton() ? undefined : 'button';
+      },
+    },
   ];
 
   let preFocusGuardRef = null as HTMLElement | null | undefined;
@@ -469,10 +481,16 @@ export namespace MenuTrigger {
 /**
  * Determines whether to ignore clicks after a hover-open.
  */
-function useStickIfOpen(open: Accessor<boolean>, openReason: Accessor<string | null>) {
+function useStickIfOpen(
+  open: Accessor<boolean>,
+  openReason: Accessor<string | null>,
+  hoverResetTick: Accessor<number>,
+) {
   const stickIfOpenTimeout = useTimeout();
   const [stickIfOpen, setStickIfOpen] = createSignal(false);
   createRenderEffect(() => {
+    hoverResetTick();
+
     if (open() && openReason() === 'trigger-hover') {
       // Only allow "patient" clicks to close the menu if it's open.
       // If they clicked within 500ms of the menu opening, keep it open.

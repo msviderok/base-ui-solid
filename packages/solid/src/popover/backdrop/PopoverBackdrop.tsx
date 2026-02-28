@@ -42,7 +42,7 @@ export function PopoverBackdrop(props: PopoverBackdrop.Props) {
   const element = useRenderElement('div', props, {
     state,
     ref: (el) => {
-      store.context.refs.backdropRef = el;
+      store.context.backdropRef.current = el;
     },
     props: [
       {

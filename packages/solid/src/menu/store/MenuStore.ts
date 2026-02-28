@@ -41,6 +41,7 @@ type Context = PopupStoreContext<MenuRoot.ChangeEventDetails> & {
   allowMouseUpTriggerRef: ReactLikeRef<boolean>;
   readonly triggerFocusTargetRef: ReactLikeRef<HTMLElement | null | undefined>;
   readonly beforeContentFocusGuardRef: ReactLikeRef<HTMLElement | null | undefined>;
+  hasExplicitFinalFocus: boolean;
 };
 
 const selectors = {
@@ -107,6 +108,7 @@ export function MenuStore<Payload>(initialState?: Partial<State<Payload>>) {
       allowMouseUpTriggerRef: { current: false },
       triggerFocusTargetRef: { current: null },
       beforeContentFocusGuardRef: { current: null },
+      hasExplicitFinalFocus: false,
       onOpenChangeComplete: undefined,
       triggerElements: new PopupTriggerMap(),
       floatingRootContext,

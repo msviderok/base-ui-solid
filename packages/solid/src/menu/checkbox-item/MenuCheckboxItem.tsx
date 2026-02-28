@@ -1,4 +1,4 @@
-import { useControlled } from '@base-ui/utils/useControlled';
+import { useControlled } from '../../utils/useControlled';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { splitComponentProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
@@ -34,7 +34,7 @@ export function MenuCheckboxItem(componentProps: MenuCheckboxItem.Props) {
   const nativeButton = () => local.nativeButton ?? false;
   const disabled = () => local.disabled ?? false;
   const closeOnClick = () => local.closeOnClick ?? false;
-  const checkedProp = () => local.checked ?? false;
+  const checkedProp = () => local.checked;
   const defaultChecked = () => local.defaultChecked;
 
   const listItem = useCompositeListItem({ label: () => local.label });

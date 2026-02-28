@@ -110,13 +110,13 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
   });
 
   const hoverEnabled = store.useState('hoverEnabled');
-  const allowMouseEnter = store.useState('allowMouseEnter');
+  const allowMouseEnter = parentMenuStore.useState('allowMouseEnter');
 
   const hoverProps = useHoverReferenceInteraction({
     context: floatingRootContext,
     props: {
       get enabled() {
-        return hoverEnabled() && openOnHover() && !disabled() && allowMouseEnter();
+        return hoverEnabled() && openOnHover() && !disabled();
       },
       handleClose: safePolygon({ blockPointerEvents: true }),
       mouseOnly: true,
@@ -127,7 +127,9 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
       get delay() {
         return allowMouseEnter() ? { open: delay(), close: closeDelay() } : 0;
       },
-      triggerElementRef,
+      get triggerElementRef() {
+        return triggerElementRef;
+      },
       get externalTree() {
         return floatingTreeRoot();
       },
@@ -154,9 +156,14 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
   const localInteractionProps = useInteractions([click]);
 
   const rootTriggerProps = createMemo(() => {
-    const p = store.useState('triggerProps', () => true)();
-    delete p.id;
-    return p;
+    const triggerProps = store.select('triggerProps', () => true);
+
+    if (!triggerProps) {
+      return triggerProps;
+    }
+
+    const { id: _id, ...rest } = triggerProps;
+    return rest;
   });
 
   const state: MenuSubmenuTrigger.State = {

@@ -50,11 +50,11 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   const mounted = store.useState('mounted');
   const openReason = store.useState('openChangeReason');
   const activeTriggerElement = store.useState('activeTriggerElement');
-  const floatingContext = store.useState('floatingRootContext');
+  const floatingContext = store.context.floatingRootContext;
 
   useOpenChangeComplete({
     open,
-    ref: store.context.refs.popupRef,
+    ref: () => store.context.popupRef.current,
     onComplete() {
       if (open()) {
         store.context.onOpenChangeComplete?.(true);
@@ -67,14 +67,14 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   const closeDelay = store.useState('closeDelay');
 
   useHoverFloatingInteraction({
-    get context() {
-      return floatingContext();
-    },
+    context: floatingContext,
     parameters: {
       get enabled() {
         return openOnHover() && !disabled();
       },
-      closeDelay,
+      get closeDelay() {
+        return closeDelay();
+      },
     },
   });
 
@@ -83,7 +83,7 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   // (this is required for Android specifically as iOS handles this automatically).
   function defaultInitialFocus(interactionType: InteractionType) {
     if (interactionType === 'touch') {
-      return store.context.refs.popupRef;
+      return store.context.popupRef.current;
     }
     return true;
   }
@@ -116,7 +116,7 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      store.context.refs.popupRef = el;
+      store.context.popupRef.current = el;
       setPopupElement(el);
     },
     get props() {
@@ -144,7 +144,7 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
 
   return (
     <FloatingFocusManager
-      context={floatingContext()}
+      context={floatingContext}
       openInteractionType={openMethod()}
       modal={modal() === 'trap-focus'}
       disabled={!mounted() || openReason() === REASONS.triggerHover}
@@ -154,8 +154,8 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
       previousFocusableElement={
         isHTMLElement(activeTriggerElement()) ? (activeTriggerElement() as HTMLElement) : undefined
       }
-      nextFocusableElement={store.context.refs.triggerFocusTargetRef}
-      beforeContentFocusGuardRef={store.context.refs.beforeContentFocusGuardRef}
+      nextFocusableElement={store.context.triggerFocusTargetRef.current}
+      beforeContentFocusGuardRef={store.context.beforeContentFocusGuardRef}
     >
       {element()}
     </FloatingFocusManager>

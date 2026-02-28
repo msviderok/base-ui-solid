@@ -362,6 +362,26 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
     changeState();
 
+    if (!nextOpen && reason === REASONS.focusOut && parent().type === 'menu') {
+      queueMicrotask(() => {
+        const trigger = eventDetails.trigger as HTMLElement | undefined;
+        const doc = trigger?.ownerDocument;
+        if (trigger && doc?.activeElement === doc?.body) {
+          trigger.focus();
+        }
+      });
+    }
+
+    if (!nextOpen && reason === REASONS.itemPress && !store.context.hasExplicitFinalFocus) {
+      queueMicrotask(() => {
+        const trigger = eventDetails.trigger as HTMLElement | undefined;
+        const doc = trigger?.ownerDocument;
+        if (trigger && doc?.activeElement === doc?.body) {
+          trigger.focus();
+        }
+      });
+    }
+
     if (
       parent().type === 'menubar' &&
       (reason === REASONS.triggerFocus ||
@@ -538,7 +558,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   ]);
 
   const activeTriggerProps = createMemo(() => {
-    return mergeProps([
+    const mergedProps = mergeProps([
       getReferenceProps(),
       {
         onMouseMove() {
@@ -546,8 +566,10 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
         },
       },
       interactionTypeProps,
-      { role: undefined },
     ]);
+
+    delete mergedProps.role;
+    return mergedProps;
   });
 
   const inactiveTriggerProps = createMemo(() => {

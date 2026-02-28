@@ -180,14 +180,20 @@ describe('<Menu.Root />', () => {
             skip();
           }
 
-          const itemElements = [
-            <Menu.Item label="Aa">1</Menu.Item>,
-            <Menu.Item label="Ba">2</Menu.Item>,
-            <Menu.Item label="Bb">3</Menu.Item>,
-            <Menu.Item label="Ca">4</Menu.Item>,
-          ];
-
-          const { user } = render(() => <TestMenu popupProps={{ children: itemElements }} />);
+          const { user } = render(() => (
+            <TestMenu
+              popupProps={{
+                children: (
+                  <>
+                    <Menu.Item label="Aa">1</Menu.Item>
+                    <Menu.Item label="Ba">2</Menu.Item>
+                    <Menu.Item label="Bb">3</Menu.Item>
+                    <Menu.Item label="Ca">4</Menu.Item>
+                  </>
+                ),
+              }}
+            />
+          ));
 
           const trigger = screen.getByRole('button', { name: 'Toggle' });
           await user.click(trigger);

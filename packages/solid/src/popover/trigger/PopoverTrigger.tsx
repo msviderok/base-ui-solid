@@ -68,7 +68,7 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
 
   const thisTriggerId = useBaseUiId(idProp);
   const isTriggerActive = store.useState('isTriggerActive', thisTriggerId);
-  const floatingContext = store.useState('floatingRootContext');
+  const floatingRootContext = store.context.floatingRootContext;
   const isOpenedByThisTrigger = store.useState('isOpenedByTrigger', thisTriggerId);
 
   let triggerElementRef = null as HTMLElement | null | undefined;
@@ -102,13 +102,10 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
   const openMethod = store.useState('openMethod');
 
   const hoverProps = useHoverReferenceInteraction({
-    get context() {
-      return floatingContext();
-    },
+    context: floatingRootContext,
     props: {
       get enabled() {
         return (
-          floatingContext() != null &&
           openOnHover() &&
           (openMethod() !== 'touch' || openReason() !== REASONS.triggerPress)
         );
@@ -122,16 +119,23 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
       delay: () => ({
         close: closeDelay(),
       }),
-      triggerElementRef,
+      get triggerElementRef() {
+        return triggerElementRef;
+      },
       get isActiveTrigger() {
         return isTriggerActive();
       },
     },
   });
 
-  const click = useClick(floatingContext, {
-    enabled: () => floatingContext() != null,
-    stickIfOpen,
+  const click = useClick({
+    context: floatingRootContext,
+    props: {
+      enabled: true,
+      get stickIfOpen() {
+        return stickIfOpen();
+      },
+    },
   });
 
   const localProps = useInteractions([click]);
@@ -202,7 +206,7 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
   const handleFocusTargetFocus = (event: FocusEvent) => {
     const positionerElement = store.select('positionerElement');
     if (positionerElement && isOutsideEvent(event, positionerElement)) {
-      store.context.refs.beforeContentFocusGuardRef?.focus();
+      store.context.beforeContentFocusGuardRef.current?.focus();
     } else {
       store.setOpen(
         false,
@@ -210,7 +214,7 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
       );
 
       let nextTabbable = getTabbableAfterElement(
-        store.context.refs.triggerFocusTargetRef || triggerElementRef,
+        store.context.triggerFocusTargetRef.current || triggerElementRef,
       );
 
       while (nextTabbable !== null && contains(positionerElement, nextTabbable)) {
@@ -239,7 +243,7 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
         {element()}
         <FocusGuard
           ref={(el) => {
-            store.context.refs.triggerFocusTargetRef = el;
+            store.context.triggerFocusTargetRef.current = el;
           }}
           onFocus={handleFocusTargetFocus}
         />

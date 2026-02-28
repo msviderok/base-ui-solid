@@ -143,6 +143,15 @@ export function useHoverReferenceInteraction(parameters: {
     }
 
     const currentTrigger = props.triggerElementRef;
+    const floatingContext = store.context.dataRef.floatingContext;
+    const hasInteractiveElements =
+      floatingContext?.elements.domReference() && floatingContext.elements.floating();
+
+    if (!hasInteractiveElements) {
+      closeWithDelay(event);
+      return;
+    }
+
     const localMergedProps = solidMergeProps(store.context.dataRef.floatingContext, {
       tree,
       x: () => event.clientX,
@@ -234,6 +243,14 @@ export function useHoverReferenceInteraction(parameters: {
       if (props.handleClose && store.context.dataRef.floatingContext) {
         if (!store.select('open')) {
           instance.openChangeTimeout.clear();
+        }
+
+        if (
+          !store.context.dataRef.floatingContext.elements.domReference() ||
+          !store.context.dataRef.floatingContext.elements.floating()
+        ) {
+          closeWithDelay(event);
+          return;
         }
 
         const currentTrigger = props.triggerElementRef;
