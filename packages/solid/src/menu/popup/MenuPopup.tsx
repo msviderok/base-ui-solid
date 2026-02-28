@@ -138,7 +138,7 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
     },
   });
 
-  const returnFocus = createMemo(() => {
+  const shouldReturnFocus = createMemo(() => {
     if (
       triggerElement() ||
       (parent().type === 'menubar' && lastOpenChangeReason() !== REASONS.outsidePress)
@@ -148,13 +148,19 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
     return parent().type === undefined || isContextMenu();
   });
 
+  const resolvedReturnFocus = createMemo(() =>
+    local.finalFocus === undefined ? shouldReturnFocus() : local.finalFocus,
+  );
+
+  const initialFocus = createMemo(() => parent().type === 'menu');
+
   return (
     <FloatingFocusManager
       context={floatingContext}
       modal={isContextMenu()}
       disabled={!mounted()}
-      returnFocus={local.finalFocus === undefined ? returnFocus() : local.finalFocus}
-      initialFocus={parent().type !== 'menu'}
+      returnFocus={resolvedReturnFocus()}
+      initialFocus={initialFocus()}
       restoreFocus
       externalTree={parent().type !== 'menubar' ? floatingTreeRoot() : undefined}
       previousFocusableElement={activeTriggerElement() as HTMLElement | null}

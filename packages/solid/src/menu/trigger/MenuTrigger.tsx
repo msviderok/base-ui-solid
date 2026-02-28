@@ -3,9 +3,9 @@ import { ownerDocument } from '@base-ui/utils/owner';
 import {
   createEffect,
   createMemo,
+  createRenderEffect,
   createSignal,
-  Match,
-  Switch,
+  Show,
   type Accessor,
   type JSX,
 } from 'solid-js';
@@ -232,10 +232,8 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
     },
   });
 
-  // Whether to ignore clicks to open the menu.
-  // `lastOpenChangeReason` doesn't need to be reactive here, as we need to run this
-  // only when `isOpenedByThisTrigger` changes.
-  const stickIfOpen = useStickIfOpen(isOpenedByThisTrigger, store.select('lastOpenChangeReason'));
+  const lastOpenChangeReason = store.useState('lastOpenChangeReason');
+  const stickIfOpen = useStickIfOpen(isOpenedByThisTrigger, lastOpenChangeReason);
 
   const click = useClick({
     context: floatingRootContext,
@@ -324,7 +322,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
         return isInMenubar() ? 'menuitem' : undefined;
       },
     },
-    mixedToggleHandlers,
+    mixedToggleHandlers(),
     elementProps,
     getButtonProps,
   ];
@@ -378,34 +376,40 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   });
 
   return (
-    <Switch fallback={<>{element()}</>}>
-      <Match when={isInMenubar()}>
-        <CompositeItem
-          tag="button"
-          render={renderProps.render}
-          class={renderProps.class}
-          state={state}
-          refs={ref}
-          props={props()}
-          stateAttributesMapping={pressableTriggerOpenStateMapping}
-        />
-      </Match>
-      <Match when={isOpenedByThisTrigger()}>
-        <FocusGuard
-          ref={(el) => {
-            preFocusGuardRef = el;
-          }}
-          onFocus={handlePreFocusGuardFocus}
-        />
-        <>{element()}</>
-        <FocusGuard
-          ref={(el) => {
-            store.context.triggerFocusTargetRef.current = el;
-          }}
-          onFocus={handleFocusTargetFocus}
-        />
-      </Match>
-    </Switch>
+    <Show
+      when={isInMenubar()}
+      fallback={
+        <>
+          <Show when={isOpenedByThisTrigger()}>
+            <FocusGuard
+              ref={(el) => {
+                preFocusGuardRef = el;
+              }}
+              onFocus={handlePreFocusGuardFocus}
+            />
+          </Show>
+          {element()}
+          <Show when={isOpenedByThisTrigger()}>
+            <FocusGuard
+              ref={(el) => {
+                store.context.triggerFocusTargetRef.current = el;
+              }}
+              onFocus={handleFocusTargetFocus}
+            />
+          </Show>
+        </>
+      }
+    >
+      <CompositeItem
+        tag="button"
+        render={renderProps.render}
+        class={renderProps.class}
+        state={state}
+        refs={ref}
+        props={props()}
+        stateAttributesMapping={pressableTriggerOpenStateMapping}
+      />
+    </Show>
   );
 }
 
@@ -465,11 +469,11 @@ export namespace MenuTrigger {
 /**
  * Determines whether to ignore clicks after a hover-open.
  */
-function useStickIfOpen(open: Accessor<boolean>, openReason: string | null) {
+function useStickIfOpen(open: Accessor<boolean>, openReason: Accessor<string | null>) {
   const stickIfOpenTimeout = useTimeout();
   const [stickIfOpen, setStickIfOpen] = createSignal(false);
-  createEffect(() => {
-    if (open() && openReason === 'trigger-hover') {
+  createRenderEffect(() => {
+    if (open() && openReason() === 'trigger-hover') {
       // Only allow "patient" clicks to close the menu if it's open.
       // If they clicked within 500ms of the menu opening, keep it open.
       setStickIfOpen(true);

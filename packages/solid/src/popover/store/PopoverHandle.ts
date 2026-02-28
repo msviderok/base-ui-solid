@@ -10,7 +10,7 @@ export class PopoverHandle<Payload> {
   public readonly store: PopoverStore<Payload>;
 
   constructor() {
-    this.store = new PopoverStore<Payload>();
+    this.store = PopoverStore<Payload>();
   }
 
   /**

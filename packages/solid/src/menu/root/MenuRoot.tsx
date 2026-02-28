@@ -412,6 +412,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   });
 
   floatingEvents = floatingRootContext.context.events;
+  store.context.floatingRootContext = floatingRootContext;
 
   const handleSetOpenEvent = ({
     open: nextOpen,
@@ -590,17 +591,11 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
   const itemProps = createMemo(() => getItemProps());
 
-  createEffect(() => {
-    store.useSyncedValues({
-      activeTriggerProps: activeTriggerProps(),
-      inactiveTriggerProps: inactiveTriggerProps(),
-      popupProps: popupProps(),
-      itemProps: itemProps(),
-    });
-  });
-
-  onMount(() => {
-    store.context.floatingRootContext = floatingRootContext;
+  store.useSyncedValues({
+    activeTriggerProps,
+    inactiveTriggerProps,
+    popupProps,
+    itemProps,
   });
 
   const context: MenuRootContext<Payload> = {

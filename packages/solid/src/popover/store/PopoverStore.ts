@@ -1,4 +1,5 @@
-import { onMount } from 'solid-js';
+import { onMount, mergeProps as solidMergeProps } from 'solid-js';
+import { type ReactLikeRef } from '../../solid-helpers';
 import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 import {
   createInitialPopupStoreState,
@@ -8,7 +9,7 @@ import {
   PopupTriggerMap,
 } from '../../utils/popups';
 import { REASONS } from '../../utils/reasons';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../../utils/store/SolidStoreV2';
 import { FloatingUIOpenChangeDetails } from '../../utils/types';
 import { type InteractionType } from '../../utils/useEnhancedClickHandler';
 import { Timeout, useTimeout } from '../../utils/useTimeout';
@@ -30,13 +31,11 @@ export type State<Payload> = PopupStoreState<Payload> & {
 };
 
 type Context = PopupStoreContext<PopoverRoot.ChangeEventDetails> & {
-  readonly refs: {
-    popupRef: HTMLElement | null | undefined;
-    backdropRef: HTMLDivElement | null | undefined;
-    internalBackdropRef: HTMLDivElement | null | undefined;
-    triggerFocusTargetRef: HTMLElement | null | undefined;
-    beforeContentFocusGuardRef: HTMLElement | null | undefined;
-  };
+  readonly popupRef: ReactLikeRef<HTMLElement | null | undefined>;
+  readonly backdropRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  readonly internalBackdropRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  readonly triggerFocusTargetRef: ReactLikeRef<HTMLElement | null | undefined>;
+  readonly beforeContentFocusGuardRef: ReactLikeRef<HTMLElement | null | undefined>;
   readonly stickIfOpenTimeout: Timeout;
 };
 
@@ -75,31 +74,29 @@ const selectors = {
   hasViewport: (state: State<unknown>) => state.hasViewport,
 };
 
-export class PopoverStore<Payload> extends SolidStore<State<Payload>, Context, Selectors> {
-  constructor(initialState?: Partial<State<Payload>>) {
-    super(
-      createInitialState(initialState),
-      {
-        refs: {
-          popupRef: undefined,
-          backdropRef: undefined,
-          internalBackdropRef: undefined,
-          triggerFocusTargetRef: undefined,
-          beforeContentFocusGuardRef: undefined,
-        },
-        onOpenChange: undefined,
-        onOpenChangeComplete: undefined,
-        stickIfOpenTimeout: useTimeout(),
-        triggerElements: new PopupTriggerMap(),
-      },
-      selectors,
-    );
-  }
+export function PopoverStore<Payload>(initialState?: Partial<State<Payload>>) {
+  const [state, setState, floatingRootContext] = createInitialState(initialState);
+  const store = SolidStore<State<Payload>, Context, typeof selectors>(
+    [state, setState],
+    {
+      popupRef: { current: null },
+      backdropRef: { current: null },
+      internalBackdropRef: { current: null },
+      triggerFocusTargetRef: { current: null },
+      beforeContentFocusGuardRef: { current: null },
+      onOpenChange: undefined,
+      onOpenChangeComplete: undefined,
+      stickIfOpenTimeout: useTimeout(),
+      triggerElements: new PopupTriggerMap(),
+      floatingRootContext,
+    },
+    selectors,
+  );
 
-  setOpen = (
+  function setOpen(
     nextOpen: boolean,
     eventDetails: Omit<PopoverRoot.ChangeEventDetails, 'preventUnmountOnClose'>,
-  ) => {
+  ) {
     const isHover = eventDetails.reason === REASONS.triggerHover;
     const isKeyboardClick =
       eventDetails.reason === REASONS.triggerPress &&
@@ -108,10 +105,10 @@ export class PopoverStore<Payload> extends SolidStore<State<Payload>, Context, S
       !nextOpen && (eventDetails.reason === REASONS.escapeKey || eventDetails.reason == null);
 
     (eventDetails as PopoverRoot.ChangeEventDetails).preventUnmountOnClose = () => {
-      this.set('preventUnmountingOnClose', true);
+      store.set('preventUnmountingOnClose', true);
     };
 
-    this.context.onOpenChange?.(nextOpen, eventDetails as PopoverRoot.ChangeEventDetails);
+    store.context.onOpenChange?.(nextOpen, eventDetails as PopoverRoot.ChangeEventDetails);
 
     if (eventDetails.isCanceled) {
       return;
@@ -121,11 +118,11 @@ export class PopoverStore<Payload> extends SolidStore<State<Payload>, Context, S
       open: nextOpen,
       nativeEvent: eventDetails.event,
       reason: eventDetails.reason,
-      nested: this.state.nested,
+      nested: store.state.nested,
       triggerElement: eventDetails.trigger,
     };
 
-    const floatingEvents = this.state.floatingRootContext.context.events;
+    const floatingEvents = store.context.floatingRootContext.context.events;
     floatingEvents?.emit('openchange', details);
 
     const changeState = () => {
@@ -142,15 +139,15 @@ export class PopoverStore<Payload> extends SolidStore<State<Payload>, Context, S
         updatedState.activeTriggerElement = eventDetails.trigger ?? null;
       }
 
-      this.update(updatedState);
+      store.update(updatedState);
     };
 
     if (isHover) {
       // Only allow "patient" clicks to close the popover if it's open.
       // If they clicked within 500ms of the popover opening, keep it open.
-      this.set('stickIfOpen', true);
-      this.context.stickIfOpenTimeout.start(PATIENT_CLICK_THRESHOLD, () => {
-        this.set('stickIfOpen', false);
+      store.set('stickIfOpen', true);
+      store.context.stickIfOpenTimeout.start(PATIENT_CLICK_THRESHOLD, () => {
+        store.set('stickIfOpen', false);
       });
 
       changeState();
@@ -159,29 +156,39 @@ export class PopoverStore<Payload> extends SolidStore<State<Payload>, Context, S
     }
 
     if (isKeyboardClick || isDismissClose) {
-      this.set('instantType', isKeyboardClick ? 'click' : 'dismiss');
+      store.set('instantType', isKeyboardClick ? 'click' : 'dismiss');
     } else if (eventDetails.reason === REASONS.focusOut) {
-      this.set('instantType', 'focus' as any);
+      store.set('instantType', 'focus' as any);
     } else {
-      this.set('instantType', undefined);
+      store.set('instantType', undefined);
     }
-  };
-
-  public static useStore<Payload>(
-    externalStore: PopoverStore<Payload> | undefined,
-    initialState: Partial<State<Payload>>,
-  ) {
-    const internalStore = new PopoverStore<Payload>(initialState);
-
-    const store = externalStore ?? internalStore;
-
-    onMount(internalStore.disposeEffect);
-    return store;
   }
 
-  private disposeEffect = () => {
-    return this.context.stickIfOpenTimeout.clear();
-  };
+  function disposeEffect() {
+    return store.context.stickIfOpenTimeout.clear();
+  }
+
+  onMount(() => {
+    disposeEffect();
+  });
+
+  const merged = solidMergeProps(store, { setOpen, disposeEffect });
+  return merged;
 }
 
-type Selectors = typeof selectors;
+export type PopoverStore<Payload> = ReturnType<typeof PopoverStore<Payload>>;
+
+PopoverStore.useStore = <Payload>(
+  externalStore: PopoverStore<Payload> | undefined,
+  initialState: Partial<State<Payload>>,
+) => {
+  if (externalStore) {
+    return externalStore;
+  }
+
+  const internalStore = PopoverStore(initialState);
+  onMount(() => {
+    internalStore.disposeEffect();
+  });
+  return internalStore;
+};

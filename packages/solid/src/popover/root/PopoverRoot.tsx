@@ -1,5 +1,13 @@
 'use client';
-import { createEffect, createMemo, onMount, Show, type Accessor, type JSX } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  onMount,
+  Show,
+  untrack,
+  type Accessor,
+  type JSX,
+} from 'solid-js';
 import {
   FloatingTree,
   useDismiss,
@@ -31,23 +39,26 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   const triggerIdProp = () => props.triggerId;
   const defaultTriggerIdProp = () => props.defaultTriggerId ?? null;
 
-  const store = PopoverStore.useStore(props.handle?.store, {
-    get modal() {
-      return modal();
+  const store = PopoverStore.useStore(
+    untrack(() => props.handle?.store),
+    {
+      get modal() {
+        return modal();
+      },
+      get open() {
+        return defaultOpen();
+      },
+      get openProp() {
+        return openProp();
+      },
+      get activeTriggerId() {
+        return defaultTriggerIdProp();
+      },
+      get triggerIdProp() {
+        return triggerIdProp();
+      },
     },
-    get open() {
-      return defaultOpen();
-    },
-    get openProp() {
-      return openProp();
-    },
-    get activeTriggerId() {
-      return defaultTriggerIdProp();
-    },
-    get triggerIdProp() {
-      return triggerIdProp();
-    },
-  });
+  );
 
   // Support initially open state when uncontrolled
   onMount(() => {

@@ -262,9 +262,9 @@ export function useHoverReferenceInteraction(parameters: {
         handler(event);
 
         doc.addEventListener('mousemove', handler);
-        instance.unbindMouseMove = () => {
+        setInstanceState('unbindMouseMove', () => () => {
           doc.removeEventListener('mousemove', handler);
-        };
+        });
 
         return;
       }
