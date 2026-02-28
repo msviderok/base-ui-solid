@@ -16,7 +16,7 @@ export function MenuArrow(componentProps: MenuArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
   const { store } = useMenuRootContext();
-  const { refs, side, align, arrowUncentered, arrowStyles } = useMenuPositionerContext();
+  const { arrowRef, side, align, arrowUncentered, arrowStyles } = useMenuPositionerContext();
   const open = store.useState('open');
 
   const state: MenuArrow.State = {
@@ -35,7 +35,9 @@ export function MenuArrow(componentProps: MenuArrow.Props) {
   };
 
   const element = useRenderElement('div', componentProps, {
-    ref: refs.setArrowRef,
+    ref: (el) => {
+      arrowRef.current = el;
+    },
     stateAttributesMapping: popupStateMapping,
     state,
     props: [

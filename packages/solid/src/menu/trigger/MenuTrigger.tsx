@@ -49,6 +49,7 @@ import { useTimeout } from '../../utils/useTimeout';
 import { MenuParent } from '../root/MenuRoot';
 import { useMenuRootContext } from '../root/MenuRootContext';
 import { MenuHandle } from '../store/MenuHandle';
+import type { MenuStore } from '../store/MenuStore';
 import { findRootOwnerId } from '../utils/findRootOwnerId';
 
 const BOUNDARY_OFFSET = 2;
@@ -59,7 +60,7 @@ const BOUNDARY_OFFSET = 2;
  *
  * Documentation: [Base UI Menu](https://base-ui.com/react/components/menu)
  */
-export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
+export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'disabled',
     'nativeButton',
@@ -78,7 +79,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   const closeDelay = () => local.closeDelay ?? 0;
 
   const rootContext = useMenuRootContext(true);
-  const store = local.handle?.store ?? rootContext?.store;
+  const store = (local.handle?.store ?? rootContext?.store) as MenuStore<Payload>;
   if (!store) {
     throw new Error(
       'Base UI: <Menu.Trigger> must be either used within a <Menu.Root> component or provided with a handle.',
@@ -87,7 +88,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
 
   const thisTriggerId = useBaseUiId(idProp);
   const isTriggerActive = store.useState('isTriggerActive', thisTriggerId);
-  const floatingRootContext = store.useState('floatingRootContext');
+  const floatingRootContext = store.context.floatingRootContext;
   const isOpenedByThisTrigger = store.useState('isOpenedByTrigger', thisTriggerId);
 
   let triggerElementRef = null as HTMLElement | null | undefined;
@@ -104,7 +105,9 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
     get triggerId() {
       return thisTriggerId();
     },
-    triggerElement: triggerElementRef,
+    get triggerElement() {
+      return triggerElementRef;
+    },
     store,
     stateUpdates: {
       payload: local.payload,
@@ -140,7 +143,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
 
   createEffect(() => {
     if (!isOpenedByThisTrigger() && parent().type === undefined) {
-      store.context.refs.allowMouseUpTriggerRef = false;
+      store.context.allowMouseUpTriggerRef.current = false;
     }
   });
 
@@ -153,7 +156,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
     }
 
     allowMouseUpTriggerTimeout.clear();
-    store.context.refs.allowMouseUpTriggerRef = false;
+    store.context.allowMouseUpTriggerRef.current = false;
 
     const mouseUpTarget = mouseEvent.target as Element | null;
 
@@ -198,9 +201,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   const openOnHover = () => openOnHoverProp() ?? parentMenubarHasSubmenuOpen();
 
   const hoverProps = useHoverReferenceInteraction({
-    get context() {
-      return floatingRootContext();
-    },
+    context: floatingRootContext,
     props: {
       get enabled() {
         return (
@@ -221,7 +222,9 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
         return parent().type === undefined ? delay() : undefined;
       },
       delay: () => ({ close: closeDelay() }),
-      triggerElementRef,
+      get triggerElementRef() {
+        return triggerElementRef;
+      },
       externalTree: floatingTreeRoot,
       get isActiveTrigger() {
         return isTriggerActive();
@@ -234,16 +237,30 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   // only when `isOpenedByThisTrigger` changes.
   const stickIfOpen = useStickIfOpen(isOpenedByThisTrigger, store.select('lastOpenChangeReason'));
 
-  const click = useClick(floatingRootContext, {
-    enabled: () => !disabled() && parent().type !== 'context-menu',
-    event: () => (isOpenedByThisTrigger() && isInMenubar() ? 'click' : 'mousedown'),
-    toggle: true,
-    ignoreMouse: false,
-    stickIfOpen: () => (parent().type === undefined ? stickIfOpen() : false),
+  const click = useClick({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !disabled() && parent().type !== 'context-menu';
+      },
+      get event() {
+        return isOpenedByThisTrigger() && isInMenubar() ? 'click' : 'mousedown';
+      },
+      toggle: true,
+      ignoreMouse: false,
+      get stickIfOpen() {
+        return parent().type === undefined ? stickIfOpen() : false;
+      },
+    },
   });
 
-  const focus = useFocus(floatingRootContext, {
-    enabled: () => !disabled() && parentMenubarHasSubmenuOpen(),
+  const focus = useFocus({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !disabled() && parentMenubarHasSubmenuOpen();
+      },
+    },
   });
 
   const mixedToggleHandlers = useMixedToggleClickHandler({
@@ -297,7 +314,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
 
         // mousedown -> mouseup on menu item should not trigger it within 200ms.
         allowMouseUpTriggerTimeout.start(200, () => {
-          store.context.refs.allowMouseUpTriggerRef = true;
+          store.context.allowMouseUpTriggerRef.current = true;
         });
 
         const doc = ownerDocument(event.currentTarget as any);
@@ -327,7 +344,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
   const handleFocusTargetFocus = (event: FocusEvent) => {
     const currentPositionerElement = access(store.select('positionerElement'));
     if (currentPositionerElement && isOutsideEvent(event, currentPositionerElement)) {
-      store.context.refs.beforeContentFocusGuardRef?.focus();
+      store.context.beforeContentFocusGuardRef.current?.focus();
     } else {
       store.setOpen(
         false,
@@ -335,7 +352,7 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
       );
 
       let nextTabbable = getTabbableAfterElement(
-        store.context.refs.triggerFocusTargetRef || triggerElementRef,
+        store.context.triggerFocusTargetRef.current || triggerElementRef,
       );
 
       while (nextTabbable !== null && contains(currentPositionerElement, nextTabbable)) {
@@ -383,17 +400,13 @@ export const MenuTrigger = ((componentProps: MenuTrigger.Props) => {
         <>{element()}</>
         <FocusGuard
           ref={(el) => {
-            store.context.refs.triggerFocusTargetRef = el;
+            store.context.triggerFocusTargetRef.current = el;
           }}
           onFocus={handleFocusTargetFocus}
         />
       </Match>
     </Switch>
   );
-}) as MenuTrigger;
-
-export interface MenuTrigger {
-  <Payload>(componentProps: MenuTriggerProps<Payload>): JSX.Element;
 }
 
 export interface MenuTriggerProps<Payload = unknown>

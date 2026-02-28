@@ -46,7 +46,7 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
   const parent = store.useState('parent');
   const lastOpenChangeReason = store.useState('lastOpenChangeReason');
   const rootId = store.useState('rootId');
-  const floatingContext = store.useState('floatingRootContext');
+  const floatingContext = store.context.floatingRootContext;
   const floatingTreeRoot = store.useState('floatingTreeRoot');
   const closeDelay = store.useState('closeDelay');
   const activeTriggerElement = store.useState('activeTriggerElement');
@@ -55,7 +55,7 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
 
   useOpenChangeComplete({
     open,
-    ref: store.context.refs.popupRef,
+    ref: () => store.context.popupRef.current,
     onComplete() {
       if (open()) {
         store.context.onOpenChangeComplete?.(true);
@@ -63,14 +63,11 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
     },
   });
 
-  createEffect(() => {
-    function handleClose(event: {
-      domEvent: Event | undefined;
-      reason: MenuRoot.ChangeEventReason;
-    }) {
-      store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
-    }
+  function handleClose(event: { domEvent: Event | undefined; reason: MenuRoot.ChangeEventReason }) {
+    store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
+  }
 
+  createEffect(() => {
     floatingTreeRoot().events.on('close', handleClose);
 
     onCleanup(() => {
@@ -82,9 +79,7 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
   const disabled = store.useState('disabled');
 
   useHoverFloatingInteraction({
-    get context() {
-      return floatingContext();
-    },
+    context: floatingContext,
     parameters: {
       get enabled() {
         return hoverEnabled() && !disabled() && !isContextMenu() && parent().type !== 'menubar';
@@ -119,7 +114,7 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      store.context.refs.popupRef = el;
+      store.context.popupRef.current = el;
     },
     stateAttributesMapping,
     get props() {
@@ -155,7 +150,7 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
 
   return (
     <FloatingFocusManager
-      context={floatingContext()}
+      context={floatingContext}
       modal={isContextMenu()}
       disabled={!mounted()}
       returnFocus={local.finalFocus === undefined ? returnFocus() : local.finalFocus}
@@ -164,10 +159,10 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
       externalTree={parent().type !== 'menubar' ? floatingTreeRoot() : undefined}
       previousFocusableElement={activeTriggerElement() as HTMLElement | null}
       nextFocusableElement={
-        parent().type === undefined ? store.context.refs.triggerFocusTargetRef : undefined
+        parent().type === undefined ? store.context.triggerFocusTargetRef.current : undefined
       }
       beforeContentFocusGuardRef={
-        parent().type === undefined ? store.context.refs.beforeContentFocusGuardRef : undefined
+        parent().type === undefined ? store.context.beforeContentFocusGuardRef : undefined
       }
     >
       {element()}

@@ -1,5 +1,5 @@
 import { mergeProps } from '../../merge-props';
-import { access, MaybeAccessor } from '../../solid-helpers';
+import { access, MaybeAccessor, useRef } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { BaseUIEvent, type BaseUIHTMLProps, type HTMLProps } from '../../utils/types';
 import { MenuStore } from '../store/MenuStore';
@@ -18,7 +18,7 @@ export function useMenuItem(params: useMenuItem.Parameters): useMenuItem.ReturnV
   const itemMetadata = () => access(params.itemMetadata);
   const nodeId = () => access(params.nodeId);
 
-  let itemRef = null as HTMLElement | null | undefined;
+  const itemRef = useRef<HTMLElement | null | undefined>(null);
 
   const { getButtonProps, buttonRef } = useButton({
     disabled,
@@ -59,7 +59,7 @@ export function useMenuItem(params: useMenuItem.Parameters): useMenuItem.ReturnV
           metadata.setActive();
         },
         onKeyUp(event: BaseUIEvent<KeyboardEvent>) {
-          if (event.key === ' ' && params.store.context.refs.typingRef) {
+          if (event.key === ' ' && params.store.context.typingRef.current) {
             event.preventBaseUIHandler();
           }
         },
@@ -77,7 +77,7 @@ export function useMenuItem(params: useMenuItem.Parameters): useMenuItem.ReturnV
   return {
     getItemProps,
     setItemRef: (el) => {
-      itemRef = el;
+      itemRef.current = el;
       buttonRef(el);
     },
   };

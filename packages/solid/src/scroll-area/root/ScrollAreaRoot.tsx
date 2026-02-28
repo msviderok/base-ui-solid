@@ -2,7 +2,7 @@ import { batch, createMemo, createSignal, onCleanup, onMount, type JSX } from 's
 import { useCSPContext } from '../../csp-provider/CSPContext';
 import { contains } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
-import { STYLE_TAG_ID, styleDisableScrollbar } from '../../utils/styles';
+import { STYLE_TAG_ID, styleDisableScrollbar, useStyleDisableScrollbar } from '../../utils/styles';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -41,7 +41,7 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
 
   const scrollYTimeout = useTimeout();
   const scrollXTimeout = useTimeout();
-  const { nonce, disableStyleElements } = useCSPContext();
+  const csp = useCSPContext();
 
   const [hovering, setHovering] = createSignal(false);
   const [scrollingX, setScrollingX] = createSignal(false);
@@ -271,21 +271,7 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
     overflowEdgeThreshold,
   };
 
-  onMount(() => {
-    if (disableStyleElements) {
-      return;
-    }
-
-    if (!document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {
-      const el = styleDisableScrollbar.getElement(nonce());
-      document.head.appendChild(el);
-      onCleanup(() => {
-        if (document.head.getElementsByTagName('style').namedItem(STYLE_TAG_ID)) {
-          document.head.removeChild(el);
-        }
-      });
-    }
-  });
+  useStyleDisableScrollbar(csp);
 
   return (
     <ScrollAreaRootContext.Provider value={contextValue}>

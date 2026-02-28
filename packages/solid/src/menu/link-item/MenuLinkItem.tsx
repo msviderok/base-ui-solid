@@ -1,5 +1,5 @@
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -22,7 +22,7 @@ export function MenuLinkItem(componentProps: MenuLinkItem.Props) {
   const idProp = () => local.id;
   const closeOnClick = () => local.closeOnClick ?? false;
 
-  let linkRef = null as HTMLAnchorElement | null | undefined;
+  const linkRef = useRef<HTMLAnchorElement | null | undefined>(null);
 
   const listItem = useCompositeListItem({ label: () => local.label });
   const menuPositionerContext = useMenuPositionerContext(true);
@@ -63,7 +63,7 @@ export function MenuLinkItem(componentProps: MenuLinkItem.Props) {
       return [itemProps(), elementProps, commonProps];
     },
     ref: (el) => {
-      linkRef = el;
+      linkRef.current = el;
       listItem.setRef(el);
     },
   });

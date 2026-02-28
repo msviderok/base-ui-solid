@@ -44,7 +44,7 @@ import {
   stringifyAsLabel,
   stringifyAsValue,
 } from '../../utils/resolveValueLabel';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../../utils/store/SolidStoreV2';
 import { HTMLProps } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
@@ -333,7 +333,7 @@ export function AriaCombobox<Value = any, Mode extends SelectionMode = 'none'>(
     return filteredItemsResolved as Value[];
   });
 
-  const store = new SolidStore<StoreState, {}, typeof selectors>({
+  const store = SolidStore<StoreState, {}, typeof selectors>({
     get id() {
       return id();
     },

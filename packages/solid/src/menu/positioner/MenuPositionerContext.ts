@@ -1,4 +1,5 @@
-import { createContext, useContext, type Accessor, type JSX, type Setter } from 'solid-js';
+import { createContext, useContext, type Accessor, type JSX } from 'solid-js';
+import { type ReactLikeRef } from '../../solid-helpers';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 
 export interface MenuPositionerContext {
@@ -10,10 +11,7 @@ export interface MenuPositionerContext {
    * How to align the popup relative to the specified side.
    */
   align: Accessor<Align>;
-  refs: {
-    arrowRef: Accessor<Element | null | undefined>;
-    setArrowRef: Setter<Element | null | undefined>;
-  };
+  arrowRef: ReactLikeRef<Element | null | undefined>;
   arrowUncentered: Accessor<boolean>;
   arrowStyles: Accessor<JSX.CSSProperties>;
   nodeId: Accessor<string | undefined>;

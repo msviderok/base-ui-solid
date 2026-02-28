@@ -1,4 +1,4 @@
-import { createEffect, createMemo, onCleanup, onMount, type JSX } from 'solid-js';
+import { createEffect, createMemo, onCleanup, onMount, Show, type JSX } from 'solid-js';
 import { CompositeList } from '../../composite/list/CompositeList';
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext';
 import { FloatingNode } from '../../floating-ui-solid';
@@ -9,7 +9,7 @@ import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTr
 import { InternalBackdrop } from '../../utils/InternalBackdrop';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
-import { BaseUIComponentProps } from '../../utils/types';
+import { BaseUIComponentProps, type HTMLProps } from '../../utils/types';
 import { useAnchorPositioning, type Align, type Side } from '../../utils/useAnchorPositioning';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useMenuPortalContext } from '../portal/MenuPortalContext';
@@ -57,7 +57,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
   const contextMenuContext = useContextMenuRootContext(true);
 
   const parent = store.useState('parent');
-  const floatingRootContext = store.useState('floatingRootContext');
+  const floatingRootContext = store.context.floatingRootContext;
   const floatingTreeRoot = store.useState('floatingTreeRoot');
   const mounted = store.useState('mounted');
   const open = store.useState('open');
@@ -117,9 +117,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
 
   const positioner = useAnchorPositioning({
     anchor,
-    get floatingRootContext() {
-      return floatingRootContext();
-    },
+    floatingRootContext,
     positionMethod: () => (contextMenuContext ? 'fixed' : positionMethodProp()),
     mounted,
     side: computedSide,
@@ -143,7 +141,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
     },
   });
 
-  const positionerProps: JSX.HTMLAttributes<HTMLDivElement> = {
+  const positionerProps: HTMLProps = {
     role: 'presentation',
     get hidden() {
       return !mounted();
@@ -257,7 +255,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
   const contextValue: MenuPositionerContext = {
     side: positioner.side,
     align: positioner.align,
-    refs: positioner.refs,
+    arrowRef: positioner.arrowRef,
     arrowUncentered: positioner.arrowUncentered,
     arrowStyles: positioner.arrowStyles,
     nodeId: positioner.context.nodeId,
@@ -303,7 +301,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
 
   return (
     <MenuPositionerContext.Provider value={contextValue}>
-      {shouldRenderBackdrop() && (
+      <Show when={shouldRenderBackdrop()}>
         <InternalBackdrop
           managed
           ref={(el) => {
@@ -315,12 +313,12 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
           inert={!open()}
           cutout={backdropCutout()}
         />
-      )}
+      </Show>
       <FloatingNode id={floatingNodeId()}>
         <CompositeList
           refs={{
-            elements: store.context.refs.itemDomElements,
-            labels: store.context.refs.itemLabels,
+            elements: store.context.itemDomElements.current,
+            labels: store.context.itemLabels.current,
           }}
         >
           {element()}

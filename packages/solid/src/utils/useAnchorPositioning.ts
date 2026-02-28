@@ -317,7 +317,7 @@ export function useAnchorPositioning(
     return arrow(() => ({
       // `transform-origin` calculations rely on an element existing. If the arrow hasn't been set,
       // we'll create a fake element.
-      element: arrowRef || document.createElement('div'),
+      element: arrowRef.current || document.createElement('div'),
       padding: arrowPadding(),
       offsetParent: 'floating',
     }));

@@ -6,7 +6,7 @@ import { CLICK_TRIGGER_IDENTIFIER } from '@msviderok/base-ui-solid/utils/constan
 import type { FloatingUIOpenChangeDetails } from '@msviderok/base-ui-solid/utils/types';
 import { createEffect, createMemo, createSignal, on, onCleanup, Show, type JSX } from 'solid-js';
 import { focusable, isTabbable, tabbable, type FocusableElement } from 'tabbable';
-import { defaultProps } from '../../solid-helpers';
+import { defaultProps, type ReactLikeRef } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { FocusGuard } from '../../utils/FocusGuard';
 import { REASONS } from '../../utils/reasons';
@@ -240,7 +240,7 @@ export interface FloatingFocusManagerProps {
    * Ref to the focus guard preceding the floating element content.
    * Can be useful to focus the popup progammatically.
    */
-  beforeContentFocusGuardRef?: (HTMLSpanElement | null) | undefined;
+  beforeContentFocusGuardRef?: ReactLikeRef<HTMLSpanElement | null | undefined>;
   /**
    * External FlatingTree to use when the one provided by context can't be used.
    */
@@ -863,7 +863,10 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
           data-type="inside"
           ref={(el) => {
             setBeforeGuardRef(el);
-            props.beforeContentFocusGuardRef = el;
+            console.log(props.beforeContentFocusGuardRef);
+            if (props.beforeContentFocusGuardRef) {
+              props.beforeContentFocusGuardRef.current = el;
+            }
             portalContext?.setBeforeInsideRef(el);
           }}
           onFocus={(event) => {

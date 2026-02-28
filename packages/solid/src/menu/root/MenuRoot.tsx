@@ -5,6 +5,7 @@ import {
   onCleanup,
   onMount,
   Show,
+  untrack,
   type Accessor,
   type JSX,
 } from 'solid-js';
@@ -27,6 +28,7 @@ import {
 } from '../../floating-ui-solid';
 import { MenubarContext, useMenubarContext } from '../../menubar/MenubarContext';
 import { mergeProps } from '../../merge-props';
+import { ComponentWithPayload, type ReactLikeRef } from '../../solid-helpers';
 import { TYPEAHEAD_RESET_MS } from '../../utils/constants';
 import {
   createChangeEventDetails,
@@ -101,23 +103,27 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     };
   });
 
-  const store = MenuStore.useStore(props.handle?.store, {
-    get open() {
-      return defaultOpen();
-    },
-    get openProp() {
-      return openProp();
-    },
-    get activeTriggerId() {
-      return defaultTriggerIdProp();
-    },
-    get triggerIdProp() {
-      return triggerIdProp();
-    },
-    get parent() {
-      return parentFromContext();
-    },
-  });
+  const store = untrack(
+    () =>
+      props.handle?.store ??
+      MenuStore({
+        get open() {
+          return defaultOpen();
+        },
+        get openProp() {
+          return openProp();
+        },
+        get activeTriggerId() {
+          return defaultTriggerIdProp();
+        },
+        get triggerIdProp() {
+          return triggerIdProp();
+        },
+        get parent() {
+          return parentFromContext();
+        },
+      }),
+  ) as MenuStore<Payload>;
 
   // Support initially open state when uncontrolled
   onMount(() => {
@@ -313,7 +319,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     // when tabbing outside.
     const idx = activeIndex();
     if (!nextOpen && idx !== null) {
-      const activeOption = store.context.refs.itemDomElements[idx];
+      const activeOption = store.context.itemDomElements.current[idx];
       // Wait for Floating UI's focus effect to have fired
       queueMicrotask(() => {
         activeOption?.setAttribute('tabindex', '-1');
@@ -387,7 +393,9 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   };
 
   onMount(() => {
-    props.actionsRef = { unmount: forceUnmount, close: handleImperativeClose };
+    if (props.actionsRef) {
+      props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
+    }
   });
 
   createEffect(() => {
@@ -421,26 +429,31 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     });
   });
 
-  const dismiss = useDismiss(floatingRootContext, {
-    enabled: () => !disabled(),
-    bubbles: () => ({
-      escapeKey: closeParentOnEsc() && parent().type === 'menu',
-    }),
-    outsidePress() {
-      if (parent().type !== 'context-menu' || openEventRef?.type === 'contextmenu') {
-        return true;
-      }
+  const dismiss = useDismiss({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !disabled();
+      },
+      get bubbles() {
+        return {
+          escapeKey: closeParentOnEsc() && parent().type === 'menu',
+        };
+      },
+      get outsidePress() {
+        if (parent().type !== 'context-menu' || openEventRef?.type === 'contextmenu') {
+          return true;
+        }
 
-      return allowOutsidePressDismissalRef;
-    },
-    get externalTree() {
-      return nested() ? floatingTreeRoot() : undefined;
+        return allowOutsidePressDismissalRef;
+      },
+      get externalTree() {
+        return nested() ? floatingTreeRoot() : undefined;
+      },
     },
   });
 
-  const role = useRole(floatingRootContext, {
-    role: 'menu',
-  });
+  const role = useRole({ context: floatingRootContext, props: { role: 'menu' } });
 
   const direction = useDirection();
 
@@ -451,41 +464,69 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     store.set('activeIndex', index);
   };
 
-  const listNavigation = useListNavigation(floatingRootContext, {
-    enabled: () => !disabled(),
-    listRef: store.context.refs.itemDomElements,
-    activeIndex,
-    nested: () => parent().type !== undefined,
-    loopFocus,
-    orientation,
-    parentOrientation: () => {
-      const p = parent();
-      return p.type === 'menubar' ? p.context.orientation() : undefined;
+  const listNavigation = useListNavigation({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !disabled();
+      },
+      get listRef() {
+        return store.context.itemDomElements.current;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      get nested() {
+        return parent().type !== undefined;
+      },
+      get loopFocus() {
+        return loopFocus();
+      },
+      get orientation() {
+        return orientation();
+      },
+      get parentOrientation() {
+        const p = parent();
+        return p.type === 'menubar' ? p.context.orientation() : undefined;
+      },
+      get rtl() {
+        return direction() === 'rtl';
+      },
+      disabledIndices: EMPTY_ARRAY,
+      onNavigate: setActiveIndex,
+      get openOnArrowKeyDown() {
+        return parent().type !== 'context-menu';
+      },
+      get externalTree() {
+        return nested() ? floatingTreeRoot() : undefined;
+      },
+      get focusItemOnHover() {
+        return highlightItemOnHover();
+      },
     },
-    rtl: () => direction() === 'rtl',
-    disabledIndices: EMPTY_ARRAY,
-    onNavigate: setActiveIndex,
-    openOnArrowKeyDown: () => parent().type !== 'context-menu',
-    get externalTree() {
-      return nested() ? floatingTreeRoot() : undefined;
-    },
-    focusItemOnHover: highlightItemOnHover,
   });
 
   const onTypingChange = (nextTyping: boolean) => {
-    store.context.refs.typingRef = nextTyping;
+    store.context.typingRef.current = nextTyping;
   };
 
-  const typeahead = useTypeahead(floatingRootContext, {
-    listRef: store.context.refs.itemLabels,
-    activeIndex,
-    resetMs: TYPEAHEAD_RESET_MS,
-    onMatch: (index) => {
-      if (open() && index !== activeIndex()) {
-        store.set('activeIndex', index);
-      }
+  const typeahead = useTypeahead({
+    context: floatingRootContext,
+    props: {
+      get listRef() {
+        return store.context.itemLabels.current;
+      },
+      get activeIndex() {
+        return activeIndex();
+      },
+      resetMs: TYPEAHEAD_RESET_MS,
+      onMatch: (index) => {
+        if (open() && index !== activeIndex()) {
+          store.set('activeIndex', index);
+        }
+      },
+      onTypingChange,
     },
-    onTypingChange,
   });
 
   const { getReferenceProps, getFloatingProps, getItemProps, getTriggerProps } = useInteractions([
@@ -551,12 +592,15 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
   createEffect(() => {
     store.useSyncedValues({
-      floatingRootContext,
       activeTriggerProps: activeTriggerProps(),
       inactiveTriggerProps: inactiveTriggerProps(),
       popupProps: popupProps(),
       itemProps: itemProps(),
     });
+  });
+
+  onMount(() => {
+    store.context.floatingRootContext = floatingRootContext;
   });
 
   const context: MenuRootContext<Payload> = {
@@ -569,9 +613,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   const content = () => {
     return (
       <MenuRootContext.Provider value={context as MenuRootContext}>
-        {typeof props.children === 'function'
-          ? props.children({ payload: payload() })
-          : props.children}
+        <ComponentWithPayload payload={payload} children={props.children} />
       </MenuRootContext.Provider>
     );
   };
@@ -650,7 +692,7 @@ export interface MenuRootProps<Payload = unknown> {
    *   Useful when the menu's animation is controlled by an external library.
    * - `close`: When specified, the menu can be closed imperatively.
    */
-  actionsRef?: (MenuRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<MenuRoot.Actions | null> | undefined;
   /**
    * ID of the trigger that the popover is associated with.
    * This is useful in conjunction with the `open` prop to create a controlled popover.

@@ -1,4 +1,4 @@
-import { Match, Switch, type JSX } from 'solid-js';
+import { createMemo, Match, Switch, type JSX } from 'solid-js';
 import { resolveMultipleLabels, resolveSelectedLabel } from '../../utils/resolveValueLabel';
 import { useComboboxRootContext } from '../root/ComboboxRootContext';
 
@@ -14,7 +14,7 @@ export function ComboboxValue(props: ComboboxValue.Props) {
   const itemToStringLabel = store.useState('itemToStringLabel');
   const selectedValue = store.useState('selectedValue');
   const items = store.useState('items');
-  const multiple = () => store.useState('selectionMode')() === 'multiple';
+  const multiple = createMemo(() => store.select('selectionMode') === 'multiple');
   const hasSelectedValue = store.useState('hasSelectedValue');
 
   return (

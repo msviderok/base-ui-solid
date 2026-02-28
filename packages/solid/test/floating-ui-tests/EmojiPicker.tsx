@@ -1,10 +1,12 @@
 import c from 'clsx';
 import {
   createEffect,
+  createMemo,
   createSignal,
   Index,
   Match,
   onCleanup,
+  Show,
   splitProps,
   Switch,
   type JSX,
@@ -196,8 +198,9 @@ export function Main() {
     }
   };
 
-  const filteredEmojis = () =>
-    emojis.filter(({ name }) => name.toLocaleLowerCase().includes(search().toLocaleLowerCase()));
+  const filteredEmojis = createMemo(() =>
+    emojis.filter(({ name }) => name.toLocaleLowerCase().includes(search().toLocaleLowerCase())),
+  );
 
   return (
     <>
@@ -215,7 +218,7 @@ export function Main() {
             ☻
           </Button>
           <br />
-          {selectedEmoji() && (
+          <Show when={selectedEmoji()}>
             <span id="emoji-label">
               <span
                 style={{ 'font-size': '30px' }}
@@ -225,9 +228,9 @@ export function Main() {
               </span>{' '}
               selected
             </span>
-          )}
+          </Show>
           <FloatingPortal>
-            {open() && (
+            <Show when={open()}>
               <FloatingFocusManager context={context} modal={false}>
                 <div
                   ref={refs.setFloating}
@@ -289,7 +292,7 @@ export function Main() {
                   />
                 </div>
               </FloatingFocusManager>
-            )}
+            </Show>
           </FloatingPortal>
         </div>
       </div>

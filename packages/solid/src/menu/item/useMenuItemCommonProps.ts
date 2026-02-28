@@ -1,4 +1,5 @@
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext';
+import { type ReactLikeRef } from '../../solid-helpers';
 import { REASONS } from '../../utils/reasons';
 import { HTMLProps } from '../../utils/types';
 import { MenuStore } from '../store/MenuStore';
@@ -28,7 +29,7 @@ export interface UseMenuItemCommonPropsParameters {
   /**
    * Ref to the item element.
    */
-  itemRef: (HTMLElement | null) | undefined;
+  itemRef: ReactLikeRef<HTMLElement | null | undefined> | undefined;
   /**
    * Optional metadata for checking item type before triggering click.
    * If provided, click will only be triggered for 'regular-item' type.
@@ -86,13 +87,13 @@ export function useMenuItemCommonProps(params: UseMenuItemCommonPropsParameters)
 
       if (
         params.itemRef &&
-        params.store.context.refs.allowMouseUpTriggerRef &&
+        params.store.context.allowMouseUpTriggerRef.current &&
         (!isContextMenu || event.button === 2)
       ) {
         // This fires whenever the user clicks on the trigger, moves the cursor, and releases it over the item.
         // We trigger the click and override the `closeOnClick` preference to always close the menu.
         if (!params.itemMetadata || params.itemMetadata.type === 'regular-item') {
-          params.itemRef.click();
+          params.itemRef.current?.click();
         }
       }
     },

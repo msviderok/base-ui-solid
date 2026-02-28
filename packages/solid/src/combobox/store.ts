@@ -1,7 +1,7 @@
 import type { Accessor } from 'solid-js';
 import { compareItemEquality } from '../utils/itemEquality';
 import { hasNullItemLabel } from '../utils/resolveValueLabel';
-import { SolidStore } from '../utils/store/SolidStore';
+import { SolidStore } from '../utils/store/SolidStoreV2';
 import type { HTMLProps } from '../utils/types';
 import type { Side } from '../utils/useAnchorPositioning';
 import type { InteractionType } from '../utils/useEnhancedClickHandler';

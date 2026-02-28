@@ -124,7 +124,7 @@ export function MenuStore<Payload>(initialState?: Partial<State<Payload>>) {
   function useStore<_Payload>(
     externalStore: MenuStore<_Payload> | undefined,
     _initialState: Partial<State<_Payload>>,
-  ) {
+  ): MenuStore<_Payload> {
     return externalStore ?? MenuStore<_Payload>(_initialState);
   }
 

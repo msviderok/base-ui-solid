@@ -1,4 +1,3 @@
-'use client';
 import { useControlled } from '@base-ui/utils/useControlled';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { splitComponentProps } from '../../solid-helpers';

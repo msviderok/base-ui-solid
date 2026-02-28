@@ -846,8 +846,10 @@ describe('<Menu.Root />', () => {
     describe('prop: actionsRef', () => {
       it('unmounts the menu when the `unmount` method is called', async () => {
         const actionsRef = {
-          unmount: spy(),
-          close: spy(),
+          current: {
+            unmount: spy(),
+            close: spy(),
+          },
         };
 
         const { user } = render(() => (
@@ -881,7 +883,7 @@ describe('<Menu.Root />', () => {
           requestAnimationFrame(resolve);
         });
 
-        actionsRef.unmount();
+        actionsRef.current.unmount();
 
         await waitFor(() => {
           expect(screen.queryByRole('menu')).to.equal(null);

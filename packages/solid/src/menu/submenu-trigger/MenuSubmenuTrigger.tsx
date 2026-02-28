@@ -47,7 +47,7 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
 
   const thisTriggerId = useBaseUiId(idProp);
   const open = store.useState('open');
-  const floatingRootContext = store.useState('floatingRootContext');
+  const floatingRootContext = store.context.floatingRootContext;
   const floatingTreeRoot = store.useState('floatingTreeRoot');
 
   const baseRegisterTrigger = useTriggerRegistration({
@@ -81,9 +81,7 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
     throw new Error('Base UI: <Menu.SubmenuTrigger> must be placed in <Menu.SubmenuRoot>.');
   }
 
-  createEffect(() => {
-    store.useSyncedValue('closeDelay', closeDelay());
-  });
+  store.useSyncedValue('closeDelay', closeDelay);
 
   const parentMenuStore = submenuRootContext.parentMenu;
 
@@ -115,9 +113,7 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
   const allowMouseEnter = store.useState('allowMouseEnter');
 
   const hoverProps = useHoverReferenceInteraction({
-    get context() {
-      return floatingRootContext();
-    },
+    context: floatingRootContext,
     props: {
       get enabled() {
         return hoverEnabled() && openOnHover() && !disabled() && allowMouseEnter();
@@ -138,12 +134,21 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
     },
   });
 
-  const click = useClick(floatingRootContext, {
-    enabled: () => !disabled(),
-    event: 'mousedown',
-    toggle: () => !openOnHover(),
-    ignoreMouse: openOnHover,
-    stickIfOpen: false,
+  const click = useClick({
+    context: floatingRootContext,
+    props: {
+      get enabled() {
+        return !disabled();
+      },
+      event: 'mousedown',
+      get toggle() {
+        return !openOnHover();
+      },
+      get ignoreMouse() {
+        return openOnHover();
+      },
+      stickIfOpen: false,
+    },
   });
 
   const localInteractionProps = useInteractions([click]);
