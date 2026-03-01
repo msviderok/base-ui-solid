@@ -23,7 +23,16 @@ const LONG_PRESS_DELAY = 500;
 export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { anchor, refs, rootId } = useContextMenuRootContext(false);
+  const {
+    anchor,
+    backdropRef,
+    internalBackdropRef,
+    actionsRef,
+    positionerRef,
+    allowMouseUpTriggerRef,
+    initialCursorPointRef,
+    rootId,
+  } = useContextMenuRootContext(false);
 
   const { store } = useMenuRootContext(false);
   const open = store.useState('open');
@@ -38,7 +47,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
   function handleLongPress(x: number, y: number, event: MouseEvent | TouchEvent) {
     const isTouchEvent = event.type.startsWith('touch');
 
-    refs.initialCursorPointRef = { x, y };
+    initialCursorPointRef.current = { x, y };
 
     anchor.getBoundingClientRect = () => {
       return DOMRect.fromRect({
@@ -50,7 +59,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
     };
 
     allowMouseUpRef = false;
-    refs.actionsRef?.setOpen(true, createChangeEventDetails(REASONS.triggerPress, event));
+    actionsRef.current?.setOpen(true, createChangeEventDetails(REASONS.triggerPress, event));
 
     allowMouseUpTimeout.start(LONG_PRESS_DELAY, () => {
       allowMouseUpRef = true;
@@ -61,7 +70,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
     if (disabled()) {
       return;
     }
-    refs.allowMouseUpTriggerRef = true;
+    allowMouseUpTriggerRef.current = true;
     stopEvent(event);
     handleLongPress(event.clientX, event.clientY, event);
     const doc = ownerDocument(triggerRef as Element);
@@ -69,7 +78,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
     doc.addEventListener(
       'mouseup',
       (mouseEvent: MouseEvent) => {
-        refs.allowMouseUpTriggerRef = false;
+        allowMouseUpTriggerRef.current = false;
 
         if (!allowMouseUpRef) {
           return;
@@ -80,7 +89,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
 
         const mouseUpTarget = getTarget(mouseEvent) as Element | null;
 
-        if (contains(refs.positionerRef, mouseUpTarget)) {
+        if (contains(positionerRef.current, mouseUpTarget)) {
           return;
         }
 
@@ -88,7 +97,10 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
           return;
         }
 
-        refs.actionsRef?.setOpen(false, createChangeEventDetails(REASONS.cancelOpen, mouseEvent));
+        actionsRef.current?.setOpen(
+          false,
+          createChangeEventDetails(REASONS.cancelOpen, mouseEvent),
+        );
       },
       { once: true },
     );
@@ -98,7 +110,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
     if (disabled()) {
       return;
     }
-    refs.allowMouseUpTriggerRef = false;
+    allowMouseUpTriggerRef.current = false;
     if (event.touches.length === 1) {
       event.stopPropagation();
       const touch = event.touches[0];
@@ -138,8 +150,8 @@ export function ContextMenuTrigger(componentProps: ContextMenuTrigger.Props) {
     const targetElement = target as HTMLElement | null;
     if (
       contains(triggerRef, targetElement) ||
-      contains(refs.internalBackdropRef, targetElement) ||
-      contains(refs.backdropRef, targetElement)
+      contains(internalBackdropRef.current, targetElement) ||
+      contains(backdropRef.current, targetElement)
     ) {
       event.preventDefault();
     }

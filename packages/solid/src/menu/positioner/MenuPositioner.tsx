@@ -58,7 +58,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
 
   const parent = store.useState('parent');
   const floatingRootContext = store.context.floatingRootContext;
-  const floatingTreeRoot = store.useState('floatingTreeRoot');
+  const floatingTreeRoot = () => store.context.floatingTreeRoot;
   const mounted = store.useState('mounted');
   const open = store.useState('open');
   const modal = store.useState('modal');
@@ -176,8 +176,11 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
 
   onMount(() => {
     floatingTreeRoot().events.on('menuopenchange', onMenuOpenChange);
+    // Close unrelated child submenus when hovering a different item in the parent menu.
+    floatingTreeRoot().events.on('itemhover', onItemHover);
     onCleanup(() => {
       floatingTreeRoot().events.off('menuopenchange', onMenuOpenChange);
+      floatingTreeRoot().events.off('itemhover', onItemHover);
     });
   });
 
@@ -196,7 +199,6 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
     }
 
     floatingTreeRoot().events.on('menuopenchange', onParentClose);
-
     onCleanup(() => {
       floatingTreeRoot().events.off('menuopenchange', onParentClose);
     });
@@ -214,14 +216,6 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
       store.setOpen(false, createChangeEventDetails(REASONS.siblingOpen));
     }
   }
-
-  // Close unrelated child submenus when hovering a different item in the parent menu.
-  onMount(() => {
-    floatingTreeRoot().events.on('itemhover', onItemHover);
-    onCleanup(() => {
-      floatingTreeRoot().events.off('itemhover', onItemHover);
-    });
-  });
 
   createEffect(() => {
     const eventDetails: MenuOpenEventDetails = {
@@ -305,9 +299,9 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
         <InternalBackdrop
           managed
           ref={(el) => {
-            const p = parent();
+            const p = store.context.parent;
             if (p.type === 'context-menu' || p.type === 'nested-context-menu') {
-              p.context.refs.internalBackdropRef = el;
+              p.context.internalBackdropRef.current = el;
             }
           }}
           inert={!open()}

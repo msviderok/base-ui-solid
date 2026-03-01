@@ -114,10 +114,6 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
       get closeDelay() {
         return closeDelay();
       },
-      get parent() {
-        return parent();
-      },
-      floatingTreeRoot,
       get floatingNodeId() {
         return floatingNodeId();
       },
@@ -127,13 +123,16 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
       },
     },
   });
+  store.context.parent = parent;
+  store.context.floatingTreeRoot = floatingTreeRoot;
 
-  const isInMenubar = () => parent().type === 'menubar';
+  const isInMenubar = parent.type === 'menubar';
 
   const rootDisabled = store.useState('disabled');
   const disabled = createMemo(() => {
-    const p = parent();
-    return disabledProp() || rootDisabled() || (p.type === 'menubar' && p.context.disabled());
+    return (
+      disabledProp() || rootDisabled() || (parent.type === 'menubar' && parent.context.disabled())
+    );
   });
 
   const { getButtonProps, buttonRef } = useButton({
@@ -142,7 +141,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   });
 
   createEffect(() => {
-    if (!isOpenedByThisTrigger() && parent().type === undefined) {
+    if (!isOpenedByThisTrigger() && parent.type === undefined) {
       store.context.allowMouseUpTriggerRef.current = false;
     }
   });
@@ -194,8 +193,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   });
 
   const parentMenubarHasSubmenuOpen = createMemo(() => {
-    const p = parent();
-    return p.type === 'menubar' && p.context.hasSubmenuOpen();
+    return parent.type === 'menubar' && parent.context.hasSubmenuOpen();
   });
 
   const openOnHover = () => openOnHoverProp() ?? parentMenubarHasSubmenuOpen();
@@ -207,19 +205,19 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
         return (
           openOnHover() &&
           !disabled() &&
-          parent().type !== 'context-menu' &&
-          (!isInMenubar() || (parentMenubarHasSubmenuOpen() && !isMountedByThisTrigger()))
+          parent.type !== 'context-menu' &&
+          (!isInMenubar || (parentMenubarHasSubmenuOpen() && !isMountedByThisTrigger()))
         );
       },
       handleClose: safePolygon({
         get blockPointerEvents() {
-          return !isInMenubar();
+          return !isInMenubar;
         },
       }),
       mouseOnly: true,
       move: false,
       get restMs() {
-        return parent().type === undefined ? delay() : undefined;
+        return parent.type === undefined ? delay() : undefined;
       },
       delay: () => ({ close: closeDelay() }),
       get triggerElementRef() {
@@ -240,15 +238,15 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
     context: floatingRootContext,
     props: {
       get enabled() {
-        return !disabled() && parent().type !== 'context-menu';
+        return !disabled() && parent.type !== 'context-menu';
       },
       get event() {
-        return isOpenedByThisTrigger() && isInMenubar() ? 'click' : 'mousedown';
+        return isOpenedByThisTrigger() && isInMenubar ? 'click' : 'mousedown';
       },
       toggle: true,
       ignoreMouse: false,
       get stickIfOpen() {
-        return parent().type === undefined ? stickIfOpen() : false;
+        return parent.type === undefined ? stickIfOpen() : false;
       },
     },
   });
@@ -266,9 +264,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
     get open() {
       return isOpenedByThisTrigger();
     },
-    get enabled() {
-      return isInMenubar();
-    },
+    enabled: isInMenubar,
     mouseDownAction: 'open',
   });
 
@@ -330,7 +326,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
     getButtonProps,
     {
       get role() {
-        if (isInMenubar()) {
+        if (isInMenubar) {
           return 'menuitem';
         }
 
@@ -378,7 +374,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   };
 
   const element = useRenderElement('button', componentProps, {
-    enabled: () => !isInMenubar(),
+    enabled: !isInMenubar,
     stateAttributesMapping: pressableTriggerOpenStateMapping,
     state,
     ref,
@@ -389,7 +385,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
 
   return (
     <Show
-      when={isInMenubar()}
+      when={isInMenubar}
       fallback={
         <>
           <Show when={isOpenedByThisTrigger()}>
@@ -507,33 +503,29 @@ function useStickIfOpen(
   return stickIfOpen;
 }
 
-function useMenuParent() {
+function useMenuParent(): MenuParent {
   const contextMenuContext = useContextMenuRootContext(true);
   const parentContext = useMenuRootContext(true);
   const menubarContext = useMenubarContext(true);
 
-  const parent = createMemo<MenuParent>(() => {
-    if (menubarContext) {
-      return {
-        type: 'menubar',
-        context: menubarContext,
-      };
-    }
-
-    // Ensure this is not a Menu nested inside ContextMenu.Trigger.
-    // ContextMenu parentContext is always undefined as ContextMenu.Root is instantiated with
-    // <MenuRootContext.Provider value={undefined}>
-    if (contextMenuContext && !parentContext) {
-      return {
-        type: 'context-menu',
-        context: contextMenuContext,
-      };
-    }
-
+  if (menubarContext) {
     return {
-      type: undefined,
+      type: 'menubar',
+      context: menubarContext,
     };
-  });
+  }
 
-  return parent;
+  // Ensure this is not a Menu nested inside ContextMenu.Trigger.
+  // ContextMenu parentContext is always undefined as ContextMenu.Root is instantiated with
+  // <MenuRootContext.Provider value={undefined}>
+  if (contextMenuContext && !parentContext) {
+    return {
+      type: 'context-menu',
+      context: contextMenuContext,
+    };
+  }
+
+  return {
+    type: undefined,
+  };
 }

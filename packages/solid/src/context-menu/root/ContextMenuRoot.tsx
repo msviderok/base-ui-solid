@@ -1,6 +1,7 @@
 import { Menu } from '../../menu';
 import type { MenuRoot } from '../../menu/root/MenuRoot';
 import { MenuRootContext } from '../../menu/root/MenuRootContext';
+import { useRef } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../types';
 import { useId } from '../../utils/useId';
 import { ContextMenuRootContext } from './ContextMenuRootContext';
@@ -18,20 +19,25 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     },
   };
 
-  const refs: ContextMenuRootContext['refs'] = {
-    backdropRef: null,
-    internalBackdropRef: null,
-    actionsRef: null,
-    positionerRef: null,
-    allowMouseUpTriggerRef: true,
-    initialCursorPointRef: null,
-  };
+  const backdropRef = useRef<HTMLDivElement | null | undefined>(null);
+  const internalBackdropRef = useRef<HTMLDivElement | null | undefined>(null);
+  const actionsRef = useRef<{
+    setOpen: (nextOpen: boolean, eventDetails: ContextMenuRoot.ChangeEventDetails) => void;
+  } | null>(null);
+  const positionerRef = useRef<HTMLElement | null | undefined>(null);
+  const allowMouseUpTriggerRef = useRef<boolean>(true);
+  const initialCursorPointRef = useRef<{ x: number; y: number } | null>(null);
 
   const id = useId();
 
   const contextValue: ContextMenuRootContext = {
     anchor,
-    refs,
+    backdropRef,
+    internalBackdropRef,
+    actionsRef,
+    positionerRef,
+    allowMouseUpTriggerRef,
+    initialCursorPointRef,
     rootId: id,
   };
 

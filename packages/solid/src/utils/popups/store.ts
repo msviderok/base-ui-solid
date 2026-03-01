@@ -1,7 +1,6 @@
 import { type Accessor } from 'solid-js';
 import { createStore, type SetStoreFunction } from 'solid-js/store';
 import { FloatingRootContext } from '../../floating-ui-solid';
-import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import type { ReactLikeRef } from '../../solid-helpers';
 import { EMPTY_OBJECT } from '../constants';
 import { HTMLProps } from '../types';
@@ -78,7 +77,6 @@ export type PopupStoreState<Payload> = {
 export function createInitialPopupStoreState<Payload, State extends PopupStoreState<Payload>>(
   initialState: Partial<State> = {},
 ) {
-  const floatingRootContext = getEmptyRootContext();
   const [state, setState] = createStore({
     open: false,
     openProp: undefined,
@@ -96,11 +94,7 @@ export function createInitialPopupStoreState<Payload, State extends PopupStoreSt
     popupProps: EMPTY_OBJECT,
     ...initialState,
   });
-  return [state, setState, floatingRootContext] as unknown as [
-    State,
-    SetStoreFunction<State>,
-    FloatingRootContext,
-  ];
+  return [state, setState] as unknown as [State, SetStoreFunction<State>];
 }
 
 export type PopupStoreContext<ChangeEventDetails> = {

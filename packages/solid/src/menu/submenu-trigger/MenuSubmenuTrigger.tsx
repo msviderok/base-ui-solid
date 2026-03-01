@@ -1,4 +1,4 @@
-import { createEffect, createMemo } from 'solid-js';
+import { createMemo } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import {
   safePolygon,
@@ -47,8 +47,6 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
 
   const thisTriggerId = useBaseUiId(idProp);
   const open = store.useState('open');
-  const floatingRootContext = store.context.floatingRootContext;
-  const floatingTreeRoot = store.useState('floatingTreeRoot');
 
   const baseRegisterTrigger = useTriggerRegistration({
     get id() {
@@ -113,7 +111,9 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
   const allowMouseEnter = parentMenuStore.useState('allowMouseEnter');
 
   const hoverProps = useHoverReferenceInteraction({
-    context: floatingRootContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     props: {
       get enabled() {
         return hoverEnabled() && openOnHover() && !disabled();
@@ -131,13 +131,15 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
         return triggerElementRef;
       },
       get externalTree() {
-        return floatingTreeRoot();
+        return store.context.floatingTreeRoot;
       },
     },
   });
 
   const click = useClick({
-    context: floatingRootContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     props: {
       get enabled() {
         return !disabled();

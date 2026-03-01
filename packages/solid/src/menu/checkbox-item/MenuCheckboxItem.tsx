@@ -1,10 +1,10 @@
-import { useControlled } from '../../utils/useControlled';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import { splitComponentProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps, NonNativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
+import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { REGULAR_ITEM, useMenuItem } from '../item/useMenuItem';
 import { useMenuPositionerContext } from '../positioner/MenuPositionerContext';
@@ -103,7 +103,7 @@ export function MenuCheckboxItem(componentProps: MenuCheckboxItem.Props) {
       return [
         itemProps(),
         {
-          role: 'menuitemcheckbox',
+          role: 'menuitemcheckbox' as const,
           get 'aria-checked'() {
             return checked();
           },

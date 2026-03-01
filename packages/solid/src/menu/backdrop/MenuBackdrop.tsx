@@ -45,7 +45,7 @@ export function MenuBackdrop(componentProps: MenuBackdrop.Props) {
     state,
     ref: (el) => {
       if (contextMenuContext) {
-        contextMenuContext.refs.backdropRef = el;
+        contextMenuContext.backdropRef.current = el;
       }
     },
     stateAttributesMapping,

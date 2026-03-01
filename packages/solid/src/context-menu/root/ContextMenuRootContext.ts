@@ -1,18 +1,17 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { ContextMenuRoot } from './ContextMenuRoot';
 
 export interface ContextMenuRootContext {
   anchor: { getBoundingClientRect: () => DOMRect };
-  refs: {
-    backdropRef: HTMLDivElement | null | undefined;
-    internalBackdropRef: HTMLDivElement | null | undefined;
-    positionerRef: HTMLElement | null | undefined;
-    actionsRef: {
-      setOpen: (nextOpen: boolean, eventDetails: ContextMenuRoot.ChangeEventDetails) => void;
-    } | null;
-    allowMouseUpTriggerRef: boolean;
-    initialCursorPointRef: { x: number; y: number } | null;
-  };
+  backdropRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  internalBackdropRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  positionerRef: ReactLikeRef<HTMLElement | null | undefined>;
+  actionsRef: ReactLikeRef<{
+    setOpen: (nextOpen: boolean, eventDetails: ContextMenuRoot.ChangeEventDetails) => void;
+  } | null>;
+  allowMouseUpTriggerRef: ReactLikeRef<boolean>;
+  initialCursorPointRef: ReactLikeRef<{ x: number; y: number } | null>;
   rootId: Accessor<string | undefined>;
 }
 

@@ -73,56 +73,38 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   const menubarContext = useMenubarContext(true);
   const isSubmenu = useMenuSubmenuRootContext();
 
-  const parentFromContext = createMemo<MenuParent>(() => {
-    if (isSubmenu && parentMenuRootContext) {
-      return {
-        type: 'menu',
-        store: parentMenuRootContext.store,
-      };
-    }
-
-    if (menubarContext) {
-      return {
-        type: 'menubar',
-        context: menubarContext,
-      };
-    }
-
+  let parentFromContext: MenuParent = { type: undefined };
+  if (isSubmenu && parentMenuRootContext) {
+    parentFromContext = { type: 'menu', store: parentMenuRootContext.store };
+  } else if (menubarContext) {
+    parentFromContext = { type: 'menubar', context: menubarContext };
+  } else if (contextMenuContext && !parentMenuRootContext) {
     // Ensure this is not a Menu nested inside ContextMenu.Trigger.
     // ContextMenu parentContext is always undefined as ContextMenu.Root is instantiated with
     // <MenuRootContext.Provider value={undefined}>
-    if (contextMenuContext && !parentMenuRootContext) {
-      return {
-        type: 'context-menu',
-        context: contextMenuContext,
-      };
-    }
-
-    return {
-      type: undefined,
-    };
-  });
+    parentFromContext = { type: 'context-menu', context: contextMenuContext };
+  }
 
   const store = untrack(
     () =>
       props.handle?.store ??
-      MenuStore({
-        get open() {
-          return defaultOpen();
+      MenuStore(
+        {
+          get open() {
+            return defaultOpen();
+          },
+          get openProp() {
+            return openProp();
+          },
+          get activeTriggerId() {
+            return defaultTriggerIdProp();
+          },
+          get triggerIdProp() {
+            return triggerIdProp();
+          },
         },
-        get openProp() {
-          return openProp();
-        },
-        get activeTriggerId() {
-          return defaultTriggerIdProp();
-        },
-        get triggerIdProp() {
-          return triggerIdProp();
-        },
-        get parent() {
-          return parentFromContext();
-        },
-      }),
+        { parent: parentFromContext },
+      ),
   ) as MenuStore<Payload>;
 
   // Support initially open state when uncontrolled
@@ -137,32 +119,28 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
   store.useControlledProp('openProp', openProp);
   store.useControlledProp('triggerIdProp', triggerIdProp);
+  store.useContextCallback(
+    'onOpenChangeComplete',
+    untrack(() => props.onOpenChangeComplete),
+  );
 
-  store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
-
-  const floatingTreeRoot = store.useState('floatingTreeRoot');
-  const floatingNodeIdFromContext = () => useFloatingNodeId(floatingTreeRoot())();
+  const floatingNodeIdFromContext = useFloatingNodeId(store.context.floatingTreeRoot);
   const floatingParentNodeIdFromContext = useFloatingParentNodeId();
 
-  createEffect(() => {
-    if (contextMenuContext && !parentMenuRootContext) {
-      // This is a context menu root.
-      // It doesn't support detached triggers yet, so we have to sync the parent context manually.
-      store.update({
-        parent: {
-          type: 'context-menu',
-          context: contextMenuContext,
-        },
-        floatingNodeId: floatingNodeIdFromContext(),
-        floatingParentNodeId: floatingParentNodeIdFromContext,
-      });
-    } else if (parentMenuRootContext) {
-      store.update({
-        floatingNodeId: floatingNodeIdFromContext(),
-        floatingParentNodeId: floatingParentNodeIdFromContext,
-      });
-    }
-  });
+  if (contextMenuContext && !parentMenuRootContext) {
+    // This is a context menu root.
+    // It doesn't support detached triggers yet, so we have to sync the parent context manually.
+    store.context.parent = { type: 'context-menu', context: contextMenuContext };
+    store.useSyncedValues({
+      floatingNodeId: floatingNodeIdFromContext,
+      floatingParentNodeId: floatingParentNodeIdFromContext,
+    });
+  } else if (parentMenuRootContext) {
+    store.useSyncedValues({
+      floatingNodeId: floatingNodeIdFromContext,
+      floatingParentNodeId: floatingParentNodeIdFromContext,
+    });
+  }
 
   const open = store.useState('open');
   const activeTriggerElement = store.useState('activeTriggerElement');
@@ -171,7 +149,6 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   const modal = store.useState('modal');
   const disabled = store.useState('disabled');
   const lastOpenChangeReason = store.useState('lastOpenChangeReason');
-  const parent = store.useState('parent');
 
   const activeIndex = store.useState('activeIndex');
   const payload = store.useState('payload') as Accessor<Payload | undefined>;
@@ -183,22 +160,24 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
   let floatingEvents: FloatingEvents;
 
-  createEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      if (parent().type !== undefined && props.modal !== undefined) {
+  if (process.env.NODE_ENV !== 'production') {
+    createEffect(() => {
+      if (store.context.parent.type !== undefined && props.modal !== undefined) {
         console.warn(
           'Base UI: The `modal` prop is not supported on nested menus. It will be ignored.',
         );
       }
-    }
-  });
-
-  createEffect(() => {
-    store.useSyncedValues({
-      disabled: disabledProp(),
-      modal: parent().type === undefined ? modalProp() : undefined,
-      rootId: useId()(),
     });
+  }
+
+  store.useSyncedValues({
+    disabled: disabledProp,
+    get modal() {
+      return store.context.parent.type === undefined ? modalProp() : undefined;
+    },
+    get rootId() {
+      return useId()();
+    },
   });
 
   const {
@@ -213,13 +192,13 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
       return open();
     },
     store,
-    onUnmount: () => {
+    onUnmount() {
       store.update({ allowMouseEnter: false, stickIfOpen: true });
       resetOpenInteractionType();
     },
   });
 
-  let allowOutsidePressDismissalRef = parent().type !== 'context-menu';
+  let allowOutsidePressDismissalRef = store.context.parent.type !== 'context-menu';
   const allowOutsidePressDismissalTimeout = useTimeout();
 
   createEffect(() => {
@@ -227,7 +206,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
       openEventRef = null;
     }
 
-    if (parent().type !== 'context-menu') {
+    if (store.context.parent.type !== 'context-menu') {
       return;
     }
 
@@ -362,7 +341,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
     changeState();
 
-    if (!nextOpen && reason === REASONS.focusOut && parent().type === 'menu') {
+    if (!nextOpen && reason === REASONS.focusOut && store.context.parent.type === 'menu') {
       queueMicrotask(() => {
         const trigger = eventDetails.trigger as HTMLElement | undefined;
         const doc = trigger?.ownerDocument;
@@ -383,7 +362,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     }
 
     if (
-      parent().type === 'menubar' &&
+      store.context.parent.type === 'menubar' &&
       (reason === REASONS.triggerFocus ||
         reason === REASONS.focusOut ||
         reason === REASONS.triggerHover ||
@@ -412,17 +391,17 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     store.setOpen(false, createMenuEventDetails(REASONS.imperativeAction));
   };
 
+  if (store.context.parent.type === 'context-menu') {
+    store.context.parent.context.actionsRef.current = { setOpen };
+
+    createEffect(() => {
+      store.context.parent.context.positionerRef.current = positionerElement();
+    });
+  }
+
   onMount(() => {
     if (props.actionsRef) {
       props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
-    }
-  });
-
-  createEffect(() => {
-    const p = parent();
-    if (p.type === 'context-menu') {
-      p.context.refs.positionerRef = positionerElement();
-      p.context.refs.actionsRef = { setOpen };
     }
   });
 
@@ -444,10 +423,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
   onMount(() => {
     floatingEvents.on('setOpen', handleSetOpenEvent);
-
-    onCleanup(() => {
-      floatingEvents?.off('setOpen', handleSetOpenEvent);
-    });
+    onCleanup(() => floatingEvents?.off('setOpen', handleSetOpenEvent));
   });
 
   const dismiss = useDismiss({
@@ -458,18 +434,22 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
       },
       get bubbles() {
         return {
-          escapeKey: closeParentOnEsc() && parent().type === 'menu',
+          escapeKey: closeParentOnEsc() && store.context.parent.type === 'menu',
         };
       },
       get outsidePress() {
-        if (parent().type !== 'context-menu' || openEventRef?.type === 'contextmenu') {
+        if (
+          store.context.parent.type !== 'context-menu' ||
+          openEventRef?.type === 'contextmenu' ||
+          store.context.allowMouseUpTriggerRef.current
+        ) {
           return true;
         }
 
         return allowOutsidePressDismissalRef;
       },
       get externalTree() {
-        return nested() ? floatingTreeRoot() : undefined;
+        return nested() ? store.context.floatingTreeRoot : undefined;
       },
     },
   });
@@ -498,7 +478,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
         return activeIndex();
       },
       get nested() {
-        return parent().type !== undefined;
+        return store.context.parent.type !== undefined;
       },
       get loopFocus() {
         return loopFocus();
@@ -507,7 +487,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
         return orientation();
       },
       get parentOrientation() {
-        const p = parent();
+        const p = store.context.parent;
         return p.type === 'menubar' ? p.context.orientation() : undefined;
       },
       get rtl() {
@@ -516,10 +496,10 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
       disabledIndices: EMPTY_ARRAY,
       onNavigate: setActiveIndex,
       get openOnArrowKeyDown() {
-        return parent().type !== 'context-menu';
+        return store.context.parent.type !== 'context-menu';
       },
       get externalTree() {
-        return nested() ? floatingTreeRoot() : undefined;
+        return nested() ? store.context.floatingTreeRoot : undefined;
       },
       get focusItemOnHover() {
         return highlightItemOnHover();
@@ -588,7 +568,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     getFloatingProps({
       onMouseMove() {
         store.set('allowMouseEnter', true);
-        if (parent().type === 'menu') {
+        if (store.context.parent.type === 'menu') {
           store.set('hoverEnabled', false);
         }
       },
@@ -623,7 +603,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   const context: MenuRootContext<Payload> = {
     store,
     get parent() {
-      return parentFromContext();
+      return parentFromContext;
     },
   };
 
@@ -637,7 +617,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
 
   return (
     <Show
-      when={parent().type === undefined || parent().type === 'context-menu'}
+      when={store.context.parent.type === undefined || store.context.parent.type === 'context-menu'}
       // set up a FloatingTree to provide the context to nested menus
       fallback={content()}
     >

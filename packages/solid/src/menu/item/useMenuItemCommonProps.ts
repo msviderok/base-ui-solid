@@ -1,5 +1,6 @@
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext';
 import { type ReactLikeRef } from '../../solid-helpers';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { HTMLProps } from '../../utils/types';
 import { MenuStore } from '../store/MenuStore';
@@ -68,13 +69,16 @@ export function useMenuItemCommonProps(params: UseMenuItemCommonPropsParameters)
     },
     onClick(event) {
       if (params.closeOnClick) {
-        treeRoot().events.emit('close', { domEvent: event, reason: REASONS.itemPress });
+        treeRoot().events.emit('close', {
+          domEvent: event,
+          reason: REASONS.itemPress,
+        });
       }
     },
     onMouseUp(event) {
       if (contextMenuContext) {
-        const initialCursorPoint = contextMenuContext.refs.initialCursorPointRef;
-        contextMenuContext.refs.initialCursorPointRef = null;
+        const initialCursorPoint = contextMenuContext.initialCursorPointRef.current;
+        contextMenuContext.initialCursorPointRef.current = null;
         if (
           isContextMenu &&
           initialCursorPoint &&
@@ -94,6 +98,11 @@ export function useMenuItemCommonProps(params: UseMenuItemCommonPropsParameters)
         // We trigger the click and override the `closeOnClick` preference to always close the menu.
         if (!params.itemMetadata || params.itemMetadata.type === 'regular-item') {
           params.itemRef.current?.click();
+
+          // Ensure nested context menus dispatch their own close event before the root tree unmounts them.
+          if (isContextMenu && params.store.context.parent.type === 'menu') {
+            params.store.setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
+          }
         }
       }
     },

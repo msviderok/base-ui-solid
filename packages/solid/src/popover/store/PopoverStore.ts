@@ -1,4 +1,5 @@
 import { onMount, mergeProps as solidMergeProps } from 'solid-js';
+import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import { type ReactLikeRef } from '../../solid-helpers';
 import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 import {
@@ -75,7 +76,7 @@ const selectors = {
 };
 
 export function PopoverStore<Payload>(initialState?: Partial<State<Payload>>) {
-  const [state, setState, floatingRootContext] = createInitialState(initialState);
+  const [state, setState] = createInitialState(initialState);
   const store = SolidStore<State<Payload>, Context, typeof selectors>(
     [state, setState],
     {
@@ -88,7 +89,7 @@ export function PopoverStore<Payload>(initialState?: Partial<State<Payload>>) {
       onOpenChangeComplete: undefined,
       stickIfOpenTimeout: useTimeout(),
       triggerElements: new PopupTriggerMap(),
-      floatingRootContext,
+      floatingRootContext: getEmptyRootContext(),
     },
     selectors,
   );

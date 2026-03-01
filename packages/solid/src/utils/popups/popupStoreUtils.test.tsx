@@ -1,6 +1,7 @@
 import { render } from '@solidjs/testing-library';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { describe, expect, it, vi } from 'vitest';
+import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import { SolidStore } from '../store/SolidStoreV2';
 import {
   createInitialPopupStoreState,
@@ -12,14 +13,14 @@ import {
 } from './';
 
 function createStore() {
-  const [state, setState, floatingRootContext] = createInitialPopupStoreState();
+  const [state, setState] = createInitialPopupStoreState();
   return SolidStore<PopupStoreState<unknown>, PopupStoreContext<unknown>, PopupStoreSelectors>(
     [state, setState],
     {
       triggerElements: new PopupTriggerMap(),
       popupRef: { current: null },
       onOpenChangeComplete: undefined,
-      floatingRootContext,
+      floatingRootContext: getEmptyRootContext(),
     },
   );
 }

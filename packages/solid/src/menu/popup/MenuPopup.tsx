@@ -68,7 +68,9 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
   });
 
   function handleClose(event: { domEvent: Event | undefined; reason: MenuRoot.ChangeEventReason }) {
-    store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
+    queueMicrotask(() => {
+      store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
+    });
   }
 
   createEffect(() => {

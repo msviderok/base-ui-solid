@@ -1,4 +1,5 @@
 import { mergeProps as solidMergeProps } from 'solid-js';
+import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import type { ReactLikeRef } from '../../solid-helpers';
 import {
   createInitialPopupStoreState,
@@ -47,7 +48,7 @@ const selectors = {
 };
 
 export function DialogStore<Payload>(initialState?: Partial<State<Payload>>) {
-  const [state, setState, floatingRootContext] = createInitialState<Payload>(initialState);
+  const [state, setState] = createInitialState<Payload>(initialState);
   const store = SolidStore<State<Payload>, Context, typeof selectors>(
     [state, setState],
     {
@@ -58,7 +59,7 @@ export function DialogStore<Payload>(initialState?: Partial<State<Payload>>) {
       triggerElements: new PopupTriggerMap(),
       onOpenChange: undefined,
       onOpenChangeComplete: undefined,
-      floatingRootContext,
+      floatingRootContext: getEmptyRootContext(),
     },
     selectors,
   );
