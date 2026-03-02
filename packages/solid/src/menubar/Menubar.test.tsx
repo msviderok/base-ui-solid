@@ -25,8 +25,8 @@ describe('<Menubar />', () => {
   // The rendered menubar has the same structure in most cases.
   describe.for([
     { name: 'contained triggers', Component: ContainedTriggerMenubar },
-    // { name: 'detached triggers', Component: DetachedTriggerMenubar },
-    // { name: 'multiple contained triggers', Component: MultipleContainedTriggersMenubar },
+    { name: 'detached triggers', Component: DetachedTriggerMenubar },
+    { name: 'multiple contained triggers', Component: MultipleContainedTriggersMenubar },
   ])('when using $name', ({ Component: TestMenubar }) => {
     describe.skipIf(isJSDOM)('click interactions', () => {
       afterEach(async () => {

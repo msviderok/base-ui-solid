@@ -106,7 +106,16 @@ export function Menubar(props: Menubar.Props) {
             class={renderProps.class}
             state={state}
             stateAttributesMapping={menubarStateAttributesMapping}
-            refs={[props.ref as any, setContentElement]}
+            refs={[
+              (el) => {
+                if (typeof props.ref === 'function') {
+                  props.ref(el as HTMLDivElement);
+                } else {
+                  props.ref = el as any;
+                }
+              },
+              setContentElement,
+            ]}
             props={[{ role: 'menubar', id: id() }, interactionTypeProps, elementProps]}
             orientation={orientation()}
             loopFocus={loopFocus()}

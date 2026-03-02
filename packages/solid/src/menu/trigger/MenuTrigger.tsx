@@ -88,7 +88,6 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
 
   const thisTriggerId = useBaseUiId(idProp);
   const isTriggerActive = store.useState('isTriggerActive', thisTriggerId);
-  const floatingRootContext = store.context.floatingRootContext;
   const isOpenedByThisTrigger = store.useState('isOpenedByTrigger', thisTriggerId);
 
   let triggerElementRef = null as HTMLElement | null | undefined;
@@ -199,7 +198,9 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   const openOnHover = () => openOnHoverProp() ?? parentMenubarHasSubmenuOpen();
 
   const hoverProps = useHoverReferenceInteraction({
-    context: floatingRootContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     props: {
       get enabled() {
         return (
@@ -235,7 +236,9 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   const stickIfOpen = useStickIfOpen(isOpenedByThisTrigger, lastOpenChangeReason, hoverResetTick);
 
   const click = useClick({
-    context: floatingRootContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     props: {
       get enabled() {
         return !disabled() && parent.type !== 'context-menu';
@@ -252,7 +255,9 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
   });
 
   const focus = useFocus({
-    context: floatingRootContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     props: {
       get enabled() {
         return !disabled() && parentMenubarHasSubmenuOpen();
@@ -314,14 +319,9 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
         }
 
         queueMicrotask(() => {
-          if (store.select('open') || disabledValue) {
+          if (disabledValue) {
             return;
           }
-
-          floatingTreeRoot.events.emit('close', {
-            domEvent: event,
-            reason: REASONS.listNavigation,
-          });
 
           store.setOpen(
             true,
