@@ -318,6 +318,8 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
           return;
         }
 
+        const triggerElement = event.currentTarget as HTMLElement;
+
         queueMicrotask(() => {
           if (disabledValue) {
             return;
@@ -325,11 +327,7 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
 
           store.setOpen(
             true,
-            createChangeEventDetails(
-              REASONS.triggerFocus,
-              event,
-              event.currentTarget as HTMLElement,
-            ),
+            createChangeEventDetails(REASONS.triggerFocus, event, triggerElement),
           );
         });
       },
