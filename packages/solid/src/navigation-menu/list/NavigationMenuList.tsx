@@ -2,7 +2,7 @@ import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { createMemo, Show } from 'solid-js';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
 import { useDismiss } from '../../floating-ui-solid';
-import { getTarget } from '../../floating-ui-solid/utils';
+import { contains, getTarget } from '../../floating-ui-solid/utils';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import { EMPTY_OBJECT } from '../../utils/constants';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
@@ -20,7 +20,7 @@ import { NavigationMenuDismissContext } from './NavigationMenuDismissContext';
 export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, ['children']);
 
-  const { orientation, open, floatingRootContext, positionerElement, value, nested } =
+  const { orientation, open, floatingRootContext, positionerElement, popupElement, value, nested } =
     useNavigationMenuRootContext();
 
   const fallbackContext = createMemo(() => getEmptyRootContext());
@@ -38,6 +38,9 @@ export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
       outsidePressEvent: 'intentional',
       outsidePress(event) {
         const target = getTarget(event) as HTMLElement | null;
+        if (contains(positionerElement(), target) || contains(popupElement(), target)) {
+          return false;
+        }
         const closestNavigationMenuTrigger = target?.closest(
           `[${NAVIGATION_MENU_TRIGGER_IDENTIFIER}]`,
         );
