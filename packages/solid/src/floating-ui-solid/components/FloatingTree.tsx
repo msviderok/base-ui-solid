@@ -42,14 +42,15 @@ export const useFloatingTree = (externalTree?: FloatingTreeStore): FloatingTreeT
 export function useFloatingNodeId(externalTree?: FloatingTreeStore): Accessor<string | undefined> {
   const id = useId();
   const tree = useFloatingTree(externalTree);
-  const parentId = useFloatingParentNodeId();
+  const parentContext = useContext(FloatingNodeContext);
 
   createEffect(() => {
-    if (!id()) {
+    const nodeId = id();
+    if (!nodeId) {
       return;
     }
 
-    const node = { id: id(), parentId };
+    const node = { id: nodeId, parentId: access(parentContext?.id) || null };
     tree?.addNode(node);
 
     onCleanup(() => {

@@ -1,5 +1,19 @@
 import type { ComponentProps, JSX, ValidComponent } from 'solid-js';
 import type { DynamicProps } from 'solid-js/web';
+import type { ReactLikeRef } from '../solid-helpers';
+
+export type UseRenderElementRef<T> =
+  | ((el: T | null | undefined) => void)
+  | ReactLikeRef<T | null | undefined>;
+
+type InferRefElement<R> = R extends (el: infer E) => void
+  ? E
+  : R extends { current: infer E }
+    ? E
+    : R;
+type IntrinsicRefElement<T> = T extends keyof JSX.IntrinsicElements
+  ? InferRefElement<ComponentProps<T>['ref']>
+  : Element;
 
 export type HTMLProps<T = any> = JSX.HTMLAttributes<T>;
 export type BaseUIHTMLProps<T = any> = WithBaseUIEvent<JSX.HTMLAttributes<T>>;
@@ -55,9 +69,10 @@ export type BaseUIComponentProps<
   RenderFnElement extends ValidComponent = ValidComponent,
 > = WithBaseUIEvent<
   ElementType extends keyof JSX.IntrinsicElements
-    ? Omit<ComponentProps<ElementType>, 'class' | 'style'>
-    : Omit<JSX.HTMLAttributes<any>, 'class' | 'style'>
+    ? Omit<ComponentProps<ElementType>, 'class' | 'style' | 'ref'>
+    : Omit<JSX.HTMLAttributes<any>, 'class' | 'style' | 'ref'>
 > & {
+  ref?: UseRenderElementRef<IntrinsicRefElement<ElementType>> | undefined;
   /**
    * CSS class applied to the element, or a function that
    * returns a class based on the component’s state.

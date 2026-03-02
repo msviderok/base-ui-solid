@@ -39,8 +39,12 @@ export function useMenuItem(params: useMenuItem.Parameters): useMenuItem.ReturnV
     get nodeId() {
       return nodeId();
     },
-    store: params.store,
-    itemRef,
+    get store() {
+      return params.store;
+    },
+    get itemRef() {
+      return itemRef;
+    },
     get itemMetadata() {
       return itemMetadata();
     },

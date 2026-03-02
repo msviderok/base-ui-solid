@@ -4,7 +4,6 @@ import {
   createEffect,
   createMemo,
   createRenderEffect,
-  onCleanup,
   mergeProps as solidMergeProps,
   type JSX,
 } from 'solid-js';
@@ -265,7 +264,6 @@ export function useListNavigation(parameters: {
   const hasMountedList = () => props.listRef.some((item) => item != null);
   const isMounted = () => !!floatingElement() || hasMountedList();
 
-
   if (process.env.NODE_ENV !== 'production') {
     createEffect(() => {
       if (props.allowEscape) {
@@ -397,7 +395,8 @@ export function useListNavigation(parameters: {
       return;
     }
 
-    if (activeIndex() == null) {
+    const idx = activeIndex();
+    if (idx == null) {
       forceSyncFocusRef = false;
 
       if (props.selectedIndex != null) {
@@ -447,8 +446,8 @@ export function useListNavigation(parameters: {
 
         waitForListPopulated();
       }
-    } else if (!isIndexOutOfListBounds(props.listRef, activeIndex())) {
-      indexRef = activeIndex();
+    } else if (!isIndexOutOfListBounds(props.listRef, idx)) {
+      indexRef = idx;
       focusItem();
       forceScrollIntoViewRef = false;
     }
@@ -833,6 +832,18 @@ export function useListNavigation(parameters: {
       }
 
       commonOnKeyDown(event);
+
+      // Manually bubble across portals only if propagation wasn't stopped
+      // by commonOnKeyDown (mirrors React's natural bubbling behavior).
+      if (parentId != null && !(event as any).cancelBubble) {
+        const eventObject = new KeyboardEvent('keydown', { key: event.key });
+        const parentNode =
+          tree && parentId != null ? tree?.nodesRef.find((node) => node.id === parentId) : null;
+
+        if (parentNode) {
+          parentNode.context?.elements.floating()?.dispatchEvent(eventObject);
+        }
+      }
     },
     // TODO SOLID CHECK
     // onKeyDown(event) {

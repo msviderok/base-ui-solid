@@ -20,6 +20,7 @@ import {
   useDismiss,
   useFloatingNodeId,
   useFloatingParentNodeId,
+  useFloatingTree,
   useInteractions,
   useListNavigation,
   useRole,
@@ -107,15 +108,10 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
       ),
   ) as MenuStore<Payload>;
 
-  // Support initially open state when uncontrolled
-  onMount(() => {
-    if (openProp() === undefined && store.state.open === false && defaultOpen() === true) {
-      store.update({
-        open: true,
-        activeTriggerId: defaultTriggerIdProp(),
-      });
-    }
-  });
+  const floatingTreeFromContext = useFloatingTree();
+  if (floatingTreeFromContext) {
+    store.context.floatingTreeRoot = floatingTreeFromContext;
+  }
 
   store.useControlledProp('openProp', openProp);
   store.useControlledProp('triggerIdProp', triggerIdProp);
@@ -135,7 +131,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
       floatingNodeId: floatingNodeIdFromContext,
       floatingParentNodeId: floatingParentNodeIdFromContext,
     });
-  } else if (parentMenuRootContext) {
+  } else if (parentMenuRootContext || menubarContext) {
     store.useSyncedValues({
       floatingNodeId: floatingNodeIdFromContext,
       floatingParentNodeId: floatingParentNodeIdFromContext,
@@ -339,6 +335,15 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
       store.update(updatedState);
     }
 
+    if (!nextOpen) {
+      store.context.floatingTreeRoot.events.emit('menuopenchange', {
+        open: false,
+        nodeId: store.select('floatingNodeId'),
+        parentNodeId: store.select('floatingParentNodeId'),
+        reason,
+      });
+    }
+
     changeState();
 
     if (!nextOpen && reason === REASONS.focusOut && store.context.parent.type === 'menu') {
@@ -395,15 +400,9 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     store.context.parent.context.actionsRef.current = { setOpen };
 
     createEffect(() => {
-      store.context.parent.context.positionerRef.current = positionerElement();
+      (store.context.parent as any).context.positionerRef.current = positionerElement();
     });
   }
-
-  onMount(() => {
-    if (props.actionsRef) {
-      props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
-    }
-  });
 
   const floatingRootContext = useSyncedFloatingRootContext({
     popupStore: store,
@@ -422,6 +421,18 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
   }) => setOpen(nextOpen, eventDetails);
 
   onMount(() => {
+    // Support initially open state when uncontrolled
+    if (openProp() === undefined && store.state.open === false && defaultOpen() === true) {
+      store.update({
+        open: true,
+        activeTriggerId: defaultTriggerIdProp(),
+      });
+    }
+
+    if (props.actionsRef) {
+      props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
+    }
+
     floatingEvents.on('setOpen', handleSetOpenEvent);
     onCleanup(() => floatingEvents?.off('setOpen', handleSetOpenEvent));
   });
@@ -584,7 +595,7 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
         const relay = store.select('keyboardEventRelay');
         // TODO: dunno how to do in solid yet?
         // if (relay && !event.isPropagationStopped()) {
-        if (relay) {
+        if (relay && !event.defaultPrevented) {
           relay(event);
         }
       },
@@ -600,20 +611,15 @@ export function MenuRoot<Payload>(props: MenuRoot.Props<Payload>) {
     itemProps,
   });
 
-  const context: MenuRootContext<Payload> = {
-    store,
-    get parent() {
-      return parentFromContext;
-    },
-  };
+  const context: MenuRootContext<Payload> = { store, parent: parentFromContext };
 
-  const content = () => {
+  const content = createMemo(() => {
     return (
       <MenuRootContext.Provider value={context as MenuRootContext}>
         <ComponentWithPayload payload={payload} children={props.children} />
       </MenuRootContext.Provider>
     );
-  };
+  });
 
   return (
     <Show

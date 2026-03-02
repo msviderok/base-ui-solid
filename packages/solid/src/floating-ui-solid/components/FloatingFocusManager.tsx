@@ -741,9 +741,7 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
 
     function getReturnElement() {
       let resolvedReturnFocusValue =
-        typeof returnFocusValue === 'function'
-          ? returnFocusValue(closeTypeRef)
-          : returnFocusValue;
+        typeof returnFocusValue === 'function' ? returnFocusValue(closeTypeRef) : returnFocusValue;
 
       // `null` should fallback to default behavior in case of an empty ref.
       if (resolvedReturnFocusValue === undefined || resolvedReturnFocusValue === false) {

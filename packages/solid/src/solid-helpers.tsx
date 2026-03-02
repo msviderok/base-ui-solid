@@ -131,7 +131,7 @@ export function ComponentWithPayload<Payload>(props: {
   });
 
   return (
-    <Show when={childrenFn()} fallback={<>{cachedChildren()}</>}>
+    <Show when={childrenFn()} fallback={cachedChildren()}>
       {(fn) => <>{fn()({ payload: props.payload() })}</>}
     </Show>
   );

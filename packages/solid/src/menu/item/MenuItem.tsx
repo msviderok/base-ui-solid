@@ -45,7 +45,7 @@ export function MenuItem(componentProps: MenuItem.Props) {
     id,
     store,
     nativeButton,
-    nodeId: () => menuPositionerContext?.nodeId(),
+    nodeId: menuPositionerContext?.nodeId,
     itemMetadata: REGULAR_ITEM,
   });
 

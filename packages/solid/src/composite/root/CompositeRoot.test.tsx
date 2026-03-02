@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { createSignal, Index } from 'solid-js';
 import { DirectionProvider } from '../../direction-provider';
+import { useRef } from '../../solid-helpers';
 import { CompositeItem } from '../item/CompositeItem';
 import { CompositeRoot } from './CompositeRoot';
 
@@ -739,6 +740,107 @@ describe('Composite', () => {
         expect(item3).to.have.attribute('tabindex', '0');
         expect(item3).toHaveFocus();
       });
+    });
+  });
+
+  describe('prop: refs', () => {
+    it('calls callback refs with the root element', () => {
+      let rootEl: HTMLElement | null | undefined;
+      render(() => (
+        <CompositeRoot
+          refs={[
+            (el: HTMLElement | null | undefined) => {
+              rootEl = el;
+            },
+          ]}
+          data-testid="root"
+        >
+          <CompositeItem data-testid="1">1</CompositeItem>
+        </CompositeRoot>
+      ));
+      expect(rootEl).to.equal(screen.getByTestId('root'));
+    });
+    it('calls multiple callback refs with the root element', () => {
+      const received: (HTMLElement | null | undefined)[] = [];
+      render(() => (
+        <CompositeRoot
+          refs={[
+            (el: HTMLElement | null | undefined) => received.push(el),
+            (el: HTMLElement | null | undefined) => received.push(el),
+          ]}
+          data-testid="root"
+        >
+          <CompositeItem data-testid="1">1</CompositeItem>
+        </CompositeRoot>
+      ));
+      expect(received).to.have.length(2);
+      expect(received[0]).to.equal(screen.getByTestId('root'));
+      expect(received[1]).to.equal(screen.getByTestId('root'));
+    });
+    it('handles mixed ref types (variable, object, useRef, callback, setter-to-both)', () => {
+      let ref1: HTMLElement | null | undefined;
+      const ref2 = { current: null as HTMLElement | null };
+      const ref3 = useRef<HTMLElement | null>(null);
+      const [ref4, setRef4] = createSignal<HTMLElement | null | undefined>(undefined);
+      const ref51 = useRef<HTMLElement | null>(null);
+      let ref52: HTMLElement | null | undefined;
+      const setRef5 = (el: HTMLElement | null | undefined) => {
+        ref51.current = el ?? null;
+        ref52 = el;
+      };
+      render(() => (
+        <CompositeRoot
+          refs={[
+            (el) => {
+              ref1 = el;
+            },
+            ref2,
+            ref3,
+            (el) => setRef4(el),
+            setRef5,
+          ]}
+          data-testid="root"
+        >
+          <CompositeItem data-testid="1">1</CompositeItem>
+        </CompositeRoot>
+      ));
+      const root = screen.getByTestId('root');
+      expect(ref1).to.equal(root);
+      expect(ref2.current).to.equal(root);
+      expect(ref3.current).to.equal(root);
+      // eslint-disable-next-line solid/reactivity
+      expect(ref4()).to.equal(root);
+      expect(ref51.current).to.equal(root);
+      expect(ref52).to.equal(root);
+    });
+    it('plain let ref stays null when passed by value (primitive cannot be reassigned)', () => {
+      let ref: HTMLElement | null = null;
+      render(() => (
+        <CompositeRoot refs={[ref as any]} data-testid="root">
+          <CompositeItem data-testid="1">1</CompositeItem>
+        </CompositeRoot>
+      ));
+      expect(ref).to.equal(null);
+    });
+    it('flattens nested arrays of refs', () => {
+      const received: (HTMLElement | null | undefined)[] = [];
+      const refObj = { current: null as HTMLElement | null };
+      render(() => (
+        <CompositeRoot
+          refs={[
+            [(el) => received.push(el), (el) => received.push(el)],
+            refObj,
+          ]}
+          data-testid="root"
+        >
+          <CompositeItem data-testid="1">1</CompositeItem>
+        </CompositeRoot>
+      ));
+      const root = screen.getByTestId('root');
+      expect(received).to.have.length(2);
+      expect(received[0]).to.equal(root);
+      expect(received[1]).to.equal(root);
+      expect(refObj.current).to.equal(root);
     });
   });
 

@@ -302,6 +302,37 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
       get id() {
         return thisTriggerId();
       },
+      onFocus: (event: FocusEvent) => {
+        const disabledValue = disabled();
+        if (
+          !isInMenubar ||
+          !parentMenubarHasSubmenuOpen() ||
+          isOpenedByThisTrigger() ||
+          disabledValue
+        ) {
+          return;
+        }
+
+        queueMicrotask(() => {
+          if (store.select('open') || disabledValue) {
+            return;
+          }
+
+          floatingTreeRoot.events.emit('close', {
+            domEvent: event,
+            reason: REASONS.listNavigation,
+          });
+
+          store.setOpen(
+            true,
+            createChangeEventDetails(
+              REASONS.triggerFocus,
+              event,
+              event.currentTarget as HTMLElement,
+            ),
+          );
+        });
+      },
       onMouseEnter: () => {
         if (isOpenedByThisTrigger() && lastOpenChangeReason() === REASONS.triggerHover) {
           setHoverResetTick((value) => value + 1);

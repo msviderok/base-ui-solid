@@ -68,9 +68,7 @@ export function CompositeRoot<Metadata extends {}, State extends Record<string, 
     get state() {
       return props.state;
     },
-    get ref() {
-      return [setRootRef, props.refs];
-    },
+    ref: [setRootRef, props.refs],
     get props() {
       return [rootDefaultProps, props.props, elementProps];
     },
@@ -96,14 +94,21 @@ export function CompositeRoot<Metadata extends {}, State extends Record<string, 
   );
 }
 
+type AllowedProps = Record<string, any> & { children?: never };
+
 export interface CompositeRootProps<Metadata, State extends Record<string, any>> extends Pick<
   BaseUIComponentProps<'div', State>,
   'render' | 'class' | 'children'
 > {
-  props?: Array<Record<string, any> | (() => Record<string, any>)> | undefined;
+  props?: Array<AllowedProps | (() => AllowedProps)> | undefined;
   state?: State | undefined;
   stateAttributesMapping?: StateAttributesMapping<State> | undefined;
-  refs?: ReactLikeRef<HTMLElement | null | undefined>[] | undefined;
+  refs?:
+    | Array<
+        | ReactLikeRef<HTMLElement | null | undefined>
+        | ((el: HTMLElement | null | undefined) => void)
+      >
+    | undefined;
   tag?: keyof JSX.IntrinsicElements | undefined;
   orientation?: ('horizontal' | 'vertical' | 'both') | undefined;
   cols?: number | undefined;

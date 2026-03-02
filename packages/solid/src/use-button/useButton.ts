@@ -122,7 +122,6 @@ export function useButton(parameters: useButton.Parameters = {}): useButton.Retu
         },
         onKeyDown(event) {
           if (!disabled()) {
-            // TODO: fix typing
             makeEventPreventable(event);
             callEventHandler(externalOnKeyDown, event);
           }

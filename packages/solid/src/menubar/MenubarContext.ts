@@ -1,5 +1,6 @@
-import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
+import { createContext, useContext, type Accessor } from 'solid-js';
 import { type MenuRoot } from '../menu/root/MenuRoot';
+import type { ReactLikeRef } from '../solid-helpers';
 
 export interface MenubarContext {
   modal: Accessor<boolean>;
@@ -9,8 +10,7 @@ export interface MenubarContext {
   hasSubmenuOpen: Accessor<boolean>;
   setHasSubmenuOpen: (open: boolean) => void;
   orientation: Accessor<MenuRoot.Orientation>;
-  allowMouseUpTriggerRef: Accessor<boolean>;
-  setAllowMouseUpTriggerRef: Setter<boolean>;
+  allowMouseUpTriggerRef: ReactLikeRef<boolean>;
   rootId: Accessor<string | undefined>;
 }
 

@@ -1,4 +1,4 @@
-import { Show, type JSX, type Ref, type ValidComponent } from 'solid-js';
+import { Show, type JSX, type ValidComponent } from 'solid-js';
 import { Dynamic, type DynamicProps } from 'solid-js/web';
 import { mergeProps } from '../merge-props/mergeProps';
 import { access, type MaybeAccessor } from '../solid-helpers';
@@ -6,7 +6,12 @@ import { EMPTY_OBJECT } from './constants';
 import { getStateAttributesProps, type StateAttributesMapping } from './getStateAttributesProps';
 import { resolveClassName } from './resolveClassName';
 import { resolveStyle } from './resolveStyle';
-import type { BaseUIComponentProps, ComponentRenderFn, HTMLProps } from './types';
+import type {
+  BaseUIComponentProps,
+  ComponentRenderFn,
+  HTMLProps,
+  UseRenderElementRef,
+} from './types';
 
 /**
  * Renders a Base UI element.
@@ -68,11 +73,16 @@ export function useRenderElement<
                   componentProps.ref = el;
                 }
 
-                const paramsRefs = Array.isArray(params.ref) ? params.ref.flat() : [params.ref];
+                const paramsRefs = Array.isArray(params.ref)
+                  ? params.ref.flat(Infinity)
+                  : [params.ref];
                 // eslint-disable-next-line no-plusplus
                 for (let i = 0; i < paramsRefs.length; i++) {
-                  if (typeof paramsRefs[i] === 'function') {
-                    (paramsRefs[i] as Function)(el);
+                  const r = paramsRefs[i];
+                  if (typeof r === 'function') {
+                    (r as Function)(el);
+                  } else if (r != null && typeof r === 'object' && 'current' in r) {
+                    (r as { current: unknown }).current = el;
                   } else {
                     paramsRefs[i] = el;
                   }
@@ -135,12 +145,12 @@ export type UseRenderElementParameters<
    * The ref to apply to the rendered element.
    */
   ref?:
-    | Ref<RenderedElementType>
+    | UseRenderElementRef<RenderedElementType>
     | (
-        | Ref<RenderedElementType>
+        | UseRenderElementRef<RenderedElementType>
         | undefined
         | null
-        | (Ref<RenderedElementType> | undefined | null)[]
+        | (UseRenderElementRef<RenderedElementType> | undefined | null)[]
       )[]
     | undefined;
   /**
@@ -209,7 +219,7 @@ export interface UseRenderElementComponentProps<
   /**
    * The ref to apply to the rendered element.
    */
-  ref?: Ref<RenderedElementType> | undefined;
+  ref?: UseRenderElementRef<RenderedElementType> | undefined;
 }
 
 export namespace useRenderElement {

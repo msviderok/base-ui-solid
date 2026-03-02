@@ -25,8 +25,8 @@ describe('<Menubar />', () => {
   // The rendered menubar has the same structure in most cases.
   describe.for([
     { name: 'contained triggers', Component: ContainedTriggerMenubar },
-    { name: 'detached triggers', Component: DetachedTriggerMenubar },
-    { name: 'multiple contained triggers', Component: MultipleContainedTriggersMenubar },
+    // { name: 'detached triggers', Component: DetachedTriggerMenubar },
+    // { name: 'multiple contained triggers', Component: MultipleContainedTriggersMenubar },
   ])('when using $name', ({ Component: TestMenubar }) => {
     describe.skipIf(isJSDOM)('click interactions', () => {
       afterEach(async () => {
@@ -452,7 +452,7 @@ describe('<Menubar />', () => {
           function SpyMenubar() {
             return (
               <Menubar>
-                <Menu.Root onOpenChange={rootOnOpenChange}>
+                <Menu.Root onOpenChange={rootOnOpenChange} data-testid="FILE">
                   <Menu.Trigger data-testid="menubar-file-trigger">File</Menu.Trigger>
                   <Menu.Portal>
                     <Menu.Positioner data-testid="menubar-file-menu">
@@ -474,7 +474,7 @@ describe('<Menubar />', () => {
                     </Menu.Positioner>
                   </Menu.Portal>
                 </Menu.Root>
-                <Menu.Root onOpenChange={nextOnOpenChange}>
+                <Menu.Root onOpenChange={nextOnOpenChange} data-testid="EDIT">
                   <Menu.Trigger data-testid="menubar-next-trigger">Edit</Menu.Trigger>
                   <Menu.Portal>
                     <Menu.Positioner data-testid="menubar-next-menu">

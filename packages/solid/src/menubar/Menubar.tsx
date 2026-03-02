@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount, type ParentProps } from 'solid-js';
+import { createEffect, createSignal, on, onCleanup, onMount, type ParentProps } from 'solid-js';
 import { CompositeRoot } from '../composite/root/CompositeRoot';
 import {
   FloatingNode,
@@ -8,7 +8,7 @@ import {
 } from '../floating-ui-solid';
 import { type MenuRoot } from '../menu/root/MenuRoot';
 import { MenuOpenEventDetails } from '../menu/utils/types';
-import { splitComponentProps } from '../solid-helpers';
+import { splitComponentProps, useRef } from '../solid-helpers';
 import { StateAttributesMapping } from '../utils/getStateAttributesProps';
 import { BaseUIComponentProps } from '../utils/types';
 import { useBaseUiId } from '../utils/useBaseUiId';
@@ -36,6 +36,7 @@ export function Menubar(props: Menubar.Props) {
     'modal',
     'disabled',
     'id',
+    'children',
   ]);
   const orientation = () => local.orientation ?? 'horizontal';
   const loopFocus = () => local.loopFocus ?? true;
@@ -45,7 +46,7 @@ export function Menubar(props: Menubar.Props) {
 
   const [contentElement, setContentElement] = createSignal<HTMLElement | null | undefined>();
   const [hasSubmenuOpen, setHasSubmenuOpen] = createSignal(false);
-  const [allowMouseUpTriggerRef, setAllowMouseUpTriggerRef] = createSignal(false);
+  const allowMouseUpTriggerRef = useRef(false);
 
   const {
     openMethod,
@@ -53,11 +54,17 @@ export function Menubar(props: Menubar.Props) {
     reset: resetOpenInteractionType,
   } = useOpenInteractionType(hasSubmenuOpen);
 
-  createEffect(() => {
-    if (!hasSubmenuOpen()) {
-      resetOpenInteractionType();
-    }
-  });
+  createEffect(
+    on(
+      hasSubmenuOpen,
+      () => {
+        if (!hasSubmenuOpen()) {
+          resetOpenInteractionType();
+        }
+      },
+      { defer: true },
+    ),
+  );
 
   useScrollLock({
     enabled: () => modal() && hasSubmenuOpen() && openMethod() !== 'touch',
@@ -88,7 +95,6 @@ export function Menubar(props: Menubar.Props) {
     orientation,
     rootId: id,
     allowMouseUpTriggerRef,
-    setAllowMouseUpTriggerRef,
   };
 
   return (
@@ -101,20 +107,13 @@ export function Menubar(props: Menubar.Props) {
             state={state}
             stateAttributesMapping={menubarStateAttributesMapping}
             refs={[props.ref as any, setContentElement]}
-            props={[
-              {
-                role: 'menubar',
-                get id() {
-                  return id();
-                },
-              },
-              interactionTypeProps,
-              elementProps,
-            ]}
+            props={[{ role: 'menubar', id: id() }, interactionTypeProps, elementProps]}
             orientation={orientation()}
             loopFocus={loopFocus()}
             highlightItemOnHover={hasSubmenuOpen()}
-          />
+          >
+            {local.children}
+          </CompositeRoot>
         </MenubarContent>
       </FloatingTree>
     </MenubarContext.Provider>
