@@ -885,7 +885,7 @@ function DynamicMenu(props: { handle?: Menu.Handle<MenuDefinition>; children?: J
               <Menu.Positioner data-testid={data?.payload?.menuTestId}>
                 <Menu.Popup>
                   <For each={data?.payload?.items ?? []}>
-                    {(item, index) => renderMenuContentItem(item, `item-${index()}`)}
+                    {(item, index) => <>{renderMenuContentItem(item, `item-${index()}`)}</>}
                   </For>
                 </Menu.Popup>
               </Menu.Positioner>
@@ -919,7 +919,9 @@ function renderMenuContentItem(item: ContentItem, key: string) {
             <Menu.Positioner data-testid={item.menuTestId}>
               <Menu.Popup>
                 <For each={item.items}>
-                  {(subItem, subIndex) => renderMenuContentItem(subItem, `${key}.${subIndex()}`)}
+                  {(subItem, subIndex) => (
+                    <>{renderMenuContentItem(subItem, `${key}.${subIndex()}`)}</>
+                  )}
                 </For>
               </Menu.Popup>
             </Menu.Positioner>
@@ -930,7 +932,9 @@ function renderMenuContentItem(item: ContentItem, key: string) {
       return (
         <Menu.RadioGroup defaultValue={item.defaultValue}>
           <For each={item.items}>
-            {(radioItem, radioIndex) => renderMenuContentItem(radioItem, `${key}.${radioIndex()}`)}
+            {(radioItem, radioIndex) => (
+              <>{renderMenuContentItem(radioItem, `${key}.${radioIndex()}`)}</>
+            )}
           </For>
         </Menu.RadioGroup>
       );

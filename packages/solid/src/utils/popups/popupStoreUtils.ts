@@ -101,6 +101,7 @@ export function useTriggerDataForwarding<State extends PopupStoreState<any>>(pro
       // In such cases the first trigger to run this code becomes the active trigger (store.select('activeTriggerId') should not return null after that).
       // This is mostly for compatibility with contained triggers where no explicit `triggerId` was required in controlled mode.
       store.update({
+        activeTriggerId: props.triggerId,
         activeTriggerElement: element,
         ...props.stateUpdates,
       } as Partial<State>);
