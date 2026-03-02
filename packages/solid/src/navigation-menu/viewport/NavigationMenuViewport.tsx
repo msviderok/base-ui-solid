@@ -19,8 +19,15 @@ import { useNavigationMenuRootContext } from '../root/NavigationMenuRootContext'
 const EMPTY_ROOT_CONTEXT = getEmptyRootContext();
 
 function Guards(props: { children: JSX.Element }) {
-  const { refs, positionerElement, viewportElement, floatingRootContext } =
-    useNavigationMenuRootContext();
+  const {
+    beforeInsideRef,
+    beforeOutsideRef,
+    afterInsideRef,
+    afterOutsideRef,
+    positionerElement,
+    viewportElement,
+    floatingRootContext,
+  } = useNavigationMenuRootContext();
   const hasPositioner = () => Boolean(useNavigationMenuPositionerContext(true));
 
   const referenceElement = () => positionerElement() || viewportElement();
@@ -29,28 +36,28 @@ function Guards(props: { children: JSX.Element }) {
     <Show when={floatingRootContext() || hasPositioner()} fallback={props.children}>
       <FocusGuard
         ref={(el) => {
-          refs.beforeInsideRef = el;
+          beforeInsideRef.current = el;
         }}
         onFocus={(event) => {
           const el = referenceElement();
           if (el && isOutsideEvent(event, el)) {
             getNextTabbable(el)?.focus();
           } else {
-            refs.beforeOutsideRef?.focus();
+            beforeOutsideRef.current?.focus();
           }
         }}
       />
       {props.children}
       <FocusGuard
         ref={(el) => {
-          refs.afterInsideRef = el;
+          afterInsideRef.current = el;
         }}
         onFocus={(event) => {
           const el = referenceElement();
           if (el && isOutsideEvent(event, el)) {
             getPreviousTabbable(el)?.focus();
           } else {
-            refs.afterOutsideRef?.focus();
+            afterOutsideRef.current?.focus();
           }
         }}
       />
@@ -80,7 +87,7 @@ export function NavigationMenuViewport(componentProps: NavigationMenuViewport.Pr
     setViewportElement,
     setViewportTargetElement,
     floatingRootContext,
-    refs,
+    prevTriggerElementRef,
     viewportInert,
     setViewportInert,
   } = useNavigationMenuRootContext();
@@ -106,7 +113,7 @@ export function NavigationMenuViewport(componentProps: NavigationMenuViewport.Pr
   createEffect(() => {
     const ref = domReference();
     if (ref) {
-      refs.prevTriggerElementRef = ref;
+      prevTriggerElementRef.current = ref;
     }
   });
 
@@ -117,7 +124,7 @@ export function NavigationMenuViewport(componentProps: NavigationMenuViewport.Pr
         get id() {
           return id();
         },
-        onBlur(event) {
+        onBlur(event: FocusEvent) {
           const relatedTarget = event.relatedTarget as Element | null;
           const currentTarget = event.currentTarget as Element;
 

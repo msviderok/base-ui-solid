@@ -1,11 +1,11 @@
 import { NOOP } from '@base-ui/utils/empty';
-import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { createEffect, createMemo, JSX, onCleanup } from 'solid-js';
 import { Dimensions } from '../floating-ui-solid/types';
 import { access, type MaybeAccessor } from '../solid-helpers';
 import { EMPTY_OBJECT } from './constants';
 import { getCssDimensions } from './getCssDimensions';
 import { Side } from './useAnchorPositioning';
+import { useAnimationFrame } from './useAnimationFrame';
 import { useAnimationsFinished } from './useAnimationsFinished';
 
 const supportsResizeObserver = typeof ResizeObserver !== 'undefined';

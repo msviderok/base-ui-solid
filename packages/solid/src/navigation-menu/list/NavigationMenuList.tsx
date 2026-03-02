@@ -18,7 +18,7 @@ import { NavigationMenuDismissContext } from './NavigationMenuDismissContext';
  * Documentation: [Base UI Navigation Menu](https://base-ui.com/react/components/navigation-menu)
  */
 export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
-  const [renderProps, , elementProps] = splitComponentProps(componentProps, []);
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, ['children']);
 
   const { orientation, open, floatingRootContext, positionerElement, value, nested } =
     useNavigationMenuRootContext();
@@ -27,21 +27,28 @@ export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
   const context = () => floatingRootContext() || fallbackContext();
   const interactionsEnabled = () => (positionerElement() ? true : !value());
 
-  const dismiss = useDismiss(context, {
-    enabled: interactionsEnabled,
-    outsidePressEvent: 'intentional',
-    outsidePress(event) {
-      const target = getTarget(event) as HTMLElement | null;
-      const closestNavigationMenuTrigger = target?.closest(
-        `[${NAVIGATION_MENU_TRIGGER_IDENTIFIER}]`,
-      );
-      return closestNavigationMenuTrigger === null;
+  const dismiss = useDismiss({
+    get context() {
+      return context();
+    },
+    props: {
+      get enabled() {
+        return interactionsEnabled();
+      },
+      outsidePressEvent: 'intentional',
+      outsidePress(event) {
+        const target = getTarget(event) as HTMLElement | null;
+        const closestNavigationMenuTrigger = target?.closest(
+          `[${NAVIGATION_MENU_TRIGGER_IDENTIFIER}]`,
+        );
+        return closestNavigationMenuTrigger === null;
+      },
     },
   });
 
   const dismissProps = {
     get props() {
-      return floatingRootContext() ? dismiss() : undefined;
+      return floatingRootContext() ? dismiss : undefined;
     },
   };
 
@@ -102,12 +109,22 @@ export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
           render={renderProps.render}
           class={renderProps.class}
           state={state}
-          refs={[componentProps.ref as any]}
+          refs={[
+            (el) => {
+              if (typeof componentProps.ref === 'function') {
+                componentProps.ref(el as HTMLUListElement);
+              } else {
+                componentProps.ref = el as any;
+              }
+            },
+          ]}
           props={props.props}
           loopFocus={false}
           orientation={orientation()}
           tag="ul"
-        />
+        >
+          {local.children}
+        </CompositeRoot>
       </NavigationMenuDismissContext.Provider>
     </Show>
   );

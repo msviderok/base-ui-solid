@@ -8,7 +8,7 @@ import {
   type FloatingRootContext,
 } from '../../floating-ui-solid';
 import { activeElement, contains } from '../../floating-ui-solid/utils';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { type BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
@@ -64,8 +64,6 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
   // Derive open state from value being non-nullish
   const open = createMemo(() => value() != null);
 
-  let closeReasonRef: NavigationMenuRoot.ChangeEventReason | undefined;
-
   const [positionerElement, setPositionerElement] = createSignal<HTMLElement | null | undefined>(
     null,
   );
@@ -79,15 +77,14 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
   const [floatingRootContext, setFloatingRootContext] = createSignal<FloatingRootContext>();
   const [viewportInert, setViewportInert] = createSignal(false);
 
-  const refs: NavigationMenuRootContext['refs'] = {
-    currentContentRef: null,
-    rootRef: null,
-    beforeInsideRef: null,
-    afterInsideRef: null,
-    beforeOutsideRef: null,
-    afterOutsideRef: null,
-    prevTriggerElementRef: null,
-  };
+  const closeReasonRef = useRef<NavigationMenuRoot.ChangeEventReason | undefined>(undefined);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const prevTriggerElementRef = useRef<Element | null | undefined>(null);
+  const currentContentRef = useRef<HTMLDivElement | null>(null);
+  const beforeInsideRef = useRef<HTMLSpanElement | null>(null);
+  const afterInsideRef = useRef<HTMLSpanElement | null>(null);
+  const beforeOutsideRef = useRef<HTMLSpanElement | null>(null);
+  const afterOutsideRef = useRef<HTMLSpanElement | null>(null);
 
   const { transitionStatus, setMounted, mounted } = useTransitionStatus(() => open());
 
@@ -100,7 +97,7 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
   const setValue = (nextValue: any, eventDetails: NavigationMenuRoot.ChangeEventDetails) => {
     batch(() => {
       if (!nextValue) {
-        closeReasonRef = eventDetails.reason;
+        closeReasonRef.current = eventDetails.reason;
         setActivationDirection(null);
         setFloatingRootContext(undefined);
       }
@@ -123,22 +120,22 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
   };
 
   const handleUnmount = () => {
-    const doc = ownerDocument(refs.rootRef ?? null);
+    const doc = ownerDocument(rootRef.current ?? null);
     const activeEl = activeElement(doc);
 
-    const isReturnFocusBlocked = closeReasonRef
-      ? blockedReturnFocusReasons.has(closeReasonRef)
+    const isReturnFocusBlocked = closeReasonRef.current
+      ? blockedReturnFocusReasons.has(closeReasonRef.current)
       : false;
 
     const popupEl = popupElement() ?? null;
     if (
       !isReturnFocusBlocked &&
-      isHTMLElement(refs.prevTriggerElementRef) &&
+      isHTMLElement(prevTriggerElementRef.current) &&
       (activeEl === ownerDocument(popupEl).body || contains(popupEl, activeEl)) &&
       popupEl
     ) {
-      refs.prevTriggerElementRef.focus({ preventScroll: true });
-      refs.prevTriggerElementRef = undefined;
+      prevTriggerElementRef.current.focus({ preventScroll: true });
+      prevTriggerElementRef.current = undefined;
     }
     batch(() => {
       setMounted(false);
@@ -146,8 +143,8 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
       setActivationDirection(null);
       setFloatingRootContext(undefined);
     });
-    refs.currentContentRef = null;
-    closeReasonRef = undefined;
+    currentContentRef.current = null;
+    closeReasonRef.current = undefined;
   };
 
   useOpenChangeComplete({
@@ -191,7 +188,13 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
     floatingRootContext,
     setFloatingRootContext,
     nested,
-    refs,
+    rootRef,
+    prevTriggerElementRef,
+    currentContentRef,
+    beforeInsideRef,
+    afterInsideRef,
+    beforeOutsideRef,
+    afterOutsideRef,
     delay,
     closeDelay,
     orientation,
@@ -226,7 +229,7 @@ function TreeContext(componentProps: NavigationMenuRoot.Props) {
 
   const nodeId = useFloatingNodeId();
 
-  const { refs, nested } = useNavigationMenuRootContext();
+  const { rootRef, nested } = useNavigationMenuRootContext();
 
   const { open } = useNavigationMenuRootContext();
 
@@ -242,7 +245,7 @@ function TreeContext(componentProps: NavigationMenuRoot.Props) {
   const element = useRenderElement(() => (nested() ? 'div' : 'nav'), componentProps, {
     state,
     ref: (el: any) => {
-      refs.rootRef = el;
+      rootRef.current = el;
     },
     props: [
       {

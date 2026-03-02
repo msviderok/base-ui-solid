@@ -39,7 +39,10 @@ const stateAttributesMapping: StateAttributesMapping<NavigationMenuContent.State
  * Documentation: [Base UI Navigation Menu](https://base-ui.com/react/components/navigation-menu)
  */
 export function NavigationMenuContent(componentProps: NavigationMenuContent.Props) {
-  const [renderProps, local, elementProps] = splitComponentProps(componentProps, ['keepMounted']);
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
+    'keepMounted',
+    'children',
+  ]);
   const keepMounted = () => local.keepMounted ?? false;
 
   const {
@@ -47,7 +50,7 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
     viewportElement,
     value,
     activationDirection,
-    refs,
+    currentContentRef,
     viewportTargetElement,
   } = useNavigationMenuRootContext();
   const { value: itemValue } = useNavigationMenuItemContext();
@@ -99,7 +102,7 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
 
   const handleCurrentContentRef = (node: HTMLDivElement | null | undefined) => {
     if (node) {
-      refs.currentContentRef = node;
+      currentContentRef.current = node;
     }
   };
 
@@ -147,10 +150,20 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
           render={renderProps.render}
           class={renderProps.class}
           state={state}
-          refs={[componentProps.ref as any]}
+          refs={[
+            (el) => {
+              if (typeof componentProps.ref === 'function') {
+                componentProps.ref(el as HTMLDivElement);
+              } else {
+                componentProps.ref = el as any;
+              }
+            },
+          ]}
           props={[defaultProps, { hidden: true }, elementProps]}
           stateAttributesMapping={stateAttributesMapping}
-        />
+        >
+          {local.children}
+        </CompositeRoot>
       </Match>
 
       <Match when={portalContainer() && (mounted() || keepMounted())}>
@@ -160,10 +173,22 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
               render={renderProps.render}
               class={renderProps.class}
               state={state}
-              refs={[componentProps.ref as any, ref, handleCurrentContentRef]}
+              refs={[
+                (el) => {
+                  if (typeof componentProps.ref === 'function') {
+                    componentProps.ref(el as HTMLDivElement);
+                  } else {
+                    componentProps.ref = el as any;
+                  }
+                  ref = el as HTMLDivElement;
+                  handleCurrentContentRef(el as HTMLDivElement);
+                },
+              ]}
               props={[defaultProps.props, hidden() ? { hidden: true } : EMPTY_OBJECT, elementProps]}
               stateAttributesMapping={stateAttributesMapping}
-            />
+            >
+              {local.children}
+            </CompositeRoot>
           </FloatingNode>
         </Portal>
       </Match>

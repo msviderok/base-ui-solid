@@ -16,7 +16,8 @@ export function NavigationMenuArrow(componentProps: NavigationMenuArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
   const { open } = useNavigationMenuRootContext();
-  const { refs, side, align, arrowUncentered, arrowStyles } = useNavigationMenuPositionerContext();
+  const { arrowRef, side, align, arrowUncentered, arrowStyles } =
+    useNavigationMenuPositionerContext();
 
   const state: NavigationMenuArrow.State = {
     get open() {
@@ -35,7 +36,9 @@ export function NavigationMenuArrow(componentProps: NavigationMenuArrow.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: refs.setArrowRef,
+    ref: (el) => {
+      arrowRef.current = el;
+    },
     props: [
       {
         get style() {

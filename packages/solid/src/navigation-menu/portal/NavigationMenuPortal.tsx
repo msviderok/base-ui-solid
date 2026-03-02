@@ -21,7 +21,7 @@ export function NavigationMenuPortal(props: NavigationMenuPortal.Props) {
   return (
     <Show when={shouldRender()}>
       <NavigationMenuPortalContext.Provider value={keepMounted}>
-        <FloatingPortal {...portalProps} />
+        <FloatingPortal {...portalProps} ref={props.ref} />
       </NavigationMenuPortalContext.Provider>
     </Show>
   );

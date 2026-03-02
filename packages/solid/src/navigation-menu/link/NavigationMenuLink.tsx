@@ -24,7 +24,7 @@ export function NavigationMenuLink(componentProps: NavigationMenuLink.Props) {
   const active = () => local.active ?? false;
   const closeOnClick = () => local.closeOnClick ?? false;
 
-  const { setValue, popupElement, positionerElement, refs } = useNavigationMenuRootContext();
+  const { setValue, popupElement, positionerElement, rootRef } = useNavigationMenuRootContext();
   const nodeId = useNavigationMenuTreeContext();
   const tree = useFloatingTree();
 
@@ -55,7 +55,7 @@ export function NavigationMenuLink(componentProps: NavigationMenuLink.Props) {
             currentTarget: event.currentTarget,
             relatedTarget: event.relatedTarget as HTMLElement | null,
           },
-          { popupElement: popupEl, rootRef: refs.rootRef, tree, nodeId: nodeId?.() },
+          { popupElement: popupEl, rootRef: rootRef.current, tree, nodeId: nodeId?.() },
         )
       ) {
         setValue(null, createChangeEventDetails(REASONS.focusOut, event));
@@ -69,7 +69,15 @@ export function NavigationMenuLink(componentProps: NavigationMenuLink.Props) {
       render={renderProps.render}
       class={renderProps.class}
       state={state}
-      refs={[componentProps.ref as any]}
+      refs={[
+        (el) => {
+          if (typeof componentProps.ref === 'function') {
+            componentProps.ref(el as HTMLAnchorElement);
+          } else {
+            componentProps.ref = el as any;
+          }
+        },
+      ]}
       props={[defaultProps, elementProps]}
     />
   );

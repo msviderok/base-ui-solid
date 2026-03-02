@@ -1,3 +1,4 @@
+import { createMemo } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -18,7 +19,7 @@ export function NavigationMenuItem(componentProps: NavigationMenuItem.Props) {
   const valueProp = () => local.value;
 
   const fallbackValue = useBaseUiId();
-  const value = () => valueProp() ?? fallbackValue();
+  const value = createMemo(() => valueProp() ?? fallbackValue());
 
   const contextValue: NavigationMenuItemContextValue = { value };
 

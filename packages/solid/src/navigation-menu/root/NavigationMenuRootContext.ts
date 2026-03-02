@@ -1,5 +1,6 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import type { FloatingRootContext } from '../../floating-ui-solid';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
 import type { NavigationMenuRoot } from './NavigationMenuRoot';
 
@@ -21,15 +22,13 @@ export interface NavigationMenuRootContext {
   setActivationDirection: Setter<'left' | 'right' | 'up' | 'down' | null>;
   floatingRootContext: Accessor<FloatingRootContext | undefined>;
   setFloatingRootContext: Setter<FloatingRootContext | undefined>;
-  refs: {
-    currentContentRef: HTMLDivElement | null | undefined;
-    rootRef: HTMLDivElement | null | undefined;
-    beforeInsideRef: HTMLSpanElement | null | undefined;
-    afterInsideRef: HTMLSpanElement | null | undefined;
-    beforeOutsideRef: HTMLSpanElement | null | undefined;
-    afterOutsideRef: HTMLSpanElement | null | undefined;
-    prevTriggerElementRef: Element | null | undefined;
-  };
+  currentContentRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  rootRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  beforeInsideRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
+  afterInsideRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
+  beforeOutsideRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
+  afterOutsideRef: ReactLikeRef<HTMLSpanElement | null | undefined>;
+  prevTriggerElementRef: ReactLikeRef<Element | null | undefined>;
   nested: Accessor<boolean>;
   delay: Accessor<number>;
   closeDelay: Accessor<number>;

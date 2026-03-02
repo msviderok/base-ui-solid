@@ -1,4 +1,4 @@
-import { batch, createEffect, createSignal, onCleanup } from 'solid-js';
+import { batch, createEffect, createSignal, onCleanup, Show } from 'solid-js';
 import { isTabbable } from 'tabbable';
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import {
@@ -60,7 +60,12 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
     setFloatingRootContext,
     popupElement,
     viewportElement,
-    refs,
+    rootRef,
+    beforeOutsideRef,
+    afterOutsideRef,
+    afterInsideRef,
+    beforeInsideRef,
+    prevTriggerElementRef,
     delay,
     closeDelay,
     orientation,
@@ -96,7 +101,7 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
     if (isActiveItem() && open() && popupElement() && allowFocusRef) {
       allowFocusRef = false;
       focusFrame.request(() => {
-        refs.beforeOutsideRef?.focus();
+        beforeOutsideRef.current?.focus();
       });
     }
 
@@ -146,34 +151,56 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
   }
 
   const context = useFloatingRootContext({
-    open,
+    get open() {
+      return open();
+    },
     onOpenChange: (openValue, eventDetails) =>
       handleOpenChange(openValue, eventDetails as NavigationMenuRoot.ChangeEventDetails),
     elements: {
-      reference: triggerElement,
-      floating: () => positionerElement() || viewportElement(),
+      get reference() {
+        return triggerElement();
+      },
+      get floating() {
+        return positionerElement() || viewportElement();
+      },
     },
   });
 
-  const hover = useHover(context, {
-    move: false,
-    handleClose: safePolygon({
-      get blockPointerEvents() {
-        return pointerType() !== 'touch';
-      },
-    }),
-    restMs: () => (mounted() && positionerElement() ? 0 : delay()),
-    delay: () => ({ close: closeDelay() }),
+  const hover = useHover({
+    get context() {
+      return context;
+    },
+    props: {
+      move: false,
+      handleClose: safePolygon({
+        get blockPointerEvents() {
+          return pointerType() !== 'touch';
+        },
+      }),
+      restMs: () => (mounted() && positionerElement() ? 0 : delay()),
+      delay: () => ({ close: closeDelay() }),
+    },
   });
-  const click = useClick(context, {
-    enabled: interactionsEnabled,
-    stickIfOpen,
-    toggle: isActiveItem,
+  const click = useClick({
+    get context() {
+      return context;
+    },
+    props: {
+      get enabled() {
+        return interactionsEnabled();
+      },
+      get stickIfOpen() {
+        return stickIfOpen();
+      },
+      get toggle() {
+        return isActiveItem();
+      },
+    },
   });
   createEffect(() => {
     if (isActiveItem()) {
       setFloatingRootContext(context);
-      refs.prevTriggerElementRef = triggerElement();
+      prevTriggerElementRef.current = triggerElement();
     }
   });
 
@@ -181,7 +208,7 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
 
   function handleActivation(event: MouseEvent | KeyboardEvent) {
     batch(() => {
-      const prevTriggerRect = refs.prevTriggerElementRef?.getBoundingClientRect();
+      const prevTriggerRect = prevTriggerElementRef.current?.getBoundingClientRect();
 
       if (mounted() && prevTriggerRect && triggerElement()) {
         const nextTriggerRect = triggerElement()!.getBoundingClientRect();
@@ -278,7 +305,7 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
             currentTarget: event.currentTarget,
             relatedTarget: event.relatedTarget as HTMLElement | null,
           },
-          { popupElement: popupElement(), rootRef: refs.rootRef, tree, nodeId: nodeId?.() },
+          { popupElement: popupElement(), rootRef: rootRef.current, tree, nodeId: nodeId?.() },
         )
       ) {
         setValue(null, createChangeEventDetails(REASONS.focusOut, event));
@@ -311,16 +338,16 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
           getButtonProps,
         ]}
       />
-      {isActiveItem() && (
+      <Show when={isActiveItem()}>
         <>
           <FocusGuard
             ref={(el) => {
-              refs.beforeOutsideRef = el;
+              beforeOutsideRef.current = el;
             }}
             onFocus={(event) => {
               const referenceEl = referenceElement();
               if (referenceEl && isOutsideEvent(event, referenceEl)) {
-                refs.beforeInsideRef?.focus();
+                beforeInsideRef.current?.focus();
               } else {
                 const prevTabbable = getPreviousTabbable(triggerElement());
                 prevTabbable?.focus();
@@ -330,28 +357,28 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
           <span aria-owns={viewportElement()?.id} style={ownerVisuallyHidden} />
           <FocusGuard
             ref={(el) => {
-              refs.afterOutsideRef = el;
+              afterOutsideRef.current = el;
             }}
             onFocus={(event) => {
               const referenceEl = referenceElement();
               if (referenceEl && isOutsideEvent(event, referenceEl)) {
                 const elementToFocus =
-                  refs.afterInsideRef && isTabbable(refs.afterInsideRef)
-                    ? refs.afterInsideRef
+                  afterInsideRef.current && isTabbable(afterInsideRef.current)
+                    ? afterInsideRef.current
                     : triggerElement();
                 elementToFocus?.focus();
               } else {
                 const nextTabbable = getNextTabbable(triggerElement()!);
                 nextTabbable?.focus();
 
-                if (!contains(refs.rootRef, nextTabbable)) {
+                if (!contains(rootRef.current, nextTabbable)) {
                   setValue(null, createChangeEventDetails(REASONS.focusOut, event));
                 }
               }
             }}
           />
         </>
-      )}
+      </Show>
     </>
   );
 }
