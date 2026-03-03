@@ -83,7 +83,6 @@ describe('<Popover.Trigger />', () => {
       const { user } = render(() => (
         <Popover.Root>
           <Popover.Trigger openOnHover delay={0} />
-          <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup />
@@ -104,7 +103,6 @@ describe('<Popover.Trigger />', () => {
       const { user } = render(() => (
         <Popover.Root>
           <Popover.Trigger delay={0} openOnHover />
-          <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup />
@@ -126,7 +124,6 @@ describe('<Popover.Trigger />', () => {
       const { user } = render(() => (
         <Popover.Root>
           <Popover.Trigger openOnHover />
-          <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup />
@@ -154,7 +151,6 @@ describe('<Popover.Trigger />', () => {
       renderFakeTimers(() => (
         <Popover.Root>
           <Popover.Trigger delay={0} openOnHover />
-          <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup />
@@ -178,7 +174,6 @@ describe('<Popover.Trigger />', () => {
       renderFakeTimers(() => (
         <Popover.Root>
           <Popover.Trigger delay={0} openOnHover />
-          <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup />
@@ -202,7 +197,6 @@ describe('<Popover.Trigger />', () => {
       renderFakeTimers(() => (
         <Popover.Root>
           <Popover.Trigger delay={0} openOnHover />
-          <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup />
@@ -231,7 +225,6 @@ describe('<Popover.Trigger />', () => {
       renderFakeTimers(() => (
         <Popover.Root>
           <Popover.Trigger delay={0} openOnHover />
-          <Popover.Trigger />
           <Popover.Portal>
             <Popover.Positioner>
               <Popover.Popup />

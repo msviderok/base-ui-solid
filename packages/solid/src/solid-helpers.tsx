@@ -129,10 +129,15 @@ export function ComponentWithPayload<Payload>(props: {
     const child = cachedChildren();
     return typeof child === 'function' ? (child as PayloadChildRenderFunction<Payload>) : null;
   });
+  const payloadContext = {
+    get payload() {
+      return props.payload();
+    },
+  };
 
   return (
     <Show when={childrenFn()} fallback={cachedChildren()}>
-      {(fn) => <>{fn()({ payload: props.payload() })}</>}
+      {(fn) => <>{fn()(payloadContext)}</>}
     </Show>
   );
 }

@@ -1,11 +1,16 @@
 import {
+  children,
   createEffect,
   createMemo,
   createSignal,
   onCleanup,
+  onMount,
   Show,
   type Accessor,
+  type Component,
+  type ComponentProps,
   type JSX,
+  type ParentProps,
 } from 'solid-js';
 import { useDirection } from '../direction-provider';
 import { Dimensions } from '../floating-ui-solid/types';
@@ -38,7 +43,7 @@ export interface PopupViewportState {
   transitioning: boolean;
 }
 
-type PopupViewportStore = Pick<SolidStore<any, any, any>, 'useState' | 'set'>;
+type PopupViewportStore = Pick<SolidStore<any, any, any>, 'useState' | 'set' | 'select'>;
 
 export interface UsePopupViewportParameters {
   /**
@@ -75,29 +80,15 @@ export interface UsePopupViewportResult {
  * Handles previous-content snapshots, auto-resize, and state attributes for transitions.
  */
 export function usePopupViewport(parameters: UsePopupViewportParameters): UsePopupViewportResult {
-  const store = parameters.store;
   const direction = useDirection();
-
-  const activeTrigger = store.useState('activeTriggerElement');
-  const activeTriggerId = store.useState('activeTriggerId');
-  const open = store.useState('open');
-  const payload = store.useState('payload');
-  const mounted = store.useState('mounted');
-  const popupElement = store.useState('popupElement');
-  const positionerElement = store.useState('positionerElement');
+  const activeTrigger = parameters.store.useState('activeTriggerElement');
+  const open = parameters.store.useState('open');
+  const payload = parameters.store.useState('payload');
+  const mounted = parameters.store.useState('mounted');
+  const popupElement = parameters.store.useState('popupElement');
+  const positionerElement = parameters.store.useState('positionerElement');
 
   const previousActiveTrigger = usePreviousValue(() => (open() ? activeTrigger() : null));
-  // Remount current content on trigger changes (and once more when payload lags) to avoid DOM reuse flashes.
-  // The key bumps immediately on trigger switches, then again if the payload arrives on a later render.
-  // TODO: FIX IN SOLID
-  const currentContentKey = usePopupContentKey({
-    get activeTriggerId() {
-      return activeTriggerId();
-    },
-    get payload() {
-      return payload();
-    },
-  });
 
   let capturedNodeRef = null as HTMLElement | null | undefined;
   const [previousContentNode, setPreviousContentNode] = createSignal<
@@ -106,8 +97,8 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
 
   const [newTriggerOffset, setNewTriggerOffset] = createSignal<Offset | null>(null);
 
-  let currentContainerRef = null as HTMLDivElement | null | undefined;
-  let previousContainerRef = null as HTMLDivElement | null | undefined;
+  let currentContainerRef: HTMLDivElement | undefined;
+  let previousContainerRef: HTMLDivElement | undefined;
 
   const onAnimationsFinished = useAnimationsFinished(currentContainerRef, true, false);
   const cleanupFrame = useAnimationFrame();
@@ -120,10 +111,8 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
   const [showStartingStyleAttribute, setShowStartingStyleAttribute] = createSignal(false);
 
   createEffect(() => {
-    store.set('hasViewport', true);
-    onCleanup(() => {
-      store.set('hasViewport', false);
-    });
+    parameters.store.set('hasViewport', true);
+    onCleanup(() => parameters.store.set('hasViewport', false));
   });
 
   const handleMeasureLayout = () => {
@@ -233,48 +222,37 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
     },
   };
 
+  function ContainerComponent(props: ParentProps<{ 'data-starting-style'?: '' | undefined }>) {
+    return <div data-current ref={currentContainerRef} {...props} />;
+  }
+
   return {
     state,
     get children() {
       return (
-        <Show
-          when={isTransitioning()}
-          fallback={
+        <>
+          <Show when={!isTransitioning()}>
+            {<ContainerComponent>{parameters.children}</ContainerComponent>}
+          </Show>
+          <Show when={isTransitioning()}>
             <div
-              data-current
-              ref={(el) => {
-                currentContainerRef = el;
-              }}
-            >
+              data-previous
+              inert={true}
+              ref={previousContainerRef}
+              style={
+                {
+                  [parameters.cssVars.popupWidth]: `${previousContentDimensions()?.width}px`,
+                  [parameters.cssVars.popupHeight]: `${previousContentDimensions()?.height}px`,
+                  position: 'absolute',
+                } as JSX.CSSProperties
+              }
+              data-ending-style={showStartingStyleAttribute() ? undefined : ''}
+            />
+            <ContainerComponent data-starting-style={showStartingStyleAttribute() ? '' : undefined}>
               {parameters.children}
-            </div>
-          }
-        >
-          <div
-            data-previous
-            inert={true}
-            ref={(el) => {
-              previousContainerRef = el;
-            }}
-            style={
-              {
-                [parameters.cssVars.popupWidth]: `${previousContentDimensions()?.width}px`,
-                [parameters.cssVars.popupHeight]: `${previousContentDimensions()?.height}px`,
-                position: 'absolute',
-              } as JSX.CSSProperties
-            }
-            data-ending-style={showStartingStyleAttribute() ? undefined : ''}
-          />
-          <div
-            data-current
-            ref={(el) => {
-              currentContainerRef = el;
-            }}
-            data-starting-style={showStartingStyleAttribute() ? '' : undefined}
-          >
-            {parameters.children}
-          </div>
-        </Show>
+            </ContainerComponent>
+          </Show>
+        </>
       );
     },
   };

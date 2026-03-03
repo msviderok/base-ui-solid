@@ -231,26 +231,26 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
     }
   };
 
-  // A fragment with key is required to ensure that the `element` is mounted to the same DOM node
-  // regardless of whether the focus guards are rendered or not.
   return (
-    <Show when={isTriggerActive()} fallback={element()}>
-      <>
+    <>
+      <Show when={isTriggerActive()}>
         <FocusGuard
           ref={(el) => {
             preFocusGuardRef = el;
           }}
           onFocus={handlePreFocusGuardFocus}
         />
-        {element()}
+      </Show>
+      {element()}
+      <Show when={isTriggerActive()}>
         <FocusGuard
           ref={(el) => {
             store.context.triggerFocusTargetRef.current = el;
           }}
           onFocus={handleFocusTargetFocus}
         />
-      </>
-    </Show>
+      </Show>
+    </>
   );
 }
 

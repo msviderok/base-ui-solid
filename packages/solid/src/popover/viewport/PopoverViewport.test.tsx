@@ -2,6 +2,7 @@ import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Popover } from '@msviderok/base-ui-solid/popover';
 import { screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
+import { Show } from 'solid-js';
 
 describe('<Popover.Viewport />', () => {
   const { render } = createRenderer();
@@ -58,12 +59,12 @@ describe('<Popover.Viewport />', () => {
               <Popover.Positioner>
                 <Popover.Popup>
                   <Popover.Viewport>
-                    {data.payload === 'first' ? (
+                    <Show when={data.payload === 'first'}>
                       <img data-testid="payload-image-1" src="about:blank" alt="Preview 1" />
-                    ) : null}
-                    {data.payload === 'second' ? (
+                    </Show>
+                    <Show when={data.payload === 'second'}>
                       <img data-testid="payload-image-2" src="about:blank" alt="Preview 2" />
-                    ) : null}
+                    </Show>
                   </Popover.Viewport>
                 </Popover.Popup>
               </Popover.Positioner>
