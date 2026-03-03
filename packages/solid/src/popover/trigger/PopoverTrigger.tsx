@@ -68,7 +68,6 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
 
   const thisTriggerId = useBaseUiId(idProp);
   const isTriggerActive = store.useState('isTriggerActive', thisTriggerId);
-  const floatingRootContext = store.context.floatingRootContext;
   const isOpenedByThisTrigger = store.useState('isOpenedByTrigger', thisTriggerId);
 
   let triggerElementRef = null as HTMLElement | null | undefined;
@@ -84,7 +83,9 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
       return store as PopoverStore<unknown>;
     },
     stateUpdates: {
-      payload: local.payload,
+      get payload() {
+        return local.payload;
+      },
       get disabled() {
         return disabled();
       },
@@ -102,13 +103,12 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
   const openMethod = store.useState('openMethod');
 
   const hoverProps = useHoverReferenceInteraction({
-    context: floatingRootContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     props: {
       get enabled() {
-        return (
-          openOnHover() &&
-          (openMethod() !== 'touch' || openReason() !== REASONS.triggerPress)
-        );
+        return openOnHover() && (openMethod() !== 'touch' || openReason() !== REASONS.triggerPress);
       },
       mouseOnly: true,
       move: false,
@@ -129,7 +129,9 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
   });
 
   const click = useClick({
-    context: floatingRootContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     props: {
       enabled: true,
       get stickIfOpen() {

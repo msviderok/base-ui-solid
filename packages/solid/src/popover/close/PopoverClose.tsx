@@ -29,10 +29,10 @@ export function PopoverClose(props: PopoverClose.Props) {
     ref: buttonRef,
     props: [
       {
-        onClick(event) {
+        onClick(event: MouseEvent) {
           store.setOpen(
             false,
-            createChangeEventDetails(REASONS.closePress, event, event.currentTarget),
+            createChangeEventDetails(REASONS.closePress, event, event.currentTarget as HTMLElement),
           );
         },
       },

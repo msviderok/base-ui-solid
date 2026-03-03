@@ -17,7 +17,7 @@ export function PopoverArrow(componentProps: PopoverArrow.Props) {
 
   const { store } = usePopoverRootContext();
   const open = store.useState('open');
-  const { refs, side, align, arrowUncentered, arrowStyles } = usePopoverPositionerContext();
+  const { arrowRef, side, align, arrowUncentered, arrowStyles } = usePopoverPositionerContext();
 
   const state: PopoverArrow.State = {
     get open() {
@@ -36,7 +36,9 @@ export function PopoverArrow(componentProps: PopoverArrow.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: refs.setArrowRef,
+    ref: (el) => {
+      arrowRef.current = el;
+    },
     props: [
       {
         get style() {

@@ -22,7 +22,7 @@ export function PopoverPortal(props: PopoverPortal.Props) {
   return (
     <Show when={shouldRender()}>
       <PopoverPortalContext.Provider value={keepMounted}>
-        <FloatingPortal {...portalProps} />
+        <FloatingPortal {...portalProps} ref={props.ref} />
       </PopoverPortalContext.Provider>
     </Show>
   );

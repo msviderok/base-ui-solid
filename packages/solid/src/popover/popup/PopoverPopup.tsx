@@ -1,4 +1,5 @@
 import { isHTMLElement } from '@floating-ui/utils/dom';
+import { createMemo } from 'solid-js';
 import { COMPOSITE_KEYS } from '../../composite/composite';
 import { FloatingFocusManager, useHoverFloatingInteraction } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';
@@ -50,7 +51,6 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   const mounted = store.useState('mounted');
   const openReason = store.useState('openChangeReason');
   const activeTriggerElement = store.useState('activeTriggerElement');
-  const floatingContext = store.context.floatingRootContext;
 
   useOpenChangeComplete({
     open,
@@ -67,7 +67,9 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   const closeDelay = store.useState('closeDelay');
 
   useHoverFloatingInteraction({
-    context: floatingContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     parameters: {
       get enabled() {
         return openOnHover() && !disabled();
@@ -88,8 +90,9 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
     return true;
   }
 
-  const resolvedInitialFocus = () =>
-    local.initialFocus === undefined ? defaultInitialFocus : local.initialFocus;
+  const resolvedInitialFocus = createMemo(() =>
+    local.initialFocus === undefined ? defaultInitialFocus : local.initialFocus,
+  );
 
   const state: PopoverPopup.State = {
     get open() {
@@ -144,7 +147,7 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
 
   return (
     <FloatingFocusManager
-      context={floatingContext}
+      context={store.context.floatingRootContext}
       openInteractionType={openMethod()}
       modal={modal() === 'trap-focus'}
       disabled={!mounted() || openReason() === REASONS.triggerHover}

@@ -893,8 +893,10 @@ describe('<Popover.Root />', () => {
     describe('prop: actionsRef', () => {
       it('unmounts the popover when the `unmount` method is called', async () => {
         const actionsRef = {
-          unmount: spy(),
-          close: spy(),
+          current: {
+            unmount: spy(),
+            close: spy(),
+          },
         };
 
         const { user } = render(() => (
@@ -921,7 +923,7 @@ describe('<Popover.Root />', () => {
           expect(screen.queryByRole('dialog')).not.to.equal(null);
         });
 
-        actionsRef.unmount();
+        actionsRef.current.unmount();
 
         await waitFor(() => {
           expect(screen.queryByRole('dialog')).to.equal(null);
@@ -929,10 +931,10 @@ describe('<Popover.Root />', () => {
       });
 
       it('closes the popover when the `close` method is called', async () => {
-        let actionsRef = null as Popover.Root.Actions | null;
+        const actionsRef = { current: null as Popover.Root.Actions | null };
         render(() => <TestPopover rootProps={{ defaultOpen: true, actionsRef }} />);
 
-        actionsRef!.close();
+        actionsRef.current!.close();
 
         await waitFor(() => {
           expect(screen.queryByText('Content')).to.equal(null);
@@ -1245,27 +1247,29 @@ describe('<Popover.Root />', () => {
             <TestPopover
               rootProps={{ defaultOpen: true }}
               popupProps={{
-                children: (
-                  <Combobox.Root items={fruits} defaultOpen>
-                    <Combobox.Input placeholder="Choose a fruit" />
-                    <Combobox.Portal>
-                      <Combobox.Positioner>
-                        <Combobox.Popup
-                          data-testid="combobox-popup"
-                          style={{ 'max-height': '200px', overflow: 'auto' }}
-                        >
-                          <Combobox.List>
-                            {(item: string) => (
-                              <Combobox.Item key={item} value={item} style={{ height: '100px' }}>
-                                {item}
-                              </Combobox.Item>
-                            )}
-                          </Combobox.List>
-                        </Combobox.Popup>
-                      </Combobox.Positioner>
-                    </Combobox.Portal>
-                  </Combobox.Root>
-                ),
+                get children() {
+                  return (
+                    <Combobox.Root items={fruits} defaultOpen>
+                      <Combobox.Input placeholder="Choose a fruit" />
+                      <Combobox.Portal>
+                        <Combobox.Positioner>
+                          <Combobox.Popup
+                            data-testid="combobox-popup"
+                            style={{ 'max-height': '200px', overflow: 'auto' }}
+                          >
+                            <Combobox.List>
+                              {(item: string) => (
+                                <Combobox.Item value={item} style={{ height: '100px' }}>
+                                  {item}
+                                </Combobox.Item>
+                              )}
+                            </Combobox.List>
+                          </Combobox.Popup>
+                        </Combobox.Positioner>
+                      </Combobox.Portal>
+                    </Combobox.Root>
+                  );
+                },
               }}
             />
           ));
@@ -1396,28 +1400,30 @@ function ContainedTriggerPopover(props: TestPopoverProps) {
     </Popover.Portal>
   );
 
-  const triggerElement = () =>
-    includeTrigger() ? (
+  const triggerElement = () => (
+    <Show when={includeTrigger()}>
       <Popover.Trigger data-testid="trigger" {...restTriggerProps}>
         {localTriggerProps.children ?? 'Toggle'}
       </Popover.Trigger>
-    ) : null;
+    </Show>
+  );
 
   return (
     <Popover.Root {...props.rootProps}>
-      {triggerPlacement() === 'before-content' ? (
-        <>
-          {triggerElement()}
-          {props.afterTrigger}
-          {renderPortal()}
-        </>
-      ) : (
-        <>
-          {renderPortal()}
-          {triggerElement()}
-          {props.afterTrigger}
-        </>
-      )}
+      <Show
+        when={triggerPlacement() === 'before-content'}
+        fallback={
+          <>
+            {renderPortal()}
+            {triggerElement()}
+            {props.afterTrigger}
+          </>
+        }
+      >
+        {triggerElement()}
+        {props.afterTrigger}
+        {renderPortal()}
+      </Show>
     </Popover.Root>
   );
 }
@@ -1429,14 +1435,12 @@ function DetachedTriggerPopover(props: TestPopoverProps) {
 
   return (
     <>
-      {triggerPlacement() === 'before-content' && (
-        <>
-          <Popover.Trigger data-testid="trigger" handle={popoverHandle} {...restTriggerProps}>
-            {localTriggerProps.children ?? 'Toggle'}
-          </Popover.Trigger>
-          {props.afterTrigger}
-        </>
-      )}
+      <Show when={triggerPlacement() === 'before-content'}>
+        <Popover.Trigger data-testid="trigger" handle={popoverHandle} {...restTriggerProps}>
+          {localTriggerProps.children ?? 'Toggle'}
+        </Popover.Trigger>
+        {props.afterTrigger}
+      </Show>
       <ContainedTriggerPopover
         rootProps={{ ...props.rootProps, handle: popoverHandle }}
         portalProps={props.portalProps}
@@ -1444,14 +1448,12 @@ function DetachedTriggerPopover(props: TestPopoverProps) {
         popupProps={props.popupProps}
         includeTrigger={false}
       />
-      {triggerPlacement() === 'after-content' && (
-        <>
-          <Popover.Trigger data-testid="trigger" handle={popoverHandle} {...restTriggerProps}>
-            {localTriggerProps.children ?? 'Toggle'}
-          </Popover.Trigger>
-          {props.afterTrigger}
-        </>
-      )}
+      <Show when={triggerPlacement() === 'after-content'}>
+        <Popover.Trigger data-testid="trigger" handle={popoverHandle} {...restTriggerProps}>
+          {localTriggerProps.children ?? 'Toggle'}
+        </Popover.Trigger>
+        {props.afterTrigger}
+      </Show>
     </>
   );
 }
@@ -1475,7 +1477,7 @@ function MultipleDetachedTriggersPopover(props: TestPopoverProps) {
 
   return (
     <>
-      {triggerPlacement() === 'before-content' && <>{renderTriggers()}</>}
+      <Show when={triggerPlacement() === 'before-content'}>{renderTriggers()}</Show>
       <ContainedTriggerPopover
         rootProps={{ ...props.rootProps, handle: popoverHandle }}
         portalProps={props.portalProps}
@@ -1483,7 +1485,7 @@ function MultipleDetachedTriggersPopover(props: TestPopoverProps) {
         popupProps={props.popupProps}
         includeTrigger={false}
       />
-      {triggerPlacement() === 'after-content' && <>{renderTriggers()}</>}
+      <Show when={triggerPlacement() === 'after-content'}>{renderTriggers()}</Show>
     </>
   );
 }

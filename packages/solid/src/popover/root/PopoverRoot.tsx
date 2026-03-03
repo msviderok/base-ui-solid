@@ -16,7 +16,7 @@ import {
   useRole,
   useSyncedFloatingRootContext,
 } from '../../floating-ui-solid';
-import { ComponentWithPayload } from '../../solid-helpers';
+import { ComponentWithPayload, type ReactLikeRef } from '../../solid-helpers';
 import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
@@ -132,7 +132,9 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   };
 
   onMount(() => {
-    props.actionsRef = { unmount: forceUnmount, close: handleImperativeClose };
+    if (props.actionsRef) {
+      props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
+    }
   });
 
   const floatingRootContext = useSyncedFloatingRootContext({
@@ -235,7 +237,7 @@ export interface PopoverRootProps<Payload = unknown> {
    * Useful when the popover's animation is controlled by an external library.
    * - `close`: Closes the dialog imperatively when called.
    */
-  actionsRef?: (PopoverRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<PopoverRoot.Actions | null> | undefined;
   /**
    * Determines if the popover enters a modal state when open.
    * - `true`: user interaction is limited to the popover: document page scroll is locked, and pointer interactions on outside elements are disabled.
