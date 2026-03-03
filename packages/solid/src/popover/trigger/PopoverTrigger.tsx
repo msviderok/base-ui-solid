@@ -196,12 +196,15 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
   let preFocusGuardRef = null as HTMLElement | null | undefined;
 
   const handlePreFocusGuardFocus = (event: FocusEvent) => {
+    const currentPreFocusGuardRef = preFocusGuardRef;
+    const previousTabbable: FocusableElement | null =
+      getTabbableBeforeElement(currentPreFocusGuardRef);
+
     store.setOpen(
       false,
       createChangeEventDetails(REASONS.focusOut, event, event.currentTarget as HTMLElement),
     );
 
-    const previousTabbable: FocusableElement | null = getTabbableBeforeElement(preFocusGuardRef);
     previousTabbable?.focus();
   };
 
@@ -210,14 +213,8 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
     if (positionerElement && isOutsideEvent(event, positionerElement)) {
       store.context.beforeContentFocusGuardRef.current?.focus();
     } else {
-      store.setOpen(
-        false,
-        createChangeEventDetails(REASONS.focusOut, event, event.currentTarget as HTMLElement),
-      );
-
-      let nextTabbable = getTabbableAfterElement(
-        store.context.triggerFocusTargetRef.current || triggerElementRef,
-      );
+      const focusTargetElement = store.context.triggerFocusTargetRef.current || triggerElementRef;
+      let nextTabbable = getTabbableAfterElement(focusTargetElement);
 
       while (nextTabbable !== null && contains(positionerElement, nextTabbable)) {
         const prevTabbable = nextTabbable;
@@ -226,6 +223,11 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
           break;
         }
       }
+
+      store.setOpen(
+        false,
+        createChangeEventDetails(REASONS.focusOut, event, event.currentTarget as HTMLElement),
+      );
 
       nextTabbable?.focus();
     }

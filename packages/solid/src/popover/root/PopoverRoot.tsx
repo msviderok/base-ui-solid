@@ -164,6 +164,7 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   const activeTriggerProps = createMemo(() => getReferenceProps(interactionTypeTriggerProps));
   const inactiveTriggerProps = createMemo(() => getTriggerProps(interactionTypeTriggerProps));
   const popupProps = createMemo(() => getFloatingProps());
+  const nested = createMemo(() => useFloatingParentNodeId() != null);
 
   store.useSyncedValues({
     modal,
@@ -171,7 +172,7 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
     activeTriggerProps,
     inactiveTriggerProps,
     popupProps,
-    nested: () => useFloatingParentNodeId() != null,
+    nested,
   });
 
   const popoverContext: PopoverRootContext<Payload> = { store };

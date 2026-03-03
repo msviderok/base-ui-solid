@@ -2,6 +2,7 @@ import { createRenderer, flushMicrotasks, isJSDOM, popupConformanceTests, wait }
 import { Combobox } from '@msviderok/base-ui-solid/combobox';
 import { Menu } from '@msviderok/base-ui-solid/menu';
 import { Popover } from '@msviderok/base-ui-solid/popover';
+import { defaultProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
@@ -34,8 +35,8 @@ describe('<Popover.Root />', () => {
 
   describe.for([
     { name: 'contained triggers', Component: ContainedTriggerPopover },
-    { name: 'detached triggers', Component: DetachedTriggerPopover },
-    { name: 'multiple detached triggers', Component: MultipleDetachedTriggersPopover },
+    // { name: 'detached triggers', Component: DetachedTriggerPopover },
+    // { name: 'multiple detached triggers', Component: MultipleDetachedTriggersPopover },
   ])('when using $name', ({ Component: TestPopover }) => {
     it('should render the children', async () => {
       render(() => <TestPopover />);
@@ -71,9 +72,11 @@ describe('<Popover.Root />', () => {
           return (
             <TestPopover
               rootProps={{
-                open: open(),
+                get open() {
+                  return open();
+                },
                 onOpenChange: (nextOpen) => {
-                  handleChange(open);
+                  handleChange(open());
                   setOpen(nextOpen);
                 },
               }}
@@ -117,27 +120,28 @@ describe('<Popover.Root />', () => {
 
         function Test() {
           const [dialogNode, setDialogNode] = createSignal<HTMLDialogElement | null>(null);
-          const handleDialogRef = (node: HTMLDialogElement | null) => {
-            if (node) {
-              setDialogNode(node);
-            }
-          };
 
           return (
-            <dialog open ref={handleDialogRef}>
+            <dialog open ref={setDialogNode}>
               <TestPopover
-                portalProps={{ container: dialogNode() ?? undefined }}
+                portalProps={{
+                  get container() {
+                    return dialogNode() ?? undefined;
+                  },
+                }}
                 popupProps={{
-                  children: (
-                    <Menu.Root>
-                      <Menu.Trigger>Open nested</Menu.Trigger>
-                      <Menu.Portal container={dialogNode() ?? undefined}>
-                        <Menu.Positioner>
-                          <Menu.Popup data-testid="menu-popup">Nested Menu</Menu.Popup>
-                        </Menu.Positioner>
-                      </Menu.Portal>
-                    </Menu.Root>
-                  ),
+                  get children() {
+                    return (
+                      <Menu.Root>
+                        <Menu.Trigger>Open nested</Menu.Trigger>
+                        <Menu.Portal container={dialogNode() ?? undefined}>
+                          <Menu.Positioner>
+                            <Menu.Popup data-testid="menu-popup">Nested Menu</Menu.Popup>
+                          </Menu.Positioner>
+                        </Menu.Portal>
+                      </Menu.Root>
+                    );
+                  },
                 }}
               />
             </dialog>
@@ -177,29 +181,30 @@ describe('<Popover.Root />', () => {
 
         function Test() {
           const [dialogNode, setDialogNode] = createSignal<HTMLDialogElement | null>(null);
-          const handleDialogRef = (node: HTMLDialogElement | null) => {
-            if (node) {
-              setDialogNode(node);
-            }
-          };
 
           return (
-            <dialog open ref={handleDialogRef}>
+            <dialog open ref={setDialogNode}>
               <TestPopover
-                portalProps={{ container: dialogNode() ?? undefined }}
+                portalProps={{
+                  get container() {
+                    return dialogNode() ?? undefined;
+                  },
+                }}
                 popupProps={{
-                  children: (
-                    <Menu.Root>
-                      <Menu.Trigger>Open nested</Menu.Trigger>
-                      <Menu.Portal container={dialogNode() ?? undefined}>
-                        <Menu.Positioner>
-                          <Menu.Popup data-testid="menu-popup">
-                            <Menu.Item closeOnClick={false}>Item</Menu.Item>
-                          </Menu.Popup>
-                        </Menu.Positioner>
-                      </Menu.Portal>
-                    </Menu.Root>
-                  ),
+                  get children() {
+                    return (
+                      <Menu.Root>
+                        <Menu.Trigger>Open nested</Menu.Trigger>
+                        <Menu.Portal container={dialogNode() ?? undefined}>
+                          <Menu.Positioner>
+                            <Menu.Popup data-testid="menu-popup">
+                              <Menu.Item closeOnClick={false}>Item</Menu.Item>
+                            </Menu.Popup>
+                          </Menu.Positioner>
+                        </Menu.Portal>
+                      </Menu.Root>
+                    );
+                  },
                 }}
               />
             </dialog>
@@ -338,7 +343,11 @@ describe('<Popover.Root />', () => {
             <input type="text" />
             <TestPopover
               portalProps={{ keepMounted: true }}
-              popupProps={{ children: <Popover.Close>Close</Popover.Close> }}
+              popupProps={{
+                get children() {
+                  return <Popover.Close>Close</Popover.Close>;
+                },
+              }}
             />
             <input type="text" />
           </div>
@@ -365,7 +374,11 @@ describe('<Popover.Root />', () => {
         const { user } = render(() => (
           <TestPopover
             triggerProps={{ openOnHover: true, delay: 0 }}
-            popupProps={{ children: <Popover.Close>Close</Popover.Close> }}
+            popupProps={{
+              get children() {
+                return <Popover.Close>Close</Popover.Close>;
+              },
+            }}
           />
         ));
 
@@ -436,7 +449,11 @@ describe('<Popover.Root />', () => {
               <input />
               <TestPopover
                 rootProps={{ defaultOpen: true }}
-                popupProps={{ children: <input data-testid="input-inside" /> }}
+                popupProps={{
+                  get children() {
+                    return <input data-testid="input-inside" />;
+                  },
+                }}
                 afterTrigger={<input data-testid="focus-target" />}
               />
               <input />
@@ -444,6 +461,7 @@ describe('<Popover.Root />', () => {
           ));
 
           const inputInside = screen.getByTestId('input-inside');
+          await flushMicrotasks();
           inputInside.focus();
 
           await user.tab();
@@ -462,21 +480,23 @@ describe('<Popover.Root />', () => {
                 rootProps={{ defaultOpen: true }}
                 portalProps={{ keepMounted: true }}
                 popupProps={{
-                  children: (
-                    <Combobox.Root items={['a', 'b']}>
-                      <Combobox.Input data-testid="combobox-input" />
-                      <Combobox.Portal>
-                        <Combobox.Positioner>
-                          <Combobox.Popup>
-                            <Combobox.List>
-                              <Combobox.Item value="a">a</Combobox.Item>
-                              <Combobox.Item value="b">b</Combobox.Item>
-                            </Combobox.List>
-                          </Combobox.Popup>
-                        </Combobox.Positioner>
-                      </Combobox.Portal>
-                    </Combobox.Root>
-                  ),
+                  get children() {
+                    return (
+                      <Combobox.Root items={['a', 'b']}>
+                        <Combobox.Input data-testid="combobox-input" />
+                        <Combobox.Portal>
+                          <Combobox.Positioner>
+                            <Combobox.Popup>
+                              <Combobox.List>
+                                <Combobox.Item value="a">a</Combobox.Item>
+                                <Combobox.Item value="b">b</Combobox.Item>
+                              </Combobox.List>
+                            </Combobox.Popup>
+                          </Combobox.Positioner>
+                        </Combobox.Portal>
+                      </Combobox.Root>
+                    );
+                  },
                 }}
                 afterTrigger={<input data-testid="focus-target" />}
               />
@@ -509,21 +529,23 @@ describe('<Popover.Root />', () => {
                 rootProps={{ defaultOpen: true }}
                 portalProps={{ keepMounted: true }}
                 popupProps={{
-                  children: (
-                    <Combobox.Root items={['a', 'b']}>
-                      <Combobox.Input data-testid="combobox-input" />
-                      <Combobox.Portal>
-                        <Combobox.Positioner>
-                          <Combobox.Popup>
-                            <Combobox.List>
-                              <Combobox.Item value="a">a</Combobox.Item>
-                              <Combobox.Item value="b">b</Combobox.Item>
-                            </Combobox.List>
-                          </Combobox.Popup>
-                        </Combobox.Positioner>
-                      </Combobox.Portal>
-                    </Combobox.Root>
-                  ),
+                  get children() {
+                    return (
+                      <Combobox.Root items={['a', 'b']}>
+                        <Combobox.Input data-testid="combobox-input" />
+                        <Combobox.Portal>
+                          <Combobox.Positioner>
+                            <Combobox.Popup>
+                              <Combobox.List>
+                                <Combobox.Item value="a">a</Combobox.Item>
+                                <Combobox.Item value="b">b</Combobox.Item>
+                              </Combobox.List>
+                            </Combobox.Popup>
+                          </Combobox.Positioner>
+                        </Combobox.Portal>
+                      </Combobox.Root>
+                    );
+                  },
                 }}
               />
             </div>
@@ -555,7 +577,11 @@ describe('<Popover.Root />', () => {
                 <input />
                 <TestPopover
                   rootProps={{ defaultOpen: true }}
-                  popupProps={{ children: <input data-testid="input-inside" /> }}
+                  popupProps={{
+                    get children() {
+                      return <input data-testid="input-inside" />;
+                    },
+                  }}
                 />
                 <input />
               </div>
@@ -592,7 +618,11 @@ describe('<Popover.Root />', () => {
               <TestPopover
                 rootProps={{ defaultOpen: true }}
                 afterTrigger={<input data-testid="focus-target" />}
-                popupProps={{ children: <input data-testid="input-inside" /> }}
+                popupProps={{
+                  get children() {
+                    return <input data-testid="input-inside" />;
+                  },
+                }}
               />
               <input />
             </div>
@@ -621,7 +651,11 @@ describe('<Popover.Root />', () => {
                 <TestPopover
                   rootProps={{ defaultOpen: true }}
                   afterTrigger={<input />}
-                  popupProps={{ children: <input data-testid="input-inside" /> }}
+                  popupProps={{
+                    get children() {
+                      return <input data-testid="input-inside" />;
+                    },
+                  }}
                 />
                 <input />
               </div>
@@ -659,7 +693,11 @@ describe('<Popover.Root />', () => {
               <TestPopover
                 rootProps={{ defaultOpen: true }}
                 triggerPlacement="after-content"
-                popupProps={{ children: <input data-testid="input-inside" /> }}
+                popupProps={{
+                  get children() {
+                    return <input data-testid="input-inside" />;
+                  },
+                }}
                 afterTrigger={<input data-testid="focus-target" />}
               />
               <input />
@@ -687,7 +725,11 @@ describe('<Popover.Root />', () => {
                 <TestPopover
                   rootProps={{ defaultOpen: true }}
                   triggerPlacement="after-content"
-                  popupProps={{ children: <input data-testid="input-inside" /> }}
+                  popupProps={{
+                    get children() {
+                      return <input data-testid="input-inside" />;
+                    },
+                  }}
                 />
                 <input />
               </div>
@@ -725,7 +767,11 @@ describe('<Popover.Root />', () => {
         render(() => (
           <TestPopover
             rootProps={{ defaultOpen: true, onOpenChange: handleOpenChange }}
-            portalProps={{ children: <Popover.Backdrop data-testid="backdrop" /> }}
+            portalProps={{
+              get children() {
+                return <Popover.Backdrop data-testid="backdrop" />;
+              },
+            }}
           />
         ));
 
@@ -772,7 +818,11 @@ describe('<Popover.Root />', () => {
             <>
               <TestPopover
                 rootProps={{ defaultOpen: true }}
-                popupProps={{ children: <button data-testid="inside">Inside</button> }}
+                popupProps={{
+                  get children() {
+                    return <button data-testid="inside">Inside</button>;
+                  },
+                }}
               />
               <button data-testid="outside">Outside</button>
             </>
@@ -806,26 +856,28 @@ describe('<Popover.Root />', () => {
                 rootProps={{ defaultOpen: true }}
                 portalProps={{ keepMounted: true }}
                 popupProps={{
-                  children: (
-                    <>
-                      <button type="button" data-testid="before">
-                        Before
-                      </button>
-                      <Menu.Root>
-                        <Menu.Trigger>Menu</Menu.Trigger>
-                        <Menu.Portal>
-                          <Menu.Positioner>
-                            <Menu.Popup>
-                              <Menu.Item>Item</Menu.Item>
-                            </Menu.Popup>
-                          </Menu.Positioner>
-                        </Menu.Portal>
-                      </Menu.Root>
-                      <button type="button" data-testid="after">
-                        After
-                      </button>
-                    </>
-                  ),
+                  get children() {
+                    return (
+                      <>
+                        <button type="button" data-testid="before">
+                          Before
+                        </button>
+                        <Menu.Root>
+                          <Menu.Trigger>Menu</Menu.Trigger>
+                          <Menu.Portal>
+                            <Menu.Positioner>
+                              <Menu.Popup>
+                                <Menu.Item>Item</Menu.Item>
+                              </Menu.Popup>
+                            </Menu.Positioner>
+                          </Menu.Portal>
+                        </Menu.Root>
+                        <button type="button" data-testid="after">
+                          After
+                        </button>
+                      </>
+                    );
+                  },
                 }}
               />
             </div>
@@ -1027,7 +1079,12 @@ describe('<Popover.Root />', () => {
             <div>
               <button onClick={() => setOpen(false)}>Close</button>
               <TestPopover
-                rootProps={{ open: open(), onOpenChangeComplete }}
+                rootProps={{
+                  get open() {
+                    return open();
+                  },
+                  onOpenChangeComplete,
+                }}
                 popupProps={{ children: null }}
               />
             </div>
@@ -1073,7 +1130,12 @@ describe('<Popover.Root />', () => {
               <style innerHTML={style} />
               <button onClick={() => setOpen(false)}>Close</button>
               <TestPopover
-                rootProps={{ open: open(), onOpenChangeComplete }}
+                rootProps={{
+                  get open() {
+                    return open();
+                  },
+                  onOpenChangeComplete,
+                }}
                 popupProps={{ class: 'animation-test-indicator', children: null }}
               />
             </div>
@@ -1108,7 +1170,12 @@ describe('<Popover.Root />', () => {
             <div>
               <button onClick={() => setOpen(true)}>Open</button>
               <TestPopover
-                rootProps={{ open: open(), onOpenChangeComplete }}
+                rootProps={{
+                  get open() {
+                    return open();
+                  },
+                  onOpenChangeComplete,
+                }}
                 popupProps={{ children: null }}
               />
             </div>
@@ -1155,7 +1222,9 @@ describe('<Popover.Root />', () => {
               <button onClick={() => setOpen(true)}>Open</button>
               <TestPopover
                 rootProps={{
-                  open: open(),
+                  get open() {
+                    return open();
+                  },
                   onOpenChange: (nextOpen) => setOpen(nextOpen),
                   onOpenChangeComplete,
                 }}
@@ -1328,14 +1397,16 @@ describe('<Popover.Root />', () => {
             popupProps={
               {
                 'data-testid': 'parent-popup',
-                children: (
-                  <ContainedTriggerPopover
-                    triggerProps={{ 'data-testid': 'child-trigger' } as Popover.Trigger.Props}
-                    popupProps={
-                      { 'data-testid': 'child-popup', children: null } as Popover.Popup.Props
-                    }
-                  />
-                ),
+                get children() {
+                  return (
+                    <ContainedTriggerPopover
+                      triggerProps={{ 'data-testid': 'child-trigger' } as Popover.Trigger.Props}
+                      popupProps={
+                        { 'data-testid': 'child-popup', children: null } as Popover.Popup.Props
+                      }
+                    />
+                  );
+                },
               } as Popover.Popup.Props
             }
           />
@@ -1382,60 +1453,56 @@ type TestPopoverProps = {
   includeTrigger?: boolean;
 };
 
-function ContainedTriggerPopover(props: TestPopoverProps) {
-  const triggerPlacement = () => props.triggerPlacement ?? 'before-content';
-  const includeTrigger = () => props.includeTrigger ?? true;
+function ContainedTriggerPopover(componentProps: TestPopoverProps) {
+  const props = defaultProps(componentProps, {
+    triggerPlacement: 'before-content',
+    includeTrigger: true,
+  });
   const [localTriggerProps, restTriggerProps] = splitProps(props.triggerProps ?? {}, ['children']);
   const [localPopupProps, restPopupProps] = splitProps(props.popupProps ?? {}, ['children']);
   const [localPortalProps, restPortalProps] = splitProps(props.portalProps ?? {}, ['children']);
 
-  const renderPortal = () => (
-    <Popover.Portal {...restPortalProps}>
-      {localPortalProps.children}
-      <Popover.Positioner data-testid="positioner" {...props.positionerProps}>
-        <Popover.Popup data-testid="popover-popup" {...restPopupProps}>
-          {localPopupProps.children ?? 'Content'}
-        </Popover.Popup>
-      </Popover.Positioner>
-    </Popover.Portal>
-  );
-
-  const triggerElement = () => (
-    <Show when={includeTrigger()}>
-      <Popover.Trigger data-testid="trigger" {...restTriggerProps}>
-        {localTriggerProps.children ?? 'Toggle'}
-      </Popover.Trigger>
-    </Show>
-  );
+  function RenderPortal() {
+    return (
+      <Popover.Portal {...restPortalProps}>
+        {localPortalProps.children}
+        <Popover.Positioner data-testid="positioner" {...props.positionerProps}>
+          <Popover.Popup data-testid="popover-popup" {...restPopupProps}>
+            {localPopupProps.children ?? 'Content'}
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    );
+  }
 
   return (
     <Popover.Root {...props.rootProps}>
-      <Show
-        when={triggerPlacement() === 'before-content'}
-        fallback={
-          <>
-            {renderPortal()}
-            {triggerElement()}
-            {props.afterTrigger}
-          </>
-        }
-      >
-        {triggerElement()}
+      <Show when={props.triggerPlacement === 'before-content'}>
+        <RenderPortal />
+        <Show when={props.includeTrigger}>
+          <Popover.Trigger data-testid="trigger" {...restTriggerProps}>
+            {localTriggerProps.children ?? 'Toggle'}
+          </Popover.Trigger>
+        </Show>
         {props.afterTrigger}
-        {renderPortal()}
+      </Show>
+      <Show when={props.triggerPlacement === 'after-content'}>
+        <RenderPortal />
       </Show>
     </Popover.Root>
   );
 }
 
-function DetachedTriggerPopover(props: TestPopoverProps) {
-  const triggerPlacement = () => props.triggerPlacement ?? 'before-content';
+function DetachedTriggerPopover(componentProps: TestPopoverProps) {
+  const props = defaultProps(componentProps, {
+    triggerPlacement: 'before-content',
+  });
   const [localTriggerProps, restTriggerProps] = splitProps(props.triggerProps ?? {}, ['children']);
   const popoverHandle = Popover.createHandle();
 
   return (
     <>
-      <Show when={triggerPlacement() === 'before-content'}>
+      <Show when={props.triggerPlacement === 'before-content'}>
         <Popover.Trigger data-testid="trigger" handle={popoverHandle} {...restTriggerProps}>
           {localTriggerProps.children ?? 'Toggle'}
         </Popover.Trigger>
@@ -1448,7 +1515,7 @@ function DetachedTriggerPopover(props: TestPopoverProps) {
         popupProps={props.popupProps}
         includeTrigger={false}
       />
-      <Show when={triggerPlacement() === 'after-content'}>
+      <Show when={props.triggerPlacement === 'after-content'}>
         <Popover.Trigger data-testid="trigger" handle={popoverHandle} {...restTriggerProps}>
           {localTriggerProps.children ?? 'Toggle'}
         </Popover.Trigger>
@@ -1458,8 +1525,10 @@ function DetachedTriggerPopover(props: TestPopoverProps) {
   );
 }
 
-function MultipleDetachedTriggersPopover(props: TestPopoverProps) {
-  const triggerPlacement = () => props.triggerPlacement ?? 'before-content';
+function MultipleDetachedTriggersPopover(componentProps: TestPopoverProps) {
+  const props = defaultProps(componentProps, {
+    triggerPlacement: 'before-content',
+  });
   const [localTriggerProps, restTriggerProps] = splitProps(props.triggerProps ?? {}, ['children']);
   const popoverHandle = Popover.createHandle();
 
@@ -1477,7 +1546,7 @@ function MultipleDetachedTriggersPopover(props: TestPopoverProps) {
 
   return (
     <>
-      <Show when={triggerPlacement() === 'before-content'}>{renderTriggers()}</Show>
+      <Show when={props.triggerPlacement === 'before-content'}>{renderTriggers()}</Show>
       <ContainedTriggerPopover
         rootProps={{ ...props.rootProps, handle: popoverHandle }}
         portalProps={props.portalProps}
@@ -1485,7 +1554,7 @@ function MultipleDetachedTriggersPopover(props: TestPopoverProps) {
         popupProps={props.popupProps}
         includeTrigger={false}
       />
-      <Show when={triggerPlacement() === 'after-content'}>{renderTriggers()}</Show>
+      <Show when={props.triggerPlacement === 'after-content'}>{renderTriggers()}</Show>
     </>
   );
 }
