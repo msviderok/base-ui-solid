@@ -3,8 +3,6 @@ import { createEffect, Show, type JSX } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
 import {
   contains,
-  getNextTabbable,
-  getPreviousTabbable,
   isOutsideEvent,
 } from '../../floating-ui-solid/utils';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
@@ -32,6 +30,23 @@ function Guards(props: { children: JSX.Element }) {
 
   const referenceElement = () => positionerElement() || viewportElement();
 
+  const focusableSelector =
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+  function focusFirstWithin(container: HTMLElement) {
+    const first = Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).find(
+      (element) => !element.hasAttribute('data-base-ui-focus-guard'),
+    );
+    first?.focus();
+  }
+
+  function focusLastWithin(container: HTMLElement) {
+    const elements = Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+      (element) => !element.hasAttribute('data-base-ui-focus-guard'),
+    );
+    elements[elements.length - 1]?.focus();
+  }
+
   return (
     <Show when={floatingRootContext() || hasPositioner()} fallback={props.children}>
       <FocusGuard
@@ -41,7 +56,7 @@ function Guards(props: { children: JSX.Element }) {
         onFocus={(event) => {
           const el = referenceElement();
           if (el && isOutsideEvent(event, el)) {
-            getNextTabbable(el)?.focus();
+            focusFirstWithin(el);
           } else {
             beforeOutsideRef.current?.focus();
           }
@@ -55,7 +70,7 @@ function Guards(props: { children: JSX.Element }) {
         onFocus={(event) => {
           const el = referenceElement();
           if (el && isOutsideEvent(event, el)) {
-            getPreviousTabbable(el)?.focus();
+            focusLastWithin(el);
           } else {
             afterOutsideRef.current?.focus();
           }

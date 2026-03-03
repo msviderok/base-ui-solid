@@ -8,7 +8,7 @@ import {
   type FloatingRootContext,
 } from '../../floating-ui-solid';
 import { activeElement, contains } from '../../floating-ui-solid/utils';
-import { splitComponentProps, useRef } from '../../solid-helpers';
+import { splitComponentProps, useRef, type ReactLikeRef } from '../../solid-helpers';
 import { type BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
@@ -52,7 +52,7 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
   const closeDelay = () => local.closeDelay ?? 50;
   const orientation = () => local.orientation ?? 'horizontal';
 
-  const nested = () => useFloatingParentNodeId() != null;
+  const nested = createMemo(() => useFloatingParentNodeId() != null);
 
   const [value, setValueUnwrapped] = useControlled({
     controlled: valueParam,
@@ -282,7 +282,7 @@ export interface NavigationMenuRootProps extends BaseUIComponentProps<
   /**
    * A ref to imperative actions.
    */
-  actionsRef?: (NavigationMenuRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<NavigationMenuRoot.Actions | null> | undefined;
   /**
    * Event handler called after any animations complete when the navigation menu is closed.
    */

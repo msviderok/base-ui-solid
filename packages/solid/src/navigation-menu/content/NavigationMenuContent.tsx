@@ -1,5 +1,4 @@
 import { EMPTY_OBJECT } from '@base-ui/utils/empty';
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { createEffect, createSignal, Match, on, Switch } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
@@ -79,12 +78,9 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
     ref: () => ref,
     open,
     onComplete() {
-      // TODO: AnimationFrame for SolidJS only?
-      AnimationFrame.request(() => {
-        if (!open()) {
-          setMounted(false);
-        }
-      });
+      if (!open()) {
+        setMounted(false);
+      }
     },
   });
 

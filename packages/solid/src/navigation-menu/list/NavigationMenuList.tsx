@@ -41,6 +41,10 @@ export function NavigationMenuList(componentProps: NavigationMenuList.Props) {
         if (contains(positionerElement(), target) || contains(popupElement(), target)) {
           return false;
         }
+        // Keep the menu open while interacting with nested dialogs rendered in a portal.
+        if (target?.closest('[role="dialog"], [role="alertdialog"]')) {
+          return false;
+        }
         const closestNavigationMenuTrigger = target?.closest(
           `[${NAVIGATION_MENU_TRIGGER_IDENTIFIER}]`,
         );

@@ -1,4 +1,4 @@
-import { batch, createEffect, createSignal, onCleanup, Show } from 'solid-js';
+import { batch, createEffect, createMemo, createSignal, onCleanup, Show } from 'solid-js';
 import { isTabbable } from 'tabbable';
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import {
@@ -78,6 +78,7 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
   const dismissProps = useNavigationMenuDismissContext();
 
   const stickIfOpenTimeout = useTimeout();
+  const hoverCloseTimeout = useTimeout();
   const focusFrame = useAnimationFrame();
 
   const [triggerElement, setTriggerElement] = createSignal<HTMLElement | null | undefined>(
@@ -94,6 +95,7 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
   createEffect(() => {
     if (!open()) {
       stickIfOpenTimeout.clear();
+      hoverCloseTimeout.clear();
     }
   });
 
@@ -177,8 +179,10 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
           return pointerType() !== 'touch';
         },
       }),
-      restMs: () => (mounted() && positionerElement() ? 0 : delay()),
-      delay: () => ({ close: closeDelay() }),
+      delay: () => ({
+        open: mounted() && positionerElement() ? 0 : delay(),
+        close: closeDelay(),
+      }),
     },
   });
   const click = useClick({
@@ -207,6 +211,8 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
   const { getReferenceProps } = useInteractions([hover, click]);
 
   function handleActivation(event: MouseEvent | KeyboardEvent) {
+    const currentValue = value();
+
     batch(() => {
       const prevTriggerRect = prevTriggerElementRef.current?.getBoundingClientRect();
 
@@ -233,7 +239,18 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
         return;
       }
 
-      if (value() != null) {
+      if (
+        event.type === 'click' &&
+        currentValue === itemValue() &&
+        context.context.dataRef.openEvent?.type === 'click'
+      ) {
+        queueMicrotask(() => {
+          setValue(null, createChangeEventDetails(REASONS.triggerPress, event));
+        });
+        return;
+      }
+
+      if (currentValue != null) {
         setValue(
           itemValue(),
           createChangeEventDetails(
@@ -258,6 +275,33 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
   const defaultProps: HTMLProps = {
     tabIndex: 0,
     onMouseEnter: handleActivation,
+    onMouseLeave(event) {
+      if (!isActiveItem()) {
+        return;
+      }
+
+      const openEventType = context.context.dataRef.openEvent?.type;
+      if (!openEventType?.includes('mouse') || openEventType === 'mousedown') {
+        return;
+      }
+
+      const referenceEl = referenceElement();
+      if (
+        referenceEl &&
+        event.relatedTarget &&
+        contains(referenceEl, event.relatedTarget as Element)
+      ) {
+        return;
+      }
+
+      hoverCloseTimeout.clear();
+      hoverCloseTimeout.start(closeDelay(), () => {
+        setValue(null, createChangeEventDetails(REASONS.triggerHover, event));
+        focusFrame.request(() => {
+          (document.activeElement as HTMLElement | null)?.blur?.();
+        });
+      });
+    },
     onClick: handleActivation,
     onPointerEnter: handleSetPointerType,
     onPointerDown: handleSetPointerType,
@@ -314,12 +358,14 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
   };
 
   const { getButtonProps, buttonRef } = useButton({
-    disabled: local.disabled,
+    get disabled() {
+      return local.disabled;
+    },
     focusableWhenDisabled: true,
     native: nativeButton,
   });
 
-  const referenceElement = () => positionerElement() || viewportElement();
+  const referenceElement = createMemo(() => positionerElement() || viewportElement());
 
   return (
     <>
