@@ -3,11 +3,11 @@ import {
   batch,
   createEffect,
   createMemo,
+  onCleanup,
   onMount,
   Show,
   mergeProps as solidMergeProps,
   type JSX,
-  type Ref,
 } from 'solid-js';
 import { ACTIVE_COMPOSITE_ITEM } from '../../composite/constants';
 import { CompositeItem } from '../../composite/item/CompositeItem';
@@ -17,7 +17,7 @@ import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { useRadioGroupContext } from '../../radio-group/RadioGroupContext';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { NOOP } from '../../utils/noop';
@@ -45,6 +45,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
     'inputRef',
     'nativeButton',
     'id',
+    'children',
   ]);
 
   const disabledProp = () => local.disabled ?? false;
@@ -90,6 +91,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
 
   let radioRef = null as HTMLElement | null | undefined;
   let inputRef = null as HTMLInputElement | null | undefined;
+  let lastClickEvent: PointerEvent | MouseEvent | KeyboardEvent | undefined;
 
   const handleControlRef = (element: HTMLElement | null | undefined) => {
     if (!element) {
@@ -106,17 +108,20 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
   });
 
   createEffect(() => {
-    if (!local.inputRef) {
+    if (!inputRef) {
       return;
     }
 
-    if (disabled() && checked()) {
+    const isDisabled = disabled();
+    const isChecked = checked();
+
+    if (isDisabled && isChecked) {
       registerInputRef(null);
       return;
     }
 
     if (radioRef) {
-      registerControlRef(radioRef, disabled());
+      registerControlRef(radioRef, isDisabled);
     }
 
     registerInputRef(inputRef);
@@ -126,7 +131,9 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
   const inputId = useLabelableId({
     id: idProp,
     implicit: false,
-    controlRef: radioRef,
+    get controlRef() {
+      return radioRef;
+    },
   });
   const hiddenInputId = () => (nativeButton() ? undefined : inputId());
 
@@ -161,6 +168,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
       }
 
       event.preventDefault();
+      lastClickEvent = event;
 
       inputRef?.dispatchEvent(
         new PointerEvent('click', {
@@ -191,10 +199,12 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
   const inputProps: JSX.InputHTMLAttributes<HTMLInputElement> = {
     type: 'radio',
     ref: (el) => {
-      if (typeof local.inputRef === 'function') {
-        local.inputRef(el);
-      } else {
-        local.inputRef = el;
+      if (local.inputRef) {
+        if (typeof local.inputRef === 'function') {
+          local.inputRef(el);
+        } else {
+          local.inputRef.current = el;
+        }
       }
       inputRef = el;
       registerInputRef(el);
@@ -225,7 +235,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
     get readOnly() {
       return readOnly();
     },
-    onInput(event) {
+    onChange(event) {
       // Workaround for https://github.com/facebook/react/issues/9023
       if (event.defaultPrevented) {
         return;
@@ -235,7 +245,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
         return;
       }
 
-      const details = createChangeEventDetails(REASONS.none, event);
+      const details = createChangeEventDetails(REASONS.none, lastClickEvent ?? event);
 
       if (details.isCanceled) {
         return;
@@ -302,7 +312,7 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
   ];
 
   const element = useRenderElement('span', componentProps, {
-    enabled: isRadioGroup,
+    enabled: () => !isRadioGroup(),
     state,
     ref,
     get props() {
@@ -322,7 +332,9 @@ export function RadioRoot<Value>(componentProps: RadioRoot.Props<Value>) {
           refs={ref}
           props={props()}
           stateAttributesMapping={stateAttributesMapping}
-        />
+        >
+          {local.children}
+        </CompositeItem>
       </Show>
 
       <input {...inputProps} />
@@ -370,7 +382,10 @@ export interface RadioRootProps<Value = any>
   /**
    * A ref to access the hidden input element.
    */
-  inputRef?: Ref<HTMLInputElement> | undefined;
+  inputRef?:
+    | ReactLikeRef<HTMLInputElement>
+    | ((el: HTMLInputElement | null | undefined) => void)
+    | undefined;
 }
 
 export namespace RadioRoot {

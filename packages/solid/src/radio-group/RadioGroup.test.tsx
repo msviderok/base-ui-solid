@@ -5,6 +5,7 @@ import { Fieldset } from '@msviderok/base-ui-solid/fieldset';
 import { Form } from '@msviderok/base-ui-solid/form';
 import { Radio } from '@msviderok/base-ui-solid/radio';
 import { RadioGroup } from '@msviderok/base-ui-solid/radio-group';
+import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
@@ -188,7 +189,7 @@ describe('<RadioGroup />', () => {
   });
 
   it('points inputRef to the checked radio input when present', async () => {
-    let groupInputRef!: HTMLInputElement;
+    const groupInputRef = useRef<HTMLInputElement>(null);
 
     render(() => (
       <RadioGroup defaultValue="a" inputRef={groupInputRef}>
@@ -202,21 +203,21 @@ describe('<RadioGroup />', () => {
     const inputA = radioA.nextElementSibling as HTMLInputElement;
     const inputB = radioB.nextElementSibling as HTMLInputElement;
 
-    expect(groupInputRef).to.equal(inputA);
+    expect(groupInputRef.current).to.equal(inputA);
 
     fireEvent.click(radioB);
 
-    expect(groupInputRef).to.equal(inputB);
+    expect(groupInputRef.current).to.equal(inputB);
   });
 
   it('allows reading inputRef in an effect', async () => {
     let observedValue: string | null = null;
 
     function App() {
-      let inputRef: HTMLInputElement | undefined;
+      const inputRef = useRef<HTMLInputElement>(null);
 
       createEffect(() => {
-        observedValue = inputRef?.value ?? null;
+        observedValue = inputRef.current?.value ?? null;
       });
 
       return (
@@ -242,12 +243,12 @@ describe('<RadioGroup />', () => {
       </RadioGroup>
     ));
 
+    fireEvent.click(screen.getByTestId('radio-b'));
+
     const radioA = screen.getByTestId('radio-a');
     const radioB = screen.getByTestId('radio-b');
     const inputA = radioA.nextElementSibling as HTMLInputElement;
     const inputB = radioB.nextElementSibling as HTMLInputElement;
-
-    fireEvent.click(radioB);
 
     expect(inputRefSpy.calledWith(inputA)).to.equal(true);
     expect(inputRefSpy.calledWith(inputB)).to.equal(true);
@@ -255,7 +256,7 @@ describe('<RadioGroup />', () => {
   });
 
   it('skips disabled radios when assigning inputRef', async () => {
-    let groupInputRef!: HTMLInputElement;
+    const groupInputRef = useRef<HTMLInputElement>(null);
 
     render(() => (
       <RadioGroup inputRef={groupInputRef}>
@@ -267,11 +268,11 @@ describe('<RadioGroup />', () => {
     const inputB = (screen.getByTestId('radio-b').nextElementSibling ??
       null) as HTMLInputElement | null;
 
-    expect(groupInputRef).to.equal(inputB);
+    expect(groupInputRef.current).to.equal(inputB);
   });
 
   it('points inputRef to the first radio input when nativeButton wraps a button', async () => {
-    let groupInputRef!: HTMLInputElement;
+    const groupInputRef = useRef<HTMLInputElement>(null);
 
     render(() => (
       <RadioGroup inputRef={groupInputRef}>
@@ -300,18 +301,18 @@ describe('<RadioGroup />', () => {
 
     const inputs = document.querySelectorAll<HTMLInputElement>('input[type="radio"]');
     expect(inputs.length).to.equal(2);
-    expect(groupInputRef).to.equal(inputs[0]);
+    expect(groupInputRef.current).to.equal(inputs[0]);
   });
 
   it('keeps inputRef pointing to the first radio when the value is cleared', async () => {
-    let groupInputRef!: HTMLInputElement;
+    const groupInputRef = useRef<HTMLInputElement>(null);
 
     function App() {
       const [value, setValue] = createSignal<null | string>('a');
 
       return (
         <>
-          <RadioGroup value={value()} inputRef={groupInputRef!}>
+          <RadioGroup value={value()} inputRef={groupInputRef}>
             <Radio.Root value="a" data-testid="radio-a" />
             <Radio.Root value="b" data-testid="radio-b" />
           </RadioGroup>
@@ -327,11 +328,11 @@ describe('<RadioGroup />', () => {
     const radioA = screen.getByTestId('radio-a');
     const inputA = radioA.nextElementSibling as HTMLInputElement;
 
-    expect(groupInputRef).to.equal(inputA);
+    expect(groupInputRef.current).to.equal(inputA);
 
     fireEvent.click(screen.getByText('Clear'));
 
-    expect(groupInputRef).to.equal(inputA);
+    expect(groupInputRef.current).to.equal(inputA);
   });
 
   it.skipIf(isJSDOM)(

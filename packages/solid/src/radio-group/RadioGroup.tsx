@@ -1,12 +1,4 @@
-import {
-  batch,
-  createEffect,
-  createSignal,
-  on,
-  onCleanup,
-  mergeProps as solidMergeProps,
-  type Ref,
-} from 'solid-js';
+import { batch, createEffect, createSignal, on, mergeProps as solidMergeProps } from 'solid-js';
 import { SHIFT } from '../composite/composite';
 import { CompositeRoot } from '../composite/root/CompositeRoot';
 import type { FieldRoot } from '../field/root/FieldRoot';
@@ -17,7 +9,7 @@ import { useFieldsetRootContext } from '../fieldset/root/FieldsetRootContext';
 import { contains } from '../floating-ui-solid/utils';
 import { useFormContext } from '../form/FormContext';
 import { useLabelableContext } from '../labelable-provider/LabelableContext';
-import { splitComponentProps } from '../solid-helpers';
+import { splitComponentProps, type ReactLikeRef } from '../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
 import { REASONS } from '../utils/reasons';
 import type { BaseUIComponentProps, HTMLProps } from '../utils/types';
@@ -44,6 +36,7 @@ export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
     'name',
     'inputRef',
     'id',
+    'children',
   ]);
 
   const disabledProp = () => local.disabled;
@@ -96,10 +89,9 @@ export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
   function setInputRef(hiddenInput: HTMLInputElement | null | undefined) {
     if (local.inputRef) {
       if (typeof local.inputRef === 'function') {
-        const cleanup = () => (local.inputRef as Function)(hiddenInput);
-        onCleanup(cleanup);
+        local.inputRef(hiddenInput);
       } else {
-        local.inputRef = hiddenInput;
+        local.inputRef.current = hiddenInput;
       }
     }
 
@@ -151,20 +143,24 @@ export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
   });
 
   createEffect(
-    on(checkedValue, () => {
-      batch(() => {
-        clearErrors(name());
+    on(
+      checkedValue,
+      () => {
+        batch(() => {
+          clearErrors(name());
 
-        setDirty(checkedValue() !== validityData.initialValue);
-        setFilled(checkedValue() != null);
+          setDirty(checkedValue() !== validityData.initialValue);
+          setFilled(checkedValue() != null);
 
-        if (shouldValidateOnChange()) {
-          validation.commit(checkedValue());
-        } else {
-          validation.commit(checkedValue(), true);
-        }
-      });
-    }),
+          if (shouldValidateOnChange()) {
+            validation.commit(checkedValue());
+          } else {
+            validation.commit(checkedValue(), true);
+          }
+        });
+      },
+      { defer: true },
+    ),
   );
 
   createEffect(() => {
@@ -206,7 +202,7 @@ export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
     touched,
   });
 
-  const defaultProps: HTMLProps = {
+  const defaultProps: Omit<HTMLProps, 'children'> = {
     role: 'radiogroup',
     get 'aria-required'() {
       return local.required || undefined;
@@ -252,11 +248,21 @@ export function RadioGroup<Value>(componentProps: RadioGroup.Props<Value>) {
         class={renderProps.class}
         state={state}
         props={[defaultProps, validation.getValidationProps, elementProps]}
-        refs={[componentProps.ref as any]}
+        refs={[
+          (el) => {
+            if (typeof componentProps.ref === 'function') {
+              componentProps.ref(el as HTMLDivElement);
+            } else {
+              componentProps.ref = el as any;
+            }
+          },
+        ]}
         stateAttributesMapping={fieldValidityMapping}
         enableHomeAndEndKeys={false}
         modifierKeys={MODIFIER_KEYS}
-      />
+      >
+        {local.children}
+      </CompositeRoot>
     </RadioGroupContext.Provider>
   );
 }
@@ -314,7 +320,10 @@ export interface RadioGroupProps<Value = any> extends Omit<
   /**
    * A ref to access the hidden input element.
    */
-  inputRef?: Ref<HTMLInputElement | null | undefined> | undefined;
+  inputRef?:
+    | ReactLikeRef<HTMLInputElement | null | undefined>
+    | ((el: HTMLInputElement | null | undefined) => void)
+    | undefined;
 }
 
 export type RadioGroupChangeEventReason = typeof REASONS.none;

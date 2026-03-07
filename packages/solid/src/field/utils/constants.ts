@@ -1,4 +1,3 @@
-import { type MaybeAccessor, access } from '../../solid-helpers';
 import { FieldControlDataAttributes } from '../control/FieldControlDataAttributes';
 
 export const DEFAULT_VALIDITY_STATE = {
@@ -16,11 +15,11 @@ export const DEFAULT_VALIDITY_STATE = {
 };
 
 export const fieldValidityMapping = {
-  valid(value: MaybeAccessor<boolean | null>): Record<string, string> | null {
-    if (access(value) === null) {
+  valid(value: boolean | null): Record<string, string> | null {
+    if (value === null) {
       return null;
     }
-    if (access(value)) {
+    if (value) {
       return {
         [FieldControlDataAttributes.valid]: '',
       };

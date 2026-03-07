@@ -19,38 +19,23 @@ export function RadioIndicator(componentProps: RadioIndicator.Props) {
 
   const rootState = useRadioRootContext();
 
-  const rendered = () => rootState.checked();
+  const rendered = rootState.checked;
 
-  const { mounted, transitionStatus, setMounted } = useTransitionStatus(rendered());
+  const { mounted, transitionStatus, setMounted } = useTransitionStatus(rendered);
 
   const state: RadioIndicator.State = {
-    // @ts-expect-error - disabled is not a valid property for the state
+    // @ts-expect-error - disabled is not part of the RadioIndicator.State
     get disabled() {
       return rootState.disabled();
-    },
-    get touched() {
-      return rootState.touched();
-    },
-    get dirty() {
-      return rootState.dirty();
-    },
-    get valid() {
-      return rootState.valid();
-    },
-    get filled() {
-      return rootState.filled();
-    },
-    get focused() {
-      return rootState.focused();
     },
     get readOnly() {
       return rootState.readOnly();
     },
-    get checked() {
-      return rootState.checked();
-    },
     get required() {
       return rootState.required();
+    },
+    get checked() {
+      return rootState.checked();
     },
     get transitionStatus() {
       return transitionStatus();
@@ -72,7 +57,7 @@ export function RadioIndicator(componentProps: RadioIndicator.Props) {
 
   useOpenChangeComplete({
     open: rendered,
-    ref: indicatorRef,
+    ref: () => indicatorRef,
     onComplete() {
       if (!rendered()) {
         setMounted(false);
