@@ -1,4 +1,4 @@
-import { type JSX } from 'solid-js';
+import { createMemo, type JSX } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -18,8 +18,9 @@ export function ProgressIndicator(componentProps: ProgressIndicator.Props) {
 
   const { max, min, value, state } = useProgressRootContext();
 
-  const percentageValue = () =>
-    Number.isFinite(value()) && value() !== null ? valueToPercent(value()!, min(), max()) : null;
+  const percentageValue = createMemo(() =>
+    Number.isFinite(value()) && value() !== null ? valueToPercent(value()!, min(), max()) : null,
+  );
 
   const element = useRenderElement('div', componentProps, {
     state,
