@@ -14,7 +14,7 @@ export function PreviewCardPortal(props: PreviewCardPortal.Props) {
   const [local, portalProps] = splitProps(props, ['keepMounted']);
   const keepMounted = () => local.keepMounted ?? false;
 
-  const store = usePreviewCardRootContext();
+  const { store } = usePreviewCardRootContext();
   const mounted = store.useState('mounted');
 
   const shouldRender = () => mounted() || keepMounted();

@@ -333,8 +333,10 @@ describe('<PreviewCard.Root />', () => {
     describe.skipIf(!isJSDOM)('prop: actionsRef', () => {
       it('unmounts the preview card when the `unmount` method is called', async () => {
         const actionsRef = {
-          unmount: spy(),
-          close: spy(),
+          current: {
+            unmount: spy(),
+            close: spy(),
+          },
         };
 
         const { user } = render(() => (
@@ -365,7 +367,7 @@ describe('<PreviewCard.Root />', () => {
           expect(screen.queryByTestId('positioner')).not.to.equal(null);
         });
 
-        actionsRef.unmount();
+        actionsRef.current.unmount();
 
         await waitFor(() => {
           expect(screen.queryByTestId('positioner')).to.equal(null);

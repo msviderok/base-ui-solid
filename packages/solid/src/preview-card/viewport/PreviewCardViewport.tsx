@@ -27,14 +27,18 @@ const stateAttributesMapping: StateAttributesMapping<PreviewCardViewport.State> 
  */
 export function PreviewCardViewport(componentProps: PreviewCardViewport.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['children']);
-  const store = usePreviewCardRootContext();
-  const positioner = usePreviewCardPositionerContext();
+  const { store } = usePreviewCardRootContext();
+  const { side } = usePreviewCardPositionerContext();
 
   const instantType = store.useState('instantType');
 
   const { children: childrenToRender, state: viewportState } = usePopupViewport({
-    store,
-    side: positioner.side,
+    get store() {
+      return store;
+    },
+    get side() {
+      return side();
+    },
     cssVars: PreviewCardViewportCssVars,
     get children() {
       return local.children;
@@ -55,14 +59,10 @@ export function PreviewCardViewport(componentProps: PreviewCardViewport.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    props: [
-      elementProps,
-      {
-        get children() {
-          return childrenToRender;
-        },
-      },
-    ],
+    props: elementProps,
+    get children() {
+      return childrenToRender;
+    },
     stateAttributesMapping,
   });
 

@@ -26,18 +26,17 @@ const stateAttributesMapping: StateAttributesMapping<PreviewCardPopup.State> = {
 export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const store = usePreviewCardRootContext();
+  const { store } = usePreviewCardRootContext();
   const { side, align } = usePreviewCardPositionerContext();
 
   const open = store.useState('open');
   const instantType = store.useState('instantType');
   const transitionStatus = store.useState('transitionStatus');
   const popupProps = store.useState('popupProps');
-  const floatingContext = store.useState('floatingRootContext');
 
   useOpenChangeComplete({
     open,
-    ref: store.context.refs.popupRef,
+    ref: () => store.context.popupRef.current,
     onComplete() {
       if (open()) {
         store.context.onOpenChangeComplete?.(true);
@@ -47,10 +46,10 @@ export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
 
   useHoverFloatingInteraction({
     get context() {
-      return floatingContext();
+      return store.context.floatingRootContext;
     },
     parameters: {
-      closeDelay: () => store.context.refs.closeDelayRef,
+      closeDelay: () => store.context.closeDelayRef.current,
     },
   });
 
@@ -59,10 +58,10 @@ export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
       return open();
     },
     get side() {
-      return side;
+      return side();
     },
     get align() {
-      return align;
+      return align();
     },
     get instant() {
       return instantType();
@@ -75,7 +74,7 @@ export function PreviewCardPopup(componentProps: PreviewCardPopup.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      store.context.refs.popupRef = el;
+      store.context.popupRef.current = el;
       store.useStateSetter('popupElement')(el);
     },
     get props() {

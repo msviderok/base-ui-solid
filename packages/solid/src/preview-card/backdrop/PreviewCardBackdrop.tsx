@@ -21,7 +21,7 @@ const stateAttributesMapping: StateAttributesMapping<PreviewCardBackdrop.State> 
 export function PreviewCardBackdrop(componentProps: PreviewCardBackdrop.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const store = usePreviewCardRootContext();
+  const { store } = usePreviewCardRootContext();
   const open = store.useState('open');
   const mounted = store.useState('mounted');
   const transitionStatus = store.useState('transitionStatus');

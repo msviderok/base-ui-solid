@@ -1,5 +1,6 @@
-import { createEffect, createMemo, onMount, type Accessor, type JSX } from 'solid-js';
-import { useDismiss, useInteractions } from '../../floating-ui-solid';
+import { createEffect, createMemo, onMount, untrack, type Accessor, type JSX } from 'solid-js';
+import { useDismiss, useInteractions, useSyncedFloatingRootContext } from '../../floating-ui-solid';
+import { ComponentWithPayload, type ReactLikeRef } from '../../solid-helpers';
 import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
@@ -26,20 +27,23 @@ export function PreviewCardRoot<Payload>(props: PreviewCardRoot.Props<Payload>) 
   const triggerIdProp = () => props.triggerId;
   const defaultTriggerIdProp = () => props.defaultTriggerId ?? null;
 
-  const store = PreviewCardStore.useStore<Payload>(props.handle?.store, {
-    get open() {
-      return defaultOpen();
+  const store = PreviewCardStore.useStore<Payload>(
+    untrack(() => props.handle?.store),
+    {
+      get open() {
+        return defaultOpen();
+      },
+      get openProp() {
+        return openProp();
+      },
+      get activeTriggerId() {
+        return defaultTriggerIdProp();
+      },
+      get triggerIdProp() {
+        return triggerIdProp();
+      },
     },
-    get openProp() {
-      return openProp();
-    },
-    get activeTriggerId() {
-      return defaultTriggerIdProp();
-    },
-    get triggerIdProp() {
-      return triggerIdProp();
-    },
-  });
+  );
 
   // Support initially open state when uncontrolled
   onMount(() => {
@@ -58,7 +62,6 @@ export function PreviewCardRoot<Payload>(props: PreviewCardRoot.Props<Payload>) 
   store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
 
   const open = store.useState('open');
-
   const activeTriggerId = store.useState('activeTriggerId');
   const payload = store.useState('payload') as Accessor<Payload | undefined>;
 
@@ -67,7 +70,9 @@ export function PreviewCardRoot<Payload>(props: PreviewCardRoot.Props<Payload>) 
     get open() {
       return open();
     },
-    store,
+    get store() {
+      return store;
+    },
   });
 
   createEffect(() => {
@@ -83,12 +88,16 @@ export function PreviewCardRoot<Payload>(props: PreviewCardRoot.Props<Payload>) 
   };
 
   onMount(() => {
-    props.actionsRef = { unmount: forceUnmount, close: handleImperativeClose };
+    if (props.actionsRef) {
+      props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
+    }
   });
 
-  const floatingRootContext = store.useState('floatingRootContext');
-
-  const dismiss = useDismiss(floatingRootContext);
+  const dismiss = useDismiss({
+    get context() {
+      return store.context.floatingRootContext;
+    },
+  });
 
   const { getReferenceProps, getTriggerProps, getFloatingProps } = useInteractions([dismiss]);
 
@@ -102,11 +111,11 @@ export function PreviewCardRoot<Payload>(props: PreviewCardRoot.Props<Payload>) 
     popupProps,
   });
 
+  const contextValue = { store } as PreviewCardRootContext;
+
   return (
-    <PreviewCardRootContext.Provider value={store as PreviewCardRootContext}>
-      {typeof props.children === 'function'
-        ? props.children({ payload: payload() })
-        : props.children}
+    <PreviewCardRootContext.Provider value={contextValue}>
+      <ComponentWithPayload payload={payload} children={props.children} />
     </PreviewCardRootContext.Provider>
   );
 }
@@ -154,7 +163,7 @@ export interface PreviewCardRootProps<Payload = unknown> {
    * - `unmount`: Unmounts the preview card popup.
    * - `close`: Closes the preview card imperatively when called.
    */
-  actionsRef?: (PreviewCardRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<PreviewCardRoot.Actions | null> | undefined;
   /**
    * A handle to associate the preview card with a trigger.
    * If specified, allows external triggers to control the card's open state.

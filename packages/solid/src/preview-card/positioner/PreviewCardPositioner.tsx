@@ -44,12 +44,11 @@ export function PreviewCardPositioner(componentProps: PreviewCardPositioner.Prop
   const disableAnchorTracking = () => local.disableAnchorTracking ?? false;
   const collisionAvoidance = () => local.collisionAvoidance ?? POPUP_COLLISION_AVOIDANCE;
 
-  const store = usePreviewCardRootContext();
+  const { store } = usePreviewCardRootContext();
   const keepMounted = usePreviewCardPortalContext();
 
   const open = store.useState('open');
   const mounted = store.useState('mounted');
-  const floatingRootContext = store.useState('floatingRootContext');
   const instantType = store.useState('instantType');
   const transitionStatus = store.useState('transitionStatus');
   const hasViewport = store.useState('hasViewport');
@@ -57,7 +56,7 @@ export function PreviewCardPositioner(componentProps: PreviewCardPositioner.Prop
   const positioning = useAnchorPositioning({
     anchor: () => local.anchor,
     get floatingRootContext() {
-      return floatingRootContext();
+      return store.context.floatingRootContext;
     },
     positionMethod,
     mounted,
@@ -115,11 +114,7 @@ export function PreviewCardPositioner(componentProps: PreviewCardPositioner.Prop
   const contextValue: PreviewCardPositionerContext = {
     side: positioning.side,
     align: positioning.align,
-    refs: {
-      get arrowRef() {
-        return positioning.refs.arrowRef();
-      },
-    },
+    arrowRef: positioning.arrowRef,
     arrowUncentered: positioning.arrowUncentered,
     get arrowStyles() {
       return positioning.arrowStyles();
@@ -129,7 +124,7 @@ export function PreviewCardPositioner(componentProps: PreviewCardPositioner.Prop
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      store.useStateSetter('positionerElement')(el);
+      store.set('positionerElement', el);
     },
     get props() {
       return [defaultProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];

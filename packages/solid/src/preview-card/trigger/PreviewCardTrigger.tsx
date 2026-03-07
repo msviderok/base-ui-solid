@@ -3,7 +3,7 @@ import { safePolygon, useFocus, useHoverReferenceInteraction } from '../../float
 import { splitComponentProps } from '../../solid-helpers';
 import { useTriggerDataForwarding } from '../../utils/popups';
 import { triggerOpenStateMapping } from '../../utils/popupStateMapping';
-import type { BaseUIComponentProps } from '../../utils/types';
+import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { usePreviewCardRootContext } from '../root/PreviewCardContext';
@@ -30,7 +30,7 @@ export function PreviewCardTrigger<Payload>(componentProps: PreviewCardTrigger.P
   const closeDelayWithDefault = () => local.closeDelay ?? CLOSE_DELAY;
 
   const rootContext = usePreviewCardRootContext(true);
-  const store = local.handle?.store ?? rootContext;
+  const store = local.handle?.store ?? rootContext?.store;
   if (!store) {
     throw new Error(
       'Base UI: <PreviewCard.Trigger> must be either used within a <PreviewCard.Root> component or provided with a handle.',
@@ -40,7 +40,6 @@ export function PreviewCardTrigger<Payload>(componentProps: PreviewCardTrigger.P
   const thisTriggerId = useBaseUiId(idProp);
   const isTriggerActive = store.useState('isTriggerActive', thisTriggerId);
   const isOpenedByThisTrigger = store.useState('isOpenedByTrigger', thisTriggerId);
-  const floatingRootContext = store.useState('floatingRootContext');
 
   let triggerElementRef = null as Element | null | undefined;
 
@@ -48,38 +47,53 @@ export function PreviewCardTrigger<Payload>(componentProps: PreviewCardTrigger.P
     get triggerId() {
       return thisTriggerId();
     },
-    triggerElement: triggerElementRef,
+    get triggerElement() {
+      return triggerElementRef;
+    },
     get store() {
       return store as PreviewCardStore<Payload>;
     },
     stateUpdates: {
-      payload: local.payload,
+      get payload() {
+        return local.payload;
+      },
     },
   });
 
   createEffect(() => {
     if (isMountedByThisTrigger()) {
-      store.context.refs.closeDelayRef = closeDelayWithDefault();
+      store.context.closeDelayRef.current = closeDelayWithDefault();
     }
   });
 
   const hoverProps = useHoverReferenceInteraction({
     get context() {
-      return floatingRootContext();
+      return store.context.floatingRootContext;
     },
     props: {
       mouseOnly: true,
       move: false,
       handleClose: safePolygon(),
       delay: () => ({ open: delayWithDefault(), close: closeDelayWithDefault() }),
-      triggerElementRef,
+      get triggerElementRef() {
+        return triggerElementRef;
+      },
       get isActiveTrigger() {
         return isTriggerActive();
       },
     },
   });
 
-  const focusProps = useFocus(floatingRootContext, { delay: delayWithDefault });
+  const focusProps = useFocus({
+    get context() {
+      return store.context.floatingRootContext;
+    },
+    props: {
+      get delay() {
+        return delayWithDefault();
+      },
+    },
+  });
 
   const state: PreviewCardTrigger.State = {
     get open() {
@@ -98,7 +112,7 @@ export function PreviewCardTrigger<Payload>(componentProps: PreviewCardTrigger.P
     get props() {
       return [
         hoverProps,
-        focusProps().reference,
+        focusProps.reference as HTMLProps,
         rootTriggerProps(),
         {
           get id() {

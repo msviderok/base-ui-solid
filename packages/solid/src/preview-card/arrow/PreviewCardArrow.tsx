@@ -15,8 +15,8 @@ import { usePreviewCardRootContext } from '../root/PreviewCardContext';
 export function PreviewCardArrow(componentProps: PreviewCardArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const store = usePreviewCardRootContext();
-  const { refs, side, align, arrowUncentered, arrowStyles } = usePreviewCardPositionerContext();
+  const { store } = usePreviewCardRootContext();
+  const { side, align, arrowUncentered, arrowRef, arrowStyles } = usePreviewCardPositionerContext();
   const open = store.useState('open');
 
   const state: PreviewCardArrow.State = {
@@ -36,11 +36,13 @@ export function PreviewCardArrow(componentProps: PreviewCardArrow.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: refs.setArrowRef,
+    ref: (el) => {
+      arrowRef.current = el;
+    },
     props: [
       {
         get style() {
-          return arrowStyles();
+          return arrowStyles;
         },
         'aria-hidden': true,
       },

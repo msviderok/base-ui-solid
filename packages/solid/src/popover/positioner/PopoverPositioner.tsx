@@ -85,7 +85,9 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
     keepMounted,
     nodeId,
     collisionAvoidance,
-    adaptiveOrigin: () => (hasViewport() ? adaptiveOrigin : undefined),
+    get adaptiveOrigin() {
+      return hasViewport() ? adaptiveOrigin : undefined;
+    },
   });
 
   const defaultProps: HTMLProps = {

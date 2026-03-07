@@ -46,7 +46,7 @@ export function useHoverReferenceInteraction(parameters: {
   context: FloatingRootContext | FloatingContext;
   props: UseHoverReferenceInteractionProps;
 }): HTMLProps | undefined {
-  const store =
+  const store = () =>
     'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context;
   const props = defaultProps(parameters.props, {
     enabled: true,
@@ -61,7 +61,7 @@ export function useHoverReferenceInteraction(parameters: {
 
   const tree = useFloatingTree(parameters.props.externalTree);
 
-  const [instance, setInstanceState] = useHoverInteractionSharedState({ store });
+  const [instance, setInstanceState] = useHoverInteractionSharedState({ store: store() });
 
   createEffect(() => {
     if (props.isActiveTrigger) {
@@ -74,24 +74,23 @@ export function useHoverReferenceInteraction(parameters: {
       return true;
     }
 
-    return store.context.dataRef.openEvent
-      ? ['click', 'mousedown'].includes(store.context.dataRef.openEvent.type)
-      : false;
+    const openEvent = store().context.dataRef.openEvent;
+    return openEvent ? ['click', 'mousedown'].includes(openEvent.type) : false;
   };
 
   const isRelatedTargetInsideEnabledTrigger = (target: EventTarget | null | undefined) => {
-    return isTargetInsideEnabledTrigger(target, store.context.triggerElements);
+    return isTargetInsideEnabledTrigger(target, store().context.triggerElements);
   };
 
   const closeWithDelay = (event: MouseEvent, runElseBranch = true) => {
     const closeDelay = getDelay(props.delay, 'close', instance.pointerType);
     if (closeDelay && !instance.handler) {
       instance.openChangeTimeout.start(closeDelay, () =>
-        store.setOpen(false, createChangeEventDetails(REASONS.triggerHover, event)),
+        store().setOpen(false, createChangeEventDetails(REASONS.triggerHover, event)),
       );
     } else if (runElseBranch) {
       instance.openChangeTimeout.clear();
-      store.setOpen(false, createChangeEventDetails(REASONS.triggerHover, event));
+      store().setOpen(false, createChangeEventDetails(REASONS.triggerHover, event));
     }
   };
 
@@ -102,7 +101,7 @@ export function useHoverReferenceInteraction(parameters: {
 
   const clearPointerEvents = () => {
     if (instance.performedPointerEventsMutation) {
-      const body = ownerDocument(store.select('domReferenceElement') ?? null).body;
+      const body = ownerDocument(store().select('domReferenceElement') ?? null).body;
       body.style.pointerEvents = '';
       body.removeAttribute(safePolygonIdentifier);
       setInstanceState('performedPointerEventsMutation', false);
@@ -125,8 +124,8 @@ export function useHoverReferenceInteraction(parameters: {
       return;
     }
 
-    store.context.events.on('openchange', onOpenChangeLocal);
-    onCleanup(() => store.context.events.off('openchange', onOpenChangeLocal));
+    store().context.events.on('openchange', onOpenChangeLocal);
+    onCleanup(() => store().context.events.off('openchange', onOpenChangeLocal));
   });
 
   const handleScrollMouseLeave = (event: MouseEvent) => {
@@ -134,7 +133,7 @@ export function useHoverReferenceInteraction(parameters: {
       return;
     }
 
-    if (!store.context.dataRef.floatingContext) {
+    if (!store().context.dataRef.floatingContext) {
       return;
     }
 
@@ -143,7 +142,7 @@ export function useHoverReferenceInteraction(parameters: {
     }
 
     const currentTrigger = props.triggerElementRef;
-    const floatingContext = store.context.dataRef.floatingContext;
+    const floatingContext = store().context.dataRef.floatingContext;
     const hasInteractiveElements =
       floatingContext?.elements.domReference() && floatingContext.elements.floating();
 
@@ -152,14 +151,14 @@ export function useHoverReferenceInteraction(parameters: {
       return;
     }
 
-    const localMergedProps = solidMergeProps(store.context.dataRef.floatingContext, {
+    const localMergedProps = solidMergeProps(store().context.dataRef.floatingContext, {
       tree,
       x: () => event.clientX,
       y: () => event.clientY,
       onClose() {
         clearPointerEvents();
         cleanupMouseMoveHandler();
-        if (!isClickLikeOpenEvent() && currentTrigger === store.select('domReferenceElement')) {
+        if (!isClickLikeOpenEvent() && currentTrigger === store().select('domReferenceElement')) {
           closeWithDelay(event);
         }
       },
@@ -175,7 +174,9 @@ export function useHoverReferenceInteraction(parameters: {
 
     const trigger =
       (props.triggerElementRef as HTMLElement | null) ??
-      (props.isActiveTrigger ? (store.select('domReferenceElement') as HTMLElement | null) : null);
+      (props.isActiveTrigger
+        ? (store().select('domReferenceElement') as HTMLElement | null)
+        : null);
 
     if (!isElement(trigger)) {
       return;
@@ -196,8 +197,8 @@ export function useHoverReferenceInteraction(parameters: {
       }
 
       const openDelay = getDelay(props.delay, 'open', instance.pointerType);
-      const currentDomReference = store.select('domReferenceElement');
-      const allTriggers = store.context.triggerElements;
+      const currentDomReference = store().select('domReferenceElement');
+      const allTriggers = store().context.triggerElements;
 
       const isOverInactiveTrigger =
         (allTriggers.hasElement(event.target as Element) ||
@@ -206,20 +207,23 @@ export function useHoverReferenceInteraction(parameters: {
 
       const triggerNode = (event.currentTarget as HTMLElement) ?? null;
 
-      const isOpen = store.select('open');
+      const isOpen = store().select('open');
       const shouldOpen = !isOpen || isOverInactiveTrigger;
 
       // When moving between triggers while already open, open immediately without delay
       if (isOverInactiveTrigger && isOpen) {
-        store.setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, triggerNode));
+        store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, triggerNode));
       } else if (openDelay) {
         instance.openChangeTimeout.start(openDelay, () => {
           if (shouldOpen) {
-            store.setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, triggerNode));
+            store().setOpen(
+              true,
+              createChangeEventDetails(REASONS.triggerHover, event, triggerNode),
+            );
           }
         });
       } else if (shouldOpen) {
-        store.setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, triggerNode));
+        store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, triggerNode));
       }
     }
 
@@ -231,7 +235,7 @@ export function useHoverReferenceInteraction(parameters: {
 
       instance.unbindMouseMove();
 
-      const domReferenceElement = store.select('domReferenceElement') ?? null;
+      const domReferenceElement = store().select('domReferenceElement') ?? null;
       const doc = ownerDocument(domReferenceElement);
       instance.restTimeout.clear();
       setInstanceState('restTimeoutPending', false);
@@ -240,22 +244,20 @@ export function useHoverReferenceInteraction(parameters: {
         return;
       }
 
-      if (props.handleClose && store.context.dataRef.floatingContext) {
-        if (!store.select('open')) {
+      const floatingContext = store().context.dataRef.floatingContext;
+      if (props.handleClose && floatingContext) {
+        if (!store().select('open')) {
           instance.openChangeTimeout.clear();
         }
 
-        if (
-          !store.context.dataRef.floatingContext.elements.domReference() ||
-          !store.context.dataRef.floatingContext.elements.floating()
-        ) {
+        if (!floatingContext.elements.domReference() || !floatingContext.elements.floating()) {
           closeWithDelay(event);
           return;
         }
 
         const currentTrigger = props.triggerElementRef;
 
-        const handlerProps = solidMergeProps(store.context.dataRef.floatingContext, {
+        const handlerProps = solidMergeProps(store().context.dataRef.floatingContext, {
           tree,
           x: () => event.clientX,
           y: () => event.clientY,
@@ -265,7 +267,7 @@ export function useHoverReferenceInteraction(parameters: {
             if (
               props.enabled &&
               !isClickLikeOpenEvent() &&
-              currentTrigger === store.select('domReferenceElement')
+              currentTrigger === store().select('domReferenceElement')
             ) {
               closeWithDelay(event, true);
             }
@@ -288,7 +290,7 @@ export function useHoverReferenceInteraction(parameters: {
 
       const shouldClose =
         instance.pointerType === 'touch'
-          ? !contains(store.select('floatingElement'), event.relatedTarget as Element | null)
+          ? !contains(store().select('floatingElement'), event.relatedTarget as Element | null)
           : true;
 
       if (shouldClose) {
@@ -300,7 +302,7 @@ export function useHoverReferenceInteraction(parameters: {
       handleScrollMouseLeave(event);
     }
 
-    if (store.select('open')) {
+    if (store().select('open')) {
       trigger.addEventListener('mouseleave', onScrollMouseLeave);
     }
 
@@ -332,9 +334,9 @@ export function useHoverReferenceInteraction(parameters: {
   function onMouseMove(event: MouseEvent) {
     const trigger = event.currentTarget as HTMLElement;
 
-    const currentDomReference = store.select('domReferenceElement');
-    const allTriggers = store.context.triggerElements;
-    const currentOpen = store.select('open');
+    const currentDomReference = store().select('domReferenceElement');
+    const allTriggers = store().context.triggerElements;
+    const currentOpen = store().select('open');
 
     const isOverInactiveTrigger =
       (allTriggers.hasElement(event.target as Element) ||
@@ -368,10 +370,10 @@ export function useHoverReferenceInteraction(parameters: {
         return;
       }
 
-      const latestOpen = store.select('open');
+      const latestOpen = store().select('open');
 
       if (!instance.blockMouseMove && (!latestOpen || isOverInactiveTrigger)) {
-        store.setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, trigger));
+        store().setOpen(true, createChangeEventDetails(REASONS.triggerHover, event, trigger));
       }
     }
 

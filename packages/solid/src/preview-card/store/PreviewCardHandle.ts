@@ -1,6 +1,6 @@
-import { PreviewCardStore } from './PreviewCardStore';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
+import { PreviewCardStore } from './PreviewCardStore';
 
 /**
  * A handle to control a preview card imperatively and to associate detached triggers with it.
@@ -13,7 +13,7 @@ export class PreviewCardHandle<Payload> {
   public readonly store: PreviewCardStore<Payload>;
 
   constructor() {
-    this.store = new PreviewCardStore<Payload>();
+    this.store = PreviewCardStore<Payload>();
   }
 
   /**
