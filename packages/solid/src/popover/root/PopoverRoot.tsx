@@ -12,6 +12,7 @@ import {
   FloatingTree,
   useDismiss,
   useFloatingParentNodeId,
+  useFloatingTree,
   useInteractions,
   useRole,
   useSyncedFloatingRootContext,
@@ -34,6 +35,7 @@ import { PopoverStore } from '../store/PopoverStore';
 import { PopoverRootContext, usePopoverRootContext } from './PopoverRootContext';
 
 function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
+  const parentPopoverContext = usePopoverRootContext(true);
   const openProp = () => props.open;
   const defaultOpen = () => props.defaultOpen ?? false;
   const modal = () => props.modal ?? false;
@@ -78,6 +80,13 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   const positionerElement = store.useState('positionerElement');
   const payload = store.useState('payload') as Accessor<Payload | undefined>;
   const openReason = store.useState('openChangeReason');
+
+  const floatingTreeFromContext = useFloatingTree();
+  if (floatingTreeFromContext) {
+    store.context.floatingTreeRoot = floatingTreeFromContext;
+  } else if (parentPopoverContext) {
+    store.context.floatingTreeRoot = parentPopoverContext.store.context.floatingTreeRoot;
+  }
 
   store.useContextCallback('onOpenChange', props.onOpenChange);
   store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
@@ -146,6 +155,9 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   const dismiss = useDismiss({
     context: floatingRootContext,
     props: {
+      get externalTree() {
+        return store.context.floatingTreeRoot;
+      },
       outsidePressEvent: {
         // Ensure `aria-hidden` on outside elements is removed immediately
         // on outside press when trapping focus.

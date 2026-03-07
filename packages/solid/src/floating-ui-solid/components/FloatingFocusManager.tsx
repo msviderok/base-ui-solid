@@ -367,17 +367,7 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
     const tabbableContent = getTabbableContent() as Array<Element | null>;
     const triggers = store().context.triggerElements;
     const isRelatedFocusGuard =
-      relatedTarget?.hasAttribute(createAttribute('focus-guard')) &&
-      [
-        beforeGuardRef(),
-        afterGuardRef(),
-        portalContext?.beforeInsideRef(),
-        portalContext?.afterInsideRef(),
-        portalContext?.beforeOutsideRef(),
-        portalContext?.afterOutsideRef(),
-        resolveFocusableElement(props.previousFocusableElement),
-        resolveFocusableElement(props.nextFocusableElement),
-      ].includes(relatedTarget);
+      relatedTarget?.hasAttribute(createAttribute('focus-guard')) ?? false;
 
     const movedToUnrelatedNode = !(
       contains(domReferenceValue, relatedTarget) ||
@@ -458,6 +448,7 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
         relatedTarget &&
         movedToUnrelatedNode &&
         !isPointerDownRef &&
+        !store().context.dataRef.pressStartedInside &&
         // Fix React 18 Strict Mode returnFocus due to double rendering.
         // For an "untrapped" typeable combobox (input role=combobox with
         // initialFocus=false), re-opening the popup and tabbing out should still close it even
@@ -598,6 +589,7 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
     }
 
     const floatingEl = floating();
+    const floatingFocusEl = floatingFocusElement();
     const domReferenceValue = domReference();
     const domReferenceElement = isHTMLElement(domReferenceValue) ? domReferenceValue : null;
 
@@ -626,6 +618,13 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
         floatingEl.addEventListener('focusout', markinsidePortal, true);
         onCleanup(() => floatingEl.removeEventListener('focusout', markinsidePortal, true));
       }
+    }
+
+    if (floatingFocusEl && floatingFocusEl !== floatingEl) {
+      floatingFocusEl.addEventListener('pointerdown', handlePointerDown);
+      onCleanup(() => {
+        floatingFocusEl.removeEventListener('pointerdown', handlePointerDown);
+      });
     }
   });
 

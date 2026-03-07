@@ -1,4 +1,5 @@
 import { onMount, mergeProps as solidMergeProps } from 'solid-js';
+import { FloatingTreeStore } from '../../floating-ui-solid/components/FloatingTreeStore';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import { type ReactLikeRef } from '../../solid-helpers';
 import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
@@ -38,6 +39,7 @@ type Context = PopupStoreContext<PopoverRoot.ChangeEventDetails> & {
   readonly triggerFocusTargetRef: ReactLikeRef<HTMLElement | null | undefined>;
   readonly beforeContentFocusGuardRef: ReactLikeRef<HTMLElement | null | undefined>;
   readonly stickIfOpenTimeout: Timeout;
+  floatingTreeRoot: FloatingTreeStore;
 };
 
 function createInitialState<Payload>(initialState?: Partial<State<Payload>>) {
@@ -68,6 +70,7 @@ const selectors = {
   openChangeReason: (state: State<unknown>) => state.openChangeReason,
   modal: (state: State<unknown>) => state.modal,
   stickIfOpen: (state: State<unknown>) => state.stickIfOpen,
+  nested: (state: State<unknown>) => state.nested,
   titleElementId: (state: State<unknown>) => state.titleElementId,
   descriptionElementId: (state: State<unknown>) => state.descriptionElementId,
   openOnHover: (state: State<unknown>) => state.openOnHover,
@@ -90,6 +93,7 @@ export function PopoverStore<Payload>(initialState?: Partial<State<Payload>>) {
       stickIfOpenTimeout: useTimeout(),
       triggerElements: new PopupTriggerMap(),
       floatingRootContext: getEmptyRootContext(),
+      floatingTreeRoot: new FloatingTreeStore(),
     },
     selectors,
   );

@@ -48,6 +48,7 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   const titleId = store.useState('titleElementId');
   const descriptionId = store.useState('descriptionElementId');
   const modal = store.useState('modal');
+  const nested = store.useState('nested');
   const mounted = store.useState('mounted');
   const openReason = store.useState('openChangeReason');
 
@@ -148,6 +149,8 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   return (
     <FloatingFocusManager
       context={store.context.floatingRootContext}
+      externalTree={store.context.floatingTreeRoot}
+      closeOnFocusOut={!nested()}
       openInteractionType={openMethod()}
       modal={modal() === 'trap-focus'}
       disabled={!mounted() || openReason() === REASONS.triggerHover}

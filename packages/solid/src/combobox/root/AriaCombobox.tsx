@@ -1173,7 +1173,7 @@ export function AriaCombobox<Value = any, Mode extends SelectionMode = 'none'>(
   createEffect(() => {
     store.update({
       id: id(),
-      selectedValue,
+      selectedValue: selectedValue(),
       open: open(),
       mounted: mounted(),
       transitionStatus: transitionStatus(),
@@ -1233,7 +1233,7 @@ export function AriaCombobox<Value = any, Mode extends SelectionMode = 'none'>(
     });
   });
 
-  const children = (
+  const renderChildren = () => (
     <>
       {props.children}
       <input
@@ -1324,7 +1324,7 @@ export function AriaCombobox<Value = any, Mode extends SelectionMode = 'none'>(
       <ComboboxFloatingContext.Provider value={floatingRootContext}>
         <ComboboxDerivedItemsContext.Provider value={itemsContextValue}>
           <ComboboxInputValueContext.Provider value={inputValue}>
-            {children}
+            {renderChildren()}
           </ComboboxInputValueContext.Provider>
         </ComboboxDerivedItemsContext.Provider>
       </ComboboxFloatingContext.Provider>

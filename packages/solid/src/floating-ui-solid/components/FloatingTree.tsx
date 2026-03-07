@@ -1,6 +1,6 @@
 import {
   createContext,
-  createEffect,
+  createRenderEffect,
   onCleanup,
   useContext,
   type Accessor,
@@ -44,7 +44,7 @@ export function useFloatingNodeId(externalTree?: FloatingTreeStore): Accessor<st
   const tree = useFloatingTree(externalTree);
   const parentContext = useContext(FloatingNodeContext);
 
-  createEffect(() => {
+  createRenderEffect(() => {
     const nodeId = id();
     if (!nodeId) {
       return;

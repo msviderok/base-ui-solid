@@ -205,6 +205,29 @@ export function useDismiss(parameters: {
     return resolved[computedType];
   };
 
+  const isEventTargetWithinChildren = (event: Event) => {
+    const nodeId = dataRef().floatingContext?.nodeId();
+
+    return (
+      tree &&
+      getNodeChildren(tree.nodesRef, nodeId).some((node) =>
+        isEventTargetWithin(event, node.context?.elements.floating()),
+      )
+    );
+  };
+
+  const isEventTargetWithinFloatingTree = (event: Event) => {
+    return (
+      isEventTargetWithin(event, floatingElement()) ||
+      isEventTargetWithin(event, domReferenceElement()) ||
+      isEventTargetWithinChildren(event)
+    );
+  };
+
+  const isPrimaryButtonPress = (event: MouseEvent | PointerEvent) => {
+    return event.button == null || event.button === 0;
+  };
+
   const closeOnEscapeKeyDown = (event: KeyboardEvent) => {
     if (!event.currentTarget) {
       return;
@@ -379,21 +402,11 @@ export function useDismiss(parameters: {
       }
     }
 
-    const nodeId = dataRef().floatingContext?.nodeId();
-
-    const targetIsInsideChildren =
-      tree &&
-      getNodeChildren(tree.nodesRef, nodeId).some((node) =>
-        isEventTargetWithin(event, node.context?.elements.floating()),
-      );
-
-    if (
-      isEventTargetWithin(event, floatingElement()) ||
-      isEventTargetWithin(event, domReferenceElement()) ||
-      targetIsInsideChildren
-    ) {
+    if (isEventTargetWithinFloatingTree(event)) {
       return;
     }
+
+    const nodeId = dataRef().floatingContext?.nodeId();
 
     const children = tree ? getNodeChildren(tree.nodesRef, nodeId) : [];
 
@@ -475,8 +488,22 @@ export function useDismiss(parameters: {
     // Don't close if:
     // - The click started inside the floating element.
     // - The click ended inside the floating element.
-    const endedOrStartedInside = endedOrStartedInsideRef;
+    const pressStartedInside = event.type === 'click' && dataRef().pressStartedInside === true;
+    const endedOrStartedInside = endedOrStartedInsideRef || pressStartedInside;
     endedOrStartedInsideRef = false;
+    if (event.type === 'click') {
+      dataRef().pressStartedInside = false;
+    }
+
+    if (
+      (event.type === 'pointerdown' || event.type === 'mousedown') &&
+      open() &&
+      props.enabled &&
+      isPrimaryButtonPress(event) &&
+      isEventTargetWithinFloatingTree(event)
+    ) {
+      endedOrStartedInsideRef = true;
+    }
 
     cancelDismissOnEndTimeout.clear();
 
@@ -565,6 +592,7 @@ export function useDismiss(parameters: {
 
   createEffect(() => {
     if (!open() || !props.enabled) {
+      dataRef().pressStartedInside = false;
       return;
     }
 
@@ -600,6 +628,9 @@ export function useDismiss(parameters: {
     const doc = ownerDocument(floating ?? null);
 
     doc.addEventListener('pointerdown', trackPointerType, true);
+    onCleanup(() => {
+      doc.removeEventListener('pointerdown', trackPointerType, true);
+    });
 
     if (props.escapeKey) {
       doc.addEventListener('keydown', closeOnEscapeKeyDown);
@@ -659,6 +690,7 @@ export function useDismiss(parameters: {
     onCleanup(() => {
       compositionTimeout.clear();
       endedOrStartedInsideRef = false;
+      dataRef().pressStartedInside = false;
     });
   });
 
@@ -684,13 +716,15 @@ export function useDismiss(parameters: {
       return;
     }
     endedOrStartedInsideRef = true;
+    dataRef().pressStartedInside = true;
   };
 
   const markPressStartedinsidePortal = (event: PointerEvent | MouseEvent) => {
-    if (!open() || !props.enabled || event.button !== 0) {
+    if (!open() || !props.enabled || !isPrimaryButtonPress(event)) {
       return;
     }
     endedOrStartedInsideRef = true;
+    dataRef().pressStartedInside = true;
   };
 
   const floating: ElementProps['floating'] = {

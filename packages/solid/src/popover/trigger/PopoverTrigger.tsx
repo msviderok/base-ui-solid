@@ -101,6 +101,7 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
   const openReason = store.useState('openChangeReason');
   const stickIfOpen = store.useState('stickIfOpen');
   const openMethod = store.useState('openMethod');
+  const nested = store.useState('nested');
 
   const hoverProps = useHoverReferenceInteraction({
     get context() {
@@ -235,7 +236,7 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
 
   return (
     <>
-      <Show when={isTriggerActive()}>
+      <Show when={isTriggerActive() && !nested()}>
         <FocusGuard
           ref={(el) => {
             preFocusGuardRef = el;
@@ -244,7 +245,7 @@ export function PopoverTrigger<Payload>(componentProps: PopoverTrigger.Props<Pay
         />
       </Show>
       {element()}
-      <Show when={isTriggerActive()}>
+      <Show when={isTriggerActive() && !nested()}>
         <FocusGuard
           ref={(el) => {
             store.context.triggerFocusTargetRef.current = el;

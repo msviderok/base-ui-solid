@@ -50,7 +50,7 @@ export function PopoverPositioner(componentProps: PopoverPositioner.Props) {
 
   const { store } = usePopoverRootContext();
   const keepMounted = usePopoverPortalContext();
-  const nodeId = useFloatingNodeId();
+  const nodeId = useFloatingNodeId(store.context.floatingTreeRoot);
 
   const mounted = store.useState('mounted');
   const open = store.useState('open');
