@@ -15,7 +15,7 @@ import { useField } from '../../field/useField';
 import { activeElement } from '../../floating-ui-solid/utils';
 import { useFormContext } from '../../form/FormContext';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { areArraysEqual } from '../../utils/areArraysEqual';
 import { clamp } from '../../utils/clamp';
 import {
@@ -99,14 +99,15 @@ export function SliderRoot<Value extends number | readonly number[]>(
   const valueProp = () => local.value;
 
   const id = useBaseUiId(idProp);
-  const onValueChange = local.onValueChange as (
-    value: number | number[],
-    eventDetails: SliderRoot.ChangeEventDetails,
-  ) => void;
-  const onValueCommitted = local.onValueCommitted as (
+  function onValueChange(value: number | number[], eventDetails: SliderRoot.ChangeEventDetails) {
+    return local.onValueChange?.(value as any, eventDetails);
+  }
+  function onValueCommitted(
     value: number | readonly number[],
     eventDetails: SliderRoot.CommitEventDetails,
-  ) => void;
+  ) {
+    return local.onValueCommitted?.(value as any, eventDetails);
+  }
 
   const { clearErrors } = useFormContext();
   const {
@@ -133,24 +134,22 @@ export function SliderRoot<Value extends number | readonly number[]>(
     name: 'Slider',
   });
 
-  let sliderRef = null as HTMLElement | null | undefined;
-  const refs: SliderRootContext['refs'] = {
-    controlRef: null,
-    thumbRefs: [],
-    // The input element nested in the pressed thumb.
-    pressedInputRef: null,
-    // The px distance between the pointer and the center of a pressed thumb.
-    pressedThumbCenterOffsetRef: null,
-    // The index of the pressed thumb, or the closest thumb if the `Control` was pressed.
-    // This is updated on pointerdown, which is sooner than the `active/activeIndex`
-    // state which is updated later when the nested `input` receives focus.
-    pressedThumbIndexRef: -1,
-    // The values when the current drag interaction started.
-    pressedValuesRef: null,
-    lastChangedValueRef: null,
-    lastChangeReasonRef: 'none',
-    formatOptionsRef: local.format,
-  };
+  const sliderRef = useRef<HTMLElement | null | undefined>(null);
+  const controlRef = useRef<HTMLElement | null | undefined>(null);
+  const thumbRefs = useRef<(HTMLElement | null | undefined)[]>([]);
+  // The input element nested in the pressed thumb.
+  const pressedInputRef = useRef<HTMLInputElement | null | undefined>(null);
+  // The px distance between the pointer and the center of a pressed thumb.
+  const pressedThumbCenterOffsetRef = useRef<number | null>(null);
+  // The index of the pressed thumb, or the closest thumb if the `Control` was pressed.
+  // This is updated on pointerdown, which is sooner than the `active/activeIndex`
+  // state which is updated later when the nested `input` receives focus.
+  const pressedThumbIndexRef = useRef(-1);
+  // The values when the current drag interaction started.
+  const pressedValuesRef = useRef<readonly number[] | null>(null);
+  const lastChangedValueRef = useRef<number | readonly number[] | null>(null);
+  const lastChangeReasonRef = useRef<SliderRoot.ChangeEventReason>('none');
+  const formatOptionsRef = useRef<Intl.NumberFormatOptions | undefined>(local.format);
 
   // We can't use the :active browser pseudo-classes.
   // - The active state isn't triggered when clicking on the rail.
@@ -180,37 +179,39 @@ export function SliderRoot<Value extends number | readonly number[]>(
     id,
     commit: validation.commit,
     value: valueUnwrapped,
-    controlRef: refs.controlRef,
+    controlRef: () => controlRef.current,
     name,
     getValue: valueUnwrapped,
   });
 
   createEffect(
-    on(valueUnwrapped, () => {
-      clearErrors(name());
+    on(
+      valueUnwrapped,
+      (val) => {
+        clearErrors(name());
 
-      const val = valueUnwrapped();
+        if (shouldValidateOnChange()) {
+          validation.commit(val);
+        } else {
+          validation.commit(val, true);
+        }
 
-      if (shouldValidateOnChange()) {
-        validation.commit(val);
-      } else {
-        validation.commit(val, true);
-      }
-
-      const initialValue = validityData.initialValue as Value | undefined;
-      let isDirty: boolean;
-      if (Array.isArray(val) && Array.isArray(initialValue)) {
-        isDirty = !areArraysEqual(val, initialValue);
-      } else {
-        isDirty = val !== initialValue;
-      }
-      setDirty(isDirty);
-    }),
+        const initialValue = validityData.initialValue as Value | undefined;
+        let isDirty: boolean;
+        if (Array.isArray(val) && Array.isArray(initialValue)) {
+          isDirty = !areArraysEqual(val, initialValue);
+        } else {
+          isDirty = val !== initialValue;
+        }
+        setDirty(isDirty);
+      },
+      { defer: true },
+    ),
   );
 
   const registerFieldControlRef = (element: HTMLElement | null | undefined) => {
     if (element) {
-      refs.controlRef = element;
+      controlRef.current = element;
     }
   };
 
@@ -232,7 +233,7 @@ export function SliderRoot<Value extends number | readonly number[]>(
       details ??
       createChangeEventDetails(REASONS.none, undefined, undefined, { activeThumbIndex: -1 });
 
-    refs.lastChangeReasonRef = changeDetails.reason;
+    lastChangeReasonRef.current = changeDetails.reason;
 
     // Redefine target to allow name and value to be read.
     // This allows seamless integration with the most popular form libraries.
@@ -249,7 +250,7 @@ export function SliderRoot<Value extends number | readonly number[]>(
 
     changeDetails.event = clonedEvent;
 
-    refs.lastChangedValueRef = newValue;
+    lastChangedValueRef.current = newValue;
 
     onValueChange(newValue, changeDetails);
 
@@ -277,7 +278,7 @@ export function SliderRoot<Value extends number | readonly number[]>(
       );
       setTouched(true);
 
-      const nextValue = refs.lastChangedValueRef ?? newValue;
+      const nextValue = lastChangedValueRef.current ?? newValue;
       onValueCommitted(nextValue, createGenericEventDetails(reason, event));
     }
   };
@@ -293,8 +294,8 @@ export function SliderRoot<Value extends number | readonly number[]>(
   }
 
   createEffect(() => {
-    const activeEl = activeElement(ownerDocument(sliderRef ?? null));
-    if (disabled() && activeEl && sliderRef?.contains(activeEl)) {
+    const activeEl = activeElement(ownerDocument(sliderRef.current ?? null));
+    if (disabled() && activeEl && sliderRef.current?.contains(activeEl)) {
       // This is necessary because Firefox and Safari will keep focus
       // on a disabled element:
       // https://codesandbox.io/p/sandbox/mui-pr-22247-forked-h151h?file=/src/App.js
@@ -343,7 +344,15 @@ export function SliderRoot<Value extends number | readonly number[]>(
     disabled,
     dragging,
     validation,
-    refs,
+    controlRef,
+    formatOptionsRef,
+    lastChangedValueRef,
+    lastChangeReasonRef,
+    pressedInputRef,
+    pressedThumbCenterOffsetRef,
+    pressedThumbIndexRef,
+    pressedValuesRef,
+    thumbRefs,
     handleInputChange,
     indicatorPosition,
     inset: () => thumbAlignment() !== 'center',
@@ -373,7 +382,7 @@ export function SliderRoot<Value extends number | readonly number[]>(
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      sliderRef = el;
+      sliderRef.current = el;
     },
     props: [
       {
@@ -393,7 +402,7 @@ export function SliderRoot<Value extends number | readonly number[]>(
 
   return (
     <SliderRootContext.Provider value={contextValue}>
-      <CompositeList refs={{ elements: refs.thumbRefs }} onMapChange={setThumbArray}>
+      <CompositeList refs={{ elements: thumbRefs.current }} onMapChange={setThumbArray}>
         {element()}
       </CompositeList>
     </SliderRootContext.Provider>

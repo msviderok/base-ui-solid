@@ -1,6 +1,7 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { isWebKit } from '@base-ui/utils/detectBrowser';
 import { Slider } from '@msviderok/base-ui-solid/slider';
+import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy, stub } from 'sinon';
@@ -261,7 +262,7 @@ describe('<Slider.Thumb />', () => {
   describe('prop: inputRef', () => {
     it('can focus the input element', async () => {
       function App() {
-        let inputRef = null as HTMLInputElement | null;
+        const inputRef = useRef<HTMLInputElement | null>(null);
         return (
           <>
             <Slider.Root defaultValue={50}>
@@ -271,8 +272,8 @@ describe('<Slider.Thumb />', () => {
             </Slider.Root>
             <button
               onClick={() => {
-                if (inputRef) {
-                  inputRef.focus();
+                if (inputRef.current) {
+                  inputRef.current.focus();
                 }
               }}
             >

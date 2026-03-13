@@ -1,6 +1,7 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
 import type { CompositeMetadata } from '../../composite/list/CompositeList';
 import type { UseFieldValidationReturnValue } from '../../field/root/useFieldValidation';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { Orientation } from '../../utils/types';
 import type { ThumbMetadata } from '../thumb/SliderThumb';
 import type { SliderRoot } from './SliderRoot';
@@ -17,17 +18,15 @@ export interface SliderRootContext {
   dragging: Accessor<boolean>;
   disabled: Accessor<boolean>;
   validation: UseFieldValidationReturnValue;
-  refs: {
-    controlRef: HTMLElement | null | undefined;
-    formatOptionsRef: Intl.NumberFormatOptions | undefined;
-    lastChangedValueRef: number | readonly number[] | null;
-    lastChangeReasonRef: SliderRoot.ChangeEventReason;
-    pressedInputRef: HTMLInputElement | null | undefined;
-    pressedThumbCenterOffsetRef: number | null;
-    pressedThumbIndexRef: number;
-    pressedValuesRef: readonly number[] | null;
-    thumbRefs: (HTMLElement | null)[];
-  };
+  controlRef: ReactLikeRef<HTMLElement | null | undefined>;
+  formatOptionsRef: ReactLikeRef<Intl.NumberFormatOptions | undefined>;
+  lastChangedValueRef: ReactLikeRef<number | readonly number[] | null>;
+  lastChangeReasonRef: ReactLikeRef<SliderRoot.ChangeEventReason>;
+  pressedInputRef: ReactLikeRef<HTMLInputElement | null | undefined>;
+  pressedThumbCenterOffsetRef: ReactLikeRef<number | null>;
+  pressedThumbIndexRef: ReactLikeRef<number>;
+  pressedValuesRef: ReactLikeRef<readonly number[] | null>;
+  thumbRefs: ReactLikeRef<(HTMLElement | null | undefined)[]>;
   handleInputChange: (valueInput: number, index: number, event: KeyboardEvent | InputEvent) => void;
   indicatorPosition: Accessor<(number | undefined)[]>;
   inset: Accessor<boolean>;

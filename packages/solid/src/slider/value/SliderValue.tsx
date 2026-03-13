@@ -16,7 +16,7 @@ import { sliderStateAttributesMapping } from '../root/stateAttributesMapping';
 export function SliderValue(componentProps: SliderValue.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['aria-live', 'children']);
 
-  const { thumbArray, state, values, refs, locale } = useSliderRootContext();
+  const { thumbArray, state, values, formatOptionsRef, locale } = useSliderRootContext();
 
   const outputFor = createMemo(() => {
     let htmlFor = '';
@@ -32,7 +32,7 @@ export function SliderValue(componentProps: SliderValue.Props) {
     const arr = [];
     const vals = values();
     for (let i = 0; i < vals.length; i += 1) {
-      arr.push(formatNumber(vals[i], locale(), refs.formatOptionsRef ?? undefined));
+      arr.push(formatNumber(vals[i], locale(), formatOptionsRef.current ?? undefined));
     }
     return arr;
   });
@@ -77,4 +77,6 @@ export interface SliderValueProps extends Omit<
     | undefined;
 }
 
-export namespace SliderValue {}
+export namespace SliderValue {
+  export type Props = SliderValueProps;
+}

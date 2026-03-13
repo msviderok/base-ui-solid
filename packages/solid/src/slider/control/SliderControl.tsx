@@ -87,7 +87,13 @@ export function SliderControl(componentProps: SliderControl.Props) {
     dragging,
     validation,
     inset,
-    refs,
+    pressedInputRef,
+    pressedThumbCenterOffsetRef,
+    pressedThumbIndexRef,
+    pressedValuesRef,
+    thumbRefs,
+    lastChangeReasonRef,
+    lastChangedValueRef,
     max,
     min,
     minStepsBetweenValues,
@@ -130,19 +136,19 @@ export function SliderControl(componentProps: SliderControl.Props) {
   });
 
   const updatePressedThumb = (nextIndex: number) => {
-    if (refs.pressedThumbIndexRef !== nextIndex) {
-      refs.pressedThumbIndexRef = nextIndex;
+    if (pressedThumbIndexRef.current !== nextIndex) {
+      pressedThumbIndexRef.current = nextIndex;
     }
 
-    const thumbElement = refs.thumbRefs[nextIndex];
+    const thumbElement = thumbRefs.current[nextIndex];
 
     if (!thumbElement) {
-      refs.pressedThumbCenterOffsetRef = null;
-      refs.pressedInputRef = null;
+      pressedThumbCenterOffsetRef.current = null;
+      pressedInputRef.current = null;
       return;
     }
 
-    refs.pressedInputRef = thumbElement.querySelector<HTMLInputElement>('input[type="range"]');
+    pressedInputRef.current = thumbElement.querySelector<HTMLInputElement>('input[type="range"]');
   };
 
   const getFingerState = (fingerCoords: Coords): FingerState | null => {
@@ -161,7 +167,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
       controlOffset.start -
       controlOffset.end -
       insetThumbOffset * 2;
-    const thumbCenterOffset = refs.pressedThumbCenterOffsetRef ?? 0;
+    const thumbCenterOffset = pressedThumbCenterOffsetRef.current ?? 0;
     const fingerX = fingerCoords.x - thumbCenterOffset;
     const fingerY = fingerCoords.y - thumbCenterOffset;
 
@@ -183,7 +189,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
       };
     }
 
-    const thumbIndex = refs.pressedThumbIndexRef;
+    const thumbIndex = pressedThumbIndexRef.current;
 
     if (thumbIndex < 0) {
       return null;
@@ -193,7 +199,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
       behavior: thumbCollisionBehavior(),
       values: values(),
       currentValues: latestValuesRef ?? values(),
-      initialValues: refs.pressedValuesRef,
+      initialValues: pressedValuesRef.current,
       pressedIndex: thumbIndex,
       nextValue: newValue,
       min: min(),
@@ -205,17 +211,17 @@ export function SliderControl(componentProps: SliderControl.Props) {
     if (thumbCollisionBehavior() === 'swap' && collisionResult.didSwap) {
       updatePressedThumb(collisionResult.thumbIndex);
     } else {
-      refs.pressedThumbIndexRef = collisionResult.thumbIndex;
+      pressedThumbIndexRef.current = collisionResult.thumbIndex;
     }
 
     return collisionResult;
   };
 
   const startPressing = (fingerCoords: Coords) => {
-    refs.pressedValuesRef = range() ? values().slice() : null;
+    pressedValuesRef.current = range() ? values().slice() : null;
     latestValuesRef = values();
 
-    const pressedThumbIndex = refs.pressedThumbIndexRef;
+    const pressedThumbIndex = pressedThumbIndexRef.current;
     let closestThumbIndex = pressedThumbIndex;
 
     if (pressedThumbIndex > -1 && pressedThumbIndex < values().length) {
@@ -235,8 +241,8 @@ export function SliderControl(componentProps: SliderControl.Props) {
 
       closestThumbIndex = -1;
 
-      for (let i = 0; i < refs.thumbRefs.length; i += 1) {
-        const thumbEl = refs.thumbRefs[i];
+      for (let i = 0; i < thumbRefs.current.length; i += 1) {
+        const thumbEl = thumbRefs.current[i];
         if (isElement(thumbEl)) {
           const midpoint = getMidpoint(thumbEl);
           const distance = Math.abs(fingerCoords[axis] - midpoint[axis]);
@@ -254,7 +260,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
     }
 
     if (inset()) {
-      const thumbEl = refs.thumbRefs[closestThumbIndex];
+      const thumbEl = thumbRefs.current[closestThumbIndex];
       if (isElement(thumbEl)) {
         const thumbRect = thumbEl.getBoundingClientRect();
         const side = !vertical() ? 'width' : 'height';
@@ -264,7 +270,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
   };
 
   const focusThumb = (thumbIndex: number) => {
-    refs.thumbRefs[thumbIndex]
+    thumbRefs.current[thumbIndex]
       ?.querySelector<HTMLInputElement>('input[type="range"]')
       ?.focus({ preventScroll: true });
   };
@@ -315,17 +321,17 @@ export function SliderControl(componentProps: SliderControl.Props) {
     setActive(-1);
     setDragging(false);
 
-    refs.pressedInputRef = null;
-    refs.pressedThumbCenterOffsetRef = null;
+    pressedInputRef.current = null;
+    pressedThumbCenterOffsetRef.current = null;
 
     const fingerCoords = getFingerCoords(nativeEvent, touchIdRef);
     const finger = fingerCoords != null ? getFingerState(fingerCoords) : null;
 
     if (finger != null) {
-      const commitReason = refs.lastChangeReasonRef;
-      validation.commit(refs.lastChangedValueRef ?? finger.value);
+      const commitReason = lastChangeReasonRef.current;
+      validation.commit(lastChangedValueRef.current ?? finger.value);
       onValueCommitted(
-        refs.lastChangedValueRef ?? finger.value,
+        lastChangedValueRef.current ?? finger.value,
         createGenericEventDetails(commitReason, nativeEvent),
       );
     }
@@ -334,9 +340,9 @@ export function SliderControl(componentProps: SliderControl.Props) {
       controlRef?.releasePointerCapture(nativeEvent.pointerId);
     }
 
-    refs.pressedThumbIndexRef = -1;
+    pressedThumbIndexRef.current = -1;
     touchIdRef = null;
-    refs.pressedValuesRef = null;
+    pressedValuesRef.current = null;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     stopListening();
   };
@@ -390,7 +396,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
     doc.removeEventListener('pointerup', handleTouchEnd);
     doc.removeEventListener('touchmove', handleTouchMove);
     doc.removeEventListener('touchend', handleTouchEnd);
-    refs.pressedValuesRef = null;
+    pressedValuesRef.current = null;
   };
 
   const focusFrame = useAnimationFrame();
@@ -429,7 +435,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
     props: [
       {
         ['data-base-ui-slider-control' as string]: renderBeforeHydration() ? '' : undefined,
-        onPointerDown(event) {
+        onPointerDown(event: PointerEvent) {
           const control = controlRef;
 
           if (
@@ -455,7 +461,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
             }
 
             const pressedOnFocusedThumb = contains(
-              refs.thumbRefs[finger.thumbIndex],
+              thumbRefs.current[finger.thumbIndex],
               activeElement(ownerDocument(control)),
             );
 
@@ -469,7 +475,7 @@ export function SliderControl(componentProps: SliderControl.Props) {
 
             setDragging(true);
 
-            const pressedOnAnyThumb = refs.pressedThumbCenterOffsetRef != null;
+            const pressedOnAnyThumb = pressedThumbCenterOffsetRef.current != null;
             if (!pressedOnAnyThumb) {
               setValue(
                 finger.value,

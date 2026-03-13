@@ -139,7 +139,7 @@ describe.skipIf(typeof Touch === 'undefined')('<Slider.Root />', () => {
 
       slider.focus();
 
-      fireEvent.input(slider, { target: { value: '51' } });
+      fireEvent.change(slider, { target: { value: '51' } });
       expect(slider).to.have.attribute('aria-valuenow', '51');
 
       fireEvent.keyDown(slider, { key: ARROW_RIGHT });
@@ -458,8 +458,6 @@ describe.skipIf(typeof Touch === 'undefined')('<Slider.Root />', () => {
   });
 
   describe('prop: max', () => {
-    const MAX = 750;
-
     it('sets the max attribute on the input', async () => {
       render(() => <TestSlider defaultValue={150} step={100} max={750} />);
       expect(screen.getByRole('slider')).to.have.attribute('max', '750');
@@ -1255,7 +1253,7 @@ describe.skipIf(typeof Touch === 'undefined')('<Slider.Root />', () => {
       const slider = screen.getByRole('slider');
 
       slider.focus();
-      fireEvent.input(slider, {
+      fireEvent.change(slider, {
         target: {
           value: 4,
         },
@@ -1439,7 +1437,7 @@ describe.skipIf(typeof Touch === 'undefined')('<Slider.Root />', () => {
               const input = screen.getByRole('slider');
 
               await user.keyboard('[Tab]');
-              expect(screen.getByTestId('thumb')).toHaveFocus();
+              expect(input).toHaveFocus();
 
               await user.keyboard(`[${key}]`);
               expect(handleValueChange.callCount).to.equal(1);
@@ -2131,7 +2129,7 @@ describe.skipIf(typeof Touch === 'undefined')('<Slider.Root />', () => {
 
       expect(root).not.to.have.attribute('data-dirty');
 
-      fireEvent.input(input, { target: { value: 'value' } });
+      fireEvent.change(input, { target: { value: 'value' } });
 
       expect(root).to.have.attribute('data-dirty', '');
     });

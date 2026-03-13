@@ -72,7 +72,7 @@ export type BaseUIComponentProps<
     ? Omit<ComponentProps<ElementType>, 'class' | 'style' | 'ref'>
     : Omit<JSX.HTMLAttributes<any>, 'class' | 'style' | 'ref'>
 > & {
-  ref?: UseRenderElementRef<IntrinsicRefElement<ElementType>> | undefined;
+  ref?: UseRenderElementRef<IntrinsicRefElement<ElementType> | null> | undefined;
   /**
    * CSS class applied to the element, or a function that
    * returns a class based on the component’s state.

@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, type JSX, on, onMount } from 'solid-js';
+import { createEffect, createMemo, createSignal, on, onMount, type JSX } from 'solid-js';
 import {
   ARROW_DOWN,
   ARROW_LEFT,
@@ -14,10 +14,9 @@ import { useDirection } from '../../direction-provider/DirectionContext';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { type LabelableContext } from '../../labelable-provider/LabelableContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
-import { mergeProps } from '../../merge-props';
-import { callEventHandler, splitComponentProps } from '../../solid-helpers';
+import { callEventHandler, splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
 import { formatNumber } from '../../utils/formatNumber';
-import { BaseUIComponentProps } from '../../utils/types';
+import { BaseUIComponentProps, type UseRenderElementRef } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { valueToPercent } from '../../utils/valueToPercent';
@@ -114,7 +113,11 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
     lastUsedThumbIndex,
     disabled: contextDisabled,
     validation,
-    refs,
+    formatOptionsRef,
+    controlRef,
+    pressedInputRef,
+    pressedThumbCenterOffsetRef,
+    pressedThumbIndexRef,
     handleInputChange,
     inset,
     labelId,
@@ -172,7 +175,7 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
       : -1;
 
   const getInsetPosition = () => {
-    const control = refs.controlRef;
+    const control = controlRef.current;
     const thumb = thumbRef;
     if (!control || !thumb) {
       return;
@@ -261,8 +264,7 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
     return undefined;
   });
 
-  const inputProps = mergeProps<'input'>(
-    {
+  const inputProps = {
       get 'aria-label'() {
         return typeof local.getAriaLabel === 'function'
           ? local.getAriaLabel(index())
@@ -283,14 +285,14 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
       get 'aria-valuetext'() {
         return typeof local.getAriaValueText === 'function'
           ? local.getAriaValueText(
-              formatNumber(thumbValue(), locale(), refs.formatOptionsRef ?? undefined),
+              formatNumber(thumbValue(), locale(), formatOptionsRef.current ?? undefined),
               thumbValue(),
               index(),
             )
           : getDefaultAriaValueText(
               sliderValues(),
               index(),
-              refs.formatOptionsRef ?? undefined,
+              formatOptionsRef.current ?? undefined,
               locale(),
             );
       },
@@ -430,9 +432,7 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
       get value() {
         return thumbValue() ?? '';
       },
-    },
-    validation.getInputValidationProps,
-  );
+    } satisfies JSX.InputHTMLAttributes<HTMLInputElement>;
 
   const element = useRenderElement('div', componentProps, {
     state,
@@ -448,25 +448,25 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
         get id() {
           return id();
         },
-        onBlur(event) {
+        onBlur(event: FocusEvent) {
           callEventHandler(local.onBlur, event as any);
         },
-        onFocus(event) {
+        onFocus(event: FocusEvent) {
           callEventHandler(local.onFocus, event as any);
         },
-        onPointerDown(event) {
-          refs.pressedThumbIndexRef = index();
+        onPointerDown(event: PointerEvent) {
+          pressedThumbIndexRef.current = index();
 
           if (thumbRef != null) {
             const axis = orientation() === 'horizontal' ? 'x' : 'y';
             const midpoint = getMidpoint(thumbRef);
             const offset =
               (orientation() === 'horizontal' ? event.clientX : event.clientY) - midpoint[axis];
-            refs.pressedThumbCenterOffsetRef = offset;
+            pressedThumbCenterOffsetRef.current = offset;
           }
 
-          if (inputRef != null && refs.pressedInputRef !== inputRef) {
-            refs.pressedInputRef = inputRef;
+          if (inputRef != null && pressedInputRef.current !== inputRef) {
+            pressedInputRef.current = inputRef;
           }
         },
         get style() {
@@ -493,15 +493,17 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
           {elementProps.children}
           <input
             ref={(el) => {
-              if (typeof componentProps.ref === 'function') {
-                componentProps.ref(el);
-              } else {
-                componentProps.ref = el;
+              inputRef = el;
+              validation.inputRef.current = el;
+              if (local.inputRef) {
+                if (typeof local.inputRef === 'function') {
+                  local.inputRef(el);
+                } else {
+                  local.inputRef.current = el;
+                }
               }
-              setListItemRef(el);
-              local.inputRef = el;
             }}
-            {...(inputProps as any)}
+            {...(validation.getInputValidationProps(inputProps) as any)}
           />
           {inset() &&
             !isMounted() &&
@@ -565,7 +567,10 @@ export interface SliderThumbProps extends BaseUIComponentProps<'div', SliderThum
   /**
    * A ref to access the nested input element.
    */
-  inputRef?: (HTMLInputElement | null) | undefined;
+  inputRef?:
+    | ReactLikeRef<HTMLInputElement | null | undefined>
+    | UseRenderElementRef<HTMLInputElement | null>
+    | undefined;
   /**
    * Optional tab index attribute forwarded to the `input`.
    */
