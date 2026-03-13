@@ -1,4 +1,4 @@
-import { createEffect, type JSX, onCleanup, Show } from 'solid-js';
+import { type JSX, onCleanup, onMount, Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { Side } from '../../utils/useAnchorPositioning';
@@ -36,7 +36,7 @@ export function SelectScrollArrow(componentProps: SelectScrollArrow.Props) {
 
   const { transitionStatus, setMounted } = useTransitionStatus(visible);
 
-  createEffect(() => {
+  onMount(() => {
     scrollArrowsMountedCountRef.current += 1;
     if (!store.state.hasScrollArrows) {
       store.set('hasScrollArrows', true);

@@ -239,6 +239,27 @@ describe('SolidStore', () => {
     expect(output.textContent).to.equal('15');
   });
 
+  it('does not invoke function-valued selector results', () => {
+    type FunctionState = {
+      comparer: (a: string, b: string) => boolean;
+    };
+
+    const equalsIgnoreCase = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+    const selectors = {
+      comparer: (state: FunctionState) => state.comparer,
+    };
+
+    const store = SolidStoreV2<FunctionState, Record<string, never>, typeof selectors>(
+      { comparer: equalsIgnoreCase },
+      undefined,
+      selectors,
+    );
+
+    expect(store.select('comparer')).to.equal(equalsIgnoreCase);
+    expect(store.useState('comparer')()).to.equal(equalsIgnoreCase);
+    expect(store.select('comparer')('A', 'a')).to.equal(true);
+  });
+
   describe('observeSelector', () => {
     type CounterState = { count: number; multiplier: number };
     const selectors = {

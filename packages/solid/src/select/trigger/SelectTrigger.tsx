@@ -6,6 +6,7 @@ import {
   mergeProps as solidMergeProps,
   type JSX,
 } from 'solid-js';
+import { unwrap } from 'solid-js/store';
 import type { FieldRoot } from '../../field/root/FieldRoot';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { fieldValidityMapping } from '../../field/utils/constants';
@@ -20,7 +21,7 @@ import { getPseudoElementBounds } from '../../utils/getPseudoElementBounds';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
-import { BaseUIComponentProps, NativeButtonProps, type HTMLProps } from '../../utils/types';
+import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTimeout } from '../../utils/useTimeout';
 import { useSelectRootContext } from '../root/SelectRootContext';
@@ -55,6 +56,7 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
     setTouched,
     setFocused,
     validationMode,
+    dirty: fieldDirty,
     state: fieldState,
     disabled: fieldDisabled,
   } = useFieldRootContext();
@@ -66,7 +68,9 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
     validation,
     readOnly,
     required,
+    initialValueRef,
     alignItemWithTriggerActiveRef,
+    triggerPressedRef,
     disabled: selectDisabled,
     keyboardActiveRef,
   } = useSelectRootContext();
@@ -75,6 +79,7 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
 
   const open = store.useState('open');
   const value = store.useState('value');
+  const fieldRawValue = () => unwrap(value());
   const triggerProps = store.useState('triggerProps');
   const positionerElement = store.useState('positionerElement');
   const listElement = store.useState('listElement');
@@ -161,10 +166,14 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
         'aria-required': required() || undefined,
         tabIndex: disabled() ? -1 : 0,
         ref(el) {
-          if (typeof componentProps.ref === 'function') {
-            componentProps.ref(el);
-          } else {
-            componentProps.ref = el;
+          if (componentProps.ref) {
+            if (typeof componentProps.ref === 'function') {
+              componentProps.ref(el);
+            } else if (typeof componentProps.ref === 'object' && 'current' in componentProps.ref) {
+              componentProps.ref.current = el;
+            } else {
+              componentProps.ref = el;
+            }
           }
           triggerRef = el;
           buttonRef(el);
@@ -197,7 +206,7 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
           setFocused(false);
 
           if (validationMode() === 'onBlur') {
-            validation.commit(value());
+            validation.commit(fieldRawValue());
           }
         },
         onPointerMove() {
@@ -207,6 +216,15 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
           keyboardActiveRef.current = true;
         },
         onMouseDown(event: MouseEvent) {
+          // ––– AI-GENERATED FIX AND EXPLANATION –––
+          // React's open path keeps the trigger press and popup focus effects ordered by rerender.
+          // Solid needed a short-lived ref flag so popup/item logic can tell that an immediate
+          // open came from pressing the trigger, not from a stray click inside the list.
+          triggerPressedRef.current = true;
+          requestAnimationFrame(() => {
+            triggerPressedRef.current = false;
+          });
+
           if (open()) {
             return;
           }
@@ -261,6 +279,13 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
   const state: SelectTrigger.State = solidMergeProps(fieldState, {
     get disabled() {
       return disabled();
+    },
+    // ––– AI-GENERATED FIX AND EXPLANATION –––
+    // React field dirty state is recalculated from the latest render snapshot.
+    // In Solid we expose it as a getter and fold in Select's own current value so the trigger's
+    // state attributes stay correct even when field context and local selection update separately.
+    get dirty() {
+      return fieldDirty() || value() !== initialValueRef.current;
     },
     get open() {
       return open();

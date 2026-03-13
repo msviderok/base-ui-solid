@@ -48,13 +48,16 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     popupRef,
     onOpenChangeComplete,
     setOpen,
+    events,
     valueRef,
     selectedItemTextRef,
     keyboardActiveRef,
     multiple,
+    disabled,
     handleScrollArrowVisibility,
     scrollHandlerRef,
     highlightItemOnHover,
+    listRef,
   } = useSelectRootContext();
   const { side, align, alignItemWithTriggerActive, setControlledAlignItemWithTrigger } =
     useSelectPositionerContext();
@@ -73,13 +76,38 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
   const triggerElement = store.useState('triggerElement');
   const positionerElement = store.useState('positionerElement');
   const listElement = store.useState('listElement');
+  const openMethod = store.useState('openMethod');
+  const activeIndex = store.useState('activeIndex');
+  const selectedIndex = store.useState('selectedIndex');
 
   let initialHeightRef = 0;
   let reachedMaxHeightRef = false;
   let initialPlacedRef = false;
   let originalPositionerStylesRef = {} as JSX.CSSProperties;
+  let previousOpenRef = open();
+  let previouslyFocusedElementRef: Element | null = null;
+  let closeTypeRef: InteractionType = '';
 
   const scrollArrowFrame = useAnimationFrame();
+
+  // ––– AI-GENERATED FIX AND EXPLANATION –––
+  // React relies more on rerender ordering plus FloatingFocusManager defaults to land on the
+  // right item after open. In Solid, popup/list item mounting can lag by a microtask, so we
+  // decide explicitly when opening should auto-highlight and which item should receive focus.
+  const shouldAutoHighlightOnOpen = () => {
+    if (selectedIndex() != null && selectedIndex() !== -1) {
+      return true;
+    }
+
+    if (openMethod() === 'keyboard') {
+      return true;
+    }
+
+    const trigger = triggerElement();
+    return (
+      trigger != null && openMethod() == null && ownerDocument(trigger).activeElement === trigger
+    );
+  };
 
   const handleScroll = (scroller: HTMLDivElement) => {
     const positionerEl = positionerElement();
@@ -200,9 +228,22 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     scrollHandlerRef.current = handleScroll;
   });
 
+  onMount(() => {
+    const handleOpenChange = (details: { open: boolean; nativeEvent: Event }) => {
+      if (!details.open) {
+        closeTypeRef = getInteractionType(details.nativeEvent);
+      }
+    };
+
+    events.on('openchange', handleOpenChange);
+    onCleanup(() => {
+      events.off('openchange', handleOpenChange);
+    });
+  });
+
   useOpenChangeComplete({
     open,
-    ref: popupRef.current,
+    ref: () => popupRef.current,
     onComplete() {
       if (open()) {
         onOpenChangeComplete?.(true);
@@ -254,6 +295,20 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     initialHeightRef = 0;
 
     clearStyles(positionerElement(), originalPositionerStylesRef);
+  });
+
+  createEffect(() => {
+    if (!open()) {
+      return;
+    }
+
+    const trigger = triggerElement();
+    const doc = ownerDocument(trigger ?? popupRef.current ?? null);
+    const activeEl = doc.activeElement;
+
+    if (activeEl && activeEl !== doc.body) {
+      previouslyFocusedElementRef = activeEl;
+    }
   });
 
   createEffect(() => {
@@ -432,6 +487,181 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     });
   });
 
+  const getInitialFocus = () => {
+    const items = listRef.current;
+    const shouldAutoHighlight = shouldAutoHighlightOnOpen();
+    let nextIndex = activeIndex() ?? selectedIndex();
+
+    if (shouldAutoHighlight && (nextIndex == null || nextIndex === -1)) {
+      nextIndex = items.findIndex((item) => {
+        if (!item) {
+          return false;
+        }
+
+        return !item.hasAttribute('disabled') && item.getAttribute('aria-disabled') !== 'true';
+      });
+    }
+
+    if (shouldAutoHighlight && nextIndex != null && nextIndex !== -1) {
+      // ––– AI-GENERATED FIX AND EXPLANATION –––
+      // React usually reaches the "initial focus" step after the selected/highlighted item has
+      // already been reconciled for the new open state. In Solid, this callback can run while the
+      // popup has mounted but the option registration/highlight DOM state is still settling.
+      //
+      // We only seed `activeIndex` here, and we defer that store write by one microtask so the
+      // list items, refs, and tabbable structure exist before later focus logic reads them.
+      // The actual DOM focus move happens in the separate open effect below once that state is live.
+      queueMicrotask(() => {
+        if (open()) {
+          store.set('activeIndex', nextIndex!);
+        }
+      });
+    }
+
+    return popupRef.current ?? true;
+  };
+
+  createEffect(() => {
+    if (!open()) {
+      return;
+    }
+
+    // ––– AI-GENERATED FIX AND EXPLANATION –––
+    // This is the second half of the open-focus handoff. The earlier microtask in
+    // `getInitialFocus()` only chooses the highlighted item; this one waits one more turn so the
+    // resulting `activeIndex`, item `tabIndex`, and popup refs are all reflected in the DOM before
+    // we call `.focus()`.
+    //
+    // React's layout-effect ordering tends to make that sequencing happen in one pass. In Solid we
+    // make it explicit so the popup can first focus its container if needed, then move focus to the
+    // resolved item without racing unmounted or not-yet-highlighted options.
+    queueMicrotask(() => {
+      if (!open()) {
+        return;
+      }
+
+      const items = listRef.current;
+      const shouldAutoHighlight = shouldAutoHighlightOnOpen();
+      let nextIndex = activeIndex() ?? selectedIndex();
+
+      if (shouldAutoHighlight && (nextIndex == null || nextIndex === -1)) {
+        nextIndex = items.findIndex((item) => {
+          if (!item) {
+            return false;
+          }
+
+          return !item.hasAttribute('disabled') && item.getAttribute('aria-disabled') !== 'true';
+        });
+
+        if (nextIndex !== -1) {
+          store.set('activeIndex', nextIndex);
+        }
+      } else if (shouldAutoHighlight && activeIndex() == null) {
+        store.set('activeIndex', nextIndex);
+      }
+
+      const nextItem =
+        shouldAutoHighlight && nextIndex != null && nextIndex !== -1 ? items[nextIndex] : null;
+      const shouldDelayItemFocus = shouldAutoHighlight && activeIndex() == null;
+
+      if (nextItem && nextItem !== document.activeElement) {
+        if (
+          shouldDelayItemFocus &&
+          popupRef.current &&
+          popupRef.current !== document.activeElement
+        ) {
+          popupRef.current.focus({ preventScroll: true });
+          setTimeout(() => {
+            if (open()) {
+              nextItem.focus({ preventScroll: true });
+            }
+          }, 0);
+          return;
+        }
+
+        nextItem.focus({ preventScroll: true });
+        return;
+      }
+
+      if (popupRef.current && popupRef.current !== document.activeElement) {
+        popupRef.current.focus({ preventScroll: true });
+      }
+    });
+  });
+
+  createEffect(() => {
+    const isOpen = open();
+
+    if (previousOpenRef && !isOpen) {
+      // ––– AI-GENERATED FIX AND EXPLANATION –––
+      // React's focus manager restores `finalFocus` during its normal close lifecycle. In this
+      // Solid port, Select can stay mounted after `open` flips to `false`, so the shared manager
+      // cleanup may run too late to catch the element that still owns focus.
+      //
+      // The microtask waits for the close-triggering event to finish first: item click / Escape
+      // handling, `open=false`, hidden-state attributes, and any competing focus moves all settle
+      // before we inspect `document.activeElement`.
+      //
+      // After that settles, this fallback does three things:
+      // 1. If focus already escaped outside the popup/positioner, do nothing and respect that move.
+      // 2. If focus is still stranded inside the closed popup tree, resolve `finalFocus` using the
+      //    same contract React exposes: omitted => default behavior, `false`/`undefined` => no-op,
+      //    `null`/`true` => trigger or previously focused element, function => evaluate with the
+      //    inferred close interaction type.
+      // 3. Focus the resolved element with `preventScroll`.
+      queueMicrotask(() => {
+        const trigger = triggerElement();
+        const doc = ownerDocument(trigger ?? popupRef.current ?? null);
+        const activeEl = doc.activeElement;
+        const popup = popupRef.current;
+        const positioner = positionerElement();
+
+        if (
+          activeEl &&
+          activeEl !== doc.body &&
+          activeEl !== popup &&
+          !popup?.contains(activeEl) &&
+          !positioner?.contains(activeEl)
+        ) {
+          return;
+        }
+
+        const fallbackCloseType =
+          closeTypeRef || openMethod() || (keyboardActiveRef.current ? 'keyboard' : 'mouse');
+        const finalFocusProp = local.finalFocus;
+        let resolvedFinalFocus =
+          typeof finalFocusProp === 'function' ? finalFocusProp(fallbackCloseType) : finalFocusProp;
+
+        if (finalFocusProp === undefined) {
+          resolvedFinalFocus = true;
+        }
+
+        if (resolvedFinalFocus === undefined || resolvedFinalFocus === false) {
+          return;
+        }
+
+        if (resolvedFinalFocus === null || resolvedFinalFocus === true) {
+          resolvedFinalFocus =
+            (trigger && trigger.isConnected ? trigger : null) ??
+            (previouslyFocusedElementRef instanceof HTMLElement &&
+            previouslyFocusedElementRef.isConnected
+              ? previouslyFocusedElementRef
+              : null);
+        }
+
+        if (resolvedFinalFocus instanceof HTMLElement) {
+          resolvedFinalFocus.focus({ preventScroll: true });
+        }
+      });
+    }
+
+    if (isOpen) {
+      closeTypeRef = '';
+    }
+
+    previousOpenRef = isOpen;
+  });
+
   const defaultProps: HTMLProps = {
     get role() {
       return listElement() ? 'presentation' : 'listbox';
@@ -453,7 +683,12 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
       keyboardActiveRef.current = false;
     },
     onPointerLeave(event) {
-      if (!highlightItemOnHover() || isMouseWithinBounds(event) || event.pointerType === 'touch') {
+      if (
+        disabled() ||
+        !highlightItemOnHover() ||
+        isMouseWithinBounds(event) ||
+        event.pointerType === 'touch'
+      ) {
         return;
       }
 
@@ -463,6 +698,26 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
         store.set('activeIndex', null);
         popup.focus({ preventScroll: true });
       });
+    },
+    onBlur(event) {
+      const relatedTarget = event.relatedTarget as Element | null;
+      const popup = event.currentTarget;
+      const trigger = triggerElement();
+
+      // ––– AI-GENERATED FIX AND EXPLANATION –––
+      // React reaches the same behavior through its blur/focus-manager interplay.
+      // In Solid we guard the trigger <-> popup hop manually so only a real focus-out closes
+      // the listbox, not the internal movement that happens while opening or selecting.
+      if (
+        relatedTarget &&
+        (popup.contains(relatedTarget) ||
+          trigger?.contains(relatedTarget) ||
+          relatedTarget === trigger)
+      ) {
+        return;
+      }
+
+      setOpen(false, createChangeEventDetails(REASONS.focusOut, event));
     },
     onScroll(event) {
       if (listElement()) {
@@ -507,6 +762,8 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     <>
       <FloatingFocusManager
         context={floatingRootContext}
+        openInteractionType={openMethod()}
+        initialFocus={getInitialFocus}
         modal={false}
         disabled={!mounted()}
         returnFocus={local.finalFocus}
@@ -549,6 +806,22 @@ export interface SelectPopupState {
 export namespace SelectPopup {
   export type Props = SelectPopupProps;
   export type State = SelectPopupState;
+}
+
+function getInteractionType(event: Event): InteractionType {
+  if (typeof KeyboardEvent !== 'undefined' && event instanceof KeyboardEvent) {
+    return 'keyboard';
+  }
+
+  if (typeof PointerEvent !== 'undefined' && event instanceof PointerEvent && event.pointerType) {
+    return event.pointerType as InteractionType;
+  }
+
+  if (typeof MouseEvent !== 'undefined' && event instanceof MouseEvent) {
+    return 'mouse';
+  }
+
+  return event.type.startsWith('key') ? 'keyboard' : '';
 }
 
 function getMaxPopupHeight(popupStyles: CSSStyleDeclaration) {

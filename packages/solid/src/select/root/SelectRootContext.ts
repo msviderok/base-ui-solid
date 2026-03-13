@@ -1,5 +1,4 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
-import type { SetStoreFunction, Store } from 'solid-js/store';
 import type { UseFieldValidationReturnValue } from '../../field/root/useFieldValidation';
 import { type FloatingEvents, type FloatingRootContext } from '../../floating-ui-solid';
 import type { ReactLikeRef } from '../../solid-helpers';
@@ -8,12 +7,7 @@ import type { SelectStore } from '../store';
 import type { SelectRoot } from './SelectRoot';
 
 export interface SelectRootContext {
-  store: Store<SelectStore>;
-  setStore: SetStoreFunction<SelectStore>;
-  selectors: {
-    isActive: (index: number) => boolean;
-    isSelected: (data: [index: number, value: any]) => boolean;
-  };
+  store: SelectStore;
   name: Accessor<string | undefined>;
   disabled: Accessor<boolean>;
   readOnly: Accessor<boolean>;
@@ -45,6 +39,11 @@ export interface SelectRootContext {
   keyboardActiveRef: ReactLikeRef<boolean>;
   alignItemWithTriggerActiveRef: ReactLikeRef<boolean>;
   initialValueRef: ReactLikeRef<any>;
+  // ––– AI-GENERATED FIX AND EXPLANATION –––
+  // React's trigger and popup stay aligned through rerender timing during open.
+  // Solid needed an explicit ref bridge because popup focus effects can run after the trigger
+  // event turn, and some open/selection guards need to know a trigger press just happened.
+  triggerPressedRef: ReactLikeRef<boolean>;
 }
 
 export const SelectRootContext = createContext<SelectRootContext | null>(null);

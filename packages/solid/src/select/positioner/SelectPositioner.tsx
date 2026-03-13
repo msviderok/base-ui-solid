@@ -111,7 +111,9 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
 
   const positioning = useAnchorPositioning({
     anchor: () => local.anchor,
-    floatingRootContext,
+    get floatingRootContext() {
+      return floatingRootContext;
+    },
     positionMethod,
     mounted,
     side,

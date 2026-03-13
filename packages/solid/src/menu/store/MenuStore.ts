@@ -50,7 +50,7 @@ const selectors = {
   ...popupStoreSelectors,
   disabled: (state: State<unknown>) =>
     state.context.parent.type === 'menubar'
-      ? state.context.parent.context.disabled || state.disabled
+      ? state.context.parent.context.disabled() || state.disabled
       : state.disabled,
 
   modal: (state: State<unknown>) =>

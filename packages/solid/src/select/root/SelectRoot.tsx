@@ -1,4 +1,5 @@
 import { createEffect, createMemo, For, on, onMount, Show, type JSX } from 'solid-js';
+import { unwrap } from 'solid-js/store';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useField } from '../../field/useField';
 import {
@@ -18,7 +19,7 @@ import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
 } from '../../utils/createBaseUIEventDetails';
-import { defaultItemEquality, findItemIndex } from '../../utils/itemEquality';
+import { compareItemEquality, defaultItemEquality, findItemIndex } from '../../utils/itemEquality';
 import { REASONS } from '../../utils/reasons';
 import { stringifyAsValue } from '../../utils/resolveValueLabel';
 import { SolidStore } from '../../utils/store/SolidStoreV2';
@@ -75,9 +76,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   const [value, setValueUnwrapped] = useControlled({
     controlled: valueProp,
     default: () =>
-      multiple()
-        ? (defaultValue() ?? (EMPTY_ARRAY as ReturnType<typeof defaultValue>))
-        : defaultValue(),
+      multiple() ? (defaultValue() ?? ([] as ReturnType<typeof defaultValue>)) : defaultValue(),
     name: 'Select',
     state: 'value',
   });
@@ -104,6 +103,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     allowUnselectedMouseUp: false,
   });
   const alignItemWithTriggerActiveRef = useRef(false);
+  const triggerPressedRef = useRef(false);
 
   const { mounted, setMounted, transitionStatus } = useTransitionStatus(open);
   const {
@@ -112,47 +112,55 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     reset: resetOpenInteractionType,
   } = useOpenInteractionType(open);
 
-  const store = SolidStore<StoreState, SelectRootContext, typeof selectors>({
-    get id() {
-      return generatedId();
+  const store = SolidStore<StoreState, Record<string, never>, typeof selectors>(
+    {
+      get id() {
+        return generatedId();
+      },
+      get modal() {
+        return modal();
+      },
+      get multiple() {
+        return multiple();
+      },
+      get itemToStringLabel() {
+        return props.itemToStringLabel;
+      },
+      get itemToStringValue() {
+        return props.itemToStringValue;
+      },
+      isItemEqualToValue,
+      get value() {
+        return value();
+      },
+      get open() {
+        return open();
+      },
+      get mounted() {
+        return mounted();
+      },
+      get transitionStatus() {
+        return transitionStatus();
+      },
+      get items() {
+        return props.items;
+      },
+      forceMount: false,
+      openMethod: null,
+      activeIndex: null,
+      selectedIndex: null,
+      popupProps: {},
+      triggerProps: {},
+      triggerElement: null,
+      positionerElement: null,
+      listElement: null,
+      scrollUpArrowVisible: false,
+      scrollDownArrowVisible: false,
+      hasScrollArrows: false,
     },
-    get modal() {
-      return modal();
-    },
-    get multiple() {
-      return multiple();
-    },
-    itemToStringLabel: props.itemToStringLabel,
-    itemToStringValue: props.itemToStringValue,
-    isItemEqualToValue,
-    get value() {
-      return value();
-    },
-    get open() {
-      return open();
-    },
-    get mounted() {
-      return mounted();
-    },
-    get transitionStatus() {
-      return transitionStatus();
-    },
-    get items() {
-      return props.items;
-    },
-    forceMount: false,
-    openMethod: null,
-    activeIndex: null,
-    selectedIndex: null,
-    popupProps: {},
-    triggerProps: {},
-    triggerElement: null,
-    positionerElement: null,
-    listElement: null,
-    scrollUpArrowVisible: false,
-    scrollDownArrowVisible: false,
-    hasScrollArrows: false,
-  });
+    {},
+    selectors,
+  );
 
   const activeIndex = store.useState('activeIndex');
   const selectedIndex = store.useState('selectedIndex');
@@ -175,10 +183,16 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     return stringifyAsValue(val, props.itemToStringValue);
   });
 
+  // ––– AI-GENERATED FIX AND EXPLANATION –––
+  // React validation receives the raw selected value directly from state.
+  // In Solid, values can cross signal/store boundaries as proxies, so we unwrap them before
+  // validation and autofill bookkeeping to keep equality checks and field serialization stable.
+  const fieldRawValue = createMemo(() => unwrap(value()));
+
   useField({
     id: generatedId,
     commit: validation.commit,
-    value,
+    value: fieldRawValue,
     controlRef: () => store.state.triggerElement,
     name,
     getValue: fieldStringValue,
@@ -189,6 +203,16 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     // Ensure the values and labels are registered for programmatic value changes.
     if (value() !== initialValueRef.current) {
       store.set('forceMount', true);
+    }
+  });
+
+  createEffect(() => {
+    // ––– AI-GENERATED FIX AND EXPLANATION –––
+    // React naturally clears this bookkeeping as the popup rerenders around a null single value.
+    // In Solid, the previous selected index can survive longer because setup does not rerun,
+    // so we clear it explicitly when an empty single-select opens.
+    if (open() && !multiple() && value() == null) {
+      store.set('selectedIndex', null);
     }
   });
 
@@ -223,17 +247,29 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   });
 
   createEffect(
-    on(value, () => {
-      clearErrors(name());
-      setDirty(value() !== validityData.initialValue);
+    on(
+      value,
+      () => {
+        clearErrors(name());
+        setDirty(value() !== initialValueRef.current);
 
-      if (shouldValidateOnChange()) {
-        validation.commit(value());
-      } else {
-        validation.commit(value(), true);
-      }
-    }),
+        if (shouldValidateOnChange()) {
+          validation.commit(fieldRawValue());
+        } else {
+          validation.commit(fieldRawValue(), true);
+        }
+      },
+      { defer: true },
+    ),
   );
+
+  const handleUnmount = () => {
+    setOpenUnwrapped(false);
+    setMounted(false);
+    store.set('activeIndex', null);
+    resetOpenInteractionType();
+    props.onOpenChangeComplete?.(false);
+  };
 
   const setOpen = (nextOpen: boolean, eventDetails: SelectRoot.ChangeEventDetails) => {
     props.onOpenChange?.(nextOpen, eventDetails);
@@ -252,7 +288,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
       setFocused(false);
 
       if (validationMode() === 'onBlur') {
-        validation.commit(value());
+        validation.commit(fieldRawValue());
       }
     }
 
@@ -269,13 +305,15 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
         activeOption?.setAttribute('tabindex', '-1');
       });
     }
-  };
 
-  const handleUnmount = () => {
-    setMounted(false);
-    store.set('activeIndex', null);
-    resetOpenInteractionType();
-    props.onOpenChangeComplete?.(false);
+    if (!nextOpen && !props.actionsRef && popupRef.current == null) {
+      // ––– AI-GENERATED FIX AND EXPLANATION –––
+      // The normal close path waits for the popup element to finish its exit transition before
+      // clearing `mounted`. In this composition there is no `<Select.Popup>`, so no popup ref ever
+      // exists and the completion hook has nothing to observe. We fall back to the same unmount
+      // cleanup immediately instead of leaving the positioner mounted forever.
+      handleUnmount();
+    }
   };
 
   useOpenChangeComplete({
@@ -303,6 +341,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     }
 
     setValueUnwrapped(nextValue);
+    setDirty(nextValue !== initialValueRef.current);
   };
 
   const handleScrollArrowVisibility = () => {
@@ -342,7 +381,9 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   });
 
   const click = useClick({
-    context: floatingContext,
+    get context() {
+      return floatingContext;
+    },
     props: {
       get enabled() {
         return !readOnly() && !disabled();
@@ -352,14 +393,18 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   });
 
   const dismiss = useDismiss({
-    context: floatingContext,
+    get context() {
+      return floatingContext;
+    },
     props: {
       bubbles: false,
     },
   });
 
   const listNavigation = useListNavigation({
-    context: floatingContext,
+    get context() {
+      return floatingContext;
+    },
     props: {
       get enabled() {
         return !readOnly() && !disabled();
@@ -389,7 +434,9 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   });
 
   const typeahead = useTypeahead({
-    context: floatingContext,
+    get context() {
+      return floatingContext;
+    },
     props: {
       get enabled() {
         return !readOnly() && !disabled() && (open() || !multiple());
@@ -467,8 +514,12 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     readOnly,
     multiple,
     // @ts-expect-error TODO: fix this
-    itemToStringLabel: props.itemToStringLabel,
-    itemToStringValue: props.itemToStringValue,
+    get itemToStringLabel() {
+      return props.itemToStringLabel;
+    },
+    get itemToStringValue() {
+      return props.itemToStringValue;
+    },
     highlightItemOnHover,
     setValue,
     setOpen,
@@ -486,10 +537,13 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     selectionRef,
     selectedItemTextRef,
     validation,
-    onOpenChangeComplete: props.onOpenChangeComplete,
+    get onOpenChangeComplete() {
+      return props.onOpenChangeComplete;
+    },
     keyboardActiveRef,
     alignItemWithTriggerActiveRef,
     initialValueRef,
+    triggerPressedRef,
   };
 
   const hasMultipleSelection = () => {
@@ -537,7 +591,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
                 });
 
                 if (matchingValue != null) {
-                  setDirty(matchingValue !== validityData.initialValue);
+                  setDirty(matchingValue !== initialValueRef.current);
                   setValue(matchingValue, details);
 
                   if (shouldValidateOnChange()) {
@@ -564,7 +618,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
           }}
           style={name() ? visuallyHiddenInput : visuallyHidden}
           tabIndex={-1}
-          aria-hidden
+          aria-hidden="true"
         />
 
         {/* hidden inputs */}

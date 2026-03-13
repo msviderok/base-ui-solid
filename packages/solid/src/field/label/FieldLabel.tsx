@@ -43,11 +43,22 @@ export function FieldLabel(componentProps: FieldLabel.Props) {
     }
 
     const controlIdValue = controlId();
-    if (nativeLabel() || !controlIdValue) {
+    if (!controlIdValue) {
       return;
     }
 
     const controlElement = ownerDocument(event.currentTarget as any).getElementById(controlIdValue);
+    if (nativeLabel()) {
+      if (isHTMLElement(controlElement) && controlElement.getAttribute('role') === 'combobox') {
+        setTimeout(() => {
+          const popupId =
+            controlElement.getAttribute('aria-controls') || `${controlElement.id}-list`;
+          ownerDocument(controlElement).getElementById(popupId)?.focus();
+        }, 0);
+      }
+      return;
+    }
+
     if (isHTMLElement(controlElement)) {
       controlElement.focus({
         // Available from Chrome 144+ (January 2026).

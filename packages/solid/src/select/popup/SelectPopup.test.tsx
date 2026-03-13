@@ -89,7 +89,7 @@ describe('<Select.Popup />', () => {
   });
 
   it('restores transform-related inline styles after measurement', async () => {
-    let popupElement: HTMLElement | null = null;
+    let popupElement: HTMLElement | null | undefined;
 
     render(() => (
       <Select.Root open>
@@ -324,6 +324,35 @@ describe('<Select.Popup />', () => {
 
       await waitFor(() => {
         expect(trigger).toHaveFocus();
+      });
+    });
+
+    it('passes the keyboard interaction type to finalFocus when closed with Escape', async () => {
+      let closeType: string | undefined;
+
+      const { user } = render(() => (
+        <Select.Root>
+          <Select.Trigger data-testid="trigger">Open</Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup
+                finalFocus={(interactionType) => {
+                  closeType = interactionType;
+                  return false;
+                }}
+              >
+                <Select.Item value="1">Item 1</Select.Item>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      ));
+
+      await user.click(screen.getByTestId('trigger'));
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(closeType).to.equal('keyboard');
       });
     });
   });

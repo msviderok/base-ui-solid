@@ -112,7 +112,7 @@ export function SolidStore<
     key: Key,
     ...args: SelectorArgs<Selectors[Key]>
   ): ReturnType<Selectors[Key]> {
-    return access(selectors![key](state, ...args));
+    return selectors![key](state, ...args);
   }
 
   function useState<Key extends keyof Selectors>(
@@ -120,7 +120,7 @@ export function SolidStore<
     ...args: SelectorArgs<Selectors[Key]>
   ): Accessor<MaybeAccessorValue<ReturnType<Selectors[Key]>>> {
     if (selectors && key in selectors) {
-      return () => access(selectors![key](state, ...args));
+      return () => selectors![key](state, ...args);
     }
 
     // eslint-disable-next-line solid/reactivity

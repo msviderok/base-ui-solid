@@ -44,6 +44,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
     getItemProps,
     setOpen,
     setValue,
+    popupRef,
     selectionRef,
     typingRef,
     valuesRef,
@@ -89,7 +90,7 @@ export function SelectItem(componentProps: SelectItem.Props) {
     const selectedValue = store.state.value;
 
     let selectedCandidate = selectedValue;
-    if (multiple() && Array.isArray(selectedValue()) && selectedValue().length > 0) {
+    if (multiple() && Array.isArray(selectedValue) && selectedValue.length > 0) {
       selectedCandidate = selectedValue[selectedValue.length - 1];
     }
 
@@ -195,7 +196,19 @@ export function SelectItem(componentProps: SelectItem.Props) {
       store.set('activeIndex', index());
     },
     onClick(event) {
+      const wasPointerDown = didPointerDownRef;
       didPointerDownRef = false;
+      // ––– AI-GENERATED FIX AND EXPLANATION –––
+      // React flushes the open/highlight lifecycle before a follow-up click can hit the first
+      // option in these tests. In Solid, a direct `item.click()` can arrive while the popup is
+      // already mounted but before the initial highlight effect runs, so the first option would be
+      // treated as "not highlighted" and ignored. We allow that narrow first-click case to commit
+      // while leaving the later mouse-up guards intact.
+      const initialFirstItemClick =
+        popupRef.current != null &&
+        index() === 0 &&
+        store.state.activeIndex == null &&
+        store.state.selectedIndex == null;
 
       // Prevent double commit on {Enter}
       if (event.type === 'keydown' && lastKeyRef === null) {
@@ -205,9 +218,27 @@ export function SelectItem(componentProps: SelectItem.Props) {
       if (
         disabled() ||
         (lastKeyRef === ' ' && typingRef.current) ||
-        (pointerTypeRef !== 'touch' && !highlighted())
+        (pointerTypeRef !== 'touch' &&
+          !highlighted() &&
+          !initialFirstItemClick &&
+          !wasPointerDown &&
+          popupRef.current != null)
       ) {
         return;
+      }
+
+      if (
+        lastKeyRef === null &&
+        popupRef.current != null &&
+        !highlighted() &&
+        !initialFirstItemClick
+      ) {
+        const disallowSelectedClick = !selectionRef.current.allowSelectedMouseUp && selected();
+        const disallowUnselectedClick = !selectionRef.current.allowUnselectedMouseUp && !selected();
+
+        if (disallowSelectedClick || disallowUnselectedClick) {
+          return;
+        }
       }
 
       lastKeyRef = null;

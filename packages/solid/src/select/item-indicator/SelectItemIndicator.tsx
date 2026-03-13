@@ -49,7 +49,6 @@ export function SelectItemIndicator(componentProps: SelectItemIndicator.Props) {
     ref: (el) => {
       indicatorRef = el;
     },
-    customStyleHookMapping: transitionStatusMapping,
     props: [{ 'aria-hidden': true }, elementProps],
     stateAttributesMapping: transitionStatusMapping,
     get children() {

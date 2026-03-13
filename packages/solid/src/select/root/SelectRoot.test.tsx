@@ -5,7 +5,7 @@ import { Select } from '@msviderok/base-ui-solid/select';
 import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { spy } from 'sinon';
-import { createSignal, For } from 'solid-js';
+import { createSignal, For, Show } from 'solid-js';
 import { expect } from 'vitest';
 
 describe('<Select.Root />', () => {
@@ -405,6 +405,38 @@ describe('<Select.Root />', () => {
 
       expect(handleValueChange.callCount).to.equal(1);
     });
+
+    it('should call onValueChange when the selected item is reselected', async () => {
+      const handleValueChange = spy();
+
+      const { user } = renderFakeTimers(() => (
+        <Select.Root value="a" onValueChange={handleValueChange}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Item value="a">a</Select.Item>
+                <Select.Item value="b">b</Select.Item>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      ));
+
+      const trigger = screen.getByTestId('trigger');
+
+      await user.click(trigger);
+      await flushMicrotasks();
+
+      const option = screen.getByRole('option', { name: 'a' });
+      await clock.tickAsync(200);
+      await user.click(option);
+
+      expect(handleValueChange.callCount).to.equal(1);
+      expect(handleValueChange.args[0][0]).to.equal('a');
+    });
   });
 
   describe('prop: defaultOpen', () => {
@@ -548,7 +580,7 @@ describe('<Select.Root />', () => {
       hidden: true,
     });
     expect(selectInput).to.have.attribute('name', 'select');
-    fireEvent.change(selectInput, { target: { value: 'b' } });
+    fireEvent.input(selectInput, { target: { value: 'b' } });
     await flushMicrotasks();
 
     await user.click(trigger);
@@ -611,7 +643,7 @@ describe('<Select.Root />', () => {
       hidden: true,
     });
     expect(selectInput).to.have.attribute('name', 'country');
-    fireEvent.change(selectInput, { target: { value: 'CA' } });
+    fireEvent.input(selectInput, { target: { value: 'CA' } });
     await flushMicrotasks();
 
     await user.click(trigger);
@@ -2060,13 +2092,11 @@ describe('<Select.Root />', () => {
               <Select.Positioner>
                 <Select.Popup>
                   <Select.Item>Add to Library</Select.Item>
-                  {!itemsFiltered() && (
-                    <>
-                      <Select.Item>Add to Playlist</Select.Item>
-                      <Select.Item>Play Next</Select.Item>
-                      <Select.Item>Play Last</Select.Item>
-                    </>
-                  )}
+                  <Show when={!itemsFiltered()}>
+                    <Select.Item>Add to Playlist</Select.Item>
+                    <Select.Item>Play Next</Select.Item>
+                    <Select.Item>Play Last</Select.Item>
+                  </Show>
                   <Select.Item>Favorite</Select.Item>
                   <Select.Item>Share</Select.Item>
                 </Select.Popup>

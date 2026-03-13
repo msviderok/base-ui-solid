@@ -1,8 +1,8 @@
-import { batch, createMemo, createSignal, onCleanup, onMount, type JSX } from 'solid-js';
+import { batch, createMemo, createSignal, type JSX } from 'solid-js';
 import { useCSPContext } from '../../csp-provider/CSPContext';
 import { contains } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
-import { STYLE_TAG_ID, styleDisableScrollbar, useStyleDisableScrollbar } from '../../utils/styles';
+import { useStyleDisableScrollbar } from '../../utils/styles';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';

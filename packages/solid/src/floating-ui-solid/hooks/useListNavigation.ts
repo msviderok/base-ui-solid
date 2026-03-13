@@ -7,7 +7,7 @@ import {
   mergeProps as solidMergeProps,
   type JSX,
 } from 'solid-js';
-import { access, defaultProps } from '../../solid-helpers';
+import { access, defaultProps, useRef } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { useFloatingParentNodeId, useFloatingTree } from '../components/FloatingTree';
@@ -262,7 +262,6 @@ export function useListNavigation(parameters: {
   });
   const activeIndex = () => parameters.props.activeIndex;
   const hasMountedList = () => props.listRef.some((item) => item != null);
-  const isMounted = () => !!floatingElement() || hasMountedList();
 
   if (process.env.NODE_ENV !== 'production') {
     createEffect(() => {
@@ -286,11 +285,12 @@ export function useListNavigation(parameters: {
   }
 
   const floatingFocusElement = () => getFloatingFocusElement(floatingElement());
+  const floatingFocusElementRef = useRef<HTMLElement | null>(floatingFocusElement());
 
   const parentId = useFloatingParentNodeId();
   const tree = useFloatingTree(props.externalTree);
 
-  createEffect(() => {
+  createRenderEffect(() => {
     dataRef().orientation = props.orientation;
   });
 
@@ -300,42 +300,47 @@ export function useListNavigation(parameters: {
    */
   const typeableComboboxReference = createMemo(() => isTypeableCombobox(domReferenceElement()));
 
-  let focusItemOnOpenRef = props.focusItemOnOpen;
-  let indexRef = props.selectedIndex ?? -1;
-  let keyRef: null | string = null;
-  let isPointerModalityRef = true;
+  const focusItemOnOpenRef = useRef(props.focusItemOnOpen);
+  const indexRef = useRef(props.selectedIndex ?? -1);
+  const keyRef = useRef<null | string>(null);
+  const isPointerModalityRef = useRef(true);
 
   const onNavigate = (event?: Event) => {
-    props.onNavigate?.(indexRef === -1 ? null : indexRef, event);
+    props.onNavigate?.(indexRef.current === -1 ? null : indexRef.current, event);
   };
 
-  let forceSyncFocusRef = false;
-  let forceScrollIntoViewRef = false;
-  let previousMountedRef = false;
-  let previousOpenRef = false;
+  const forceSyncFocusRef = useRef(false);
+  const isMounted = () => !!floatingElement() || hasMountedList();
+  const forceScrollIntoViewRef = useRef(false);
+  const previousMountedRef = useRef(false);
+  const previousOpenRef = useRef(false);
+  const previousOnNavigateRef = useRef(onNavigate);
+  const disabledIndicesRef = useRef(props.disabledIndices);
+  const selectedIndexRef = useRef(props.selectedIndex);
+  const resetOnPointerLeaveRef = useRef(props.resetOnPointerLeave);
 
   function runFocus(item: HTMLElement) {
     if (props.virtual) {
       tree?.events.emit('virtualfocus', item);
     } else {
       enqueueFocus(item, {
-        sync: forceSyncFocusRef,
+        sync: forceSyncFocusRef.current,
         preventScroll: true,
       });
     }
   }
 
   const focusItem = () => {
-    const initialItem = props.listRef?.[indexRef];
-    const forceScrollIntoView = forceScrollIntoViewRef;
+    const initialItem = props.listRef[indexRef.current];
+    const forceScrollIntoView = forceScrollIntoViewRef.current;
     if (initialItem) {
       runFocus(initialItem);
     }
 
-    const scheduler = forceSyncFocusRef ? (v: () => void) => v() : requestAnimationFrame;
+    const scheduler = forceSyncFocusRef.current ? (v: () => void) => v() : requestAnimationFrame;
 
     scheduler(() => {
-      const waitedItem = props.listRef?.[indexRef] || initialItem;
+      const waitedItem = props.listRef[indexRef.current] || initialItem;
 
       if (!waitedItem) {
         return;
@@ -346,8 +351,7 @@ export function useListNavigation(parameters: {
       }
 
       const shouldScrollIntoView =
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        item && (forceScrollIntoView || !isPointerModalityRef);
+        waitedItem && (forceScrollIntoView || !isPointerModalityRef.current);
 
       if (shouldScrollIntoView) {
         // JSDOM doesn't support `.scrollIntoView()` but it's widely supported
@@ -366,16 +370,16 @@ export function useListNavigation(parameters: {
 
     if (open() && isMounted()) {
       const selected = props.selectedIndex;
-      indexRef = selected ?? -1;
-      if (focusItemOnOpenRef && selected != null) {
+      indexRef.current = selected ?? -1;
+      if (focusItemOnOpenRef.current && selected != null) {
         // Regardless of the pointer modality, we want to ensure the selected
         // item comes into view when the floating element is opened.
-        forceScrollIntoViewRef = true;
+        forceScrollIntoViewRef.current = true;
         onNavigate();
       }
-    } else if (previousMountedRef) {
-      indexRef = -1;
-      onNavigate();
+    } else if (previousMountedRef.current) {
+      indexRef.current = -1;
+      previousOnNavigateRef.current();
     }
   });
 
@@ -387,7 +391,7 @@ export function useListNavigation(parameters: {
     }
 
     if (!open()) {
-      forceSyncFocusRef = false;
+      forceSyncFocusRef.current = false;
       return;
     }
 
@@ -397,23 +401,23 @@ export function useListNavigation(parameters: {
 
     const idx = activeIndex();
     if (idx == null) {
-      forceSyncFocusRef = false;
+      forceSyncFocusRef.current = false;
 
-      if (props.selectedIndex != null) {
+      if (selectedIndexRef.current != null) {
         return;
       }
 
       // Reset while the floating element was open (e.g. the list changed).
-      if (previousMountedRef) {
-        indexRef = -1;
+      if (previousMountedRef.current) {
+        indexRef.current = -1;
         focusItem();
       }
 
       // Initial sync.
       if (
-        (!previousOpenRef || !previousMountedRef) &&
-        focusItemOnOpenRef &&
-        (keyRef != null || (focusItemOnOpenRef === true && keyRef == null))
+        (!previousOpenRef.current || !previousMountedRef.current) &&
+        focusItemOnOpenRef.current &&
+        (keyRef.current != null || (focusItemOnOpenRef.current === true && keyRef.current == null))
       ) {
         let runs = 0;
         const maxRuns = 10;
@@ -421,7 +425,7 @@ export function useListNavigation(parameters: {
         const rtlResolved = props.rtl;
         const nestedResolved = props.nested;
         const waitForListPopulated = () => {
-          if (props.listRef?.[0] == null) {
+          if (props.listRef[0] == null) {
             // Avoid letting the browser paint if possible on the first try,
             // otherwise use rAF.
             if (runs < maxRuns) {
@@ -431,15 +435,15 @@ export function useListNavigation(parameters: {
             runs += 1;
           } else {
             // Keep initial keyboard-open focus in the same task.
-            forceSyncFocusRef = true;
+            forceSyncFocusRef.current = true;
             // initially focus the first non-disabled item
-            indexRef =
-              keyRef == null ||
-              isMainOrientationToEndKey(keyRef, orientationResolved, rtlResolved) ||
+            indexRef.current =
+              keyRef.current == null ||
+              isMainOrientationToEndKey(keyRef.current, orientationResolved, rtlResolved) ||
               nestedResolved
                 ? getMinListIndex(props.listRef)
                 : getMaxListIndex(props.listRef);
-            keyRef = null;
+            keyRef.current = null;
             onNavigate();
           }
         };
@@ -447,16 +451,23 @@ export function useListNavigation(parameters: {
         waitForListPopulated();
       }
     } else if (!isIndexOutOfListBounds(props.listRef, idx)) {
-      indexRef = idx;
+      indexRef.current = idx;
       focusItem();
-      forceScrollIntoViewRef = false;
+      forceScrollIntoViewRef.current = false;
     }
   });
 
   // Ensure the parent floating element has focus when a nested child closes
   // to allow arrow key navigation to work after the pointer leaves the child.
   createEffect(() => {
-    if (!props.enabled || open() || isMounted() || !tree || props.virtual || !previousMountedRef) {
+    if (
+      !props.enabled ||
+      open() ||
+      isMounted() ||
+      !tree ||
+      props.virtual ||
+      !previousMountedRef.current
+    ) {
       return;
     }
 
@@ -468,20 +479,25 @@ export function useListNavigation(parameters: {
       (node) => node.context && contains(node.context.elements.floating(), activeEl),
     );
 
-    if (parent && !treeContainsActiveEl && isPointerModalityRef) {
+    if (parent && !treeContainsActiveEl && isPointerModalityRef.current) {
       parent.focus({ preventScroll: true });
     }
   });
 
   createEffect(() => {
-    previousOpenRef = open();
-    previousMountedRef = isMounted();
+    floatingFocusElementRef.current = floatingFocusElement();
+    previousOnNavigateRef.current = onNavigate;
+    previousOpenRef.current = open();
+    previousMountedRef.current = isMounted();
+    disabledIndicesRef.current = props.disabledIndices;
+    selectedIndexRef.current = props.selectedIndex;
+    resetOnPointerLeaveRef.current = props.resetOnPointerLeave;
   });
 
   createEffect(() => {
     if (!open()) {
-      keyRef = null;
-      focusItemOnOpenRef = props.focusItemOnOpen;
+      keyRef.current = null;
+      focusItemOnOpenRef.current = props.focusItemOnOpen;
     }
   });
 
@@ -492,31 +508,31 @@ export function useListNavigation(parameters: {
       return;
     }
     const index = props.listRef.indexOf(event.currentTarget as HTMLElement);
-    if (index !== -1 && indexRef !== index) {
-      indexRef = index;
+    if (index !== -1 && indexRef.current !== index) {
+      indexRef.current = index;
       onNavigate(event);
     }
   }
 
   const item: ElementProps['item'] = {
     onFocus(event) {
-      forceSyncFocusRef = true;
+      forceSyncFocusRef.current = true;
       syncCurrentTarget(event);
     },
     onClick: ({ currentTarget }) => currentTarget.focus({ preventScroll: true }), // Safari
     onMouseMove(event) {
-      forceSyncFocusRef = true;
-      forceScrollIntoViewRef = false;
+      forceSyncFocusRef.current = true;
+      forceScrollIntoViewRef.current = false;
       if (props.focusItemOnHover) {
         syncCurrentTarget(event);
       }
     },
     onPointerLeave(event) {
-      if (!open() || !isPointerModalityRef || event.pointerType === 'touch') {
+      if (!open() || !isPointerModalityRef.current || event.pointerType === 'touch') {
         return;
       }
 
-      forceSyncFocusRef = true;
+      forceSyncFocusRef.current = true;
 
       const relatedTarget = event.relatedTarget as HTMLElement | null;
 
@@ -524,16 +540,16 @@ export function useListNavigation(parameters: {
         return;
       }
 
-      if (!props.resetOnPointerLeave) {
+      if (!resetOnPointerLeaveRef.current) {
         return;
       }
 
       enqueueFocus(null, { sync: true });
-      indexRef = -1;
+      indexRef.current = -1;
       onNavigate(event);
 
       if (!props.virtual) {
-        floatingFocusElement()?.focus({ preventScroll: true });
+        floatingFocusElementRef.current?.focus({ preventScroll: true });
       }
     },
   };
@@ -551,9 +567,8 @@ export function useListNavigation(parameters: {
   };
 
   const commonOnKeyDown = (event: KeyboardEvent) => {
-    isPointerModalityRef = false;
-    forceSyncFocusRef = true;
-
+    isPointerModalityRef.current = false;
+    forceSyncFocusRef.current = true;
     const floatingEl = floatingElement();
 
     // When composing a character, Chrome fires ArrowDown twice. Firefox/Safari
@@ -586,7 +601,6 @@ export function useListNavigation(parameters: {
         }
       }
 
-      // TODO: explain this
       queueMicrotask(() => {
         store().setOpen(false, createChangeEventDetails(REASONS.listNavigation, event));
       });
@@ -603,14 +617,14 @@ export function useListNavigation(parameters: {
       return;
     }
 
-    const currentIndex = indexRef;
-    const minIndex = getMinListIndex(props.listRef, props.disabledIndices);
-    const maxIndex = getMaxListIndex(props.listRef, props.disabledIndices);
+    const currentIndex = indexRef.current;
+    const minIndex = getMinListIndex(props.listRef, disabledIndicesRef.current);
+    const maxIndex = getMaxListIndex(props.listRef, disabledIndicesRef.current);
 
     if (!typeableComboboxReference()) {
       if (event.key === 'Home') {
         stopEvent(event);
-        indexRef = minIndex;
+        indexRef.current = minIndex;
         onNavigate(event);
         if (!props.virtual) {
           focusItem();
@@ -619,7 +633,7 @@ export function useListNavigation(parameters: {
 
       if (event.key === 'End') {
         stopEvent(event);
-        indexRef = maxIndex;
+        indexRef.current = maxIndex;
         onNavigate(event);
         if (!props.virtual) {
           focusItem();
@@ -639,12 +653,12 @@ export function useListNavigation(parameters: {
       const cellMap = createGridCellMap(sizes, props.cols, false);
       const minGridIndex = cellMap.findIndex(
         (index) =>
-          index != null && !isListIndexDisabled(props.listRef, index, props.disabledIndices),
+          index != null && !isListIndexDisabled(props.listRef, index, disabledIndicesRef.current),
       );
       // last enabled index
       const maxGridIndex = cellMap.reduce(
         (foundIndex: number, index, cellIndex) =>
-          index != null && !isListIndexDisabled(props.listRef, index, props.disabledIndices)
+          index != null && !isListIndexDisabled(props.listRef, index, disabledIndicesRef.current)
             ? cellIndex
             : foundIndex,
         -1,
@@ -662,11 +676,12 @@ export function useListNavigation(parameters: {
           // don't end up in them
           disabledIndices: getGridCellIndices(
             [
-              ...props.listRef.map((_, listIndex) =>
-                isListIndexDisabled(props.listRef, listIndex, props.disabledIndices)
-                  ? listIndex
-                  : undefined,
-              ),
+              ...((typeof props.disabledIndices !== 'function' ? props.disabledIndices : null) ||
+                props.listRef.map((_, listIndex) =>
+                  isListIndexDisabled(props.listRef, listIndex, disabledIndicesRef.current)
+                    ? listIndex
+                    : undefined,
+                )),
               undefined,
             ],
             cellMap,
@@ -674,7 +689,7 @@ export function useListNavigation(parameters: {
           minIndex: minGridIndex,
           maxIndex: maxGridIndex,
           prevIndex: getGridCellIndexOfCorner(
-            indexRef > maxIndex ? minIndex : indexRef,
+            indexRef.current > maxIndex ? minIndex : indexRef.current,
             sizes,
             cellMap,
             props.cols,
@@ -695,7 +710,7 @@ export function useListNavigation(parameters: {
       const index = cellMap[navigatedIndex];
 
       if (index != null) {
-        indexRef = index;
+        indexRef.current = index;
         onNavigate(event);
       }
 
@@ -717,7 +732,7 @@ export function useListNavigation(parameters: {
         const newIndex = isMainOrientationToEndKey(event.key, props.orientation, props.rtl)
           ? minIndex
           : maxIndex;
-        indexRef = newIndex;
+        indexRef.current = newIndex;
 
         onNavigate(event);
         return;
@@ -727,16 +742,16 @@ export function useListNavigation(parameters: {
         if (props.loopFocus) {
           if (currentIndex >= maxIndex) {
             if (props.allowEscape && currentIndex !== props.listRef.length) {
-              indexRef = -1;
+              indexRef.current = -1;
             } else {
               // Give time for virtualizers to update the listRef.
-              forceSyncFocusRef = false;
-              indexRef = minIndex;
+              forceSyncFocusRef.current = false;
+              indexRef.current = minIndex;
             }
           } else {
-            indexRef = findNonDisabledListIndex(props.listRef, {
+            indexRef.current = findNonDisabledListIndex(props.listRef, {
               startingIndex: currentIndex,
-              disabledIndices: props.disabledIndices,
+              disabledIndices: disabledIndicesRef.current,
             });
           }
         } else {
@@ -744,25 +759,25 @@ export function useListNavigation(parameters: {
             maxIndex,
             findNonDisabledListIndex(props.listRef, {
               startingIndex: currentIndex,
-              disabledIndices: props.disabledIndices,
+              disabledIndices: disabledIndicesRef.current,
             }),
           );
-          indexRef = newIndex;
+          indexRef.current = newIndex;
         }
       } else if (props.loopFocus) {
         if (currentIndex <= minIndex) {
           if (props.allowEscape && currentIndex !== -1) {
-            indexRef = props.listRef.length;
+            indexRef.current = props.listRef.length;
           } else {
             // Give time for virtualizers to update the listRef.
-            forceSyncFocusRef = false;
-            indexRef = maxIndex;
+            forceSyncFocusRef.current = false;
+            indexRef.current = maxIndex;
           }
         } else {
-          indexRef = findNonDisabledListIndex(props.listRef, {
+          indexRef.current = findNonDisabledListIndex(props.listRef, {
             startingIndex: currentIndex,
             decrement: true,
-            disabledIndices: props.disabledIndices,
+            disabledIndices: disabledIndicesRef.current,
           });
         }
       } else {
@@ -771,14 +786,14 @@ export function useListNavigation(parameters: {
           findNonDisabledListIndex(props.listRef, {
             startingIndex: currentIndex,
             decrement: true,
-            disabledIndices: props.disabledIndices,
+            disabledIndices: disabledIndicesRef.current,
           }),
         );
-        indexRef = newIndex;
+        indexRef.current = newIndex;
       }
 
-      if (isIndexOutOfListBounds(props.listRef, indexRef)) {
-        indexRef = -1;
+      if (isIndexOutOfListBounds(props.listRef, indexRef.current)) {
+        indexRef.current = -1;
       }
 
       onNavigate(event);
@@ -838,44 +853,30 @@ export function useListNavigation(parameters: {
       if (parentId != null && !(event as any).cancelBubble) {
         const eventObject = new KeyboardEvent('keydown', { key: event.key });
         const parentNode =
-          tree && parentId != null ? tree?.nodesRef.find((node) => node.id === parentId) : null;
+          tree && parentId != null ? tree.nodesRef.find((node) => node.id === parentId) : null;
 
         if (parentNode) {
           parentNode.context?.elements.floating()?.dispatchEvent(eventObject);
         }
       }
     },
-    // TODO SOLID CHECK
-    // onKeyDown(event) {
-    //   commonOnKeyDown(event);
-    //   // Manually bubble across portals only if propagation wasn't stopped
-    //   // by commonOnKeyDown (mirrors React's natural bubbling behavior).
-    //   if (parentId != null && !(event as any).cancelBubble) {
-    //     const eventObject = new KeyboardEvent('keydown', { key: event.key });
-    //     const parentNode =
-    //       tree && parentId != null ? tree?.nodesRef.find((node) => node.id === parentId) : null;
-    //     if (parentNode) {
-    //       parentNode.context?.elements.floating()?.dispatchEvent(eventObject);
-    //     }
-    //   }
-    // },
     onPointerMove() {
-      isPointerModalityRef = true;
+      isPointerModalityRef.current = true;
     },
   };
 
   // TODO: This is a hack to get the event type to work.
   function checkVirtualMouse(event: MouseEvent) {
     if (props.focusItemOnOpen === 'auto' && isVirtualClick(event)) {
-      focusItemOnOpenRef = !props.virtual;
+      focusItemOnOpenRef.current = !props.virtual;
     }
   }
 
   function checkVirtualPointer(event: PointerEvent) {
     // `pointerdown` fires first, reset the state then perform the checks.
-    focusItemOnOpenRef = props.focusItemOnOpen;
+    focusItemOnOpenRef.current = props.focusItemOnOpen;
     if (props.focusItemOnOpen === 'auto' && isVirtualPointerEvent(event)) {
-      focusItemOnOpenRef = true;
+      focusItemOnOpenRef.current = true;
     }
   }
 
@@ -883,7 +884,7 @@ export function useListNavigation(parameters: {
     onKeyDown(event) {
       // non-reactive open state (to prevent re-creation of the handler)
       const currentOpen = store().select('open');
-      isPointerModalityRef = false;
+      isPointerModalityRef.current = false;
 
       const isArrowKey = event.key.startsWith('Arrow');
       const isParentCrossOpenKey = isCrossOrientationOpenKey(
@@ -909,7 +910,7 @@ export function useListNavigation(parameters: {
 
       if (isNavigationKey) {
         const isParentMainKey = isMainOrientationKey(event.key, getParentOrientation());
-        keyRef = props.nested && isParentMainKey ? null : event.key;
+        keyRef.current = props.nested && isParentMainKey ? null : event.key;
       }
 
       if (props.nested) {
@@ -917,8 +918,8 @@ export function useListNavigation(parameters: {
           stopEvent(event);
 
           if (currentOpen) {
-            const newIndex = getMinListIndex(props.listRef, props.disabledIndices);
-            indexRef = newIndex;
+            const newIndex = getMinListIndex(props.listRef, disabledIndicesRef.current);
+            indexRef.current = newIndex;
             onNavigate(event);
           } else {
             store().setOpen(
@@ -936,9 +937,9 @@ export function useListNavigation(parameters: {
       }
 
       if (isMainKey) {
-        const selected = props.selectedIndex;
+        const selected = selectedIndexRef.current;
         if (selected != null) {
-          indexRef = selected;
+          indexRef.current = selected;
         }
 
         stopEvent(event);
@@ -969,7 +970,7 @@ export function useListNavigation(parameters: {
     },
     onFocus(event) {
       if (store().select('open') && !props.virtual && activeIndex() == null) {
-        indexRef = -1;
+        indexRef.current = -1;
         onNavigate(event);
       }
     },
