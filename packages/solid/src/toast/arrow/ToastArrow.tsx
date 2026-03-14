@@ -13,7 +13,7 @@ import { useToastPositionerContext } from '../positioner/ToastPositionerContext'
 export function ToastArrow(componentProps: ToastArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const { refs, side, align, arrowUncentered, arrowStyles } = useToastPositionerContext();
+  const { arrowRef, side, align, arrowUncentered, arrowStyles } = useToastPositionerContext();
 
   const state: ToastArrow.State = {
     get side() {
@@ -30,7 +30,7 @@ export function ToastArrow(componentProps: ToastArrow.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      refs.arrowRef = el;
+      arrowRef.current = el;
     },
     props: [{ style: arrowStyles, 'aria-hidden': true }, elementProps],
   });

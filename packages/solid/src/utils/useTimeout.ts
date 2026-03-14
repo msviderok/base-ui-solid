@@ -1,4 +1,4 @@
-import { onCleanup } from 'solid-js';
+import { getOwner, onCleanup, runWithOwner } from 'solid-js';
 
 type TimeoutId = number;
 export type Timeout = ReturnType<typeof useTimeout>;
@@ -10,6 +10,7 @@ const EMPTY = 0 as TimeoutId;
  */
 export function useTimeout() {
   let currentId: TimeoutId = EMPTY;
+  const owner = getOwner();
 
   function start(delay: number, fn: Function) {
     clear();
@@ -30,9 +31,11 @@ export function useTimeout() {
     return currentId !== EMPTY;
   }
 
-  onCleanup(() => {
-    clear();
-  });
+  if (owner) {
+    runWithOwner(owner, () => {
+      onCleanup(() => clear());
+    });
+  }
 
   return { start, clear, isStarted };
 }

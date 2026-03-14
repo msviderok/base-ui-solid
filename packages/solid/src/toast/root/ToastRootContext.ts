@@ -1,11 +1,10 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { ToastObject } from '../useToastManager';
 
 export interface ToastRootContext {
   toast: Accessor<ToastObject<any>>;
-  refs: {
-    rootRef: HTMLElement | null | undefined;
-  };
+  rootRef: ReactLikeRef<HTMLElement | null | undefined>;
   titleId: Accessor<string | undefined>;
   setTitleId: Setter<string | undefined>;
   descriptionId: Accessor<string | undefined>;

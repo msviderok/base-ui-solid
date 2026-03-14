@@ -1,8 +1,7 @@
 import { ownerDocument } from '@base-ui/utils/owner';
 import { createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import { createStore } from 'solid-js/store';
 import { activeElement, contains, getTarget } from '../../floating-ui-solid/utils';
-import { splitComponentProps, type CodependentRefs } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
@@ -106,13 +105,8 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
   const [lockedDirection, setLockedDirection] = createSignal<'horizontal' | 'vertical' | null>(
     null,
   );
-  const [codependentRefs, setCodependentRefs] = createStore<
-    CodependentRefs<['title', 'description']>
-  >({});
 
-  const refs: ToastRootContext['refs'] = {
-    rootRef: null,
-  };
+  const rootRef = useRef<HTMLElement | null | undefined>(null);
 
   let dragStartPosRef = { x: 0, y: 0 };
   let initialTransformRef = { x: 0, y: 0, scale: 1 };
@@ -130,7 +124,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
 
   useOpenChangeComplete({
     open: () => local.toast.transitionStatus !== 'ending',
-    ref: () => refs.rootRef,
+    ref: () => rootRef.current,
     onComplete() {
       if (local.toast.transitionStatus === 'ending') {
         store.removeToast(() => local.toast.id);
@@ -144,7 +138,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
    * callbacks to avoid visual flickers.
    */
   const recalculateHeight = () => {
-    const element = refs.rootRef;
+    const element = rootRef.current;
     if (!element) {
       return;
     }
@@ -156,7 +150,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
 
     function update() {
       store.updateToastInternal(() => local.toast.id, {
-        ref: refs.rootRef,
+        ref: rootRef.current,
         height,
         ...(local.toast.transitionStatus === 'starting' ? { transitionStatus: undefined } : {}),
       });
@@ -166,9 +160,9 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
 
   // TODO: Keep this in SolidJS?
   onMount(() => {
-    if (typeof ResizeObserver === 'function' && refs.rootRef) {
+    if (typeof ResizeObserver === 'function' && rootRef.current) {
       const resizeObserver = new ResizeObserver(recalculateHeight);
-      resizeObserver.observe(refs.rootRef);
+      resizeObserver.observe(rootRef.current);
       onCleanup(() => {
         resizeObserver.disconnect();
       });
@@ -238,8 +232,8 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
     dragStartPosRef = { x: event.clientX, y: event.clientY };
     swipeCancelBaselineRef = dragStartPosRef;
 
-    if (refs.rootRef) {
-      const transform = getElementTransform(refs.rootRef);
+    if (rootRef.current) {
+      const transform = getElementTransform(rootRef.current);
       initialTransformRef = transform;
       setInitialTransform(transform);
       setDragOffset({
@@ -254,7 +248,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
     setLockedDirection(null);
     isFirstPointerMoveRef = true;
 
-    refs.rootRef?.setPointerCapture(event.pointerId);
+    rootRef.current?.setPointerCapture(event.pointerId);
   }
 
   function handlePointerMove(event: PointerEvent) {
@@ -385,7 +379,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
     setIsRealSwipe(false);
     setLockedDirection(null);
 
-    refs.rootRef?.releasePointerCapture(event.pointerId);
+    rootRef.current?.releasePointerCapture(event.pointerId);
 
     if (cancelledSwipeRef) {
       setDragOffset({ x: initialTransform().x, y: initialTransform().y });
@@ -444,7 +438,10 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
 
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      if (!refs.rootRef || !contains(refs.rootRef, activeElement(ownerDocument(refs.rootRef)))) {
+      if (
+        !rootRef.current ||
+        !contains(rootRef.current, activeElement(ownerDocument(rootRef.current)))
+      ) {
         return;
       }
       store.closeToast(() => local.toast.id);
@@ -456,7 +453,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
       return;
     }
 
-    const element = refs.rootRef;
+    const element = rootRef.current;
     if (!element) {
       return;
     }
@@ -540,18 +537,16 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
           : undefined,
       };
     },
-    // TODO: specific for SolidJS
-    // onMouseEnter: () => {
-    //   refs.viewportRef?.dispatchEvent(new Event('mouseenter'));
-    // },
-    // TODO: specific for SolidJS
-    // onMouseLeave: () => {
-    //   refs.viewportRef?.dispatchEvent(new Event('mouseleave'));
-    // },
+    onMouseEnter: () => {
+      store.state.viewport?.dispatchEvent(new Event('mouseenter'));
+    },
+    onMouseLeave: () => {
+      store.state.viewport?.dispatchEvent(new Event('mouseleave'));
+    },
   };
 
   const toastRoot: ToastRootContext = {
-    refs,
+    rootRef,
     toast: () => local.toast,
     titleId,
     setTitleId,
@@ -588,7 +583,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      toastRoot.refs.rootRef = el;
+      toastRoot.rootRef.current = el;
     },
     state,
     stateAttributesMapping,

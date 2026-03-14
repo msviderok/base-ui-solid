@@ -12,7 +12,7 @@ export function ToastProvider(props: ToastProvider.Props) {
   const timeout = () => props.timeout ?? 5000;
   const limit = () => props.limit ?? 3;
 
-  const store = new ToastStore({
+  const store = ToastStore({
     get timeout() {
       return timeout();
     },

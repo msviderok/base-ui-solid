@@ -1,12 +1,11 @@
 import { createContext, useContext, type Accessor, type JSX } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 
 export interface ToastPositionerContext {
   side: Accessor<Side>;
   align: Accessor<Align>;
-  refs: {
-    arrowRef: Element | null | undefined;
-  };
+  arrowRef: ReactLikeRef<Element | null | undefined>;
   anchorHidden: Accessor<boolean>;
   arrowUncentered: Accessor<boolean>;
   arrowStyles: JSX.CSSProperties;

@@ -1,4 +1,4 @@
-import { For } from 'solid-js';
+import { createEffect, For } from 'solid-js';
 import { Toast } from '../index';
 
 /**
@@ -30,6 +30,10 @@ export function Button() {
  */
 export function List() {
   const { toasts } = Toast.useToastManager();
+
+  createEffect(() => {
+    console.log(toasts());
+  });
 
   return (
     <For each={toasts()}>

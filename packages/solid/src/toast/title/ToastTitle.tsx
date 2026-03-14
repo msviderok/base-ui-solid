@@ -1,4 +1,4 @@
-import { createEffect, onCleanup } from 'solid-js';
+import { children, createEffect, createMemo, on, onCleanup, onMount, Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useId } from '../../utils/useId';
@@ -17,7 +17,9 @@ export function ToastTitle(componentProps: ToastTitle.Props) {
 
   const { toast, setTitleId } = useToastRootContext();
 
-  const shouldRender = () => 'children' in local;
+  const safeChildren = children(() => local.children ?? toast().title);
+
+  const shouldRender = createMemo(() => Boolean(safeChildren()));
 
   const id = useId(idProp);
 
@@ -40,7 +42,6 @@ export function ToastTitle(componentProps: ToastTitle.Props) {
   };
 
   const element = useRenderElement('h2', componentProps, {
-    enabled: shouldRender,
     state,
     props: [
       {
@@ -51,11 +52,11 @@ export function ToastTitle(componentProps: ToastTitle.Props) {
       elementProps,
     ],
     get children() {
-      return <>{local.children ?? toast().title}</>;
+      return safeChildren();
     },
   });
 
-  return <>{element()}</>;
+  return <Show when={shouldRender()}>{element()}</Show>;
 }
 
 export interface ToastTitleState {

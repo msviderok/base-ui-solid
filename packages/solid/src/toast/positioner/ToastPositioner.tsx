@@ -1,6 +1,7 @@
 import { isElement } from '@floating-ui/utils/dom';
 import { createSignal, splitProps } from 'solid-js';
 import { useFloatingRootContext } from '../../floating-ui-solid';
+import type { ReactLikeRef } from '../../solid-helpers';
 import { EMPTY_OBJECT, POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import { NOOP } from '../../utils/noop';
@@ -42,7 +43,7 @@ export function ToastPositioner(componentProps: ToastPositioner.Props) {
     'disableAnchorTracking',
     'collisionAvoidance',
   ]);
-  const anchorProp = () => local.anchor ?? positionerProps().anchor;
+  const anchorProp = () => local.anchor?.current ?? positionerProps().anchor;
   const positionMethod = () =>
     local.positionMethod ?? positionerProps().positionMethod ?? 'absolute';
   const side = () => local.side ?? positionerProps().side ?? 'top';
@@ -73,15 +74,21 @@ export function ToastPositioner(componentProps: ToastPositioner.Props) {
     open: true,
     onOpenChange: NOOP,
     elements: {
-      floating: positionerElement,
-      reference: anchor,
+      get floating() {
+        return positionerElement();
+      },
+      get reference() {
+        return anchor();
+      },
     },
   });
 
   const positioning = useAnchorPositioning({
     anchor,
     positionMethod,
-    floatingRootContext,
+    get floatingRootContext() {
+      return floatingRootContext;
+    },
     mounted: true,
     side,
     sideOffset,
@@ -123,11 +130,7 @@ export function ToastPositioner(componentProps: ToastPositioner.Props) {
     side: () => state.side,
     align: () => state.align,
     anchorHidden: () => state.anchorHidden,
-    get refs() {
-      return {
-        arrowRef: positioning.refs.arrowRef(),
-      };
-    },
+    arrowRef: positioning.arrowRef,
     get arrowStyles() {
       return positioning.arrowStyles();
     },
@@ -167,7 +170,7 @@ export interface ToastPositionerProps
   /**
    * An element to position the toast against.
    */
-  anchor?: (Element | null) | undefined;
+  anchor?: ReactLikeRef<Element | null | undefined> | undefined;
   /**
    * Which side of the anchor element to align the toast against.
    * May automatically change to avoid collisions.

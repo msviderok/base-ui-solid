@@ -1,5 +1,5 @@
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
-import { createEffect, createMemo, For, onCleanup } from 'solid-js';
+import { createEffect, createMemo, For, onCleanup, Show } from 'solid-js';
 import { activeElement, contains, getTarget } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
 import { FocusGuard } from '../../utils/FocusGuard';
@@ -133,7 +133,7 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
 
     // If we're coming off the container, move to the first toast
     if (event.relatedTarget === viewport) {
-      toasts()[0]?.ref?.focus();
+      store.getToastRef(toasts()[0]?.id)?.focus();
     } else {
       store.restoreFocusToPrevElement();
     }
@@ -248,34 +248,40 @@ export function ToastViewport(componentProps: ToastViewport.Props) {
     get children() {
       return (
         <>
-          {!isEmpty() && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
+          <Show when={!isEmpty() && prevFocusElement()}>
+            <FocusGuard onFocus={handleFocusGuard} />
+          </Show>
           {componentProps.children}
-          {!isEmpty() && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
+          <Show when={!isEmpty() && prevFocusElement()}>
+            <FocusGuard onFocus={handleFocusGuard} />
+          </Show>
         </>
       );
     },
   });
 
-  const highPriorityToasts = createMemo(() =>
-    toasts().filter((toast) => toast.priority === 'high'),
-  );
+  const highPriorityToasts = createMemo(() => {
+    return toasts().filter((toast) => toast.priority === 'high');
+  });
 
   return (
     <>
-      {!isEmpty() && prevFocusElement() && <FocusGuard onFocus={handleFocusGuard} />}
+      <Show when={!isEmpty() && prevFocusElement()}>
+        <FocusGuard onFocus={handleFocusGuard} />
+      </Show>
       {element()}
-      {!focused() && highPriorityToasts().length > 0 && (
+      <Show when={!focused() && highPriorityToasts().length > 0}>
         <div style={visuallyHidden}>
           <For each={highPriorityToasts()}>
             {(toast) => (
-              <div role="alert" aria-atomic>
+              <div role="alert" aria-atomic="true">
                 <div>{toast.title}</div>
                 <div>{toast.description}</div>
               </div>
             )}
           </For>
         </div>
-      )}
+      </Show>
     </>
   );
 }

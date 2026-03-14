@@ -41,7 +41,7 @@ const FloatingDelayGroupContext = createContext<ContextValue>({
   delayRef: { current: 0 },
   currentIdRef: { current: null },
   initialDelayRef: { current: 0 },
-  timeout: useTimeout(),
+  timeout: {} as any,
   currentContextRef: { current: null },
 });
 
@@ -132,7 +132,8 @@ export function useDelayGroup(parameters: {
   options: UseDelayGroupOptions;
 }): UseDelayGroupReturn {
   const options = defaultProps(parameters.options ?? {}, { open: false });
-  const store = () => ('rootStore' in parameters.context ? parameters.context.rootStore : parameters.context);
+  const store = () =>
+    'rootStore' in parameters.context ? parameters.context.rootStore : parameters.context;
   const floatingId = () => store().state.floatingId;
 
   const {
