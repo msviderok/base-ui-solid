@@ -30,6 +30,7 @@ export function Toggle<Value extends string>(componentProps: Toggle.Props<Value>
     'type', // cannot change button type
     'value',
     'nativeButton',
+    'children',
   ]);
   const defaultPressedProp = () => local.defaultPressed ?? false;
   const disabledProp = () => local.disabled ?? false;
@@ -130,7 +131,10 @@ export function Toggle<Value extends string>(componentProps: Toggle.Props<Value>
         state={state}
         refs={[buttonRef, componentProps.ref as any]}
         props={props}
-      />
+      >
+        {}
+        {local.children}
+      </CompositeItem>
     </Show>
   );
 }

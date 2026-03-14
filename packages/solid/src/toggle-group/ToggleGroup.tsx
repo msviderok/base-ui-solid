@@ -1,6 +1,6 @@
 import { batch, createMemo, Show } from 'solid-js';
 import { CompositeRoot } from '../composite/root/CompositeRoot';
-import { access, splitComponentProps, type MaybeAccessor } from '../solid-helpers';
+import { splitComponentProps } from '../solid-helpers';
 import { useToolbarRootContext } from '../toolbar/root/ToolbarRootContext';
 import type { BaseUIChangeEventDetails } from '../utils/createBaseUIEventDetails';
 import { REASONS } from '../utils/reasons';
@@ -11,8 +11,8 @@ import { ToggleGroupContext } from './ToggleGroupContext';
 import { ToggleGroupDataAttributes } from './ToggleGroupDataAttributes';
 
 const stateAttributesMapping = {
-  multiple(value: MaybeAccessor<boolean>) {
-    if (access(value)) {
+  multiple(value: boolean) {
+    if (value) {
       return { [ToggleGroupDataAttributes.multiple]: '' } as Record<string, string>;
     }
     return null;
@@ -33,6 +33,7 @@ export function ToggleGroup<Value extends string>(componentProps: ToggleGroup.Pr
     'orientation',
     'multiple',
     'value',
+    'children',
   ]);
   const defaultValueProp = () => local.defaultValue;
   const disabledProp = () => local.disabled ?? false;
@@ -113,7 +114,7 @@ export function ToggleGroup<Value extends string>(componentProps: ToggleGroup.Pr
     isValueInitialized,
   };
 
-  const defaultProps: HTMLProps = {
+  const defaultProps: Omit<HTMLProps, 'children'> = {
     role: 'group',
   };
 
@@ -131,12 +132,14 @@ export function ToggleGroup<Value extends string>(componentProps: ToggleGroup.Pr
           render={renderProps.render}
           class={renderProps.class}
           state={state}
-          refs={[componentProps.ref as any]}
+          ref={componentProps.ref}
           props={[defaultProps, elementProps]}
           stateAttributesMapping={stateAttributesMapping}
           loopFocus={loopFocus()}
           enableHomeAndEndKeys
-        />
+        >
+          {local.children}
+        </CompositeRoot>
       </Show>
     </ToggleGroupContext.Provider>
   );
