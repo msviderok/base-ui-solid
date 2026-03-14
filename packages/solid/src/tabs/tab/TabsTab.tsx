@@ -33,8 +33,13 @@ export function TabsTab(componentProps: TabsTab.Props) {
 
   const { value: activeTabValue, getTabPanelIdByValue, orientation } = useTabsRootContext();
 
-  const { activateOnFocus, highlightedTabIndex, onTabActivation, setHighlightedTabIndex, refs } =
-    useTabsListContext();
+  const {
+    activateOnFocus,
+    highlightedTabIndex,
+    onTabActivation,
+    setHighlightedTabIndex,
+    tabsListElement,
+  } = useTabsListContext();
 
   const id = useBaseUiId(idProp);
 
@@ -73,7 +78,7 @@ export function TabsTab(componentProps: TabsTab.Props) {
     // If focus is currently within the tabs list, don't override the roving
     // focus highlight. This keeps keyboard navigation relative to the focused
     // item after an external/asynchronous selection change.
-    const listElement = refs.tabsListElement;
+    const listElement = tabsListElement.current;
     if (listElement != null) {
       const activeEl = activeElement(ownerDocument(listElement));
       if (activeEl && contains(listElement, activeEl)) {
@@ -94,7 +99,7 @@ export function TabsTab(componentProps: TabsTab.Props) {
     focusableWhenDisabled: true,
   });
 
-  const tabPanelId = () => getTabPanelIdByValue(local.value());
+  const tabPanelId = () => getTabPanelIdByValue(local.value);
 
   let isPressingRef = false;
   let isMainButtonRef = false;

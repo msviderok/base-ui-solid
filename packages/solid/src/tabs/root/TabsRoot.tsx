@@ -99,8 +99,8 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
   // get the `id` attribute of <Tabs.Tab> to set as the value of `aria-labelledby` on <Tabs.Panel>
   const getTabIdByPanelValue = (tabPanelValue: TabsTab.Value) => {
     for (const { metadata: tabMetadata } of tabArray()) {
-      if (tabPanelValue === tabMetadata?.value) {
-        return tabMetadata?.id;
+      if (tabPanelValue === tabMetadata?.value()) {
+        return tabMetadata?.id();
       }
     }
     return undefined;
@@ -115,7 +115,7 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
     }
 
     for (const { element, metadata } of tabArray()) {
-      if (metadata != null && selectedValue === (metadata?.value ?? metadata?.index)) {
+      if (metadata != null && selectedValue === (metadata?.value() ?? metadata?.index)) {
         return element as HTMLElement;
       }
     }
@@ -139,7 +139,7 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
 
   const selectedTabMetadata = createMemo(() => {
     for (const { metadata: tabMetadata } of tabArray()) {
-      if (tabMetadata != null && tabMetadata.value === value()) {
+      if (tabMetadata != null && tabMetadata.value() === value()) {
         return tabMetadata;
       }
     }
@@ -150,8 +150,8 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
   // Used as a fallback when the current selection is disabled or missing.
   const firstEnabledTabValue = createMemo(() => {
     for (const { metadata: tabMetadata } of tabArray()) {
-      if (tabMetadata != null && !tabMetadata.disabled) {
-        return tabMetadata.value;
+      if (tabMetadata != null && !tabMetadata.disabled()) {
+        return tabMetadata.value();
       }
     }
     return undefined;
@@ -166,7 +166,7 @@ export function TabsRoot(componentProps: TabsRoot.Props) {
       return;
     }
 
-    const selectionIsDisabled = selectedTabMetadata()?.disabled;
+    const selectionIsDisabled = selectedTabMetadata()?.disabled();
     const selectionIsMissing = selectedTabMetadata() == null && value() !== null;
 
     const shouldHonorExplicitDefaultSelection =

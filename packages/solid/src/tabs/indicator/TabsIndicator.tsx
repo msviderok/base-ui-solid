@@ -41,7 +41,7 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
   const { getTabElementBySelectedValue, orientation, tabActivationDirection, value } =
     useTabsRootContext();
 
-  const { refs } = useTabsListContext();
+  const { tabsListElement } = useTabsListContext();
 
   const [isMounted, setIsMounted] = createSignal(false);
   const [meta, setMeta] = createSignal({
@@ -60,12 +60,15 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
   });
 
   createEffect(() => {
-    if (value() != null && refs.tabsListElement != null && typeof ResizeObserver !== 'undefined') {
+    if (
+      value() != null &&
+      tabsListElement.current != null &&
+      typeof ResizeObserver !== 'undefined'
+    ) {
       const resizeObserver = new ResizeObserver(() => {
         setMeta((prev) => {
-          if (value() != null && refs.tabsListElement != null) {
+          if (value() != null && tabsListElement.current != null) {
             const activeTab = getTabElementBySelectedValue(value());
-            const tabsListElement = refs.tabsListElement;
 
             let left = prev.left;
             let right = prev.right;
@@ -76,10 +79,11 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
 
             if (activeTab != null) {
               const { width: computedWidth, height: computedHeight } = getCssDimensions(activeTab);
-              const { width: tabListWidth, height: tabListHeight } =
-                getCssDimensions(tabsListElement);
+              const { width: tabListWidth, height: tabListHeight } = getCssDimensions(
+                tabsListElement.current,
+              );
               const tabRect = activeTab.getBoundingClientRect();
-              const tabsListRect = tabsListElement.getBoundingClientRect();
+              const tabsListRect = tabsListElement.current.getBoundingClientRect();
               const scaleX = tabListWidth > 0 ? tabsListRect.width / tabListWidth : 1;
               const scaleY = tabListHeight > 0 ? tabsListRect.height / tabListHeight : 1;
               const hasNonZeroScale =
@@ -90,8 +94,13 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
                 const tabTopDelta = tabRect.top - tabsListRect.top;
 
                 left =
-                  tabLeftDelta / scaleX + tabsListElement.scrollLeft - tabsListElement.clientLeft;
-                top = tabTopDelta / scaleY + tabsListElement.scrollTop - tabsListElement.clientTop;
+                  tabLeftDelta / scaleX +
+                  tabsListElement.current.scrollLeft -
+                  tabsListElement.current.clientLeft;
+                top =
+                  tabTopDelta / scaleY +
+                  tabsListElement.current.scrollTop -
+                  tabsListElement.current.clientTop;
               } else {
                 left = activeTab.offsetLeft;
                 top = activeTab.offsetTop;
@@ -99,8 +108,8 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
 
               width = computedWidth;
               height = computedHeight;
-              right = tabsListElement.scrollWidth - left - width;
-              bottom = tabsListElement.scrollHeight - top - height;
+              right = tabsListElement.current.scrollWidth - left - width;
+              bottom = tabsListElement.current.scrollHeight - top - height;
 
               return { ...prev, left, right, top, bottom, width, height };
             }
@@ -110,7 +119,7 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
         });
       });
 
-      resizeObserver.observe(refs.tabsListElement);
+      resizeObserver.observe(tabsListElement.current);
 
       onCleanup(() => {
         resizeObserver.disconnect();

@@ -1,4 +1,5 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { TabsRoot } from '../root/TabsRoot';
 
 export interface TabsListContext {
@@ -6,9 +7,7 @@ export interface TabsListContext {
   highlightedTabIndex: Accessor<number>;
   onTabActivation: (newValue: any, eventDetails: TabsRoot.ChangeEventDetails) => void;
   setHighlightedTabIndex: (index: number) => void;
-  refs: {
-    tabsListElement: HTMLElement | null | undefined;
-  };
+  tabsListElement: ReactLikeRef<HTMLElement | null | undefined>;
   value: Accessor<any>;
 }
 

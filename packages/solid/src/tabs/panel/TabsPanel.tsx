@@ -105,7 +105,7 @@ export function TabsPanel(componentProps: TabsPanel.Props) {
 
   useOpenChangeComplete({
     open,
-    ref: panelRef,
+    ref: () => panelRef,
     onComplete() {
       if (!open()) {
         setMounted(false);

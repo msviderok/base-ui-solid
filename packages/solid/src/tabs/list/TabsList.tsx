@@ -1,6 +1,6 @@
 import { createEffect, createSignal, type Accessor } from 'solid-js';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { EMPTY_ARRAY } from '../../utils/constants';
 import { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { tabsStateAttributesMapping } from '../root/stateAttributesMapping';
@@ -19,6 +19,7 @@ export function TabsList(componentProps: TabsList.Props) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'activateOnFocus',
     'loopFocus',
+    'children',
   ]);
   const activateOnFocus = () => local.activateOnFocus ?? false;
   const loopFocus = () => local.loopFocus ?? true;
@@ -34,14 +35,12 @@ export function TabsList(componentProps: TabsList.Props) {
 
   const [highlightedTabIndex, setHighlightedTabIndex] = createSignal(0);
 
-  const refs: TabsListContext['refs'] = {
-    tabsListElement: null,
-  };
+  const tabsListElement = useRef<HTMLElement | null | undefined>(null);
 
   const detectActivationDirection = useActivationDirectionDetector(
     value, // the old value
     orientation,
-    () => refs.tabsListElement,
+    () => tabsListElement.current,
     getTabElementBySelectedValue,
   );
 
@@ -74,7 +73,7 @@ export function TabsList(componentProps: TabsList.Props) {
     highlightedTabIndex,
     onTabActivation,
     setHighlightedTabIndex,
-    refs,
+    tabsListElement,
     value,
   };
 
@@ -85,9 +84,21 @@ export function TabsList(componentProps: TabsList.Props) {
         class={renderProps.class}
         state={state}
         refs={[
-          componentProps.ref as any,
-          (el: HTMLElement | null | undefined) => {
-            refs.tabsListElement = el;
+          (el) => {
+            if (typeof componentProps.ref === 'function') {
+              componentProps.ref(el as HTMLDivElement | null);
+            } else if (
+              componentProps.ref != null &&
+              typeof componentProps.ref === 'object' &&
+              'current' in componentProps.ref
+            ) {
+              componentProps.ref.current = el as HTMLDivElement | null;
+            } else {
+              componentProps.ref = el as any;
+            }
+          },
+          (el) => {
+            tabsListElement.current = el;
           },
         ]}
         props={[defaultProps, elementProps]}
@@ -99,7 +110,9 @@ export function TabsList(componentProps: TabsList.Props) {
         onHighlightedIndexChange={setHighlightedTabIndex}
         onMapChange={setTabArray}
         disabledIndices={EMPTY_ARRAY as number[]}
-      />
+      >
+        {local.children}
+      </CompositeRoot>
     </TabsListContext.Provider>
   );
 }
