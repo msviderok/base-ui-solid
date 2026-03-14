@@ -19,6 +19,7 @@ export function CompositeItem<Metadata, State extends Record<string, any>>(
     'metadata',
     'stateAttributesMapping',
     'tag',
+    'children',
   ]);
   const mergedProps = solidMergeProps(
     {
@@ -43,6 +44,9 @@ export function CompositeItem<Metadata, State extends Record<string, any>>(
     },
     get stateAttributesMapping() {
       return mergedProps.stateAttributesMapping;
+    },
+    get children() {
+      return local.children;
     },
   });
 

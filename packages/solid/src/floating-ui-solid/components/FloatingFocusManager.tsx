@@ -651,38 +651,54 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
         // Wait for any layout effect state setters to execute to set `tabIndex`.
         // eslint-disable-next-line solid/reactivity
         queueMicrotask(() => {
-          const focusableElements = getTabbableElements(floatingEl);
-          const resolvedInitialFocus =
-            typeof props.initialFocus === 'function'
-              ? props.initialFocus(props.openInteractionType || '')
-              : props.initialFocus;
+          const tryFocus = () => {
+            const focusableElements = getTabbableElements(floatingEl);
+            const resolvedInitialFocus =
+              typeof props.initialFocus === 'function'
+                ? props.initialFocus(props.openInteractionType || '')
+                : props.initialFocus;
 
-          // `null` should fallback to default behavior in case of an empty ref.
-          // `false`/`undefined` (void) means do nothing.
-          if (resolvedInitialFocus === false || resolvedInitialFocus === undefined) {
-            return;
-          }
+            // `null` should fallback to default behavior in case of an empty ref.
+            // `false`/`undefined` (void) means do nothing.
+            if (resolvedInitialFocus === false || resolvedInitialFocus === undefined) {
+              return;
+            }
 
-          let elToFocus: FocusableElement | null | undefined;
+            let elToFocus: FocusableElement | null | undefined;
 
-          if (resolvedInitialFocus === true || resolvedInitialFocus === null) {
-            elToFocus = focusableElements[0] || floatingEl;
-          } else {
-            elToFocus = resolvedInitialFocus;
-          }
-          elToFocus = elToFocus || focusableElements[0] || floatingEl;
+            if (resolvedInitialFocus === true || resolvedInitialFocus === null) {
+              elToFocus = focusableElements[0] || floatingEl;
+            } else {
+              elToFocus = resolvedInitialFocus;
+            }
+            elToFocus = elToFocus || focusableElements[0] || floatingEl;
 
-          const focusAlreadyInsideFloatingEl =
-            contains(floatingEl, previouslyFocusedElement) ||
-            contains(floatingEl, activeElement(doc));
+            const focusAlreadyInsideFloatingEl =
+              contains(floatingEl, previouslyFocusedElement) ||
+              contains(floatingEl, activeElement(doc));
 
-          if (focusAlreadyInsideFloatingEl) {
-            return;
-          }
+            if (focusAlreadyInsideFloatingEl) {
+              return;
+            }
 
-          enqueueFocus(elToFocus, {
-            preventScroll: elToFocus === floatingEl,
-          });
+            // When focusableElements is empty we fall back to floatingEl. But composite lists
+            // (e.g. Menu items) may set tabindex asynchronously. Defer one frame and retry
+            // so we focus the first item instead of the container.
+            if (focusableElements.length === 0 && elToFocus === floatingEl) {
+              requestAnimationFrame(() => {
+                if (!open()) return;
+                const retryElements = getTabbableElements(floatingEl);
+                const retryEl = retryElements[0] || floatingEl;
+                enqueueFocus(retryEl, { preventScroll: retryEl === floatingEl });
+              });
+            } else {
+              enqueueFocus(elToFocus, {
+                preventScroll: elToFocus === floatingEl,
+              });
+            }
+          };
+
+          tryFocus();
         });
       },
     ),

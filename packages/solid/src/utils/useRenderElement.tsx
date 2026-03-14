@@ -108,7 +108,13 @@ export function useRenderElement<
             },
           ])}
         >
-          {params.children ?? componentProps.children}
+          {params.children ??
+            (typeof componentProps.render === 'object' &&
+            componentProps.render &&
+            'children' in componentProps.render
+              ? (componentProps.render as { children?: JSX.Element }).children
+              : undefined) ??
+            componentProps.children}
         </Dynamic>
       </Show>
     );

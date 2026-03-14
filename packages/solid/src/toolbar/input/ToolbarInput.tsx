@@ -1,6 +1,7 @@
 import { type ComponentProps } from 'solid-js';
 import { ARROW_LEFT, ARROW_RIGHT, stopEvent } from '../../composite/composite';
 import { CompositeItem } from '../../composite/item/CompositeItem';
+import { mergeProps } from '../../merge-props/mergeProps';
 import { splitComponentProps } from '../../solid-helpers';
 import { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useFocusableWhenDisabled } from '../../utils/useFocusableWhenDisabled';
@@ -18,6 +19,7 @@ export function ToolbarInput(componentProps: ToolbarInput.Props) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'focusableWhenDisabled',
     'disabled',
+    'children',
   ]);
   const focusableWhenDisabled = () => local.focusableWhenDisabled ?? true;
   const disabledProp = () => local.disabled ?? false;
@@ -49,7 +51,7 @@ export function ToolbarInput(componentProps: ToolbarInput.Props) {
     },
   };
 
-  const defaultProps: HTMLProps = {
+  const defaultProps: Omit<HTMLProps, 'children'> = {
     onClick(event) {
       if (disabled()) {
         event.preventDefault();
@@ -74,9 +76,11 @@ export function ToolbarInput(componentProps: ToolbarInput.Props) {
       class={renderProps.class}
       metadata={itemMetadata}
       state={state}
-      refs={[componentProps.ref as any]}
-      props={[defaultProps, elementProps, focusableWhenDisabledProps]}
-    />
+      ref={componentProps.ref}
+      props={[defaultProps, elementProps, focusableWhenDisabledProps()]}
+    >
+      {local.children}
+    </CompositeItem>
   );
 }
 

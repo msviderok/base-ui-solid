@@ -17,6 +17,7 @@ export function ToolbarButton(componentProps: ToolbarButton.Props) {
     'disabled',
     'focusableWhenDisabled',
     'nativeButton',
+    'children',
   ]);
   const disabledProp = () => local.disabled ?? false;
   const focusableWhenDisabled = () => local.focusableWhenDisabled ?? true;
@@ -55,7 +56,8 @@ export function ToolbarButton(componentProps: ToolbarButton.Props) {
       class={renderProps.class}
       metadata={itemMetadata}
       state={state}
-      refs={[componentProps.ref as any, buttonRef]}
+      ref={componentProps.ref}
+      refs={[buttonRef]}
       props={[
         elementProps,
         // for integrating with Menu and Select disabled states, `disabled` is
@@ -68,7 +70,9 @@ export function ToolbarButton(componentProps: ToolbarButton.Props) {
         },
         getButtonProps,
       ]}
-    />
+    >
+      {local.children}
+    </CompositeItem>
   );
 }
 

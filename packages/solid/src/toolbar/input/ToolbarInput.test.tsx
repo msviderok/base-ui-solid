@@ -105,7 +105,7 @@ describe('<Toolbar.Input />', () => {
         <Toolbar.Root>
           <NumberField.Root>
             <NumberField.Group>
-              <Toolbar.Input render={NumberField.Input} />
+              <Toolbar.Input render={{ component: NumberField.Input }} />
             </NumberField.Group>
           </NumberField.Root>
         </Toolbar.Root>
@@ -121,7 +121,7 @@ describe('<Toolbar.Input />', () => {
           <NumberField.Root min={1} max={10} defaultValue={5} onValueChange={onValueChange}>
             <NumberField.Group>
               <NumberField.Decrement />
-              <Toolbar.Input render={NumberField.Input} />
+              <Toolbar.Input render={{ component: NumberField.Input }} />
               <NumberField.Increment />
             </NumberField.Group>
           </NumberField.Root>
@@ -150,7 +150,7 @@ describe('<Toolbar.Input />', () => {
           <NumberField.Root min={1} max={10} defaultValue={5} onValueChange={onValueChange}>
             <NumberField.Group>
               <NumberField.Decrement />
-              <Toolbar.Input disabled render={NumberField.Input} />
+              <Toolbar.Input disabled render={{ component: NumberField.Input }} />
               <NumberField.Increment />
             </NumberField.Group>
           </NumberField.Root>

@@ -16,6 +16,7 @@ export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
     'disabled',
     'loopFocus',
     'orientation',
+    'children',
   ]);
   const disabled = () => local.disabled ?? false;
   const loopFocus = () => local.loopFocus ?? true;
@@ -27,6 +28,7 @@ export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
 
   const disabledIndices = createMemo(() => {
     const output: number[] = [];
+    console.log(itemArray());
     for (const { metadata } of itemArray()) {
       const idx = metadata?.index;
       if (idx && !metadata?.focusableWhenDisabled()) {
@@ -51,7 +53,7 @@ export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
     },
   };
 
-  const defaultProps: HTMLProps = {
+  const defaultProps: Omit<HTMLProps, 'children'> = {
     get 'aria-orientation'() {
       return orientation();
     },
@@ -64,13 +66,15 @@ export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
         render={renderProps.render}
         class={renderProps.class}
         state={state}
-        refs={[componentProps.ref as any]}
+        ref={componentProps.ref}
         props={[defaultProps, elementProps]}
         disabledIndices={disabledIndices()}
         loopFocus={loopFocus()}
         onMapChange={setItemArray}
         orientation={orientation()}
-      />
+      >
+        {local.children}
+      </CompositeRoot>
     </ToolbarRootContext.Provider>
   );
 }

@@ -230,10 +230,7 @@ describe('<Toolbar.Button />', () => {
             <Menu.Root>
               <Toolbar.Button
                 data-testid="button"
-                render={{
-                  component: Menu.Trigger,
-                  children: 'Toggle',
-                }}
+                render={{ component: Menu.Trigger, children: 'Toggle' }}
               />
               <Menu.Portal>
                 <Menu.Positioner>
@@ -442,7 +439,7 @@ describe('<Toolbar.Button />', () => {
         });
 
         expect(handleValueChange).toHaveBeenCalledTimes(1);
-        expect(handleValueChange).toHaveBeenCalledWith('b');
+        expect(handleValueChange).toHaveBeenCalledWith('b', expect.anything());
       });
 
       it('disabled state', async () => {

@@ -7,7 +7,7 @@ import { useToolbarRootContext } from '../root/ToolbarRootContext';
 const TOOLBAR_LINK_METADATA = {
   // links cannot be disabled, this metadata is only used for deriving `disabledIndices``
   // TODO: better name
-  focusableWhenDisabled: true,
+  focusableWhenDisabled: () => true,
 };
 
 /**
@@ -17,7 +17,7 @@ const TOOLBAR_LINK_METADATA = {
  * Documentation: [Base UI Toolbar](https://base-ui.com/react/components/toolbar)
  */
 export function ToolbarLink(componentProps: ToolbarLink.Props) {
-  const [renderProps, , elementProps] = splitComponentProps(componentProps, []);
+  const [renderProps, local, elementProps] = splitComponentProps(componentProps, ['children']);
 
   const { orientation } = useToolbarRootContext();
 
@@ -34,9 +34,11 @@ export function ToolbarLink(componentProps: ToolbarLink.Props) {
       class={renderProps.class}
       metadata={TOOLBAR_LINK_METADATA}
       state={state}
-      refs={[componentProps.ref as any]}
+      ref={componentProps.ref}
       props={[elementProps]}
-    />
+    >
+      {local.children}
+    </CompositeItem>
   );
 }
 
