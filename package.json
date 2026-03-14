@@ -70,7 +70,7 @@
     "test:solid:webkit": "cross-env VITEST_ENV=webkit pnpm test:solid:_unit",
     "test:solid:webkit:ui": "pnpm test:solid:webkit --browser.headless=false",
     "test:solid:browsers": "cross-env VITEST_ENV=all-browsers pnpm test:solid:_unit",
-    "test:solid:subset": "pnpm test:solid:_unit src/accordion src/alert-dialog src/avatar src/button src/checkbox src/checkbox-group src/collapsible src/composite src/context-menu src/csp-provider src/dialog src/field src/fieldset src/floating-ui-solid src/form src/input src/menu/ src/menubar src/merge-props src/meter src/navigation-menu src/number-field src/popover src/preview-card src/progress src/radio src/radio-group src/scroll-area src/select src/separator src/use-button src/use-render src/utils src/input ",
+    "test:solid:subset": "pnpm test:solid:_unit src/accordion src/alert-dialog src/avatar src/button src/checkbox src/checkbox-group src/collapsible src/composite src/context-menu src/csp-provider src/dialog src/field src/fieldset src/floating-ui-solid src/form src/input src/menu/ src/menubar src/merge-props src/meter src/navigation-menu src/number-field src/popover src/preview-card src/progress src/radio src/radio-group src/scroll-area src/select src/separator src/slider src/switch src/use-button src/use-render src/utils src/input ",
     "typescript": "tsc -b tsconfig.json",
     "inline-scripts": "tsx ./scripts/inlineScripts.mts",
     "use-react-18": "code-infra set-version-overrides --pkg react@18"

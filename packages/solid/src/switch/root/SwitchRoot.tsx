@@ -1,4 +1,3 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import {
   batch,
   createEffect,
@@ -6,7 +5,6 @@ import {
   onMount,
   mergeProps as solidMergeProps,
   type JSX,
-  type Ref,
 } from 'solid-js';
 import type { FieldRoot } from '../../field/root/FieldRoot';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
@@ -15,7 +13,7 @@ import { useFormContext } from '../../form/FormContext';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { mergeProps } from '../../merge-props';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../types';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
@@ -81,6 +79,7 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
   };
 
   let inputRef = null as HTMLInputElement | null | undefined;
+  let lastClickEvent: PointerEvent | undefined;
   let switchRef = null as HTMLButtonElement | null | undefined;
 
   const id = useBaseUiId();
@@ -115,17 +114,21 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
   });
 
   createEffect(
-    on(checked, (checkedValue) => {
-      clearErrors(name());
-      setDirty(checkedValue !== validityData.initialValue);
-      setFilled(checkedValue);
+    on(
+      checked,
+      (checkedValue) => {
+        clearErrors(name());
+        setDirty(checkedValue !== validityData.initialValue);
+        setFilled(checkedValue);
 
-      if (shouldValidateOnChange()) {
-        validation.commit(checkedValue);
-      } else {
-        validation.commit(checkedValue, true);
-      }
-    }),
+        if (shouldValidateOnChange()) {
+          validation.commit(checkedValue);
+        } else {
+          validation.commit(checkedValue, true);
+        }
+      },
+      { defer: true },
+    ),
   );
 
   const { getButtonProps, buttonRef } = useButton({
@@ -176,15 +179,15 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
 
       event.preventDefault();
 
-      inputRef?.dispatchEvent(
-        new PointerEvent('click', {
-          bubbles: true,
-          shiftKey: event.shiftKey,
-          ctrlKey: event.ctrlKey,
-          altKey: event.altKey,
-          metaKey: event.metaKey,
-        }),
-      );
+      const clickEvent = new PointerEvent('click', {
+        bubbles: true,
+        shiftKey: event.shiftKey,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+        metaKey: event.metaKey,
+      });
+      lastClickEvent = clickEvent;
+      inputRef?.dispatchEvent(clickEvent);
     },
   };
 
@@ -213,14 +216,12 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
       'aria-hidden': true,
       ref: (el) => {
         inputRef = el;
-        validation.inputRef = el;
-        if (typeof local.inputRef === 'function') {
-          local.inputRef(el);
-        } else {
-          local.inputRef = el;
+        validation.inputRef.current = el;
+        if (local.inputRef) {
+          local.inputRef.current = el;
         }
       },
-      onInput(event) {
+      onChange(event) {
         // Workaround for https://github.com/facebook/react/issues/9023
         if (event.defaultPrevented) {
           return;
@@ -229,7 +230,8 @@ export function SwitchRoot(componentProps: SwitchRoot.Props) {
         batch(() => {
           const nextChecked = event.target.checked;
 
-          const eventDetails = createChangeEventDetails(REASONS.none, event);
+          const eventDetails = createChangeEventDetails(REASONS.none, lastClickEvent ?? event);
+          lastClickEvent = undefined;
 
           onCheckedChange?.(nextChecked, eventDetails);
 
@@ -346,7 +348,7 @@ export interface SwitchRootProps
   /**
    * A ref to access the hidden `<input>` element.
    */
-  inputRef?: Ref<HTMLInputElement> | undefined;
+  inputRef?: ReactLikeRef<HTMLInputElement | null | undefined> | undefined;
   /**
    * Identifies the field when a form is submitted.
    */

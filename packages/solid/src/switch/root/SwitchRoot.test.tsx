@@ -1,9 +1,9 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Field } from '@msviderok/base-ui-solid/field';
 import { Form } from '@msviderok/base-ui-solid/form';
+import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { Switch } from '@msviderok/base-ui-solid/switch';
 import { fireEvent, screen } from '@solidjs/testing-library';
-import { userEvent } from '@testing-library/user-event';
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { createSignal } from 'solid-js';
@@ -187,11 +187,11 @@ describe('<Switch.Root />', () => {
 
   describe('prop: inputRef', () => {
     it('should be able to access the native input', async () => {
-      let inputRef: any;
+      const inputRef = useRef<HTMLInputElement | null>(null);
       render(() => <Switch.Root inputRef={inputRef} />);
       const internalInput = screen.getByRole('checkbox', { hidden: true });
 
-      expect(inputRef).to.equal(internalInput);
+      expect(inputRef.current).to.equal(internalInput);
     });
   });
 
