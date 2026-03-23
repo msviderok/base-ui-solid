@@ -44,14 +44,13 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
   const disableAnchorTracking = () => local.disableAnchorTracking ?? false;
   const collisionAvoidance = () => local.collisionAvoidance ?? POPUP_COLLISION_AVOIDANCE;
 
-  const store = useTooltipRootContext();
+  const { store } = useTooltipRootContext();
   const keepMounted = useTooltipPortalContext();
 
   const open = store.useState('open');
   const mounted = store.useState('mounted');
   const trackCursorAxis = store.useState('trackCursorAxis');
   const disableHoverablePopup = store.useState('disableHoverablePopup');
-  const floatingRootContext = store.select('floatingRootContext');
   const instantType = store.useState('instantType');
   const transitionStatus = store.useState('transitionStatus');
   const hasViewport = store.useState('hasViewport');
@@ -59,7 +58,9 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
   const positioning = useAnchorPositioning({
     anchor: () => local.anchor,
     positionMethod,
-    floatingRootContext,
+    get floatingRootContext() {
+      return store.context.floatingRootContext;
+    },
     mounted,
     side,
     sideOffset,
@@ -72,7 +73,9 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
     disableAnchorTracking,
     keepMounted,
     collisionAvoidance,
-    adaptiveOrigin: () => (hasViewport() ? adaptiveOrigin : undefined),
+    get adaptiveOrigin() {
+      return hasViewport() ? adaptiveOrigin : undefined;
+    },
   });
 
   const defaultProps: HTMLProps = {
@@ -117,8 +120,7 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
     side: () => state.side,
     align: () => state.align,
     anchorHidden: () => state.anchorHidden,
-    arrowRef: () => positioning.refs.arrowRef(),
-    setArrowRef: positioning.refs.setArrowRef,
+    arrowRef: positioning.arrowRef,
     arrowStyles: () => positioning.arrowStyles(),
     arrowUncentered: () => positioning.arrowUncentered(),
   };

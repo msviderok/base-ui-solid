@@ -1,6 +1,6 @@
-import { TooltipStore } from './TooltipStore';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
+import { TooltipStore } from './TooltipStore';
 
 /**
  * A handle to control a tooltip imperatively and to associate detached triggers with it.
@@ -13,7 +13,7 @@ export class TooltipHandle<Payload> {
   public readonly store: TooltipStore<Payload>;
 
   constructor() {
-    this.store = new TooltipStore<Payload>();
+    this.store = TooltipStore<Payload>();
   }
 
   /**

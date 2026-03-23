@@ -38,6 +38,10 @@ function getRestMs(value: number | (() => number)) {
 
 const EMPTY_REF: Readonly<Element | null | undefined> = null;
 
+function getMouseEventPointerType(pointerType: string | undefined) {
+  return pointerType ?? 'mouse';
+}
+
 /**
  * Provides hover interactions that should be attached to reference or trigger
  * elements.
@@ -186,7 +190,9 @@ export function useHoverReferenceInteraction(parameters: {
       instance.openChangeTimeout.clear();
       setInstanceState('blockMouseMove', false);
 
-      if (props.mouseOnly && !isMouseLikePointerType(instance.pointerType)) {
+      const pointerType = getMouseEventPointerType(instance.pointerType);
+
+      if (props.mouseOnly && !isMouseLikePointerType(pointerType)) {
         return;
       }
 
@@ -196,7 +202,7 @@ export function useHoverReferenceInteraction(parameters: {
         return;
       }
 
-      const openDelay = getDelay(props.delay, 'open', instance.pointerType);
+      const openDelay = getDelay(props.delay, 'open', pointerType);
       const currentDomReference = store().select('domReferenceElement');
       const allTriggers = store().context.triggerElements;
 
@@ -333,6 +339,7 @@ export function useHoverReferenceInteraction(parameters: {
 
   function onMouseMove(event: MouseEvent) {
     const trigger = event.currentTarget as HTMLElement;
+    const pointerType = getMouseEventPointerType(instance.pointerType);
 
     const currentDomReference = store().select('domReferenceElement');
     const allTriggers = store().context.triggerElements;
@@ -343,7 +350,7 @@ export function useHoverReferenceInteraction(parameters: {
         allTriggers.hasMatchingElement((t) => contains(t, event.target as Element))) &&
       (!currentDomReference || !contains(currentDomReference, event.target as Element));
 
-    if (props.mouseOnly && !isMouseLikePointerType(instance.pointerType)) {
+    if (props.mouseOnly && !isMouseLikePointerType(pointerType)) {
       return;
     }
 

@@ -14,11 +14,11 @@ import { useTooltipRootContext } from '../root/TooltipRootContext';
  */
 export function TooltipArrow(componentProps: TooltipArrow.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
-  const store = useTooltipRootContext();
+  const { store } = useTooltipRootContext();
 
   const instantType = store.useState('instantType');
 
-  const { open, setArrowRef, side, align, arrowUncentered, arrowStyles } =
+  const { open, arrowRef, side, align, arrowUncentered, arrowStyles } =
     useTooltipPositionerContext();
 
   const state: TooltipArrow.State = {
@@ -41,7 +41,9 @@ export function TooltipArrow(componentProps: TooltipArrow.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: setArrowRef,
+    ref: (el) => {
+      arrowRef.current = el;
+    },
     props: [
       {
         get style() {

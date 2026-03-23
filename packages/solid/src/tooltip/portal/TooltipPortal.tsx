@@ -14,7 +14,7 @@ export function TooltipPortal(props: TooltipPortal.Props) {
   const [local, portalProps] = splitProps(props, ['keepMounted']);
   const keepMounted = () => local.keepMounted ?? false;
 
-  const store = useTooltipRootContext();
+  const { store } = useTooltipRootContext();
   const mounted = store.useState('mounted');
 
   const shouldRender = () => mounted() || keepMounted();
@@ -22,7 +22,7 @@ export function TooltipPortal(props: TooltipPortal.Props) {
   return (
     <Show when={shouldRender()}>
       <TooltipPortalContext.Provider value={keepMounted}>
-        <FloatingPortalLite {...portalProps} />
+        <FloatingPortalLite {...portalProps} ref={props.ref} />
       </TooltipPortalContext.Provider>
     </Show>
   );

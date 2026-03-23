@@ -37,10 +37,10 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
   const idProp = () => local.id;
 
   const rootContext = useTooltipRootContext(true);
-  const store = () => (local.handle?.store ?? rootContext) as TooltipStore<unknown>;
+  const store = (local.handle?.store ?? rootContext?.store) as TooltipStore<unknown>;
 
   createEffect(() => {
-    if (!store()) {
+    if (!store) {
       throw new Error(
         'Base UI: <Tooltip.Trigger> must be either used within a <Tooltip.Root> component or provided with a handle.',
       );
@@ -48,9 +48,8 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
   });
 
   const thisTriggerId = useBaseUiId(idProp);
-  const isTriggerActive = () => store()?.useState('isTriggerActive', thisTriggerId)();
-  const isOpenedByThisTrigger = () => store()?.useState('isOpenedByTrigger', thisTriggerId)();
-  const floatingRootContext = () => store()?.select('floatingRootContext');
+  const isTriggerActive = store.useState('isTriggerActive', thisTriggerId);
+  const isOpenedByThisTrigger = store.useState('isOpenedByTrigger', thisTriggerId);
 
   let triggerElementRef = null as Element | null | undefined;
 
@@ -61,12 +60,16 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
     get triggerId() {
       return thisTriggerId();
     },
-    triggerElement: triggerElementRef,
+    get triggerElement() {
+      return triggerElementRef;
+    },
     get store() {
-      return store();
+      return store;
     },
     stateUpdates: {
-      payload: local.payload,
+      get payload() {
+        return local.payload;
+      },
       get closeDelay() {
         return closeDelayWithDefault();
       },
@@ -74,22 +77,27 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
   });
 
   const providerContext = useTooltipProviderContext();
-  const { delayRef, isInstantPhase, hasProvider } = useDelayGroup(floatingRootContext, {
-    open: isOpenedByThisTrigger,
+  const { delayRef, isInstantPhase, hasProvider } = useDelayGroup({
+    get context() {
+      return store.context.floatingRootContext;
+    },
+    options: {
+      get open() {
+        return isOpenedByThisTrigger();
+      },
+    },
   });
 
-  createEffect(() => {
-    store().useSyncedValue('isInstantPhase', isInstantPhase());
-  });
+  store.useSyncedValue('isInstantPhase', isInstantPhase);
 
-  const rootDisabled = () => store()?.useState('disabled')();
+  const rootDisabled = store.useState('disabled');
   const disabled = () => disabledProp() ?? rootDisabled();
-  const trackCursorAxis = () => store()?.useState('trackCursorAxis')();
-  const disableHoverablePopup = () => store()?.useState('disableHoverablePopup')();
+  const trackCursorAxis = store.useState('trackCursorAxis');
+  const disableHoverablePopup = store.useState('disableHoverablePopup');
 
   const hoverProps = useHoverReferenceInteraction({
     get context() {
-      return floatingRootContext();
+      return store.context.floatingRootContext;
     },
     props: {
       get enabled() {
@@ -102,11 +110,11 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
       },
       restMs() {
         const providerDelay = providerContext?.delay();
-        const delayRefValue = delayRef();
+        const delayRefValue = delayRef.current;
         const groupOpenValue = typeof delayRefValue === 'object' ? delayRefValue.open : undefined;
 
         let computedRestMs = delayWithDefault();
-        if (hasProvider()) {
+        if (hasProvider) {
           if (groupOpenValue !== 0) {
             computedRestMs = local.delay ?? providerDelay ?? delayWithDefault();
           } else {
@@ -117,11 +125,11 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
         return computedRestMs;
       },
       delay() {
-        const delayRefValue = delayRef();
+        const delayRefValue = delayRef.current;
         const closeValue = typeof delayRefValue === 'object' ? delayRefValue.close : undefined;
 
         let computedCloseDelay: number | undefined = closeDelayWithDefault();
-        if (local.closeDelay == null && hasProvider()) {
+        if (local.closeDelay == null && hasProvider) {
           computedCloseDelay = closeValue;
         }
 
@@ -129,7 +137,9 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
           close: computedCloseDelay,
         };
       },
-      triggerElementRef,
+      get triggerElementRef() {
+        return triggerElementRef;
+      },
       get isActiveTrigger() {
         return isTriggerActive();
       },
@@ -137,7 +147,16 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
   });
 
   const focusProps = () =>
-    useFocus(floatingRootContext, { enabled: () => !disabled() })().reference;
+    useFocus({
+      get context() {
+        return store.context.floatingRootContext;
+      },
+      props: {
+        get enabled() {
+          return !disabled();
+        },
+      },
+    }).reference;
 
   const state: TooltipTrigger.State = {
     get open() {
@@ -145,11 +164,14 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
     },
   };
 
-  const rootTriggerProps = () => store()?.useState('triggerProps', isMountedByThisTrigger)();
+  const rootTriggerProps = store.useState('triggerProps', isMountedByThisTrigger);
 
   const element = useRenderElement('button', componentProps, {
     state,
-    ref: [registerTrigger, triggerElementRef],
+    ref: (el) => {
+      registerTrigger(el);
+      triggerElementRef = el;
+    },
     get props() {
       return [
         hoverProps,

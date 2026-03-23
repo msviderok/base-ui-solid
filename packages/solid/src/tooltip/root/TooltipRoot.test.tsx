@@ -288,8 +288,10 @@ describe('<Tooltip.Root />', () => {
     describe('prop: actionsRef', () => {
       it('unmounts the tooltip when the `unmount` method is called', async () => {
         const actionsRef = {
-          unmount: spy(),
-          close: spy(),
+          current: {
+            unmount: spy(),
+            close: spy(),
+          },
         };
 
         const { user } = render(() => (
@@ -316,7 +318,7 @@ describe('<Tooltip.Root />', () => {
           expect(screen.queryByTestId('positioner')).not.to.equal(null);
         });
 
-        actionsRef.unmount();
+        actionsRef.current.unmount();
 
         await waitFor(() => {
           expect(screen.queryByTestId('positioner')).to.equal(null);
@@ -379,6 +381,7 @@ describe('<Tooltip.Root />', () => {
 
           return (
             <div>
+              {/* eslint-disable-next-line solid/no-innerhtml */}
               <style innerHTML={style} />
               <button onClick={() => setOpen(false)}>Close</button>
               <Tooltip.Root open={open()} onOpenChangeComplete={onOpenChangeComplete}>
@@ -465,6 +468,7 @@ describe('<Tooltip.Root />', () => {
 
           return (
             <div>
+              {/* eslint-disable-next-line solid/no-innerhtml */}
               <style innerHTML={style} />
               <button onClick={() => setOpen(true)}>Open</button>
               <Tooltip.Root
@@ -532,6 +536,7 @@ describe('<Tooltip.Root />', () => {
 
         const { user } = render(() => (
           <Tooltip.Provider>
+            {/* eslint-disable-next-line solid/no-innerhtml */}
             <style innerHTML={style} />
             <Tooltip.Root>
               <Tooltip.Trigger data-testid="trigger-1" delay={0}>

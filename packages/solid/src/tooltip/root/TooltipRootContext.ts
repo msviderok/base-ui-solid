@@ -1,7 +1,9 @@
 import { createContext, useContext } from 'solid-js';
 import { TooltipStore } from '../store/TooltipStore';
 
-export type TooltipRootContext<Payload = unknown> = TooltipStore<Payload>;
+export type TooltipRootContext<Payload = unknown> = {
+  store: TooltipStore<Payload>;
+};
 
 export const TooltipRootContext = createContext<TooltipRootContext | undefined>(undefined);
 

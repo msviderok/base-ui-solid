@@ -27,13 +27,15 @@ const stateAttributesMapping: StateAttributesMapping<TooltipViewport.State> = {
  */
 export function TooltipViewport(componentProps: TooltipViewport.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['children']);
-  const store = useTooltipRootContext();
+  const { store } = useTooltipRootContext();
   const positioner = useTooltipPositionerContext();
 
   const instantType = store.useState('instantType');
 
   const { children: childrenToRender, state: viewportState } = usePopupViewport({
-    store,
+    get store() {
+      return store;
+    },
     get side() {
       return positioner.side();
     },

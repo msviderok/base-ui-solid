@@ -1,5 +1,6 @@
-import { createEffect, createMemo, onMount, type JSX } from 'solid-js';
+import { createEffect, createMemo, onMount, untrack, type Accessor, type JSX } from 'solid-js';
 import { useClientPoint, useDismiss, useInteractions } from '../../floating-ui-solid';
+import { ComponentWithPayload, type ReactLikeRef } from '../../solid-helpers';
 import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
@@ -29,20 +30,23 @@ export function TooltipRoot<Payload>(props: TooltipRoot.Props<Payload>) {
   const triggerIdProp = () => props.triggerId;
   const defaultTriggerIdProp = () => props.defaultTriggerId ?? null;
 
-  const store = TooltipStore.useStore<Payload>(props.handle?.store, {
-    get open() {
-      return defaultOpen();
+  const store = TooltipStore.useStore<Payload>(
+    untrack(() => props.handle?.store),
+    {
+      get open() {
+        return defaultOpen();
+      },
+      get openProp() {
+        return openProp();
+      },
+      get activeTriggerId() {
+        return defaultTriggerIdProp();
+      },
+      get triggerIdProp() {
+        return triggerIdProp();
+      },
     },
-    get openProp() {
-      return openProp();
-    },
-    get activeTriggerId() {
-      return defaultTriggerIdProp();
-    },
-    get triggerIdProp() {
-      return triggerIdProp();
-    },
-  });
+  );
 
   // Support initially open state when uncontrolled
   onMount(() => {
@@ -57,14 +61,20 @@ export function TooltipRoot<Payload>(props: TooltipRoot.Props<Payload>) {
   store.useControlledProp('openProp', openProp);
   store.useControlledProp('triggerIdProp', triggerIdProp);
 
-  store.useContextCallback('onOpenChange', props.onOpenChange);
-  store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
+  store.useContextCallback(
+    'onOpenChange',
+    untrack(() => props.onOpenChange),
+  );
+  store.useContextCallback(
+    'onOpenChangeComplete',
+    untrack(() => props.onOpenChangeComplete),
+  );
 
   const openState = store.useState('open');
   const open = () => !disabled() && openState();
 
   const activeTriggerId = store.useState('activeTriggerId');
-  const payload = store.useState('payload') as Payload | undefined;
+  const payload = store.useState('payload') as Accessor<Payload | undefined>;
 
   store.useSyncedValues({
     get trackCursorAxis() {
@@ -113,7 +123,7 @@ export function TooltipRoot<Payload>(props: TooltipRoot.Props<Payload>) {
       }
       store.set('instantType', 'delay');
     } else if (previousInstantTypeRef !== null) {
-      store.set('instantType', previousInstantTypeRef);
+      store.set('instantType', previousInstantTypeRef as 'delay' | 'dismiss' | 'focus' | undefined);
       previousInstantTypeRef = null;
     }
   });
@@ -131,20 +141,34 @@ export function TooltipRoot<Payload>(props: TooltipRoot.Props<Payload>) {
   };
 
   onMount(() => {
-    props.actionsRef = { unmount: forceUnmount, close: handleImperativeClose };
+    if (props.actionsRef) {
+      props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
+    }
   });
 
-  const floatingRootContext = store.select('floatingRootContext');
-
-  const dismiss = useDismiss(floatingRootContext, {
-    enabled: () => !disabled(),
-    referencePress: true,
+  const dismiss = useDismiss({
+    get context() {
+      return store.context.floatingRootContext;
+    },
+    props: {
+      get enabled() {
+        return !disabled();
+      },
+      referencePress: true,
+    },
   });
-  const clientPoint = useClientPoint(floatingRootContext, {
-    enabled: () => !disabled() && trackCursorAxis() !== 'none',
-    axis: () => {
-      const axis = trackCursorAxis();
-      return axis === 'none' ? undefined : axis;
+  const clientPoint = useClientPoint({
+    get context() {
+      return store.context.floatingRootContext;
+    },
+    props: {
+      get enabled() {
+        return !disabled() && trackCursorAxis() !== 'none';
+      },
+      get axis() {
+        const axis = trackCursorAxis();
+        return axis === 'none' ? undefined : axis;
+      },
     },
   });
 
@@ -164,8 +188,8 @@ export function TooltipRoot<Payload>(props: TooltipRoot.Props<Payload>) {
   });
 
   return (
-    <TooltipRootContext.Provider value={store as TooltipRootContext}>
-      {typeof props.children === 'function' ? props.children({ payload }) : props.children}
+    <TooltipRootContext.Provider value={{ store } as TooltipRootContext}>
+      <ComponentWithPayload payload={payload} children={props.children} />
     </TooltipRootContext.Provider>
   );
 }
@@ -223,7 +247,7 @@ export interface TooltipRootProps<Payload = unknown> {
    * - `unmount`: Unmounts the tooltip popup.
    * - `close`: Closes the tooltip imperatively when called.
    */
-  actionsRef?: (TooltipRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<TooltipRoot.Actions | null> | undefined;
   /**
    * Whether the tooltip is disabled.
    * @default false

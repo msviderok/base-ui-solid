@@ -41,7 +41,11 @@ const FloatingDelayGroupContext = createContext<ContextValue>({
   delayRef: { current: 0 },
   currentIdRef: { current: null },
   initialDelayRef: { current: 0 },
-  timeout: {} as any,
+  timeout: {
+    start: () => {},
+    clear: () => {},
+    isStarted: () => false,
+  },
   currentContextRef: { current: null },
 });
 
@@ -159,6 +163,10 @@ export function useDelayGroup(parameters: {
   }
 
   createEffect(() => {
+    if (!hasProvider) {
+      return;
+    }
+
     if (!currentIdRef.current) {
       return;
     }
@@ -185,6 +193,10 @@ export function useDelayGroup(parameters: {
   });
 
   createEffect(() => {
+    if (!hasProvider) {
+      return;
+    }
+
     if (!options.open) {
       return;
     }

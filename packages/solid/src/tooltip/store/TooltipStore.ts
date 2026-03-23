@@ -1,4 +1,7 @@
+import { mergeProps as solidMergeProps } from 'solid-js';
 import { useSyncedFloatingRootContext } from '../../floating-ui-solid';
+import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
+import type { ReactLikeRef } from '../../solid-helpers';
 import {
   createInitialPopupStoreState,
   PopupStoreContext,
@@ -7,7 +10,7 @@ import {
   PopupTriggerMap,
 } from '../../utils/popups';
 import { REASONS } from '../../utils/reasons';
-import { SolidStore } from '../../utils/store/SolidStore';
+import { SolidStore } from '../../utils/store/SolidStoreV2';
 import { type TooltipRoot } from '../root/TooltipRoot';
 
 export type State<Payload> = PopupStoreState<Payload> & {
@@ -22,9 +25,7 @@ export type State<Payload> = PopupStoreState<Payload> & {
 };
 
 export type Context = PopupStoreContext<TooltipRoot.ChangeEventDetails> & {
-  readonly refs: {
-    popupRef: HTMLElement | null | undefined;
-  };
+  popupRef: ReactLikeRef<HTMLElement | null | undefined>;
 };
 
 const selectors = {
@@ -39,26 +40,24 @@ const selectors = {
   hasViewport: (state: State<unknown>) => state.hasViewport,
 };
 
-export class TooltipStore<Payload> extends SolidStore<State<Payload>, Context, typeof selectors> {
-  constructor(initialState?: Partial<State<Payload>>) {
-    super(
-      createInitialState<Payload>(initialState),
-      {
-        refs: {
-          popupRef: null,
-        },
-        onOpenChange: undefined,
-        onOpenChangeComplete: undefined,
-        triggerElements: new PopupTriggerMap(),
-      },
-      selectors,
-    );
-  }
+export function TooltipStore<Payload>(initialState?: Partial<State<Payload>>) {
+  const [state, setState] = createInitialState(initialState);
+  const store = SolidStore<State<Payload>, Context, typeof selectors>(
+    [state, setState],
+    {
+      popupRef: { current: null },
+      onOpenChange: undefined,
+      onOpenChangeComplete: undefined,
+      triggerElements: new PopupTriggerMap(),
+      floatingRootContext: getEmptyRootContext(),
+    },
+    selectors,
+  );
 
-  setOpen = (
+  function setOpen(
     nextOpen: boolean,
     eventDetails: Omit<TooltipRoot.ChangeEventDetails, 'preventUnmountOnClose'>,
-  ) => {
+  ) {
     const reason = eventDetails.reason;
 
     const isHover = reason === REASONS.triggerHover;
@@ -67,10 +66,10 @@ export class TooltipStore<Payload> extends SolidStore<State<Payload>, Context, t
       !nextOpen && (reason === REASONS.triggerPress || reason === REASONS.escapeKey);
 
     (eventDetails as TooltipRoot.ChangeEventDetails).preventUnmountOnClose = () => {
-      this.set('preventUnmountingOnClose', true);
+      store.set('preventUnmountingOnClose', true);
     };
 
-    this.context.onOpenChange?.(nextOpen, eventDetails as TooltipRoot.ChangeEventDetails);
+    store.context.onOpenChange?.(nextOpen, eventDetails as TooltipRoot.ChangeEventDetails);
 
     if (eventDetails.isCanceled) {
       return;
@@ -95,7 +94,7 @@ export class TooltipStore<Payload> extends SolidStore<State<Payload>, Context, t
         updatedState.activeTriggerElement = eventDetails.trigger ?? null;
       }
 
-      this.update(updatedState);
+      store.update(updatedState);
     };
 
     if (isHover) {
@@ -105,29 +104,27 @@ export class TooltipStore<Payload> extends SolidStore<State<Payload>, Context, t
     } else {
       changeState();
     }
-  };
-
-  static useStore<Payload>(
-    externalStore: TooltipStore<Payload> | undefined,
-    initialState?: Partial<State<Payload>>,
-  ) {
-    const internalStore = new TooltipStore<Payload>(initialState);
-
-    const store = externalStore ?? internalStore;
-
-    const floatingRootContext = useSyncedFloatingRootContext({
-      popupStore: store,
-      onOpenChange: store.setOpen,
-    });
-
-    // It's safe to set this here because when this code runs for the first time,
-    // nothing has had a chance to subscribe to the `store` yet.
-    // For subsequent renders, the `floatingRootContext` reference remains the same,
-    // so it's basically a no-op.
-    (store.state as State<any>).floatingRootContext = floatingRootContext;
-    return store;
   }
+
+  const merged = solidMergeProps(store, { setOpen });
+
+  return merged;
 }
+
+export type TooltipStore<Payload> = ReturnType<typeof TooltipStore<Payload>>;
+
+TooltipStore.useStore = <_Payload>(
+  externalStore: TooltipStore<_Payload> | undefined,
+  _initialState: Partial<State<_Payload>>,
+): TooltipStore<_Payload> => {
+  const store = externalStore ?? TooltipStore<_Payload>(_initialState);
+  const floatingRootContext = useSyncedFloatingRootContext({
+    popupStore: store,
+    onOpenChange: store.setOpen,
+  });
+  store.context.floatingRootContext = floatingRootContext;
+  return store;
+};
 
 function createInitialState<Payload>(initialState: Partial<State<Payload>> = {}) {
   return createInitialPopupStoreState<Payload, State<Payload>>({

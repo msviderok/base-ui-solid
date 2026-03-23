@@ -26,18 +26,17 @@ const stateAttributesMapping: StateAttributesMapping<TooltipPopup.State> = {
 export function TooltipPopup(componentProps: TooltipPopup.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const store = useTooltipRootContext();
+  const { store } = useTooltipRootContext();
   const { side, align } = useTooltipPositionerContext();
 
   const open = store.useState('open');
   const instantType = store.useState('instantType');
   const transitionStatus = store.useState('transitionStatus');
   const popupProps = store.useState('popupProps');
-  const floatingContext = store.select('floatingRootContext');
 
   useOpenChangeComplete({
     open,
-    ref: store.context.refs.popupRef,
+    ref: () => store.context.popupRef.current,
     onComplete() {
       if (open()) {
         store.context.onOpenChangeComplete?.(true);
@@ -49,7 +48,9 @@ export function TooltipPopup(componentProps: TooltipPopup.Props) {
   const closeDelay = store.useState('closeDelay');
 
   useHoverFloatingInteraction({
-    context: floatingContext,
+    get context() {
+      return store.context.floatingRootContext;
+    },
     parameters: {
       get enabled() {
         return !disabled();
@@ -81,7 +82,7 @@ export function TooltipPopup(componentProps: TooltipPopup.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      store.context.refs.popupRef = el;
+      store.context.popupRef.current = el;
       store.useStateSetter('popupElement')(el);
     },
     get props() {
