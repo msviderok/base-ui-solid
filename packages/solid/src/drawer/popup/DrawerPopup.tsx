@@ -67,7 +67,6 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
 
   const descriptionElementId = store.useState('descriptionElementId');
   const disablePointerDismissal = store.useState('disablePointerDismissal');
-  const floatingRootContext = store.useState('floatingRootContext');
   const rootPopupProps = store.useState('popupProps');
   const modal = store.useState('modal');
   const mounted = store.useState('mounted');
@@ -86,14 +85,12 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
   const swipeStrength = () => swipe?.swipeStrength() ?? null;
   const { snapPoints, activeSnapPoint, activeSnapPointOffset } = useDrawerSnapPoints();
 
-  useDialogPortalContext();
-
   const [popupHeight, setPopupHeight] = createSignal(0);
 
   let popupHeightRef = 0;
 
   const measureHeight = () => {
-    const popupElement = store.context.refs.popupRef;
+    const popupElement = store.context.popupRef.current;
     if (!popupElement) {
       return;
     }
@@ -132,7 +129,7 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
       return;
     }
 
-    const popupElement = store.context.refs.popupRef;
+    const popupElement = store.context.popupRef.current;
     if (!popupElement) {
       return;
     }
@@ -152,7 +149,7 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
   });
 
   createEffect(() => {
-    const popupRef = store.context.refs.popupRef;
+    const popupRef = store.context.popupRef.current;
 
     const syncNestedSwipeProgress = () => {
       const popupElement = popupRef;
@@ -207,7 +204,7 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
 
   useOpenChangeComplete({
     open,
-    ref: store.context.refs.popupRef,
+    ref: store.context.popupRef.current,
     onComplete() {
       if (open()) {
         store.context.onOpenChangeComplete?.(true);
@@ -216,7 +213,7 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
   });
 
   const resolvedInitialFocus = () =>
-    local.initialFocus === undefined ? store.context.refs.popupRef : local.initialFocus;
+    local.initialFocus === undefined ? store.context.popupRef.current : local.initialFocus;
 
   const state: DrawerPopup.State = {
     get open() {
@@ -229,7 +226,6 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
       return transitionStatus();
     },
     get expanded() {
-      // @ts-ignore TODO: figure out how to type this
       return activeSnapPoint?.() === 1;
     },
     get nestedDrawerOpen() {
@@ -351,7 +347,7 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
       ];
     },
     ref: (el) => {
-      store.context.refs.popupRef = el;
+      store.context.popupRef.current = el;
       store.useStateSetter('popupElement')(el);
     },
     stateAttributesMapping,
@@ -359,7 +355,7 @@ export function DrawerPopup(componentProps: DrawerPopup.Props) {
 
   return (
     <FloatingFocusManager
-      context={floatingRootContext()}
+      context={store.context.floatingRootContext}
       openInteractionType={openMethod()}
       disabled={!mounted()}
       closeOnFocusOut={!disablePointerDismissal()}

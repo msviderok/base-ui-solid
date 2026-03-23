@@ -112,19 +112,19 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
 
   function disableDismissForSwipe() {
     releaseDismissTimeout.clear();
-    store.context.refs.outsidePressEnabledRef = false;
+    store.context.outsidePressEnabledRef.current = false;
   }
 
   function enableDismissAfterRelease() {
     // Safari can dispatch outside-press for the same swipe-open gesture
     // after release, so defer re-enabling dismissal to the next macrotask.
     releaseDismissTimeout.start(0, () => {
-      store.context.refs.outsidePressEnabledRef = true;
+      store.context.outsidePressEnabledRef.current = true;
     });
   }
 
   function resolvePopupSize() {
-    const popupElement = store.context.refs.popupRef;
+    const popupElement = store.context.popupRef.current;
     if (!popupElement) {
       return null;
     }
@@ -144,7 +144,7 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
       return null;
     }
 
-    const popupElement = store.context.refs.popupRef;
+    const popupElement = store.context.popupRef.current;
     if (!popupElement) {
       return offset;
     }
@@ -173,7 +173,7 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
       return;
     }
 
-    const popupElement = store.context.refs.popupRef;
+    const popupElement = store.context.popupRef.current;
     if (!popupElement) {
       return;
     }
@@ -215,7 +215,7 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
     }
     popupElement.style.transition = 'none';
 
-    const backdropElement = store.context.refs.backdropRef;
+    const backdropElement = store.context.backdropRef.current;
     if (backdropElement) {
       backdropElement.setAttribute(DrawerPopupDataAttributes.swiping, '');
       backdropElement.style.setProperty(DrawerBackdropCssVars.swipeProgress, `${backdropProgress}`);
@@ -234,7 +234,7 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
   }
 
   const clearSwipeStyles = () => {
-    const popupElement = store.context.refs.popupRef;
+    const popupElement = store.context.popupRef.current;
     if (popupElement && appliedSwipeStylesRef) {
       popupElement.style.removeProperty(DrawerPopupCssVars.swipeMovementX);
       popupElement.style.removeProperty(DrawerPopupCssVars.swipeMovementY);
@@ -246,7 +246,7 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
       popupTransitionRef = null;
     }
 
-    const backdropElement = store.context.refs.backdropRef;
+    const backdropElement = store.context.backdropRef.current;
     if (backdropElement) {
       backdropElement.removeAttribute(DrawerPopupDataAttributes.swiping);
       backdropElement.style.setProperty(DrawerBackdropCssVars.swipeProgress, '0');
@@ -378,7 +378,7 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
   });
 
   onCleanup(() => {
-    store.context.refs.outsidePressEnabledRef = true;
+    store.context.outsidePressEnabledRef.current = true;
   });
 
   const state: DrawerSwipeArea.State = {

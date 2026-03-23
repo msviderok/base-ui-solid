@@ -1,13 +1,6 @@
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  onCleanup,
-  type ComponentProps,
-  type JSX,
-} from 'solid-js';
+import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext';
 import { DialogViewport } from '../../dialog/viewport/DialogViewport';
 import { contains } from '../../floating-ui-solid/utils';
@@ -154,15 +147,15 @@ export function DrawerViewport(props: DrawerViewport.Props) {
 
   const setSwipeDismissed = (dismissed: boolean) => {
     setSwipeDismissedElements(
-      store.context.refs.popupRef,
-      store.context.refs.backdropRef,
+      store.context.popupRef.current,
+      store.context.backdropRef.current,
       dismissed,
     );
   };
 
   const clearSwipeRelease = () => {
     setSwipeDismissed(false);
-    store.context.refs.popupRef?.removeAttribute(TransitionStatusDataAttributes.endingStyle);
+    store.context.popupRef.current?.removeAttribute(TransitionStatusDataAttributes.endingStyle);
     setSwipeRelease(null);
   };
 
@@ -188,7 +181,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
       frontmostHeight: swipeProgress > 0 ? frontmostHeight() : 0,
     });
 
-    const backdropElement = store.context.refs.backdropRef;
+    const backdropElement = store.context.backdropRef.current;
     if (!backdropElement) {
       return;
     }
@@ -228,7 +221,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
       return null;
     }
 
-    const popupElement = store.context.refs.popupRef;
+    const popupElement = store.context.popupRef.current;
     if (!popupElement) {
       return null;
     }
@@ -325,7 +318,9 @@ export function DrawerViewport(props: DrawerViewport.Props) {
     get directions() {
       return swipeDirections();
     },
-    elementRef: store.context.refs.popupRef,
+    get elementRef() {
+      return store.context.popupRef.current;
+    },
     ignoreSelectorWhenTouch: false,
     ignoreScrollableAncestors: true,
     movementCssVars: {
@@ -337,7 +332,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
         return;
       }
 
-      const popupElement = store.context.refs.popupRef;
+      const popupElement = store.context.popupRef.current;
       if (!popupElement) {
         return;
       }
@@ -362,7 +357,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
       selection.removeAllRanges();
     },
     onSwipingChange(swiping) {
-      setBackdropSwipingAttribute(store.context.refs.backdropRef, swiping);
+      setBackdropSwipingAttribute(store.context.backdropRef.current, swiping);
 
       if (!swiping) {
         nestedSwipeActiveRef = false;
@@ -373,7 +368,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
       return getBaseSwipeThreshold(element, direction);
     },
     canStart(position) {
-      const popupElement = store.context.refs.popupRef;
+      const popupElement = store.context.popupRef.current;
       if (!popupElement) {
         return false;
       }
@@ -459,7 +454,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
       function startSwipeRelease(resolvedDirection: SwipeDirection) {
         // Start ending transition styles earlier and synchronously to prevent a period where
         // the popup appears stuck on release before the actual closing animation starts.
-        const popupElement = store.context.refs.popupRef;
+        const popupElement = store.context.popupRef.current;
         if (!popupElement) {
           return;
         }
@@ -484,7 +479,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
           return undefined;
         }
 
-        const element = store.context.refs.popupRef;
+        const element = store.context.popupRef.current;
         if (!element) {
           clearSwipeRelease();
           return undefined;
@@ -674,7 +669,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
     onDismiss(event) {
       setVisualState?.({ swipeProgress: 0, frontmostHeight: 0 });
 
-      const backdropElement = store.context.refs.backdropRef;
+      const backdropElement = store.context.backdropRef.current;
       if (backdropElement) {
         backdropElement.style.setProperty(DrawerBackdropCssVars.swipeProgress, '0');
         backdropElement.style.removeProperty(DrawerPopupCssVars.height);
@@ -863,7 +858,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
 
   onCleanup(() => {
     setVisualState?.({ swipeProgress: 0, frontmostHeight: 0 });
-    setBackdropSwipingAttribute(store.context.refs.backdropRef, false);
+    setBackdropSwipingAttribute(store.context.backdropRef.current, false);
     notifyParentSwipingChange?.(false);
   });
 
@@ -873,8 +868,8 @@ export function DrawerViewport(props: DrawerViewport.Props) {
     swipeStrength: () => swipeRelease() ?? null,
     setSwipeDismissed(dismissed: boolean) {
       setSwipeDismissedElements(
-        store.context.refs.popupRef,
-        store.context.refs.backdropRef,
+        store.context.popupRef.current,
+        store.context.backdropRef.current,
         dismissed,
       );
     },
@@ -888,13 +883,7 @@ export function DrawerViewport(props: DrawerViewport.Props) {
 
   return (
     <DialogViewport
-      ref={(el) => {
-        if (typeof props.ref === 'function') {
-          props.ref(el);
-        } else {
-          props.ref = el;
-        }
-      }}
+      ref={props.ref}
       class={props.class}
       render={props.render}
       {...mergeProps<'div'>([

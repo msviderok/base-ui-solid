@@ -1,5 +1,6 @@
 import { isAndroid } from '@base-ui/utils/detectBrowser';
 import { ownerWindow } from '@base-ui/utils/owner';
+import { ComponentWithPayload, type ReactLikeRef } from '@msviderok/base-ui-solid/solid-helpers';
 import {
   createEffect,
   createMemo,
@@ -196,17 +197,10 @@ export function DrawerRoot<Payload = unknown>(props: DrawerRoot.Props<Payload>) 
         triggerId={triggerIdProp()}
         defaultTriggerId={defaultTriggerIdProp()}
       >
-        {typeof props.children === 'function' ? (
-          (((payload) => (
-            <>
-              <DrawerProviderReporter />
-              {(props.children as any)(payload)}
-            </>
-          )) as PayloadChildRenderFunction<Payload>)
-        ) : (
+        {(data) => (
           <>
             <DrawerProviderReporter />
-            {props.children}
+            <ComponentWithPayload payload={() => data.payload} children={props.children} />
           </>
         )}
       </Dialog.Root>
@@ -254,7 +248,7 @@ export interface DrawerRootProps<Payload = unknown> {
    * Useful when the drawer's animation is controlled by an external library.
    * - `close`: Closes the drawer imperatively when called.
    */
-  actionsRef?: (DrawerRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<DrawerRoot.Actions | null> | undefined;
   /**
    * A handle to associate the drawer with a trigger.
    * If specified, allows detached triggers to control the drawer's open state.
