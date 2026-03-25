@@ -62,7 +62,7 @@ function Inner(componentProps: ComboboxItemIndicator.Props) {
 
   useOpenChangeComplete({
     open: selected,
-    ref: indicatorRef,
+    ref: () => indicatorRef,
     onComplete() {
       if (!selected()) {
         setMounted(false);

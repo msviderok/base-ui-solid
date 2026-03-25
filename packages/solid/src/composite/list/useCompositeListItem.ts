@@ -47,9 +47,10 @@ export function useCompositeListItem<Metadata>(
   const context = useCompositeListContext();
   const indexRef = -1;
   const [index, setIndex] = createSignal<number>(
-    (externalIndex() ?? params.indexGuessBehavior === IndexGuessBehavior.GuessFromOrder)
-      ? initialIndex(indexRef, context.nextIndex(), context.setNextIndex)
-      : -1,
+    externalIndex() ??
+      (params.indexGuessBehavior === IndexGuessBehavior.GuessFromOrder
+        ? initialIndex(indexRef, context.nextIndex(), context.setNextIndex)
+        : -1),
   );
 
   const [componentRef, setComponentRef] = createSignal<Element | null | undefined>();

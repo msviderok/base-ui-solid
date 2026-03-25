@@ -1,4 +1,4 @@
-import { Show, type Accessor, type JSX } from 'solid-js';
+import { createEffect, Show, type Accessor, type JSX } from 'solid-js';
 import { CompositeList } from '../../composite/list/CompositeList';
 import { stopEvent } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
@@ -17,25 +17,27 @@ import {
  * Renders a `<div>` element.
  */
 export function ComboboxList(componentProps: ComboboxList.Props) {
-  const [, local, elementProps] = splitComponentProps(componentProps, ['children']);
+  const [, local, elementProps] = splitComponentProps(componentProps, ['children', 'id']);
 
-  const store = useComboboxRootContext();
-  const floatingRootContext = useComboboxFloatingContext();
+  const { store } = useComboboxRootContext();
+  const { context: floatingRootContext } = useComboboxFloatingContext();
   const hasPositionerContext = Boolean(useComboboxPositionerContext(true));
   const { filteredItems } = useComboboxDerivedItemsContext();
+  const floatingId = floatingRootContext.useState('floatingId');
 
-  const items = store.useState('items');
-  const labelsRef = store.useState('labelsRef');
-  const listRef = store.select('listRef');
-  const selectionMode = store.useState('selectionMode');
-  const grid = store.useState('grid');
-  const popupProps = store.useState('popupProps');
-  const disabled = store.useState('disabled');
-  const readOnly = store.useState('readOnly');
-  const virtualized = store.useState('virtualized');
+  const items = store.useSelector('items');
+  const selectionMode = store.useSelector('selectionMode');
+  const grid = store.useSelector('grid');
+  const disabled = store.useSelector('disabled');
+  const readOnly = store.useSelector('readOnly');
+  const virtualized = store.useSelector('virtualized');
 
   const multiple = () => selectionMode() === 'multiple';
   const empty = () => filteredItems().length === 0;
+  // React can derive `aria-controls` from the list ref on rerender. In Solid,
+  // the listbox id needs to be an explicit reactive value because assigning the
+  // DOM `id` later does not make `element.id` reactive.
+  const listboxId = () => local.id ?? floatingId();
 
   const setPositionerElement = (element: HTMLElement | null | undefined) => {
     store.set('positionerElement', element);
@@ -51,7 +53,9 @@ export function ComboboxList(componentProps: ComboboxList.Props) {
     },
   };
 
-  const floatingId = floatingRootContext.useState('floatingId');
+  createEffect(() => {
+    store.set('listboxId', listboxId());
+  });
 
   const element = useRenderElement('div', componentProps, {
     state,
@@ -61,27 +65,31 @@ export function ComboboxList(componentProps: ComboboxList.Props) {
         setPositionerElement(el);
       }
     },
+    // Support "closed template" API: if children is a function, implicitly wrap it
+    // with a Combobox.Collection that reads items from context/root.
+    // Ensures this component's `popupProps` subscription does not cause <Combobox.Item>
+    // to re-render on every active index change.
+    get children() {
+      return (
+        <Show
+          keyed
+          /**
+           * Only render inside collection if children is rendered via explicit function call
+           * and not an accessor.
+           */
+          when={typeof local.children === 'function' && local.children.length > 0 && local.children}
+          fallback={local.children as JSX.Element}
+        >
+          {(children) => <ComboboxCollection>{children}</ComboboxCollection>}
+        </Show>
+      );
+    },
     get props() {
       return [
-        popupProps(),
+        store.selectors.popupProps,
         {
-          // Support "closed template" API: if children is a function, implicitly wrap it
-          // with a Combobox.Collection that reads items from context/root.
-          // Ensures this component's `popupProps` subscription does not cause <Combobox.Item>
-          // to re-render on every active index change.
-
-          get children() {
-            return (
-              <Show
-                when={typeof local.children === 'function' && local.children}
-                fallback={local.children as JSX.Element}
-              >
-                {(children) => <ComboboxCollection>{children()}</ComboboxCollection>}
-              </Show>
-            );
-          },
           tabIndex: -1,
-          id: floatingId(),
+          id: listboxId(),
           role: grid() ? 'grid' : 'listbox',
           'aria-multiselectable': multiple() ? 'true' : undefined,
           onKeyDown(event: KeyboardEvent) {
@@ -100,20 +108,20 @@ export function ComboboxList(componentProps: ComboboxList.Props) {
               stopEvent(event);
 
               const nativeEvent = event;
-              const listItem = store.state.listRef[activeIndex];
+              const listItem = store.context.listRef[activeIndex];
 
               if (listItem) {
-                store.setState('selectionEventRef', nativeEvent);
+                store.set('selectionEventRef', nativeEvent);
                 listItem.click();
-                store.setState('selectionEventRef', null);
+                store.set('selectionEventRef', null);
               }
             }
           },
           onKeyDownCapture() {
-            store.setState('keyboardActiveRef', true);
+            store.set('keyboardActiveRef', true);
           },
           onPointerMoveCapture() {
-            store.setState('keyboardActiveRef', false);
+            store.set('keyboardActiveRef', false);
           },
         },
         elementProps,
@@ -123,7 +131,12 @@ export function ComboboxList(componentProps: ComboboxList.Props) {
 
   return (
     <Show when={!virtualized()} fallback={element()}>
-      <CompositeList refs={{ elements: listRef, labels: items() ? undefined : labelsRef() }}>
+      <CompositeList
+        refs={{
+          elements: store.context.listRef,
+          labels: items() ? undefined : store.context.labelsRef,
+        }}
+      >
         {element()}
       </CompositeList>
     </Show>

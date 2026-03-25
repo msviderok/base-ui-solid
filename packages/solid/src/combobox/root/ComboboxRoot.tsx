@@ -1,4 +1,4 @@
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
 import { AriaCombobox } from './AriaCombobox';
 
 /**
@@ -111,7 +111,7 @@ export type ComboboxRootProps<Value, Multiple extends boolean | undefined = fals
    * Instead, the `unmount` function must be called to unmount the combobox manually.
    * Useful when the combobox's animation is controlled by an external library.
    */
-  actionsRef?: (ComboboxRoot.Actions | null) | undefined;
+  actionsRef?: ReactLikeRef<ComboboxRoot.Actions | null> | undefined;
   /**
    * Event handler called when the popup is opened or closed.
    */

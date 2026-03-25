@@ -1,7 +1,7 @@
 import { createEffect, onCleanup } from 'solid-js';
 import { produce, reconcile } from 'solid-js/store';
 import { useFormContext } from '../form/FormContext';
-import { type MaybeAccessor, access } from '../solid-helpers';
+import { type MaybeAccessor, access, useRef } from '../solid-helpers';
 import { useFieldRootContext } from './root/FieldRootContext';
 import { getCombinedFieldValidityData } from './utils/getCombinedFieldValidityData';
 
@@ -13,9 +13,10 @@ export function useField(params: UseFieldParameters) {
   const id = () => access(params.id);
   const name = () => access(params.name);
   const controlRef = () => access(params.controlRef);
+  const initialValueInitializedRef = useRef(false);
 
   createEffect(() => {
-    if (!enabled()) {
+    if (!enabled() || initialValueInitializedRef.current) {
       return;
     }
 
@@ -24,7 +25,9 @@ export function useField(params: UseFieldParameters) {
       initialValue = params.getValue?.();
     }
 
-    if (validityData.initialValue === null && initialValue !== validityData.initialValue) {
+    initialValueInitializedRef.current = true;
+
+    if (validityData.initialValue === null && initialValue !== null) {
       setValidityData('initialValue', initialValue);
     }
   });

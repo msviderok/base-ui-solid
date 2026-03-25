@@ -1,62 +1,37 @@
-import type { Accessor } from 'solid-js';
+import { createMemo, mergeProps as solidMergeProps, type Accessor } from 'solid-js';
+import { createStore } from 'solid-js/store';
 import { compareItemEquality } from '../utils/itemEquality';
 import { hasNullItemLabel } from '../utils/resolveValueLabel';
-import { SolidStore } from '../utils/store/SolidStoreV2';
 import type { HTMLProps } from '../utils/types';
 import type { Side } from '../utils/useAnchorPositioning';
 import type { InteractionType } from '../utils/useEnhancedClickHandler';
 import type { TransitionStatus } from '../utils/useTransitionStatus';
 import type { AriaCombobox } from './root/AriaCombobox';
 
-export type State = {
-  id: string | undefined;
-
-  query: string;
-
-  filter: (item: any, query: string) => boolean;
-
-  items: readonly any[] | undefined;
-
-  selectedValue: any;
-
-  open: boolean;
-  mounted: boolean;
-  transitionStatus: TransitionStatus;
-  forceMounted: boolean;
-
-  inline: boolean;
-
+// only fields that are mutated via store setter
+export interface State {
   activeIndex: number | null;
   selectedIndex: number | null;
-
-  popupProps: HTMLProps;
-  inputProps: HTMLProps;
-  triggerProps: HTMLProps;
-
+  forceMounted: boolean;
+  transitionStatus: TransitionStatus;
   positionerElement: HTMLElement | null | undefined;
   listElement: HTMLElement | null | undefined;
+  listboxId: string | undefined;
   triggerElement: HTMLElement | null | undefined;
   inputElement: HTMLInputElement | null | undefined;
   popupSide: Side | null;
-
-  openMethod: InteractionType | null;
-
   inputInsidePopup: boolean;
-
-  selectionMode: 'single' | 'multiple' | 'none';
-
-  listRef: Array<HTMLElement | null | undefined>;
-  labelsRef: Array<string | null>;
   popupRef: HTMLDivElement | null | undefined;
   emptyRef: HTMLDivElement | null | undefined;
   inputRef: HTMLInputElement | null | undefined;
   keyboardActiveRef: boolean;
+  selectionEventRef: MouseEvent | PointerEvent | KeyboardEvent | null;
   chipsContainerRef: HTMLDivElement | null | undefined;
   clearRef: HTMLButtonElement | null | undefined;
-  valuesRef: Array<any>;
-  allValuesRef: Array<any>;
-  selectionEventRef: MouseEvent | PointerEvent | KeyboardEvent | null;
+}
 
+// imperative callbacks only
+export interface Context {
   setOpen: (open: boolean, eventDetails: AriaCombobox.ChangeEventDetails) => void;
   setInputValue: (value: string, eventDetails: AriaCombobox.ChangeEventDetails) => void;
   setSelectedValue: (value: any, eventDetails: AriaCombobox.ChangeEventDetails) => void;
@@ -72,115 +47,121 @@ export type State = {
     props?: HTMLProps & { active?: boolean | undefined; selected?: boolean | undefined },
   ) => Record<string, unknown>;
   requestSubmit: () => void;
-
-  name: string | undefined;
-  disabled: boolean;
-  readOnly: boolean;
-  required: boolean;
-  grid: boolean;
-  isGrouped: boolean;
-  virtualized: boolean;
   onOpenChangeComplete: (open: boolean) => void;
-  openOnInputClick: boolean;
-  itemToStringLabel?: ((item: any) => string) | undefined;
+  itemToStringLabel: ((item: any) => string) | undefined;
   isItemEqualToValue: (itemValue: any, selectedValue: any) => boolean;
-  modal: boolean;
-  autoHighlight: false | 'always' | 'input-change';
-  submitOnItemClick: boolean;
-  hasInputValue: boolean;
-};
+  listRef: Array<HTMLElement | null | undefined>;
+  labelsRef: Array<string | null>;
+  valuesRef: Array<any>;
+  allValuesRef: Array<any>;
+}
 
-export type ComboboxStore = SolidStore<State, {}, typeof selectors>;
+// prop pass-throughs supplied by AriaCombobox
+export interface PassThroughs {
+  id: Accessor<string | undefined>;
+  open: Accessor<boolean>;
+  query: Accessor<string>;
+  selectionMode: Accessor<'single' | 'multiple' | 'none'>;
+  name: Accessor<string | undefined>;
+  disabled: Accessor<boolean>;
+  readOnly: Accessor<boolean>;
+  required: Accessor<boolean>;
+  grid: Accessor<boolean>;
+  isGrouped: Accessor<boolean>;
+  virtualized: Accessor<boolean>;
+  openOnInputClick: Accessor<boolean>;
+  modal: Accessor<boolean>;
+  autoHighlight: Accessor<false | 'always' | 'input-change'>;
+  submitOnItemClick: Accessor<boolean>;
+  inline: Accessor<boolean>;
+  hasInputValue: Accessor<boolean>;
+  selectedValue: Accessor<any>;
+  items: Accessor<readonly any[] | undefined>;
+  popupProps: HTMLProps;
+  inputProps: HTMLProps;
+  triggerProps: HTMLProps;
+  mounted: Accessor<boolean>;
+  openMethod: Accessor<InteractionType | null>;
+}
 
-export const selectors = {
-  id: (state: State) => state.id,
+export interface Selectors extends PassThroughs {
+  hasSelectionChips: () => boolean;
+  hasSelectedValue: () => boolean;
+  hasNullItemLabel: (enabled: Accessor<boolean>) => boolean;
+  isActive: (index: Accessor<number>) => boolean;
+  isSelected: (itemValue: Accessor<any>) => boolean;
+}
 
-  query: (state: State) => state.query,
+export function createComboboxStore(args: {
+  initialState: State;
+  passThroughs: PassThroughs;
+  context: Context;
+}) {
+  const [state, setState] = createStore<State>(args.initialState);
+  const selectors: Selectors = solidMergeProps(args.passThroughs, {
+    hasSelectionChips: () => {
+      const v = args.passThroughs.selectedValue();
+      return Array.isArray(v) && v.length > 0;
+    },
 
-  items: (state: State) => state.items,
+    hasSelectedValue: () => {
+      const v = args.passThroughs.selectedValue();
+      if (v == null) {
+        return false;
+      }
+      if (args.passThroughs.selectionMode() === 'multiple' && Array.isArray(v)) {
+        return v.length > 0;
+      }
+      return true;
+    },
 
-  selectedValue: (state: State) => state.selectedValue,
-  hasSelectionChips: (state: State) => {
-    const selectedValue = state.selectedValue;
-    return Array.isArray(selectedValue) && selectedValue.length > 0;
-  },
+    hasNullItemLabel: (enabled: Accessor<boolean>) =>
+      enabled() ? hasNullItemLabel(args.passThroughs.items()) : false,
 
-  hasSelectedValue: (state: State) => {
-    const { selectedValue, selectionMode } = state;
-    if (selectedValue == null) {
-      return false;
+    isActive: (index: Accessor<number>) => state.activeIndex === index(),
+
+    isSelected: (itemValue: Accessor<any>) => {
+      const sv = args.passThroughs.selectedValue();
+      if (Array.isArray(sv)) {
+        return sv.some((s) => compareItemEquality(itemValue(), s, args.context.isItemEqualToValue));
+      }
+      return compareItemEquality(itemValue(), sv, args.context.isItemEqualToValue);
+    },
+  });
+
+  function useState<const Key extends keyof State>(key: Key): Accessor<State[Key]> {
+    const memo = createMemo(() => state[key]);
+    return memo;
+  }
+
+  function useSelector<Key extends keyof Selectors>(
+    key: Key,
+    ...params: SelectorArgs<Selectors[Key]>
+  ): Selectors[Key] {
+    const selector = selectors[key];
+    if (typeof selector === 'function') {
+      // @ts-expect-error - TODO: fix typing
+      return () => selector(...params);
     }
-    if (selectionMode === 'multiple' && Array.isArray(selectedValue)) {
-      return selectedValue.length > 0;
-    }
-    return true;
-  },
+    return selector;
+  }
 
-  hasNullItemLabel: (state: State, enabled: Accessor<boolean>) => {
-    return enabled() ? hasNullItemLabel(state.items) : false;
-  },
+  return {
+    state,
+    set: setState,
+    useState,
+    selectors,
+    useSelector,
+    get context() {
+      return args.context;
+    },
+  };
+}
 
-  open: (state: State) => state.open,
-  mounted: (state: State) => state.mounted,
-  forceMounted: (state: State) => state.forceMounted,
+export type ComboboxStore = ReturnType<typeof createComboboxStore>;
 
-  inline: (state: State) => state.inline,
+type Tail<T extends readonly any[]> = T extends readonly [any, ...infer Rest] ? Rest : [];
 
-  activeIndex: (state: State) => state.activeIndex,
-  selectedIndex: (state: State) => state.selectedIndex,
-  isActive: (state: State, index: Accessor<number>) => state.activeIndex === index(),
-  isSelected: (state: State, itemValue: Accessor<any>) => {
-    const comparer = state.isItemEqualToValue;
-    const selectedValue = state.selectedValue;
-    if (Array.isArray(selectedValue)) {
-      return selectedValue.some((selectedItem) =>
-        compareItemEquality(itemValue(), selectedItem, comparer),
-      );
-    }
-    return compareItemEquality(itemValue(), selectedValue, comparer);
-  },
-
-  transitionStatus: (state: State) => state.transitionStatus,
-
-  popupProps: (state: State) => state.popupProps,
-  inputProps: (state: State) => state.inputProps,
-  triggerProps: (state: State) => state.triggerProps,
-  getItemProps: (state: State) => state.getItemProps,
-
-  positionerElement: (state: State) => state.positionerElement,
-  listElement: (state: State) => state.listElement,
-  triggerElement: (state: State) => state.triggerElement,
-  inputElement: (state: State) => state.inputElement,
-  popupSide: (state: State) => state.popupSide,
-
-  openMethod: (state: State) => state.openMethod,
-
-  inputInsidePopup: (state: State) => state.inputInsidePopup,
-
-  selectionMode: (state: State) => state.selectionMode,
-  listRef: (state: State) => state.listRef,
-  labelsRef: (state: State) => state.labelsRef,
-  popupRef: (state: State) => state.popupRef,
-  emptyRef: (state: State) => state.emptyRef,
-  inputRef: (state: State) => state.inputRef,
-  keyboardActiveRef: (state: State) => state.keyboardActiveRef,
-  chipsContainerRef: (state: State) => state.chipsContainerRef,
-  clearRef: (state: State) => state.clearRef,
-  valuesRef: (state: State) => state.valuesRef,
-  allValuesRef: (state: State) => state.allValuesRef,
-
-  name: (state: State) => state.name,
-  disabled: (state: State) => state.disabled,
-  readOnly: (state: State) => state.readOnly,
-  required: (state: State) => state.required,
-  grid: (state: State) => state.grid,
-  isGrouped: (state: State) => state.isGrouped,
-  virtualized: (state: State) => state.virtualized,
-  onOpenChangeComplete: (state: State) => state.onOpenChangeComplete,
-  openOnInputClick: (state: State) => state.openOnInputClick,
-  itemToStringLabel: (state: State) => state.itemToStringLabel,
-  isItemEqualToValue: (state: State) => state.isItemEqualToValue,
-  modal: (state: State) => state.modal,
-  autoHighlight: (state: State) => state.autoHighlight,
-  submitOnItemClick: (state: State) => state.submitOnItemClick,
-};
+export type SelectorArgs<Selector> = Selector extends (...params: infer Params) => any
+  ? Tail<Params>
+  : never;

@@ -1,5 +1,5 @@
+import { createEffect, Show } from 'solid-js';
 import type { JSX } from 'solid-js';
-import { createEffect } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { DROPDOWN_COLLISION_AVOIDANCE } from '../../utils/constants';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
@@ -49,15 +49,15 @@ export function ComboboxPositioner(componentProps: ComboboxPositioner.Props) {
   const disableAnchorTracking = () => local.disableAnchorTracking ?? false;
   const collisionAvoidance = () => local.collisionAvoidance ?? DROPDOWN_COLLISION_AVOIDANCE;
 
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
   const { filteredItems } = useComboboxDerivedItemsContext();
-  const floatingRootContext = useComboboxFloatingContext();
+  const { context: floatingRootContext } = useComboboxFloatingContext();
   const keepMounted = useComboboxPortalContext();
 
-  const modal = store.useState('modal');
-  const open = store.useState('open');
-  const mounted = store.useState('mounted');
-  const openMethod = store.useState('openMethod');
+  const modal = store.useSelector('modal');
+  const open = store.useSelector('open');
+  const mounted = store.useSelector('mounted');
+  const openMethod = store.useSelector('openMethod');
   const triggerElement = store.useState('triggerElement');
   const inputElement = store.useState('inputElement');
   const inputInsidePopup = store.useState('inputInsidePopup');
@@ -69,7 +69,9 @@ export function ComboboxPositioner(componentProps: ComboboxPositioner.Props) {
 
   const positioning = useAnchorPositioning({
     anchor: resolvedAnchor,
-    floatingRootContext,
+    get floatingRootContext() {
+      return floatingRootContext;
+    },
     positionMethod,
     mounted,
     side,
@@ -130,7 +132,7 @@ export function ComboboxPositioner(componentProps: ComboboxPositioner.Props) {
   const contextValue: ComboboxPositionerContext = {
     side: positioning.side,
     align: positioning.align,
-    refs: positioning.refs,
+    arrowRef: positioning.arrowRef,
     arrowUncentered: positioning.arrowUncentered,
     get arrowStyles() {
       return positioning.arrowStyles();
@@ -140,7 +142,7 @@ export function ComboboxPositioner(componentProps: ComboboxPositioner.Props) {
   };
 
   const setPositionerElement = (element: HTMLElement | null | undefined) => {
-    store.setState('positionerElement', element);
+    store.set('positionerElement', element);
   };
 
   const element = useRenderElement('div', componentProps, {
@@ -154,9 +156,9 @@ export function ComboboxPositioner(componentProps: ComboboxPositioner.Props) {
 
   return (
     <ComboboxPositionerContext.Provider value={contextValue}>
-      {mounted() && modal() && (
+      <Show when={mounted() && modal()}>
         <InternalBackdrop managed inert={!open()} cutout={inputElement() ?? triggerElement()} />
-      )}
+      </Show>
       {element()}
     </ComboboxPositionerContext.Provider>
   );

@@ -103,7 +103,7 @@ export function resolveSelectedLabel(
 
   // Items provided as plain record map
   if (items && !Array.isArray(items)) {
-    return (items as any)[value] ?? stringifyAsLabel(value, itemToStringLabel);
+    return (items as any)[value] ?? fallback();
   }
 
   // Items provided as array (flat or grouped)

@@ -12,9 +12,9 @@ export function ComboboxPortal(props: ComboboxPortal.Props) {
   const [local, portalProps] = splitProps(props, ['keepMounted']);
   const keepMounted = () => local.keepMounted ?? false;
 
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
 
-  const mounted = store.useState('mounted');
+  const mounted = store.useSelector('mounted');
   const forceMounted = store.useState('forceMounted');
 
   const shouldRender = () => mounted() || keepMounted() || forceMounted();
@@ -22,7 +22,7 @@ export function ComboboxPortal(props: ComboboxPortal.Props) {
   return (
     <Show when={shouldRender()}>
       <ComboboxPortalContext.Provider value={keepMounted}>
-        <FloatingPortal {...portalProps} />
+        <FloatingPortal {...portalProps} ref={props.ref} />
       </ComboboxPortalContext.Provider>
     </Show>
   );

@@ -1,4 +1,6 @@
-import { createMemo, Match, Switch, type JSX } from 'solid-js';
+import { children, createMemo, Match, Switch, type Accessor, type JSX } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
+import { childrenLazy } from '../../solid-helpers';
 import { resolveMultipleLabels, resolveSelectedLabel } from '../../utils/resolveValueLabel';
 import { useComboboxRootContext } from '../root/ComboboxRootContext';
 
@@ -9,34 +11,30 @@ import { useComboboxRootContext } from '../root/ComboboxRootContext';
  * Documentation: [Base UI Combobox](https://base-ui.com/react/components/combobox)
  */
 export function ComboboxValue(props: ComboboxValue.Props) {
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
 
-  const itemToStringLabel = store.useState('itemToStringLabel');
-  const selectedValue = store.useState('selectedValue');
-  const items = store.useState('items');
-  const multiple = createMemo(() => store.select('selectionMode') === 'multiple');
-  const hasSelectedValue = store.useState('hasSelectedValue');
+  const selectedValue = store.useSelector('selectedValue');
+  const items = store.useSelector('items');
+  const multiple = createMemo(() => store.selectors.selectionMode() === 'multiple');
+  const hasSelectedValue = store.useSelector('hasSelectedValue');
+
+  const shouldCheckNullItemLabel = () =>
+    !hasSelectedValue() && props.placeholder != null && props.children == null;
+  const hasNullLabel = () => store.selectors.hasNullItemLabel(shouldCheckNullItemLabel);
 
   return (
-    <Switch fallback={resolveSelectedLabel(selectedValue(), items(), itemToStringLabel())}>
-      <Match when={typeof props.children === 'function'}>
-        {(props.children as Function)(selectedValue())}
+    <Switch
+      fallback={resolveSelectedLabel(selectedValue(), items(), store.context.itemToStringLabel)}
+    >
+      <Match keyed when={typeof props.children === 'function' && props.children}>
+        {(renderer) => renderer(selectedValue)}
       </Match>
       <Match when={props.children != null}>{props.children}</Match>
-      <Match
-        when={
-          !hasSelectedValue() &&
-          props.placeholder != null &&
-          !store.useState(
-            'hasNullItemLabel',
-            () => !hasSelectedValue() && props.placeholder != null && props.children == null,
-          )
-        }
-      >
+      <Match when={!hasSelectedValue() && props.placeholder != null && !hasNullLabel()}>
         {props.placeholder}
       </Match>
       <Match when={multiple() && Array.isArray(selectedValue())}>
-        {resolveMultipleLabels(selectedValue(), items(), itemToStringLabel())}
+        {resolveMultipleLabels(selectedValue(), items(), store.context.itemToStringLabel)}
       </Match>
     </Switch>
   );
@@ -45,7 +43,7 @@ export function ComboboxValue(props: ComboboxValue.Props) {
 export interface ComboboxValueState {}
 
 export interface ComboboxValueProps {
-  children?: JSX.Element | ((selectedValue: any) => JSX.Element);
+  children?: JSX.Element | ((selectedValue: Accessor<any>) => JSX.Element);
   /**
    * The placeholder value to display when no value is selected.
    * This is overridden by `children` if specified, or by a null item's label in `items`.

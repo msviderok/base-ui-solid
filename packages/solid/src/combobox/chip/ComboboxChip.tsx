@@ -16,12 +16,13 @@ import { ComboboxChipContext } from './ComboboxChipContext';
 export function ComboboxChip(componentProps: ComboboxChip.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const store = useComboboxRootContext();
-  const { setHighlightedChipIndex, refs } = useComboboxChipsContext()!;
+  const { store } = useComboboxRootContext();
+  const { setHighlightedChipIndex, chipsRef } = useComboboxChipsContext()!;
 
-  const disabled = store.useState('disabled');
-  const readOnly = store.useState('readOnly');
-  const selectedValue = store.useState('selectedValue');
+  const disabled = store.useSelector('disabled');
+  const readOnly = store.useSelector('readOnly');
+  const open = store.useSelector('open');
+  const selectedValue = store.useSelector('selectedValue');
 
   const { setRef, index } = useCompositeListItem();
 
@@ -50,8 +51,8 @@ export function ComboboxChip(componentProps: ComboboxChip.Props) {
 
       stopEvent(event);
 
-      store.state.setIndices({ activeIndex: null, selectedIndex: null, type: 'keyboard' });
-      store.state.setSelectedValue(
+      store.context.setIndices({ activeIndex: null, selectedIndex: null, type: 'keyboard' });
+      store.context.setSelectedValue(
         val.filter((_: any, i: number) => i !== idx),
         createChangeEventDetails(REASONS.none, event),
       );
@@ -60,7 +61,7 @@ export function ComboboxChip(componentProps: ComboboxChip.Props) {
       nextIndex = undefined;
     } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       stopEvent(event);
-      store.state.setOpen(true, createChangeEventDetails(REASONS.listNavigation, event));
+      store.context.setOpen(true, createChangeEventDetails(REASONS.listNavigation, event));
       nextIndex = undefined;
     } else if (
       // Check for printable characters (letters, numbers, symbols)
@@ -93,7 +94,12 @@ export function ComboboxChip(componentProps: ComboboxChip.Props) {
         get 'aria-readonly'() {
           return readOnly() || undefined;
         },
-        onKeyDown(event) {
+        onFocus(event: FocusEvent) {
+          if (open()) {
+            store.context.setOpen(false, createChangeEventDetails(REASONS.focusOut, event));
+          }
+        },
+        onKeyDown(event: KeyboardEvent) {
           if (disabled() || readOnly()) {
             return;
           }
@@ -105,10 +111,10 @@ export function ComboboxChip(componentProps: ComboboxChip.Props) {
           if (nextIndex === undefined) {
             store.state.inputRef?.focus();
           } else {
-            refs.chipsRef[nextIndex]?.focus();
+            chipsRef.current[nextIndex]?.focus();
           }
         },
-        onMouseDown(event) {
+        onMouseDown(event: MouseEvent) {
           if (readOnly()) {
             return;
           }

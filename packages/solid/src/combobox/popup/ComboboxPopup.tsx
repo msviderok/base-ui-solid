@@ -1,13 +1,16 @@
-import { createMemo } from 'solid-js';
+import { createEffect, createMemo, on } from 'solid-js';
 import { FloatingFocusManager } from '../../floating-ui-solid';
 import { contains, getTarget } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping } from '../../utils/popupStateMapping';
+import { REASONS } from '../../utils/reasons';
 import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import { BaseUIComponentProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
+import { useAnimationFrame } from '../../utils/useAnimationFrame';
 import { InteractionType } from '../../utils/useEnhancedClickHandler';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -34,26 +37,26 @@ export function ComboboxPopup(componentProps: ComboboxPopup.Props) {
     'finalFocus',
   ]);
 
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
   const positioning = useComboboxPositionerContext();
-  const floatingRootContext = useComboboxFloatingContext();
+  const { context: floatingRootContext } = useComboboxFloatingContext();
   const { filteredItems } = useComboboxDerivedItemsContext();
 
-  const mounted = store.useState('mounted');
-  const open = store.useState('open');
-  const openMethod = store.useState('openMethod');
+  const mounted = store.useSelector('mounted');
+  const open = store.useSelector('open');
+  const openMethod = store.useSelector('openMethod');
   const transitionStatus = store.useState('transitionStatus');
   const inputInsidePopup = store.useState('inputInsidePopup');
-  const inputElement = store.useState('inputElement');
+  const focusInputFrame = useAnimationFrame();
 
   const empty = () => filteredItems().length === 0;
 
   useOpenChangeComplete({
     open,
-    ref: store.state.popupRef,
+    ref: () => store.state.popupRef,
     onComplete() {
       if (open()) {
-        store.state.onOpenChangeComplete(true);
+        store.context.onOpenChangeComplete(true);
       }
     },
   });
@@ -79,10 +82,30 @@ export function ComboboxPopup(componentProps: ComboboxPopup.Props) {
     },
   };
 
+  function handlePopupFocusExit(
+    currentTarget: EventTarget | null,
+    relatedTarget: EventTarget | null,
+  ) {
+    if (!inputInsidePopup()) {
+      return false;
+    }
+
+    const currentElement = currentTarget as Element | null;
+    const nextFocusedElement = relatedTarget as Element | null;
+    if (
+      contains(currentElement, nextFocusedElement) ||
+      contains(store.state.triggerElement, nextFocusedElement)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      store.setState('popupRef', el);
+      store.set('popupRef', el);
     },
     get props() {
       return [
@@ -91,13 +114,26 @@ export function ComboboxPopup(componentProps: ComboboxPopup.Props) {
             return inputInsidePopup() ? 'dialog' : 'presentation';
           },
           tabIndex: -1,
-          onFocus(event: FocusEvent) {
+          // React's `onFocus` bubbles, so focusing the listbox re-enters this handler and
+          // hands focus back to the input. In Solid, we need `focusin` to observe that
+          // descendant focus transition.
+          onFocusIn(event: FocusEvent) {
             const target = getTarget(event) as Element | null;
             if (
               openMethod() !== 'touch' &&
               (contains(store.state.listElement, target) || target === event.currentTarget)
             ) {
               store.state.inputRef?.focus();
+            }
+          },
+          onFocusOut(event: FocusEvent) {
+            if (handlePopupFocusExit(event.currentTarget, event.relatedTarget)) {
+              store.context.setOpen(false, createChangeEventDetails(REASONS.focusOut, event));
+            }
+          },
+          onBlur(event: FocusEvent) {
+            if (handlePopupFocusExit(event.currentTarget, event.relatedTarget)) {
+              store.context.setOpen(false, createChangeEventDetails(REASONS.focusOut, event));
             }
           },
         },
@@ -111,10 +147,13 @@ export function ComboboxPopup(componentProps: ComboboxPopup.Props) {
   // Default initial focus logic:
   // If opened by touch, focus the popup element to prevent the virtual keyboard from opening
   // (this is required for Android specifically as iOS handles this automatically).
+  // React can read the latest input element from rerendered state here. In Solid, the
+  // popup focus manager may run before the reactive `inputElement` path has propagated,
+  // so prefer the live imperative ref at focus time.
   const computedDefaultInitialFocus = createMemo(() =>
     inputInsidePopup()
       ? (interactionType: InteractionType) =>
-          interactionType === 'touch' ? store.state.popupRef : inputElement()
+          interactionType === 'touch' ? store.state.popupRef : store.state.inputRef
       : false,
   );
 
@@ -129,6 +168,30 @@ export function ComboboxPopup(componentProps: ComboboxPopup.Props) {
 
     return inputInsidePopup() ? undefined : false;
   });
+
+  createEffect(
+    on([open, inputInsidePopup, openMethod, () => local.initialFocus], () => {
+      if (
+        !open() ||
+        !inputInsidePopup() ||
+        openMethod() === 'touch' ||
+        local.initialFocus != null
+      ) {
+        return;
+      }
+
+      // React's focus manager path reliably wins the trigger's native button focus on open.
+      // In Solid, that native focus can persist through the same click, so hand focus to the
+      // popup input once it has mounted when using the default initial focus behavior.
+      queueMicrotask(() => {
+        focusInputFrame.request(() => {
+          if (open()) {
+            store.state.inputRef?.focus();
+          }
+        });
+      });
+    }),
+  );
 
   return (
     <FloatingFocusManager

@@ -1,19 +1,19 @@
 'use client';
-import * as React from 'react';
 import { useStore } from '@base-ui/utils/store';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
+import * as React from 'react';
+import { CompositeList } from '../../composite/list/CompositeList';
+import { stopEvent } from '../../floating-ui-react/utils';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { ComboboxCollection } from '../collection/ComboboxCollection';
+import { useComboboxPositionerContext } from '../positioner/ComboboxPositionerContext';
 import {
   useComboboxDerivedItemsContext,
   useComboboxFloatingContext,
   useComboboxRootContext,
 } from '../root/ComboboxRootContext';
-import { useComboboxPositionerContext } from '../positioner/ComboboxPositionerContext';
 import { selectors } from '../store';
-import { ComboboxCollection } from '../collection/ComboboxCollection';
-import { CompositeList } from '../../composite/list/CompositeList';
-import { stopEvent } from '../../floating-ui-react/utils';
 
 /**
  * A list container for the items.
@@ -118,7 +118,6 @@ export const ComboboxList = React.forwardRef(function ComboboxList(
   if (virtualized) {
     return element;
   }
-
   return (
     <CompositeList elementsRef={listRef} labelsRef={items ? undefined : labelsRef}>
       {element}

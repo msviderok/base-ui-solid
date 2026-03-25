@@ -15,7 +15,9 @@ export function ComboboxCollection(props: ComboboxCollection.Props) {
   const itemsToRender = createMemo(() => (groupContext ? groupContext.items() : filteredItems()));
 
   return (
-    <Show when={itemsToRender()}>{(items) => <For each={items()}>{props.children}</For>}</Show>
+    <Show keyed when={itemsToRender()}>
+      {(items) => <For each={items}>{props.children}</For>}
+    </Show>
   );
 }
 

@@ -1,10 +1,9 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 
 export interface ComboboxItemContext {
   selected: Accessor<boolean>;
-  refs: {
-    textRef: HTMLElement | null | undefined;
-  };
+  textRef: ReactLikeRef<HTMLElement | null | undefined>;
 }
 
 export const ComboboxItemContext = createContext<ComboboxItemContext | undefined>(undefined);

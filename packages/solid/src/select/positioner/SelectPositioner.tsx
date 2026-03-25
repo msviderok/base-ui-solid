@@ -1,4 +1,10 @@
-import { createEffect, createSignal, mergeProps as solidMergeProps, type JSX } from 'solid-js';
+import {
+  createEffect,
+  createSignal,
+  Show,
+  mergeProps as solidMergeProps,
+  type JSX,
+} from 'solid-js';
 import { CompositeList, type CompositeMetadata } from '../../composite/list/CompositeList';
 import { splitComponentProps, useRef } from '../../solid-helpers';
 import { InternalBackdrop } from '../../utils/InternalBackdrop';
@@ -266,9 +272,9 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
       onMapChange={onMapChange}
     >
       <SelectPositionerContext.Provider value={contextValue}>
-        {mounted() && modal() && (
+        <Show when={mounted() && modal()}>
           <InternalBackdrop managed inert={!open()} cutout={triggerElement()} />
-        )}
+        </Show>
         {element()}
       </SelectPositionerContext.Provider>
     </CompositeList>

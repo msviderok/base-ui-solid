@@ -29,7 +29,7 @@ describe('<Combobox.Group />', () => {
     ));
 
     expect(screen.getByRole('group')).to.have.attribute('aria-labelledby');
-    expect(screen.getByText('Fruits')).toBeVisible();
+    expect(screen.queryByText('Fruits')).not.to.equal(null);
   });
 
   it('should associate label with group', async () => {

@@ -11,7 +11,7 @@ describe('<Combobox.Value />', () => {
     it('renders current selected value via function child', async () => {
       render(() => (
         <Combobox.Root defaultValue="b">
-          <Combobox.Value>{(val) => <div data-testid="value">{val}</div>}</Combobox.Value>
+          <Combobox.Value>{(val) => <div data-testid="value">{val()}</div>}</Combobox.Value>
           <Combobox.Portal>
             <Combobox.Positioner>
               <Combobox.Popup>
@@ -32,7 +32,7 @@ describe('<Combobox.Value />', () => {
       render(() => (
         <Combobox.Root>
           <Combobox.Value>
-            {(val) => <div data-testid="value">{val === null ? 'null' : String(val)}</div>}
+            {(val) => <div data-testid="value">{val() === null ? 'null' : String(val())}</div>}
           </Combobox.Value>
           <Combobox.Portal>
             <Combobox.Positioner>
@@ -55,7 +55,9 @@ describe('<Combobox.Value />', () => {
       render(() => (
         <Combobox.Root defaultValue={complexValue}>
           <Combobox.Value>
-            {(val) => <div data-testid="value">{val ? `${val.name} (${val.id})` : 'No value'}</div>}
+            {(val) => (
+              <div data-testid="value">{val() ? `${val().name} (${val().id})` : 'No value'}</div>
+            )}
           </Combobox.Value>
           <Combobox.Portal>
             <Combobox.Positioner>
@@ -71,6 +73,8 @@ describe('<Combobox.Value />', () => {
 
       expect(screen.getByTestId('value')).to.have.text('Test (1)');
     });
+
+    it('renders function child ');
 
     it('overrides the value display when children is a static ReactNode', async () => {
       render(() => (
@@ -387,8 +391,8 @@ describe('<Combobox.Value />', () => {
     it('is not stale after items are updated', async () => {
       function App() {
         // Keep stable object identities for selected items
-        let aRef = { value: 'a', label: 'a' };
-        let bRef = { value: 'b', label: 'b' };
+        const aRef = { value: 'a', label: 'a' };
+        const bRef = { value: 'b', label: 'b' };
         let cRef = null as { value: 'c'; label: string } | null;
 
         const [value, setValue] = createSignal<typeof aRef | null>(aRef);
@@ -773,7 +777,7 @@ describe('<Combobox.Value />', () => {
         <Combobox.Root>
           <Combobox.Trigger data-testid="value">
             <Combobox.Value placeholder="Select an option">
-              {(value) => value || 'Function fallback'}
+              {(value) => value() || 'Function fallback'}
             </Combobox.Value>
           </Combobox.Trigger>
           <Combobox.Portal>

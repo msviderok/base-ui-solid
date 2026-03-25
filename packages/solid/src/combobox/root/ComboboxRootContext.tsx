@@ -9,8 +9,10 @@ export interface ComboboxDerivedItemsContext {
   flatFilteredItems: Accessor<any[]>;
 }
 
-export const ComboboxRootContext = createContext<ComboboxStore | undefined>(undefined);
-export const ComboboxFloatingContext = createContext<FloatingRootContext | undefined>(undefined);
+export const ComboboxRootContext = createContext<{ store: ComboboxStore } | undefined>(undefined);
+export const ComboboxFloatingContext = createContext<{ context: FloatingRootContext } | undefined>(
+  undefined,
+);
 export const ComboboxDerivedItemsContext = createContext<ComboboxDerivedItemsContext | undefined>(
   undefined,
 );
@@ -21,7 +23,7 @@ export const ComboboxInputValueContext = createContext<Accessor<ComponentProps<'
 );
 
 export function useComboboxRootContext() {
-  const context = useContext(ComboboxRootContext) as ComboboxStore | undefined;
+  const context = useContext(ComboboxRootContext) as { store: ComboboxStore } | undefined;
   if (!context) {
     throw new Error(
       'Base UI: ComboboxRootContext is missing. Combobox parts must be placed within <Combobox.Root>.',

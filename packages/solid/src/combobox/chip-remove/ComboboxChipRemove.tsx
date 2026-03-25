@@ -18,13 +18,12 @@ export function ComboboxChipRemove(componentProps: ComboboxChipRemove.Props) {
   const disabledProp = () => local.disabled ?? false;
   const nativeButton = () => local.nativeButton ?? true;
 
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
   const { index } = useComboboxChipContext();
 
-  const comboboxDisabled = store.useState('disabled');
-  const readOnly = store.useState('readOnly');
-  const selectedValue = store.useState('selectedValue');
-  const isItemEqualToValue = store.useState('isItemEqualToValue');
+  const comboboxDisabled = store.useSelector('disabled');
+  const readOnly = store.useSelector('readOnly');
+  const selectedValue = store.useSelector('selectedValue');
 
   const disabled = () => comboboxDisabled() || disabledProp();
 
@@ -49,9 +48,13 @@ export function ComboboxChipRemove(componentProps: ComboboxChipRemove.Props) {
 
     // Try current visible list first; if not found, it's filtered out.
     // No need to clear highlight in that case since it can't equal activeIndex.
-    const removedIndex = findItemIndex(store.state.valuesRef, removedItem, isItemEqualToValue());
+    const removedIndex = findItemIndex(
+      store.context.valuesRef,
+      removedItem,
+      store.context.isItemEqualToValue,
+    );
     if (removedIndex !== -1 && activeIndex === removedIndex) {
-      store.state.setIndices({
+      store.context.setIndices({
         activeIndex: null,
         type: store.state.keyboardActiveRef ? 'keyboard' : 'pointer',
       });
@@ -66,7 +69,7 @@ export function ComboboxChipRemove(componentProps: ComboboxChipRemove.Props) {
 
     clearActiveIndexForRemovedItem(removedItem);
 
-    store.state.setSelectedValue(
+    store.context.setSelectedValue(
       val.filter((_: any, i: number) => i !== idx),
       eventDetails,
     );
@@ -81,7 +84,7 @@ export function ComboboxChipRemove(componentProps: ComboboxChipRemove.Props) {
     props: [
       {
         tabIndex: -1,
-        onClick(event) {
+        onClick(event: MouseEvent) {
           if (disabled() || readOnly()) {
             return;
           }
@@ -91,7 +94,7 @@ export function ComboboxChipRemove(componentProps: ComboboxChipRemove.Props) {
             event.stopPropagation();
           }
         },
-        onKeyDown(event) {
+        onKeyDown(event: KeyboardEvent) {
           if (disabled() || readOnly()) {
             return;
           }

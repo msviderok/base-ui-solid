@@ -19,10 +19,10 @@ const stateAttributesMapping: StateAttributesMapping<ComboboxBackdrop.State> = {
 export function ComboboxBackdrop(componentProps: ComboboxBackdrop.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
 
-  const open = store.useState('open');
-  const mounted = store.useState('mounted');
+  const open = store.useSelector('open');
+  const mounted = store.useSelector('mounted');
   const transitionStatus = store.useState('transitionStatus');
 
   const state: ComboboxBackdrop.State = {

@@ -33,14 +33,14 @@ export function ComboboxClear(componentProps: ComboboxClear.Props) {
   const keepMounted = () => local.keepMounted ?? false;
 
   const { disabled: fieldDisabled } = useFieldRootContext();
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
 
-  const selectionMode = store.useState('selectionMode');
-  const comboboxDisabled = store.useState('disabled');
-  const readOnly = store.useState('readOnly');
-  const open = store.useState('open');
-  const selectedValue = store.useState('selectedValue');
-  const hasSelectionChips = store.useState('hasSelectionChips');
+  const selectionMode = store.useSelector('selectionMode');
+  const comboboxDisabled = store.useSelector('disabled');
+  const readOnly = store.useSelector('readOnly');
+  const open = store.useSelector('open');
+  const selectedValue = store.useSelector('selectedValue');
+  const hasSelectionChips = store.useSelector('hasSelectionChips');
 
   const inputValue = useComboboxInputValueContext();
 
@@ -61,7 +61,7 @@ export function ComboboxClear(componentProps: ComboboxClear.Props) {
     disabled,
   });
 
-  const { mounted, transitionStatus, setMounted } = useTransitionStatus(visible);
+  const { mounted, transitionStatus, setMounted } = useTransitionStatus(() => visible());
 
   const state: ComboboxClear.State = {
     get disabled() {
@@ -77,7 +77,7 @@ export function ComboboxClear(componentProps: ComboboxClear.Props) {
 
   useOpenChangeComplete({
     open: visible,
-    ref: store.state.clearRef,
+    ref: () => store.state.clearRef,
     onComplete() {
       if (!visible()) {
         setMounted(false);
@@ -89,37 +89,37 @@ export function ComboboxClear(componentProps: ComboboxClear.Props) {
     state,
     ref: (el) => {
       buttonRef(el);
-      store.setState('clearRef', el);
+      store.set('clearRef', el);
     },
     props: [
       {
         tabIndex: -1,
         children: 'x',
         // Avoid stealing focus from the input.
-        onMouseDown(event) {
+        onMouseDown(event: MouseEvent) {
           event.preventDefault();
         },
-        onClick(event) {
+        onClick(event: MouseEvent) {
           if (disabled() || readOnly()) {
             return;
           }
 
           const keyboardActiveRef = store.state.keyboardActiveRef;
 
-          store.state.setInputValue('', createChangeEventDetails(REASONS.clearPress, event));
+          store.context.setInputValue('', createChangeEventDetails(REASONS.clearPress, event));
 
           if (selectionMode() !== 'none') {
-            store.state.setSelectedValue(
+            store.context.setSelectedValue(
               Array.isArray(selectedValue) ? [] : null,
               createChangeEventDetails(REASONS.clearPress, event),
             );
-            store.state.setIndices({
+            store.context.setIndices({
               activeIndex: null,
               selectedIndex: null,
               type: keyboardActiveRef ? 'keyboard' : 'pointer',
             });
           } else {
-            store.state.setIndices({
+            store.context.setIndices({
               activeIndex: null,
               type: keyboardActiveRef ? 'keyboard' : 'pointer',
             });

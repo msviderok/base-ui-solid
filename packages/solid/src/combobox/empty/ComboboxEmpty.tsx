@@ -16,17 +16,17 @@ export function ComboboxEmpty(componentProps: ComboboxEmpty.Props) {
   const [, local, elementProps] = splitComponentProps(componentProps, ['children']);
 
   const { filteredItems } = useComboboxDerivedItemsContext();
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
 
   const element = useRenderElement('div', componentProps, {
+    get children() {
+      return filteredItems().length === 0 ? local.children : false;
+    },
     ref: (el) => {
-      store.setState('emptyRef', el);
+      store.set('emptyRef', el);
     },
     props: [
       {
-        get children() {
-          return filteredItems().length === 0 ? local.children : null;
-        },
         role: 'status',
         'aria-live': 'polite',
         'aria-atomic': true,

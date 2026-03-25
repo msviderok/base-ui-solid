@@ -1,6 +1,6 @@
 import { createEffect, createSignal } from 'solid-js';
 import { CompositeList } from '../../composite/list/CompositeList';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { EMPTY_OBJECT } from '../../utils/constants';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -14,10 +14,10 @@ import { ComboboxChipsContext } from './ComboboxChipsContext';
 export function ComboboxChips(componentProps: ComboboxChips.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
 
-  const open = store.useState('open');
-  const hasSelectionChips = store.useState('hasSelectionChips');
+  const open = store.useSelector('open');
+  const hasSelectionChips = store.useSelector('hasSelectionChips');
 
   const [highlightedChipIndex, setHighlightedChipIndex] = createSignal<number | undefined>(
     undefined,
@@ -29,11 +29,11 @@ export function ComboboxChips(componentProps: ComboboxChips.Props) {
     }
   });
 
-  let chipsRef: Array<HTMLButtonElement | null> = [];
+  const chipsRef = useRef<Array<HTMLButtonElement | null>>([]);
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      store.setState('chipsContainerRef', el);
+      store.set('chipsContainerRef', el);
     },
     // NVDA enters browse mode instead of staying in focus mode when navigating with
     // arrow keys inside a container unless it has a toolbar role.
@@ -45,14 +45,12 @@ export function ComboboxChips(componentProps: ComboboxChips.Props) {
   const contextValue: ComboboxChipsContext = {
     highlightedChipIndex,
     setHighlightedChipIndex,
-    refs: {
-      chipsRef,
-    },
+    chipsRef,
   };
 
   return (
     <ComboboxChipsContext.Provider value={contextValue}>
-      <CompositeList refs={{ elements: chipsRef }}>{element()}</CompositeList>
+      <CompositeList refs={{ elements: chipsRef.current }}>{element()}</CompositeList>
     </ComboboxChipsContext.Provider>
   );
 }

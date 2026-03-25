@@ -3,7 +3,7 @@ import {
   IndexGuessBehavior,
   useCompositeListItem,
 } from '../../composite/list/useCompositeListItem';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { compareItemEquality, findItemIndex } from '../../utils/itemEquality';
 import type { BaseUIComponentProps, HTMLProps, NonNativeButtonProps } from '../../utils/types';
@@ -33,35 +33,33 @@ export function ComboboxItem(componentProps: ComboboxItem.Props) {
   const nativeButton = () => local.nativeButton ?? false;
 
   let didPointerDownRef = false;
-  let textRef = null as HTMLElement | null | undefined;
+  const textRef = useRef<HTMLElement | null | undefined>(null);
   const listItem = useCompositeListItem({
     index: indexProp,
-    textRef,
+    textRef: () => textRef.current,
     indexGuessBehavior: IndexGuessBehavior.GuessFromOrder,
   });
 
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
   const isRow = useComboboxRowContext();
   const { flatFilteredItems, hasItems } = useComboboxDerivedItemsContext();
 
-  const open = store.useState('open');
-  const selectionMode = store.useState('selectionMode');
-  const readOnly = store.useState('readOnly');
-  const virtualized = store.useState('virtualized');
-  const isItemEqualToValue = store.useState('isItemEqualToValue');
+  const open = store.useSelector('open');
+  const selectionMode = store.useSelector('selectionMode');
+  const readOnly = store.useSelector('readOnly');
+  const virtualized = store.useSelector('virtualized');
 
   const selectable = () => selectionMode() !== 'none';
   const index = () =>
     indexProp() ??
     (virtualized()
-      ? findItemIndex(flatFilteredItems(), itemValue(), isItemEqualToValue())
+      ? findItemIndex(flatFilteredItems(), itemValue(), store.context.isItemEqualToValue)
       : listItem.index());
   const hasRegistered = () => listItem.index() !== -1;
 
-  const rootId = store.useState('id');
-  const highlighted = store.useState('isActive', index);
-  const matchesSelectedValue = store.useState('isSelected', itemValue);
-  const getItemProps = store.select('getItemProps');
+  const rootId = store.useSelector('id');
+  const highlighted = () => store.selectors.isActive(index);
+  const matchesSelectedValue = () => store.selectors.isSelected(itemValue);
 
   let itemRef = null as HTMLDivElement | null | undefined;
 
@@ -74,11 +72,10 @@ export function ComboboxItem(componentProps: ComboboxItem.Props) {
       return;
     }
 
-    const list = store.state.listRef;
-    list[index()] = itemRef;
+    store.context.listRef[index()] = itemRef;
 
     onCleanup(() => {
-      delete list[index()];
+      delete store.context.listRef[index()];
     });
   });
 
@@ -87,18 +84,17 @@ export function ComboboxItem(componentProps: ComboboxItem.Props) {
       return;
     }
 
-    const visibleMap = store.state.valuesRef;
-    visibleMap[index()] = itemValue();
+    store.context.valuesRef[index()] = itemValue();
 
     // Stable registry that doesn't depend on filtering. Assume that no
     // filtering had occurred at this point; otherwise, an `items` prop is
     // required.
     if (selectionMode() !== 'none') {
-      store.setState('allValuesRef', store.state.allValuesRef.length, itemValue());
+      store.context.allValuesRef.push(itemValue());
     }
 
     onCleanup(() => {
-      delete visibleMap[index()];
+      delete store.context.valuesRef[index()];
     });
   });
 
@@ -112,12 +108,12 @@ export function ComboboxItem(componentProps: ComboboxItem.Props) {
       return;
     }
 
-    const selectedValue = store.state.selectedValue;
+    const selectedValue = store.selectors.selectedValue();
     const lastSelectedValue = Array.isArray(selectedValue)
       ? selectedValue[selectedValue.length - 1]
       : selectedValue;
 
-    if (compareItemEquality(itemValue(), lastSelectedValue, isItemEqualToValue())) {
+    if (compareItemEquality(itemValue(), lastSelectedValue, store.context.isItemEqualToValue)) {
       store.set('selectedIndex', index());
     }
   });
@@ -135,7 +131,7 @@ export function ComboboxItem(componentProps: ComboboxItem.Props) {
   };
 
   const rootProps = () => {
-    const props = getItemProps({ active: highlighted(), selected: selected() });
+    const props = store.context.getItemProps({ active: highlighted(), selected: selected() });
     props.id = undefined;
     props.onFocus = undefined;
     return props;
@@ -149,12 +145,12 @@ export function ComboboxItem(componentProps: ComboboxItem.Props) {
 
   function commitSelection(nativeEvent: MouseEvent) {
     function selectItem() {
-      store.state.handleSelection(nativeEvent, itemValue());
+      store.context.handleSelection(nativeEvent, itemValue());
     }
 
-    if (store.state.submitOnItemClick) {
+    if (store.selectors.submitOnItemClick()) {
       selectItem();
-      store.state.requestSubmit();
+      store.context.requestSubmit();
     } else {
       selectItem();
     }
@@ -220,9 +216,7 @@ export function ComboboxItem(componentProps: ComboboxItem.Props) {
 
   const contextValue: ComboboxItemContext = {
     selected,
-    refs: {
-      textRef,
-    },
+    textRef,
   };
 
   return (

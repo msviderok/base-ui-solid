@@ -3,6 +3,7 @@ import { Combobox } from '@msviderok/base-ui-solid/combobox';
 import { Dialog } from '@msviderok/base-ui-solid/dialog';
 import { Field } from '@msviderok/base-ui-solid/field';
 import { Form } from '@msviderok/base-ui-solid/form';
+import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
@@ -13,6 +14,7 @@ import {
   createUniqueId,
   For,
   Index,
+  type Accessor,
   type JSX,
 } from 'solid-js';
 import { CompositeItem } from '../../composite/item/CompositeItem';
@@ -51,7 +53,7 @@ function AsyncItemsCombobox() {
 }
 
 function SelectedIndexProbe() {
-  const store = useComboboxRootContext();
+  const { store } = useComboboxRootContext();
   const selectedIndex = store.useState('selectedIndex');
 
   return (
@@ -410,7 +412,7 @@ describe('<Combobox.Root />', () => {
         expect(screen.getByRole('listbox')).not.to.equal(null);
 
         const hiddenInput = screen.queryByRole('textbox', { hidden: true });
-        fireEvent.change(hiddenInput!, { target: { value: 'apple' } });
+        fireEvent.input(hiddenInput!, { target: { value: 'apple' } });
 
         await flushMicrotasks();
 
@@ -1065,7 +1067,7 @@ describe('<Combobox.Root />', () => {
 
     const input = screen.getByRole('combobox');
 
-    fireEvent.change(
+    fireEvent.input(
       screen.getAllByDisplayValue('').find((el) => el.getAttribute('name') === 'test')!,
       { target: { value: 'b' } },
     );
@@ -1099,7 +1101,7 @@ describe('<Combobox.Root />', () => {
 
     const input = screen.getByRole('combobox');
 
-    fireEvent.change(
+    fireEvent.input(
       screen.getAllByDisplayValue('').find((el) => el.getAttribute('name') === 'test')!,
       { target: { value: 'b' } },
     );
@@ -1181,7 +1183,7 @@ describe('<Combobox.Root />', () => {
 
     const input = screen.getByRole('combobox');
 
-    fireEvent.change(
+    fireEvent.input(
       // getByRole('textbox', { hidden: true, name: 'country' }) does not work
       screen.getAllByDisplayValue('').find((el) => el.getAttribute('name') === 'country')!,
       { target: { value: 'CA' } },
@@ -1243,7 +1245,7 @@ describe('<Combobox.Root />', () => {
     ));
 
     const input = screen.getByRole('combobox');
-    fireEvent.change(input, { target: { value: 'Darlinghurst' } });
+    fireEvent.input(input, { target: { value: 'Darlinghurst' } });
     await flushMicrotasks();
 
     expect(screen.queryByRole('listbox')).to.equal(null);
@@ -2695,7 +2697,7 @@ describe('<Combobox.Root />', () => {
 
       const input = screen.getByRole<HTMLInputElement>('combobox');
       fireEvent.compositionStart(input);
-      fireEvent.change(input, { target: { value: 'ch' } });
+      fireEvent.input(input, { target: { value: 'ch' } });
       fireEvent.compositionEnd(input, { data: 'ch' });
 
       await waitFor(() => expect(screen.getByRole('listbox')).not.to.equal(null));
@@ -2833,9 +2835,9 @@ describe('<Combobox.Root />', () => {
         >
           <Combobox.Chips>
             <Combobox.Value>
-              {(value: string[]) => (
+              {(value: Accessor<string[]>) => (
                 <>
-                  <Index each={value}>
+                  <Index each={value()}>
                     {(item) => (
                       <Combobox.Chip>
                         {item()}
@@ -2990,9 +2992,9 @@ describe('<Combobox.Root />', () => {
         <Combobox.Root items={items} multiple>
           <Combobox.Chips>
             <Combobox.Value>
-              {(value: (typeof items)[number][]) => (
+              {(value: Accessor<(typeof items)[number][]>) => (
                 <>
-                  <For each={value}>
+                  <For each={value()}>
                     {(item) => (
                       <Combobox.Chip aria-label={item.value}>
                         {item.value}
@@ -3038,6 +3040,9 @@ describe('<Combobox.Root />', () => {
 
       const pythonOption = screen.getByRole('option', { name: 'Python' });
       await waitFor(() => {
+        // In Solid, the chips render prop may replace the input node when the
+        // first selected chip is inserted before it. Assert against the
+        // current combobox element in the DOM.
         expect(input).to.have.attribute('aria-activedescendant', pythonOption.id);
       });
     });
@@ -3053,9 +3058,9 @@ describe('<Combobox.Root />', () => {
         <Combobox.Root items={items} multiple defaultValue={[items[0], items[1]]}>
           <Combobox.Chips>
             <Combobox.Value>
-              {(value: (typeof items)[number][]) => (
+              {(value: Accessor<(typeof items)[number][]>) => (
                 <>
-                  <For each={value}>
+                  <For each={value()}>
                     {(item) => (
                       <Combobox.Chip aria-label={item.value}>
                         {item.value}
@@ -3763,7 +3768,7 @@ describe('<Combobox.Root />', () => {
     const fruits = ['Apple', 'Apricot', 'Banana', 'Grape', 'Orange'];
 
     function DialogMultipleCombobox(props: { defaultOpen?: boolean }) {
-      const [open, setOpen] = createSignal(props.defaultOpen ?? false);
+      const [open, setOpen] = createSignal(props.defaultOpen ?? true);
       return (
         <Combobox.Root multiple items={fruits} inline>
           <Dialog.Root open={open()} onOpenChange={setOpen}>
@@ -3792,7 +3797,9 @@ describe('<Combobox.Root />', () => {
           <Dialog.Root open={open()} onOpenChange={setOpen}>
             <Dialog.Trigger data-testid="dialog-trigger">
               <Combobox.Value>
-                {(value: string | null) => (value == null ? 'Select a fruit' : value)}
+                {(value: Accessor<string | null>) => (
+                  <>{value() == null ? 'Select a fruit' : value()}</>
+                )}
               </Combobox.Value>
             </Dialog.Trigger>
             <Dialog.Portal>
@@ -5133,7 +5140,7 @@ describe('<Combobox.Root />', () => {
         return item.id === value.id;
       });
 
-      let hiddenInputRef = null as HTMLInputElement | null | undefined;
+      const hiddenInputRef = useRef<HTMLInputElement | null>(null);
 
       const { user } = render(() => (
         <Combobox.Root
@@ -5164,7 +5171,7 @@ describe('<Combobox.Root />', () => {
       await user.click(clear);
 
       await waitFor(() => {
-        expect(hiddenInputRef?.value ?? '').to.equal('');
+        expect(hiddenInputRef.current?.value ?? '').to.equal('');
       });
 
       expect(compare.callCount).to.be.greaterThan(0);
