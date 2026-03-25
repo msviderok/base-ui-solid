@@ -5,6 +5,7 @@ import {
   createMemo,
   createRenderEffect,
   mergeProps as solidMergeProps,
+  untrack,
   type JSX,
 } from 'solid-js';
 import { access, defaultProps, useRef } from '../../solid-helpers';
@@ -369,6 +370,10 @@ export function useListNavigation(parameters: {
     }
 
     if (open() && isMounted()) {
+      if (untrack(() => activeIndex()) != null) {
+        return;
+      }
+
       const selected = props.selectedIndex;
       indexRef.current = selected ?? -1;
       if (focusItemOnOpenRef.current && selected != null) {

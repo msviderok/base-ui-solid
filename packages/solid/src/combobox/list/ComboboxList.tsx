@@ -117,11 +117,17 @@ export function ComboboxList(componentProps: ComboboxList.Props) {
               }
             }
           },
-          onKeyDownCapture() {
-            store.set('keyboardActiveRef', true);
+          'on:keydown': {
+            capture: true,
+            handleEvent() {
+              store.set('keyboardActiveRef', true);
+            },
           },
-          onPointerMoveCapture() {
-            store.set('keyboardActiveRef', false);
+          'on:pointermove': {
+            capture: true,
+            handleEvent() {
+              store.set('keyboardActiveRef', false);
+            },
           },
         },
         elementProps,

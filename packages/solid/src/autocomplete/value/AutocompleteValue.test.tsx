@@ -11,7 +11,9 @@ describe('<Autocomplete.Value />', () => {
       render(() => (
         <Autocomplete.Root defaultValue="hel">
           <Autocomplete.Trigger>
-            <Autocomplete.Value>{(val) => <div data-testid="value">{val}</div>}</Autocomplete.Value>
+            <Autocomplete.Value>
+              {(val) => <div data-testid="value">{val()}</div>}
+            </Autocomplete.Value>
           </Autocomplete.Trigger>
           <Autocomplete.Portal>
             <Autocomplete.Positioner>
@@ -33,7 +35,7 @@ describe('<Autocomplete.Value />', () => {
       render(() => (
         <Autocomplete.Root>
           <Autocomplete.Value>
-            {(val) => <div data-testid="value">{val === '' ? 'empty' : String(val)}</div>}
+            {(val) => <div data-testid="value">{val() === '' ? 'empty' : String(val())}</div>}
           </Autocomplete.Value>
           <Autocomplete.Portal>
             <Autocomplete.Positioner>

@@ -1,4 +1,4 @@
-import { Match, Switch, type JSX } from 'solid-js';
+import { Match, Switch, type Accessor, type ComponentProps, type JSX } from 'solid-js';
 import { useComboboxInputValueContext } from '../../combobox/root/ComboboxRootContext';
 
 /**
@@ -12,8 +12,8 @@ export function AutocompleteValue(props: AutocompleteValue.Props) {
 
   return (
     <Switch fallback={<>{inputValue()}</>}>
-      <Match when={typeof props.children === 'function' && props.children}>
-        {(children) => children()(String(inputValue()))}
+      <Match keyed when={typeof props.children === 'function' && props.children}>
+        {(renderer) => renderer(inputValue)}
       </Match>
       <Match when={props.children != null}>{props.children as JSX.Element}</Match>
     </Switch>
@@ -23,7 +23,7 @@ export function AutocompleteValue(props: AutocompleteValue.Props) {
 export interface AutocompleteValueState {}
 
 export interface AutocompleteValueProps {
-  children?: JSX.Element | ((value: string) => JSX.Element);
+  children?: JSX.Element | ((value: Accessor<ComponentProps<'input'>['value']>) => JSX.Element);
 }
 
 export namespace AutocompleteValue {

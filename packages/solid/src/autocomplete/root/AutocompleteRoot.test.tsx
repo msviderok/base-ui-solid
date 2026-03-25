@@ -86,7 +86,7 @@ describe('<Autocomplete.Root />', () => {
     const hidden = screen.getByRole('textbox', {
       hidden: true,
     });
-    fireEvent.change(hidden!, { target: { value: 'beta' } });
+    fireEvent.input(hidden!, { target: { value: 'beta' } });
     await flushMicrotasks();
 
     const input = screen.getByTestId<HTMLInputElement>('input');

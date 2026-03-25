@@ -9,6 +9,7 @@ import {
 } from 'solid-js';
 import { AriaCombobox } from '../../combobox/root/AriaCombobox';
 import { useCoreFilter } from '../../combobox/root/utils/useFilter';
+import type { ReactLikeRef } from '../../solid-helpers';
 import { REASONS } from '../../utils/reasons';
 import { stringifyAsLabel } from '../../utils/resolveValueLabel';
 
@@ -248,7 +249,7 @@ export interface AutocompleteRootProps<ItemValue> extends Omit<
    * Instead, the `unmount` function must be called to unmount the autocomplete manually.
    * Useful when the autocomplete's animation is controlled by an external library.
    */
-  actionsRef?: (AutocompleteRootActions | null) | undefined;
+  actionsRef?: ReactLikeRef<AutocompleteRootActions | null> | undefined;
   /**
    * Event handler called when the popup is opened or closed.
    */
