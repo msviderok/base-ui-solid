@@ -229,17 +229,15 @@ describe('<Menu.Positioner />', () => {
 
     it('should react to the anchor changing from a ref to undefined and back', async () => {
       function TestComponent() {
-        let anchorRef = undefined as HTMLDivElement | undefined;
-        const [currentAnchor, setCurrentAnchor] = createSignal<HTMLDivElement | null | undefined>(
-          anchorRef,
-        );
+        let anchorRef: HTMLDivElement | undefined;
+        const [useAnchorRef, setUseAnchorRef] = createSignal(true);
 
         return (
           <div style={{ margin: '50px' }}>
-            <button type="button" onClick={() => setCurrentAnchor(undefined)}>
+            <button type="button" onClick={() => setUseAnchorRef(false)}>
               undefined
             </button>
-            <button type="button" onClick={() => setCurrentAnchor(anchorRef)}>
+            <button type="button" onClick={() => setUseAnchorRef(true)}>
               ref
             </button>
             <Menu.Root open>
@@ -248,7 +246,7 @@ describe('<Menu.Positioner />', () => {
                 <Menu.Positioner
                   side="bottom"
                   align="start"
-                  anchor={currentAnchor()}
+                  anchor={useAnchorRef() ? anchorRef : undefined}
                   arrowPadding={0}
                   data-testid="positioner"
                 >

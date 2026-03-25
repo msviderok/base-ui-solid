@@ -58,6 +58,7 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     scrollHandlerRef,
     highlightItemOnHover,
     listRef,
+    lastCloseReasonRef,
   } = useSelectRootContext();
   const { side, align, alignItemWithTriggerActive, setControlledAlignItemWithTrigger } =
     useSelectPositionerContext();
@@ -610,6 +611,11 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
       //    inferred close interaction type.
       // 3. Focus the resolved element with `preventScroll`.
       queueMicrotask(() => {
+        const lastCloseReason = lastCloseReasonRef.current;
+        if (lastCloseReason === REASONS.focusOut || lastCloseReason === REASONS.outsidePress) {
+          return;
+        }
+
         const trigger = triggerElement();
         const doc = ownerDocument(trigger ?? popupRef.current ?? null);
         const activeEl = doc.activeElement;

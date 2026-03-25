@@ -107,9 +107,13 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
     get triggerElement() {
       return triggerElementRef;
     },
-    store,
+    get store() {
+      return store;
+    },
     stateUpdates: {
-      payload: local.payload,
+      get payload() {
+        return local.payload;
+      },
       get closeDelay() {
         return closeDelay();
       },
@@ -154,7 +158,9 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
     }
 
     allowMouseUpTriggerTimeout.clear();
-    store.context.allowMouseUpTriggerRef.current = false;
+    queueMicrotask(() => {
+      store.context.allowMouseUpTriggerRef.current = false;
+    });
 
     const mouseUpTarget = mouseEvent.target as Element | null;
 
@@ -224,7 +230,9 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
       get triggerElementRef() {
         return triggerElementRef;
       },
-      externalTree: floatingTreeRoot,
+      get externalTree() {
+        return floatingTreeRoot;
+      },
       get isActiveTrigger() {
         return isTriggerActive();
       },

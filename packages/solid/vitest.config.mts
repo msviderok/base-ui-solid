@@ -22,14 +22,6 @@ export default mergeConfig(
       },
     },
     test: {
-      ...sharedConfig.test,
-      // browser: {
-      //   enabled: true,
-      //   provider: 'playwright',
-      //   screenshotFailures: false,
-      //   headless: true,
-      //   instances: [{ browser: 'chromium', name: 'chromium-solid' }],
-      // },
       server: {
         deps: {
           inline: ['@solidjs/testing-library', 'solid-js'],

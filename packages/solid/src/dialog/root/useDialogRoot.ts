@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onMount } from 'solid-js';
+import { createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import {
   useDismiss,
   useInteractions,
@@ -151,11 +151,11 @@ export function useDialogRoot(params: useDialogRoot.Parameters): useDialogRoot.R
     if (params.parentContext?.onNestedDialogClose && !open()) {
       params.parentContext.onNestedDialogClose();
     }
-    return () => {
+    onCleanup(() => {
       if (params.parentContext?.onNestedDialogClose && open()) {
         params.parentContext.onNestedDialogClose();
       }
-    };
+    });
   });
 
   const activeTriggerProps = createMemo(() => getReferenceProps(triggerProps));

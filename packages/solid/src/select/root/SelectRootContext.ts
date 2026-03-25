@@ -39,6 +39,7 @@ export interface SelectRootContext {
   keyboardActiveRef: ReactLikeRef<boolean>;
   alignItemWithTriggerActiveRef: ReactLikeRef<boolean>;
   initialValueRef: ReactLikeRef<any>;
+  lastCloseReasonRef: ReactLikeRef<SelectRoot.ChangeEventReason | null>;
   // ––– AI-GENERATED FIX AND EXPLANATION –––
   // React's trigger and popup stay aligned through rerender timing during open.
   // Solid needed an explicit ref bridge because popup focus effects can run after the trigger

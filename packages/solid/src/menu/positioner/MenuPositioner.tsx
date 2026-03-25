@@ -57,8 +57,6 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
   const contextMenuContext = useContextMenuRootContext(true);
 
   const parent = store.useState('parent');
-  const floatingRootContext = store.context.floatingRootContext;
-  const floatingTreeRoot = () => store.context.floatingTreeRoot;
   const mounted = store.useState('mounted');
   const open = store.useState('open');
   const modal = store.useState('modal');
@@ -82,12 +80,18 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
 
   const sideOffset = createMemo(() => {
     const val = sideOffsetProp();
-    return !local.side && align() !== 'center' ? (componentProps.sideOffset ?? -5) : val;
+    const p = parent();
+    return p.type === 'context-menu' && !local.side && align() !== 'center'
+      ? (componentProps.sideOffset ?? -5)
+      : val;
   });
 
   const alignOffset = createMemo(() => {
     const val = alignOffsetProp();
-    return !local.side && align() !== 'center' ? (componentProps.alignOffset ?? 2) : val;
+    const p = parent();
+    return p.type === 'context-menu' && !local.side && align() !== 'center'
+      ? (componentProps.alignOffset ?? 2)
+      : val;
   });
 
   const computedSide = createMemo(() => {
@@ -117,7 +121,9 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
 
   const positioner = useAnchorPositioning({
     anchor,
-    floatingRootContext,
+    get floatingRootContext() {
+      return store.context.floatingRootContext;
+    },
     positionMethod: () => (contextMenuContext ? 'fixed' : positionMethodProp()),
     mounted,
     side: computedSide,
@@ -137,7 +143,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
       return contextMenu() && !('side' in ca && ca.side === 'flip');
     },
     get externalTree() {
-      return floatingTreeRoot();
+      return store.context.floatingTreeRoot;
     },
   });
 
@@ -175,12 +181,12 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
   }
 
   onMount(() => {
-    floatingTreeRoot().events.on('menuopenchange', onMenuOpenChange);
+    store.context.floatingTreeRoot.events.on('menuopenchange', onMenuOpenChange);
     // Close unrelated child submenus when hovering a different item in the parent menu.
-    floatingTreeRoot().events.on('itemhover', onItemHover);
+    store.context.floatingTreeRoot.events.on('itemhover', onItemHover);
     onCleanup(() => {
-      floatingTreeRoot().events.off('menuopenchange', onMenuOpenChange);
-      floatingTreeRoot().events.off('itemhover', onItemHover);
+      store.context.floatingTreeRoot.events.off('menuopenchange', onMenuOpenChange);
+      store.context.floatingTreeRoot.events.off('itemhover', onItemHover);
     });
   });
 
@@ -198,9 +204,9 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
       return;
     }
 
-    floatingTreeRoot().events.on('menuopenchange', onParentClose);
+    store.context.floatingTreeRoot.events.on('menuopenchange', onParentClose);
     onCleanup(() => {
-      floatingTreeRoot().events.off('menuopenchange', onParentClose);
+      store.context.floatingTreeRoot.events.off('menuopenchange', onParentClose);
     });
   });
 
@@ -225,7 +231,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
       reason: store.select('lastOpenChangeReason'),
     };
 
-    floatingTreeRoot().events.emit('menuopenchange', eventDetails);
+    store.context.floatingTreeRoot.events.emit('menuopenchange', eventDetails);
   });
 
   const state: MenuPositioner.State = {
@@ -265,6 +271,13 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
     stateAttributesMapping: popupStateMapping,
     ref: (el) => {
       store.set('positionerElement', el);
+      if (
+        local.anchor != null &&
+        triggerElement() == null &&
+        (parent().type === undefined || parent().type === 'context-menu')
+      ) {
+        positioner.context.refs.setFloating(el);
+      }
     },
     get props() {
       return [positionerProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];

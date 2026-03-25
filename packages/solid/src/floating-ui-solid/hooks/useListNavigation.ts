@@ -571,6 +571,16 @@ export function useListNavigation(parameters: {
     );
   };
 
+  const getTriggerReference = () => {
+    const domReference = domReferenceElement();
+    if (isHTMLElement(domReference)) {
+      return domReference;
+    }
+
+    const firstTrigger = store().context.triggerElements.elements().next();
+    return !firstTrigger.done && isHTMLElement(firstTrigger.value) ? firstTrigger.value : null;
+  };
+
   const commonOnKeyDown = (event: KeyboardEvent) => {
     isPointerModalityRef.current = false;
     forceSyncFocusRef.current = true;
@@ -595,9 +605,13 @@ export function useListNavigation(parameters: {
       props.nested &&
       isCrossOrientationCloseKey(event.key, props.orientation, props.rtl, props.cols)
     ) {
+      const domReference = getTriggerReference();
+      const parentOrientation = getParentOrientation();
+      const shouldLetParentNavigate = isMainOrientationKey(event.key, parentOrientation);
+
       // If the nested list's close key is also the parent navigation key,
       // let the parent navigate. Otherwise, stop propagating the event.
-      if (!isMainOrientationKey(event.key, getParentOrientation())) {
+      if (!shouldLetParentNavigate) {
         stopEvent(event);
 
         if (dataRef().__closing) {
@@ -606,12 +620,15 @@ export function useListNavigation(parameters: {
         }
       }
 
-      queueMicrotask(() => {
+      if (shouldLetParentNavigate) {
+        queueMicrotask(() => {
+          store().setOpen(false, createChangeEventDetails(REASONS.listNavigation, event));
+        });
+      } else {
         store().setOpen(false, createChangeEventDetails(REASONS.listNavigation, event));
-      });
+      }
 
-      const domReference = domReferenceElement();
-      if (isHTMLElement(domReference)) {
+      if (!shouldLetParentNavigate && isHTMLElement(domReference)) {
         if (props.virtual) {
           tree?.events.emit('virtualfocus', domReference);
         } else {
@@ -832,6 +849,8 @@ export function useListNavigation(parameters: {
     onKeyDown(event) {
       // Close submenu on Shift+Tab
       if (event.key === 'Tab' && event.shiftKey && open() && !props.virtual) {
+        const domReference = getTriggerReference();
+
         // If the event originated from within a nested element (e.g., a Dialog opened from
         // within the menu), don't close the menu. The nested element has its own focus
         // management and should handle the Tab key.
@@ -843,7 +862,6 @@ export function useListNavigation(parameters: {
         stopEvent(event);
         store().setOpen(false, createChangeEventDetails(REASONS.focusOut, event));
 
-        const domReference = domReferenceElement();
         if (isHTMLElement(domReference)) {
           domReference.focus();
         }

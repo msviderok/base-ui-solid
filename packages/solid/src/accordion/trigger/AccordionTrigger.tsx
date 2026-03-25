@@ -57,7 +57,7 @@ export function AccordionTrigger(componentProps: AccordionTrigger.Props) {
 
   const { panelId, open, handleTrigger, disabled: contextDisabled } = useCollapsibleRootContext();
 
-  const disabled = () => disabledProp() ?? contextDisabled();
+  const disabled = () => disabledProp() || contextDisabled();
 
   const { getButtonProps, buttonRef } = useButton({
     disabled,

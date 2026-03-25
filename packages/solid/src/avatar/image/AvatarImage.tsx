@@ -31,9 +31,15 @@ export function AvatarImage(componentProps: AvatarImage.Props) {
 
   const context = useAvatarRootContext();
   const imageLoadingStatus = useImageLoadingStatus({
-    src: () => componentProps.src,
-    referrerPolicy: local.referrerPolicy,
-    crossOrigin: local.crossOrigin,
+    get src() {
+      return componentProps.src;
+    },
+    get referrerPolicy() {
+      return local.referrerPolicy;
+    },
+    get crossOrigin() {
+      return local.crossOrigin;
+    },
   });
 
   const isVisible = () => imageLoadingStatus() === 'loading' || imageLoadingStatus() === 'loaded';
@@ -68,7 +74,7 @@ export function AvatarImage(componentProps: AvatarImage.Props) {
 
   useOpenChangeComplete({
     open: isVisible,
-    ref: imageRef,
+    ref: () => imageRef,
     onComplete() {
       if (!isVisible()) {
         setMounted(false);

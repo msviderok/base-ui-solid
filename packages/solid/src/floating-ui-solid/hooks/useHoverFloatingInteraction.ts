@@ -47,7 +47,7 @@ export function useHoverFloatingInteraction(parameters: {
   const domReferenceElement = store.useState('domReferenceElement');
   const dataRef = store.context.dataRef;
 
-  const [instance, setInstanceState] = useHoverInteractionSharedState({ store });
+  const [instance, setInstanceState] = useHoverInteractionSharedState();
 
   const tree = useFloatingTree();
   const parentId = useFloatingParentNodeId();

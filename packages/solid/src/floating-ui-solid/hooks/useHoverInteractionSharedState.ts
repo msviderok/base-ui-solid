@@ -1,7 +1,7 @@
-import { onCleanup, onMount } from 'solid-js';
+import { onCleanup } from 'solid-js';
 import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
 import { useTimeout } from '../../utils/useTimeout';
-import type { ContextData, FloatingRootContext, SafePolygonOptions } from '../types';
+import type { SafePolygonOptions } from '../types';
 import { TYPEABLE_SELECTOR } from '../utils/constants';
 import { createAttribute } from '../utils/createAttribute';
 
@@ -25,13 +25,10 @@ export interface HoverInteraction {
   handleCloseOptions: SafePolygonOptions | undefined;
 }
 
-type HoverContextData = ContextData & {
-  hoverInteractionState?: HoverInteraction | undefined;
-};
-
-export function useHoverInteractionSharedState(parameters: {
-  store: FloatingRootContext;
-}): [Store<HoverInteraction>, SetStoreFunction<HoverInteraction>] {
+export function useHoverInteractionSharedState(): [
+  Store<HoverInteraction>,
+  SetStoreFunction<HoverInteraction>,
+] {
   const [state, setState] = createStore<HoverInteraction>({
     pointerType: undefined,
     interactedInside: false,
@@ -43,13 +40,6 @@ export function useHoverInteractionSharedState(parameters: {
     openChangeTimeout: useTimeout(),
     restTimeout: useTimeout(),
     handleCloseOptions: undefined,
-  });
-
-  onMount(() => {
-    const data = parameters.store.context.dataRef as HoverContextData;
-    if (!data.hoverInteractionState) {
-      data.hoverInteractionState = state;
-    }
   });
 
   onCleanup(() => {

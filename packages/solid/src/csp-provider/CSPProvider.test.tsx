@@ -2,7 +2,9 @@ import { createRenderer } from '#test-utils';
 import { CSPProvider } from '@msviderok/base-ui-solid/csp-provider';
 import { ScrollArea } from '@msviderok/base-ui-solid/scroll-area';
 import { Select } from '@msviderok/base-ui-solid/select';
+import { screen } from '@solidjs/testing-library';
 import { expect } from 'vitest';
+import { STYLE_TAG_ID } from '../utils/styles';
 
 function queryDisableScrollbarStyle() {
   const styles = Array.from(document.querySelectorAll('style'));
@@ -13,6 +15,14 @@ function queryDisableScrollbarStyle() {
 
 describe('<CSPProvider />', () => {
   const { render } = createRenderer();
+
+  beforeEach(() => {
+    document.getElementById(STYLE_TAG_ID)?.remove();
+  });
+
+  afterEach(() => {
+    document.getElementById(STYLE_TAG_ID)?.remove();
+  });
 
   it('does not render inline style tags when disableStyleElements is true', async () => {
     render(() => (
@@ -58,7 +68,7 @@ describe('<CSPProvider />', () => {
 
     const style = queryDisableScrollbarStyle();
     expect(style).not.toBeNull();
-    expect(style).toHaveAttribute('nonce', 'test-nonce');
+    expect(style?.nonce).toBe('test-nonce');
   });
 
   it('renders inline style tags by default', async () => {

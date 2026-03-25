@@ -6,8 +6,8 @@ import { cleanup, fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import type { JSX } from 'solid-js';
 import { createSignal, splitProps } from 'solid-js';
+import type { JSX } from 'solid-js';
 import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 import { REASONS } from '../../utils/reasons';
 
@@ -142,17 +142,22 @@ describe('<Menu.Root />', () => {
             skip();
           }
 
-          const itemElements = [
-            <Menu.Item>Aa</Menu.Item>,
-            <Menu.Item>Ba</Menu.Item>,
-            <Menu.Item>Bb</Menu.Item>,
-            <Menu.Item>Ca</Menu.Item>,
-            <Menu.Item>Cb</Menu.Item>,
-            <Menu.Item>Cd</Menu.Item>,
-          ];
-
           const { user } = render(() => (
-            <TestMenu rootProps={{ open: true }} popupProps={{ children: itemElements }} />
+            <TestMenu
+              rootProps={{ open: true }}
+              popupProps={{
+                get children() {
+                  return [
+                    <Menu.Item>Aa</Menu.Item>,
+                    <Menu.Item>Ba</Menu.Item>,
+                    <Menu.Item>Bb</Menu.Item>,
+                    <Menu.Item>Ca</Menu.Item>,
+                    <Menu.Item>Cb</Menu.Item>,
+                    <Menu.Item>Cd</Menu.Item>,
+                  ];
+                },
+              }}
+            />
           ));
 
           const items = screen.getAllByRole('menuitem');
@@ -183,14 +188,16 @@ describe('<Menu.Root />', () => {
           const { user } = render(() => (
             <TestMenu
               popupProps={{
-                children: (
-                  <>
-                    <Menu.Item label="Aa">1</Menu.Item>
-                    <Menu.Item label="Ba">2</Menu.Item>
-                    <Menu.Item label="Bb">3</Menu.Item>
-                    <Menu.Item label="Ca">4</Menu.Item>
-                  </>
-                ),
+                get children() {
+                  return (
+                    <>
+                      <Menu.Item label="Aa">1</Menu.Item>
+                      <Menu.Item label="Ba">2</Menu.Item>
+                      <Menu.Item label="Bb">3</Menu.Item>
+                      <Menu.Item label="Ca">4</Menu.Item>
+                    </>
+                  );
+                },
               }}
             />
           ));
@@ -235,20 +242,25 @@ describe('<Menu.Root />', () => {
             skip();
           }
 
-          const itemElements = [
-            <Menu.Item>Aa</Menu.Item>,
-            <Menu.Item>Ba</Menu.Item>,
-            <Menu.Item />,
-            <Menu.Item>
-              <div>Nested Content</div>
-            </Menu.Item>,
-            <Menu.Item>{undefined}</Menu.Item>,
-            <Menu.Item>{null}</Menu.Item>,
-            <Menu.Item>Bc</Menu.Item>,
-          ];
-
           const { user } = render(() => (
-            <TestMenu rootProps={{ open: true }} popupProps={{ children: itemElements }} />
+            <TestMenu
+              rootProps={{ open: true }}
+              popupProps={{
+                get children() {
+                  return [
+                    <Menu.Item>Aa</Menu.Item>,
+                    <Menu.Item>Ba</Menu.Item>,
+                    <Menu.Item />,
+                    <Menu.Item>
+                      <div>Nested Content</div>
+                    </Menu.Item>,
+                    <Menu.Item>{undefined}</Menu.Item>,
+                    <Menu.Item>{null}</Menu.Item>,
+                    <Menu.Item>Bc</Menu.Item>,
+                  ];
+                },
+              }}
+            />
           ));
 
           const items = screen.getAllByRole('menuitem');
@@ -275,15 +287,20 @@ describe('<Menu.Root />', () => {
             skip();
           }
 
-          const itemElements = [
-            <Menu.Item>Aa</Menu.Item>,
-            <Menu.Item>Ba</Menu.Item>,
-            <Menu.Item>Bb</Menu.Item>,
-            <Menu.Item>Bą</Menu.Item>,
-          ];
-
           const { user } = render(() => (
-            <TestMenu rootProps={{ open: true }} popupProps={{ children: itemElements }} />
+            <TestMenu
+              rootProps={{ open: true }}
+              popupProps={{
+                get children() {
+                  return [
+                    <Menu.Item>Aa</Menu.Item>,
+                    <Menu.Item>Ba</Menu.Item>,
+                    <Menu.Item>Bb</Menu.Item>,
+                    <Menu.Item>Bą</Menu.Item>,
+                  ];
+                },
+              }}
+            />
           ));
 
           const items = screen.getAllByRole('menuitem');
@@ -310,15 +327,20 @@ describe('<Menu.Root />', () => {
             skip();
           }
 
-          const itemElements = [
-            <Menu.Item>Aa</Menu.Item>,
-            <Menu.Item>ąa</Menu.Item>,
-            <Menu.Item>ąb</Menu.Item>,
-            <Menu.Item>ąc</Menu.Item>,
-          ];
-
           const { user } = render(() => (
-            <TestMenu rootProps={{ open: true }} popupProps={{ children: itemElements }} />
+            <TestMenu
+              rootProps={{ open: true }}
+              popupProps={{
+                get children() {
+                  return [
+                    <Menu.Item>Aa</Menu.Item>,
+                    <Menu.Item>ąa</Menu.Item>,
+                    <Menu.Item>ąb</Menu.Item>,
+                    <Menu.Item>ąc</Menu.Item>,
+                  ];
+                },
+              }}
+            />
           ));
 
           const items = screen.getAllByRole('menuitem');
@@ -343,14 +365,19 @@ describe('<Menu.Root />', () => {
 
           const handleClick = spy();
 
-          const itemElements = [
-            <Menu.Item onClick={() => handleClick()}>Item One</Menu.Item>,
-            <Menu.Item onClick={() => handleClick()}>Item Two</Menu.Item>,
-            <Menu.Item onClick={() => handleClick()}>Item Three</Menu.Item>,
-          ];
-
           const { user } = render(() => (
-            <TestMenu rootProps={{ open: true }} popupProps={{ children: itemElements }} />
+            <TestMenu
+              rootProps={{ open: true }}
+              popupProps={{
+                get children() {
+                  return [
+                    <Menu.Item onClick={() => handleClick()}>Item One</Menu.Item>,
+                    <Menu.Item onClick={() => handleClick()}>Item Two</Menu.Item>,
+                    <Menu.Item onClick={() => handleClick()}>Item Three</Menu.Item>,
+                  ];
+                },
+              }}
+            />
           ));
 
           const items = screen.getAllByRole('menuitem');
@@ -998,7 +1025,7 @@ describe('<Menu.Root />', () => {
           expect(screen.queryByTestId('menu')).not.to.equal(null);
         });
 
-        expect(onOpenChangeComplete.callCount).to.equal(2);
+        expect(onOpenChangeComplete.callCount).to.equal(1);
         expect(onOpenChangeComplete.firstCall.args[0]).to.equal(true);
       });
 
@@ -1293,19 +1320,21 @@ describe('<Menu.Root />', () => {
         const openChangeSpy = spy();
         const clickSpy = spy();
 
-        const items = [
-          <Menu.Item data-testid="item-1">1</Menu.Item>,
-          <Menu.Item data-testid="item-2" onClick={clickSpy}>
-            2
-          </Menu.Item>,
-          <Menu.Item data-testid="item-3">3</Menu.Item>,
-        ];
-
         render(() => (
           <div>
             <TestMenu
               rootProps={{ onOpenChange: openChangeSpy }}
-              popupProps={{ children: items }}
+              popupProps={{
+                get children() {
+                  return [
+                    <Menu.Item data-testid="item-1">1</Menu.Item>,
+                    <Menu.Item data-testid="item-2" onClick={clickSpy}>
+                      2
+                    </Menu.Item>,
+                    <Menu.Item data-testid="item-3">3</Menu.Item>,
+                  ];
+                },
+              }}
             />
           </div>
         ));
@@ -1340,17 +1369,19 @@ describe('<Menu.Root />', () => {
 
         const openChangeSpy = spy();
 
-        const items = [
-          <Menu.Item data-testid="item-1">1</Menu.Item>,
-          <Menu.Item data-testid="item-2">2</Menu.Item>,
-          <Menu.Item data-testid="item-3">3</Menu.Item>,
-        ];
-
         render(() => (
           <div>
             <TestMenu
               rootProps={{ onOpenChange: openChangeSpy }}
-              popupProps={{ children: items }}
+              popupProps={{
+                get children() {
+                  return [
+                    <Menu.Item data-testid="item-1">1</Menu.Item>,
+                    <Menu.Item data-testid="item-2">2</Menu.Item>,
+                    <Menu.Item data-testid="item-3">3</Menu.Item>,
+                  ];
+                },
+              }}
             />
             <div data-testid="outside">Outside</div>
           </div>

@@ -4,7 +4,7 @@ import { Dialog } from '@msviderok/base-ui-solid/dialog';
 import { screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 describe('<Dialog.Popup />', () => {
   const { render } = createRenderer();
@@ -66,7 +66,9 @@ describe('<Dialog.Popup />', () => {
       await user.click(screen.getByText('Open'));
 
       const dialogInput = screen.getByTestId('dialog-input');
-      expect(dialogInput).to.toHaveFocus();
+      await waitFor(() => {
+        expect(dialogInput).to.toHaveFocus();
+      });
     });
 
     it('should focus the element provided to `initialFocus` as a ref when open', async () => {
@@ -98,7 +100,9 @@ describe('<Dialog.Popup />', () => {
       await user.click(trigger);
 
       const input2 = screen.getByTestId('input-2');
-      expect(input2).to.toHaveFocus();
+      await waitFor(() => {
+        expect(input2).toHaveFocus();
+      });
     });
 
     it('should focus the element provided to `initialFocus` as a function when open', async () => {
@@ -132,7 +136,9 @@ describe('<Dialog.Popup />', () => {
       await user.click(trigger);
 
       const input2 = screen.getByTestId('input-2');
-      expect(input2).to.toHaveFocus();
+      await waitFor(() => {
+        expect(input2).toHaveFocus();
+      });
     });
 
     it('should support element-returning function and no-op via false/void for initialFocus', async () => {
@@ -654,12 +660,12 @@ describe('<Dialog.Popup />', () => {
         const [showNested, setShowNested] = createSignal(true);
         return (
           <>
-            <button onClick={() => setShowNested(!showNested)}>toggle</button>
+            <button onClick={() => setShowNested((v) => !v)}>toggle</button>
             <Dialog.Root>
               <Dialog.Trigger>Trigger 0</Dialog.Trigger>
               <Dialog.Portal>
                 <Dialog.Popup data-testid="popup0">
-                  {showNested() && (
+                  <Show when={showNested()}>
                     <Dialog.Root>
                       <Dialog.Trigger>Trigger 1</Dialog.Trigger>
                       <Dialog.Portal>
@@ -668,7 +674,7 @@ describe('<Dialog.Popup />', () => {
                         </Dialog.Popup>
                       </Dialog.Portal>
                     </Dialog.Root>
-                  )}
+                  </Show>
                   <Dialog.Close>Close 0</Dialog.Close>
                 </Dialog.Popup>
               </Dialog.Portal>
@@ -710,14 +716,14 @@ describe('<Dialog.Popup />', () => {
             <Dialog.Trigger>Trigger 0</Dialog.Trigger>
             <Dialog.Portal>
               <Dialog.Popup data-testid="popup0">
-                {showNested() && (
+                <Show when={showNested()}>
                   <Dialog.Root>
                     <Dialog.Trigger />
                     <Dialog.Portal>
                       <Dialog.Popup />
                     </Dialog.Portal>
                   </Dialog.Root>
-                )}
+                </Show>
                 <button onClick={() => setShowNested(!showNested())}>toggle</button>
                 <Dialog.Close>Close 0</Dialog.Close>
               </Dialog.Popup>

@@ -1,4 +1,10 @@
-import { createRenderer, flushMicrotasks, isJSDOM, popupConformanceTests } from '#test-utils';
+import {
+  createRenderer,
+  flushMicrotasks,
+  isJSDOM,
+  mockAnimationsFinished,
+  popupConformanceTests,
+} from '#test-utils';
 import { Dialog } from '@msviderok/base-ui-solid/dialog';
 import { Menu } from '@msviderok/base-ui-solid/menu';
 import { Select } from '@msviderok/base-ui-solid/select';
@@ -313,16 +319,6 @@ describe('<Dialog.Root />', () => {
     });
 
     it.skipIf(isJSDOM)('waits for the exit transition to finish before unmounting', async () => {
-      const css = `
-    .dialog {
-      opacity: 0;
-      transition: opacity 200ms;
-    }
-    .dialog[data-open] {
-      opacity: 1;
-    }
-  `;
-
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
 
       const notifyTransitionEnd = spy();
@@ -330,8 +326,6 @@ describe('<Dialog.Root />', () => {
       function TransitionTest(props: { open: boolean }) {
         return (
           <>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
-            <style innerHTML={css} />
             <TestDialog
               rootProps={{ open: props.open, modal: false }}
               portalProps={{ keepMounted: true }}
@@ -348,8 +342,18 @@ describe('<Dialog.Root />', () => {
       const [open, setOpen] = createSignal(true);
       render(() => <TransitionTest open={open()} />);
 
+      const popup = screen.getByRole('dialog');
+      const animation = mockAnimationsFinished(popup);
+
       setOpen(false);
-      expect(screen.queryByRole('dialog')).not.to.equal(null);
+      expect(screen.queryByRole('dialog')).to.equal(popup);
+
+      await waitFor(() => {
+        expect(popup).to.have.attribute('data-ending-style');
+      });
+
+      fireEvent.transitionEnd(popup);
+      animation.finish();
 
       await waitFor(() => {
         expect(screen.queryByRole('dialog')).to.equal(null);
@@ -804,24 +808,10 @@ describe('<Dialog.Root />', () => {
         const onOpenChangeComplete = spy();
 
         function Test() {
-          const style = `
-        @keyframes test-anim {
-          to {
-            opacity: 0;
-          }
-        }
-
-        .animation-test-indicator[data-ending-style] {
-          animation: test-anim 1ms;
-        }
-      `;
-
           const [open, setOpen] = createSignal(true);
 
           return (
             <div>
-              {/* eslint-disable-next-line solid/no-innerhtml */}
-              <style innerHTML={style} />
               <button onClick={() => setOpen(false)}>Close externally</button>
               <TestDialog
                 rootProps={{ open: open(), onOpenChangeComplete }}
@@ -842,8 +832,16 @@ describe('<Dialog.Root />', () => {
           expect(onOpenChangeComplete.firstCall.args[0]).to.equal(true);
         });
 
+        const popup = screen.getByTestId('dialog-popup');
+        const animation = mockAnimationsFinished(popup);
         const closeButton = screen.getByText('Close externally');
         await user.click(closeButton);
+
+        await waitFor(() => {
+          expect(popup).to.have.attribute('data-ending-style');
+        });
+
+        animation.finish();
 
         await waitFor(() => {
           expect(screen.queryByTestId('dialog-popup')).to.equal(null);
@@ -874,7 +872,7 @@ describe('<Dialog.Root />', () => {
           expect(screen.queryByTestId('dialog-popup')).not.to.equal(null);
         });
 
-        expect(onOpenChangeComplete.callCount).to.equal(2);
+        expect(onOpenChangeComplete.callCount).to.equal(1);
         expect(onOpenChangeComplete.firstCall.args[0]).to.equal(true);
       });
 

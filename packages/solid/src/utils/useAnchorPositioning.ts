@@ -557,7 +557,9 @@ export interface UseAnchorPositioningSharedParameters {
    * An element to position the popup against.
    * By default, the popup will be positioned against the trigger.
    */
-  anchor?: (Element | null | VirtualElement | (() => Element | VirtualElement | null)) | undefined;
+  anchor?:
+    | (Element | null | VirtualElement | (() => Element | VirtualElement | null | undefined))
+    | undefined;
   /**
    * Determines which CSS `position` property to use.
    * @default 'absolute'

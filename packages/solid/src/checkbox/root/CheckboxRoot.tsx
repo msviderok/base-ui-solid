@@ -119,9 +119,7 @@ export function CheckboxRoot(componentProps: CheckboxRoot.Props) {
     if (isGroupedWithParent()) {
       if (parent()) {
         mainProps = groupContext!.parent.getParentProps();
-      }
-
-      if (value()) {
+      } else if (value()) {
         mainProps = groupContext!.parent.getChildProps(value()!);
       }
     }

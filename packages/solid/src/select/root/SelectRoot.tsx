@@ -104,6 +104,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   });
   const alignItemWithTriggerActiveRef = useRef(false);
   const triggerPressedRef = useRef(false);
+  const lastCloseReasonRef = useRef<SelectRoot.ChangeEventReason | null>(null);
 
   const { mounted, setMounted, transitionStatus } = useTransitionStatus(open);
   const {
@@ -272,6 +273,10 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
   };
 
   const setOpen = (nextOpen: boolean, eventDetails: SelectRoot.ChangeEventDetails) => {
+    if (nextOpen !== open()) {
+      lastCloseReasonRef.current = nextOpen ? null : eventDetails.reason;
+    }
+
     props.onOpenChange?.(nextOpen, eventDetails);
 
     if (eventDetails.isCanceled) {
@@ -543,6 +548,7 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     keyboardActiveRef,
     alignItemWithTriggerActiveRef,
     initialValueRef,
+    lastCloseReasonRef,
     triggerPressedRef,
   };
 
@@ -561,7 +567,6 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
               // Move focus to the trigger element when the hidden input is focused.
               store.state.triggerElement?.focus({
                 // Supported in Chrome from 144 (January 2026)
-                // @ts-expect-error - focusVisible is not yet in the lib.dom.d.ts
                 focusVisible: true,
               });
             },

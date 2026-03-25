@@ -1,4 +1,4 @@
-import { createMemo } from 'solid-js';
+import { createMemo, onCleanup } from 'solid-js';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
 import {
   safePolygon,
@@ -82,9 +82,18 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
   store.useSyncedValue('closeDelay', closeDelay);
 
   const parentMenuStore = submenuRootContext.parentMenu;
+  let cleanupTriggerMouseMove = () => {};
 
   const itemProps = parentMenuStore.useState('itemProps');
   const highlighted = parentMenuStore.useState('isActive', listItem.index);
+
+  const handleTriggerHoverIntent = () => {
+    parentMenuStore.set('allowMouseEnter', true);
+  };
+
+  onCleanup(() => {
+    cleanupTriggerMouseMove();
+  });
 
   const itemMetadata = () => ({
     type: 'submenu-trigger' as const,
@@ -204,6 +213,18 @@ export function MenuSubmenuTrigger(componentProps: MenuSubmenuTrigger.Props) {
       ];
     },
     ref: (el) => {
+      cleanupTriggerMouseMove();
+      if (el) {
+        el.addEventListener('mouseenter', handleTriggerHoverIntent);
+        el.addEventListener('mousemove', handleTriggerHoverIntent);
+        cleanupTriggerMouseMove = () => {
+          el.removeEventListener('mouseenter', handleTriggerHoverIntent);
+          el.removeEventListener('mousemove', handleTriggerHoverIntent);
+        };
+      } else {
+        cleanupTriggerMouseMove = () => {};
+      }
+
       listItem.setRef(el);
       setItemRef(el);
       registerTrigger(el);

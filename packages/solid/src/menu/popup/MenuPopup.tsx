@@ -68,9 +68,14 @@ export function MenuPopup(componentProps: MenuPopup.Props) {
   });
 
   function handleClose(event: { domEvent: Event | undefined; reason: MenuRoot.ChangeEventReason }) {
-    queueMicrotask(() => {
-      store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
-    });
+    if (parent().type === 'context-menu') {
+      queueMicrotask(() => {
+        store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
+      });
+      return;
+    }
+
+    store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
   }
 
   createEffect(() => {

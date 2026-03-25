@@ -7,6 +7,7 @@ import {
   mergeProps as solidMergeProps,
 } from 'solid-js';
 import { createStore } from 'solid-js/store';
+import type { CollapsibleRoot } from '../../collapsible/root/CollapsibleRoot';
 import { CollapsibleRootContext } from '../../collapsible/root/CollapsibleRootContext';
 import { useCollapsibleRoot } from '../../collapsible/root/useCollapsibleRoot';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
@@ -157,10 +158,7 @@ export interface AccordionItemState extends AccordionRoot.State {
   open: boolean;
 }
 
-export interface AccordionItemProps
-  extends
-    BaseUIComponentProps<'div', AccordionItem.State>,
-    Partial<Pick<useCollapsibleRoot.Parameters, 'disabled'>> {
+export interface AccordionItemProps extends BaseUIComponentProps<'div', AccordionItem.State> {
   /**
    * A unique value that identifies this accordion item.
    * If no value is provided, a unique ID will be generated automatically.
@@ -181,6 +179,7 @@ export interface AccordionItemProps
   onOpenChange?:
     | ((open: boolean, eventDetails: AccordionItem.ChangeEventDetails) => void)
     | undefined;
+  disabled?: boolean;
 }
 
 export type AccordionItemChangeEventReason = typeof REASONS.triggerPress | typeof REASONS.none;

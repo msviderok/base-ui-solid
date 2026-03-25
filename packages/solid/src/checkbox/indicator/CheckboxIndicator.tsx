@@ -63,7 +63,6 @@ export function CheckboxIndicator(componentProps: CheckboxIndicator.Props) {
       return stateAttributesMapping;
     },
     props: elementProps,
-    enabled: shouldRender,
   });
 
   return <Show when={shouldRender()}>{element()}</Show>;

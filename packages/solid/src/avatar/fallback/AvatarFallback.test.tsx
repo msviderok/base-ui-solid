@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
+import { createRenderer, describeConformance, isJSDOM, mockAnimationsFinished } from '#test-utils';
 import { Avatar } from '@msviderok/base-ui-solid/avatar';
 import { screen, waitFor } from '@solidjs/testing-library';
 import { createSignal } from 'solid-js';
@@ -81,7 +81,9 @@ describe('<Avatar.Fallback />', () => {
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
 
       const useImageLoadingStatusMock = useImageLoadingStatus as Mock;
-      useImageLoadingStatusMock.mockImplementation((src) => (src ? 'loaded' : 'error'));
+      useImageLoadingStatusMock.mockImplementation((options) => () =>
+        options.src ? 'loaded' : 'error',
+      );
 
       let transitionFinished = false;
       function notifyTransitionFinished() {
@@ -143,19 +145,9 @@ describe('<Avatar.Fallback />', () => {
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
 
       const useImageLoadingStatusMock = useImageLoadingStatus as Mock;
-      useImageLoadingStatusMock.mockImplementation((src) => (src ? 'loaded' : 'error'));
-
-      const style = `
-        @keyframes test-anim {
-          to {
-            opacity: 0;
-          }
-        }
-
-        .animation-test-fallback[data-ending-style] {
-          animation: test-anim 1ms;
-        }
-      `;
+      useImageLoadingStatusMock.mockImplementation((options) => () =>
+        options.src ? 'loaded' : 'error',
+      );
 
       function Test() {
         const [showImage, setShowImage] = createSignal(false);
@@ -166,8 +158,6 @@ describe('<Avatar.Fallback />', () => {
 
         return (
           <div>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
-            <style innerHTML={style} />
             <button onClick={handleShowImage}>Show image</button>
             <Avatar.Root>
               <Avatar.Image src={showImage() ? 'avatar.png' : undefined} />
@@ -180,15 +170,18 @@ describe('<Avatar.Fallback />', () => {
       }
 
       const { user } = render(() => <Test />);
-      expect(screen.getByTestId('fallback')).not.to.equal(null);
+      const fallback = screen.getByTestId('fallback');
+      expect(fallback).not.to.equal(null);
+      const animation = mockAnimationsFinished(fallback);
 
       await user.click(screen.getByText('Show image'));
 
       await waitFor(() => {
-        const fallback = screen.queryByTestId('fallback');
-        expect(fallback).not.to.equal(null);
+        expect(screen.queryByTestId('fallback')).to.equal(fallback);
         expect(fallback).to.have.attribute('data-ending-style');
       });
+
+      animation.finish();
 
       await waitFor(() => {
         expect(screen.queryByTestId('fallback')).to.equal(null);

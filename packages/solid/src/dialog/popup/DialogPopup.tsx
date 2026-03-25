@@ -38,7 +38,6 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
 
   const descriptionElementId = store.useState('descriptionElementId');
   const disablePointerDismissal = store.useState('disablePointerDismissal');
-  const floatingRootContext = store.context.floatingRootContext;
   const rootPopupProps = store.useState('popupProps');
   const modal = store.useState('modal');
   const mounted = store.useState('mounted');
@@ -139,7 +138,7 @@ export function DialogPopup(componentProps: DialogPopup.Props) {
   return (
     <>
       <FloatingFocusManager
-        context={floatingRootContext}
+        context={store.context.floatingRootContext}
         openInteractionType={openMethod()}
         disabled={!mounted()}
         closeOnFocusOut={!disablePointerDismissal()}

@@ -143,23 +143,18 @@ describe('<Menu.Item />', () => {
 
     await user.keyboard('{ArrowDown}'); // highlights '2'
 
-    // React renders twice in strict mode, so we expect twice the number of spy calls
-
     await waitFor(
       () => {
-        expect(renderItem1Spy.callCount).to.equal(2); // '1' rerenders as it loses highlight
-      },
-      { timeout: 1000 },
-    );
-    await waitFor(
-      () => {
-        expect(renderItem2Spy.callCount).to.equal(2); // '2' rerenders as it receives highlight
+        expect(menuItems[0]).not.to.have.attribute('data-highlighted');
+        expect(menuItems[1]).to.have.attribute('data-highlighted');
       },
       { timeout: 1000 },
     );
 
-    // neither the highlighted nor the selected state of these options changed,
-    // so they don't need to rerender:
+    // Solid updates the DOM state for plain menu items without re-invoking the custom render
+    // component, so no item needs to rerender here.
+    expect(renderItem1Spy.callCount).to.equal(0);
+    expect(renderItem2Spy.callCount).to.equal(0);
     expect(renderItem3Spy.callCount).to.equal(0);
     expect(renderItem4Spy.callCount).to.equal(0);
   });
