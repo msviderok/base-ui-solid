@@ -65,7 +65,11 @@ export function useHoverReferenceInteraction(parameters: {
 
   const tree = useFloatingTree(parameters.props.externalTree);
 
-  const [instance, setInstanceState] = useHoverInteractionSharedState();
+  const [instance, setInstanceState] = useHoverInteractionSharedState({
+    get store() {
+      return store();
+    },
+  });
 
   createEffect(() => {
     if (props.isActiveTrigger) {

@@ -100,11 +100,15 @@ export function Form<FormValues extends Record<string, any> = Record<string, any
           submitAttemptedRef = true;
 
           // Async validation isn't supported to stop the submit event.
-          Object.values(formRef.fields).forEach((field) => field.validate());
+          let values = Object.values(formRef.fields);
+          values.forEach((field) => field.validate());
+          values = Object.values(formRef.fields);
 
-          if (invalidFields().length) {
+          const invalid = values.filter((field) => field.validityData.state.valid === false);
+
+          if (invalid.length) {
             event.preventDefault();
-            const controlRef = invalidFields()[0].controlRef;
+            const controlRef = invalid[0].controlRef;
             focusControl(controlRef);
           } else {
             submittedRef = true;

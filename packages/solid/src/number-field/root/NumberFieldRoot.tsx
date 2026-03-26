@@ -558,7 +558,7 @@ export function NumberFieldRoot(componentProps: NumberFieldRoot.Props) {
         }}
         type="number"
         name={name()}
-        value={value() ?? ''}
+        attr:value={value() != null ? String(value()) : ''}
         min={local.min}
         max={local.max}
         // stepMismatch validation is broken unless an explicit `min` is added.

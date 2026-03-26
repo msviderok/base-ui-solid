@@ -63,20 +63,20 @@ describe('<NumberField.Increment />', () => {
       );
     }
 
-    const { user } = render(() => <Controlled />);
+    render(() => <Controlled />);
     const input = screen.getByRole('textbox');
     const increase = screen.getByLabelText('Increase');
 
-    await user.click(screen.getByText('external'));
+    fireEvent.click(screen.getByText('external'));
     expect(input).to.have.value((1.23456).toLocaleString(undefined, { minimumFractionDigits: 5 }));
 
-    await user.click(increase);
+    fireEvent.click(increase);
     expect(input).to.have.value((2.235).toLocaleString(undefined, { minimumFractionDigits: 3 }));
   });
 
   it('only calls onValueChange once per increment', async () => {
     const handleValueChange = spy();
-    const { user } = render(() => (
+    render(() => (
       <NumberField.Root onValueChange={handleValueChange}>
         <NumberField.Increment />
         <NumberField.Input />
@@ -85,10 +85,10 @@ describe('<NumberField.Increment />', () => {
 
     const button = screen.getByRole('button');
 
-    await user.click(button);
+    fireEvent.click(button);
     expect(handleValueChange.callCount).to.equal(1);
 
-    await user.click(button);
+    fireEvent.click(button);
     expect(handleValueChange.callCount).to.equal(2);
   });
 

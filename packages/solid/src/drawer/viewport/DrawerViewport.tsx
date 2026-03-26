@@ -700,7 +700,9 @@ export function DrawerViewport(props: DrawerViewport.Props) {
 
   const swipePointerProps = createMemo(() => swipe.getPointerProps());
   const swipeTouchProps = createMemo(() => swipe.getTouchProps());
-  const resetSwipe = createMemo(() => swipe.reset);
+  const resetSwipe = () => {
+    swipe.reset();
+  };
   resetSwipeRef = resetSwipe;
 
   createEffect(() => {

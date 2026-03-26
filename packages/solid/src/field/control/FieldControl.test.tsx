@@ -57,7 +57,7 @@ describe('<Field.Control />', () => {
       );
     }
 
-    render(() => <App />, undefined, { hydrate: true });
+    render(() => <App />);
 
     const control = screen.getByRole('textbox');
     expect(control).to.have.attribute('autofocus');

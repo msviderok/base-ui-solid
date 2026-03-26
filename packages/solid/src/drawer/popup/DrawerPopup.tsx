@@ -1,6 +1,5 @@
 import { createEffect, createMemo, createSignal, onCleanup, type JSX } from 'solid-js';
 import { COMPOSITE_KEYS } from '../../composite/composite';
-import { useDialogPortalContext } from '../../dialog/portal/DialogPortalContext';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext';
 import { FloatingFocusManager } from '../../floating-ui-solid';
 import { splitComponentProps } from '../../solid-helpers';

@@ -156,7 +156,10 @@ export function useClick(parameters: {
 
       const open = store().state.open;
       const openEvent = dataRef().openEvent;
-      const hasClickedOnInactiveTrigger = store().state.domReferenceElement !== event.currentTarget;
+      const fallbackReferenceElement =
+        openEvent?.target instanceof Element ? openEvent.target : null;
+      const referenceElement = store().state.domReferenceElement ?? fallbackReferenceElement;
+      const hasClickedOnInactiveTrigger = referenceElement !== event.currentTarget;
       const nextOpen =
         (open && hasClickedOnInactiveTrigger) ||
         !(

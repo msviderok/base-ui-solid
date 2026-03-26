@@ -1,7 +1,7 @@
-import { onCleanup } from 'solid-js';
+import { createEffect, createRenderEffect, onCleanup } from 'solid-js';
 import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
 import { useTimeout } from '../../utils/useTimeout';
-import type { SafePolygonOptions } from '../types';
+import type { FloatingRootContext, SafePolygonOptions } from '../types';
 import { TYPEABLE_SELECTOR } from '../utils/constants';
 import { createAttribute } from '../utils/createAttribute';
 
@@ -25,10 +25,13 @@ export interface HoverInteraction {
   handleCloseOptions: SafePolygonOptions | undefined;
 }
 
-export function useHoverInteractionSharedState(): [
-  Store<HoverInteraction>,
-  SetStoreFunction<HoverInteraction>,
-] {
+type HoverInteractionSharedState = [Store<HoverInteraction>, SetStoreFunction<HoverInteraction>];
+
+type HoverContextData = {
+  hoverInteractionState?: HoverInteractionSharedState | undefined;
+};
+
+function createHoverInteractionSharedState(): HoverInteractionSharedState {
   const [state, setState] = createStore<HoverInteraction>({
     pointerType: undefined,
     interactedInside: false,
@@ -42,10 +45,22 @@ export function useHoverInteractionSharedState(): [
     handleCloseOptions: undefined,
   });
 
-  onCleanup(() => {
-    state.openChangeTimeout.clear();
-    state.restTimeout.clear();
+  return [state, setState] as const;
+}
+
+export function useHoverInteractionSharedState(options: {
+  store: FloatingRootContext;
+}): HoverInteractionSharedState {
+  createRenderEffect(() => {
+    if (!options.store.context.dataRef.hoverInteractionState) {
+      options.store.context.dataRef.hoverInteractionState = createHoverInteractionSharedState();
+    }
   });
 
-  return [state, setState] as const;
+  onCleanup(() => {
+    options.store.context.dataRef.hoverInteractionState?.[0].openChangeTimeout.clear();
+    options.store.context.dataRef.hoverInteractionState?.[0].restTimeout.clear();
+  });
+
+  return options.store.context.dataRef.hoverInteractionState;
 }

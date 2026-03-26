@@ -13,7 +13,7 @@ import { Switch } from '@msviderok/base-ui-solid/switch';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { vi } from 'vitest';
 import { LabelableProvider } from '../../labelable-provider';
 
@@ -33,7 +33,9 @@ describe('<Field.Root />', () => {
         <>
           <Field.Root>
             <Field.Label>Label</Field.Label>
-            {showB() ? <Field.Control id="control-b" /> : <Field.Control id="control-a" />}
+            <Show when={showB()} fallback={<Field.Control id="control-a" />}>
+              <Field.Control id="control-b" />
+            </Show>
           </Field.Root>
           <button type="button" onClick={() => setShowB(true)}>
             Toggle
@@ -169,9 +171,7 @@ describe('<Field.Root />', () => {
             </Field.Root>
             <Checkbox.Root
               checked={!showSelect()}
-              onCheckedChange={(checked) => {
-                setShowSelect(!checked);
-              }}
+              onCheckedChange={(checked) => setShowSelect(!checked)}
             />
           </>
         );
@@ -291,8 +291,12 @@ describe('<Field.Root />', () => {
     it('receives all form values as the 2nd argument', async () => {
       const validateSpy = spy();
 
+      /**
+       * For some reason, need to prevent default on submit so iframe is not
+       * detached from the document in the vitest browser environment.
+       */
       render(() => (
-        <Form>
+        <Form onSubmit={(e) => e.preventDefault()}>
           <Field.Root name="checkbox">
             <Checkbox.Root defaultChecked />
           </Field.Root>
@@ -378,14 +382,18 @@ describe('<Field.Root />', () => {
       function App() {
         const [checked, setChecked] = createSignal(true);
 
+        /**
+         * For some reason, need to prevent default on submit so iframe is not
+         * detached from the document in the vitest browser environment.
+         */
         return (
-          <Form>
+          <Form onSubmit={(e) => e.preventDefault()}>
             <input type="checkbox" checked={checked()} onChange={() => setChecked(!checked())} />
-            {checked() && (
+            <Show when={checked()}>
               <Field.Root name="input1">
                 <Field.Control defaultValue="one" />
               </Field.Root>
-            )}
+            </Show>
             <Field.Root name="input2" validate={validateSpy}>
               <Field.Control defaultValue="two" />
             </Field.Root>
@@ -1006,11 +1014,17 @@ describe('<Field.Root />', () => {
 
   describe('defaultValue behavior', () => {
     it('should not reset to defaultValue when input value is programmatically changed and then focused', async () => {
-      let inputRef!: HTMLInputElement;
+      let inputRef: HTMLInputElement | undefined | null;
 
       render(() => (
         <Field.Root>
-          <Field.Control ref={inputRef} defaultValue="foo" data-testid="input" />
+          <Field.Control
+            ref={(el) => {
+              inputRef = el;
+            }}
+            defaultValue="foo"
+            data-testid="input"
+          />
         </Field.Root>
       ));
 
@@ -1030,11 +1044,17 @@ describe('<Field.Root />', () => {
     });
 
     it('should not reset to defaultValue when input value is programmatically changed to non-empty value and then focused', () => {
-      let inputRef!: HTMLInputElement;
+      let inputRef: HTMLInputElement | undefined | null;
 
       render(() => (
         <Field.Root>
-          <Field.Control ref={inputRef} defaultValue="foo" data-testid="input" />
+          <Field.Control
+            ref={(el) => {
+              inputRef = el;
+            }}
+            defaultValue="foo"
+            data-testid="input"
+          />
         </Field.Root>
       ));
 

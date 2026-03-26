@@ -133,6 +133,7 @@ function MenubarContent(props: ParentProps) {
   const nodeId = useFloatingNodeId();
   const { events: menuEvents } = useFloatingTree()!;
   const rootContext = useMenubarContext();
+  const openMenuNodeIds = new Set<string>();
 
   function onSubmenuOpenChange(details: MenuOpenEventDetails) {
     if (!details.nodeId || details.parentNodeId !== nodeId()) {
@@ -140,12 +141,12 @@ function MenubarContent(props: ParentProps) {
     }
 
     if (details.open) {
-      if (!rootContext.hasSubmenuOpen()) {
-        rootContext.setHasSubmenuOpen(true);
-      }
-    } else if (details.reason !== 'sibling-open' && details.reason !== 'list-navigation') {
-      rootContext.setHasSubmenuOpen(false);
+      openMenuNodeIds.add(details.nodeId);
+    } else {
+      openMenuNodeIds.delete(details.nodeId);
     }
+
+    rootContext.setHasSubmenuOpen(openMenuNodeIds.size > 0);
   }
 
   onMount(() => {

@@ -70,7 +70,7 @@
     "test:solid:webkit": "cross-env VITEST_ENV=webkit pnpm test:solid:_unit",
     "test:solid:webkit:ui": "pnpm test:solid:webkit --browser.headless=false",
     "test:solid:browsers": "cross-env VITEST_ENV=all-browsers pnpm test:solid:_unit",
-    "test:solid:subset": "pnpm test:solid:chromium src/accordion src/avatar src/dialog src/autocomplete src/alert-dialog src/button src/checkbox src/checkbox-group src/combobox src/collapsible src/composite src/context-menu src/csp-provider src/dialog src/menu/",
+    "test:solid:subset": "pnpm test:solid:chromium src/accordion src/avatar src/dialog src/autocomplete src/alert-dialog src/button src/checkbox src/checkbox-group src/combobox src/collapsible src/composite src/context-menu src/csp-provider src/dialog src/direction-provider src/drawer src/field src/fieldset src/form src/floating-ui-solid src/input src/menu src/menubar src/merge-props src/meter src/navigation-menu src/number-field src/progress src/radio src/radio-group src/separator src/switch src/toggle src/toggle-group src/use-button src/use-render src/utils",
     "typescript": "tsc -b tsconfig.json",
     "inline-scripts": "tsx ./scripts/inlineScripts.mts",
     "use-react-18": "code-infra set-version-overrides --pkg react@18"

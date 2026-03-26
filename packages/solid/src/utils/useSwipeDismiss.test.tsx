@@ -8,7 +8,9 @@ function SwipeBox() {
   const swipe = useSwipeDismiss({
     enabled: true,
     directions: ['down'],
-    elementRef: ref,
+    get elementRef() {
+      return ref;
+    },
     movementCssVars: { x: '--x', y: '--y' },
   });
 
@@ -398,7 +400,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['down'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         swipeThreshold: 10,
         onDismiss,
@@ -477,7 +481,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['down'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         onSwipingChange,
       });
@@ -534,7 +540,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['down'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         onDismiss,
         onSwipingChange,
@@ -640,7 +648,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['down'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         onSwipingChange,
       });
@@ -724,7 +734,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['down'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         swipeThreshold: 10,
         onDismiss,
@@ -803,7 +815,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['right'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         onRelease,
       });
@@ -894,7 +908,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['right'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         onRelease,
       });
@@ -998,7 +1014,9 @@ describe('useSwipeDismiss', () => {
       const swipe = useSwipeDismiss({
         enabled: true,
         directions: ['right'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         onRelease,
       });
@@ -1089,7 +1107,9 @@ describe('useSwipeDismiss', () => {
       const swipeDismiss = useSwipeDismiss({
         enabled: true,
         directions: ['down'],
-        elementRef: ref,
+        get elementRef() {
+          return ref;
+        },
         movementCssVars: { x: '--x', y: '--y' },
         onSwipeStart,
       });

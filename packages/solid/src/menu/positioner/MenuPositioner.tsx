@@ -271,6 +271,9 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
     stateAttributesMapping: popupStateMapping,
     ref: (el) => {
       store.set('positionerElement', el);
+      if (parent().type === 'menubar') {
+        positioner.context.refs.setFloating(el);
+      }
       if (
         local.anchor != null &&
         triggerElement() == null &&
@@ -282,6 +285,17 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
     get props() {
       return [positionerProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];
     },
+  });
+
+  createEffect(() => {
+    if (parent().type !== 'menubar') {
+      return;
+    }
+
+    const currentTriggerElement = triggerElement();
+    if (currentTriggerElement) {
+      positioner.context.refs.setReference(currentTriggerElement);
+    }
   });
 
   const shouldRenderBackdrop = () => {

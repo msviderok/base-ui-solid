@@ -356,39 +356,39 @@ export function useSwipeDismiss(options: useSwipeDismiss.Options): useSwipeDismi
         return false;
       }
     }
+    batch(() => {
+      cancelledSwipeRef = false;
+      intendedSwipeDirectionRef = undefined;
+      maxSwipeDisplacementRef = 0;
 
-    cancelledSwipeRef = false;
-    intendedSwipeDirectionRef = undefined;
-    maxSwipeDisplacementRef = 0;
+      dragStartPosRef = position;
+      swipeStartTimeRef = getValidTimeStamp(event.timeStamp);
+      swipeCancelBaselineRef = position;
+      lastMovePosRef = position;
 
-    dragStartPosRef = position;
-    swipeStartTimeRef = getValidTimeStamp(event.timeStamp);
-    swipeCancelBaselineRef = position;
-    lastMovePosRef = position;
+      if (element) {
+        elementSizeRef = { width: element.offsetWidth, height: element.offsetHeight };
+        resolveSwipeThreshold(primaryDirection());
+        const transform = getElementTransform(element);
+        initialTransformRef = transform;
+        dragOffsetRef = { x: transform.x, y: transform.y };
+        setInitialTransform(transform);
+        setDragOffset({ x: transform.x, y: transform.y });
+        recordDragSample({ x: transform.x, y: transform.y }, swipeStartTimeRef);
 
-    if (element) {
-      elementSizeRef = { width: element.offsetWidth, height: element.offsetHeight };
-      resolveSwipeThreshold(primaryDirection());
-      const transform = getElementTransform(element);
-      initialTransformRef = transform;
-      dragOffsetRef = { x: transform.x, y: transform.y };
-      setInitialTransform(transform);
-      setDragOffset({ x: transform.x, y: transform.y });
-      recordDragSample({ x: transform.x, y: transform.y }, swipeStartTimeRef);
-
-      if (!('touches' in event)) {
-        safelyChangePointerCapture(element, event.pointerId, 'setPointerCapture');
+        if (!('touches' in event)) {
+          safelyChangePointerCapture(element, event.pointerId, 'setPointerCapture');
+        }
       }
-    }
 
-    options.onSwipeStart?.(event as SwipeDismissNativeEvent);
+      options.onSwipeStart?.(event as SwipeDismissNativeEvent);
 
-    setSwiping(true);
-    setIsRealSwipe(false);
-    setLockedDirection(null);
-    isFirstPointerMoveRef = true;
-    updateSwipeProgress(0);
-
+      setSwiping(true);
+      setIsRealSwipe(false);
+      setLockedDirection(null);
+      isFirstPointerMoveRef = true;
+      updateSwipeProgress(0);
+    });
     return true;
   }
 
@@ -404,31 +404,33 @@ export function useSwipeDismiss(options: useSwipeDismiss.Options): useSwipeDismi
   }
 
   function cancelSwipeInteraction(event: PointerEvent) {
-    resetPendingSwipeState();
+    batch(() => {
+      resetPendingSwipeState();
 
-    if (!isSwipingRef) {
-      return;
-    }
+      if (!isSwipingRef) {
+        return;
+      }
 
-    setSwiping(false);
-    setIsRealSwipe(false);
-    setLockedDirection(null);
+      setSwiping(false);
+      setIsRealSwipe(false);
+      setLockedDirection(null);
 
-    const resolvedInitialTransform = trackDrag() ? initialTransform() : initialTransformRef;
-    dragOffsetRef = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
-    setDragOffset({ x: resolvedInitialTransform.x, y: resolvedInitialTransform.y });
-    setCurrentSwipeDirection(undefined);
-    sawPrimaryButtonsOnMoveRef = false;
+      const resolvedInitialTransform = trackDrag() ? initialTransform() : initialTransformRef;
+      dragOffsetRef = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
+      setDragOffset({ x: resolvedInitialTransform.x, y: resolvedInitialTransform.y });
+      setCurrentSwipeDirection(undefined);
+      sawPrimaryButtonsOnMoveRef = false;
 
-    const element = options.elementRef ?? null;
-    if (element) {
-      safelyChangePointerCapture(element, event.pointerId, 'releasePointerCapture');
-    }
+      const element = options.elementRef ?? null;
+      if (element) {
+        safelyChangePointerCapture(element, event.pointerId, 'releasePointerCapture');
+      }
 
-    updateSwipeProgress(0, {
-      deltaX: 0,
-      deltaY: 0,
-      direction: undefined,
+      updateSwipeProgress(0, {
+        deltaX: 0,
+        deltaY: 0,
+        direction: undefined,
+      });
     });
   }
 
@@ -903,10 +905,12 @@ export function useSwipeDismiss(options: useSwipeDismiss.Options): useSwipeDismi
     const hasReleaseDecision = typeof releaseDecision === 'boolean';
 
     if (cancelledSwipeRef && !hasReleaseDecision) {
-      dragOffsetRef = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
-      setDragOffset({ x: resolvedInitialTransform.x, y: resolvedInitialTransform.y });
-      setCurrentSwipeDirection(undefined);
-      updateSwipeProgress(0, progressDetails);
+      batch(() => {
+        dragOffsetRef = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
+        setDragOffset({ x: resolvedInitialTransform.x, y: resolvedInitialTransform.y });
+        setCurrentSwipeDirection(undefined);
+        updateSwipeProgress(0, progressDetails);
+      });
       return;
     }
 
@@ -952,16 +956,18 @@ export function useSwipeDismiss(options: useSwipeDismiss.Options): useSwipeDismi
       }
     }
 
-    if (shouldClose && dismissDirection) {
-      setCurrentSwipeDirection(dismissDirection);
-      setDragDismissed(true);
-      options.onDismiss?.(event as SwipeDismissNativeEvent, { direction: dismissDirection });
-    } else {
-      dragOffsetRef = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
-      setDragOffset({ x: resolvedInitialTransform.x, y: resolvedInitialTransform.y });
-      setCurrentSwipeDirection(undefined);
-      updateSwipeProgress(0, progressDetails);
-    }
+    batch(() => {
+      if (shouldClose && dismissDirection) {
+        setCurrentSwipeDirection(dismissDirection);
+        setDragDismissed(true);
+        options.onDismiss?.(event as SwipeDismissNativeEvent, { direction: dismissDirection });
+      } else {
+        dragOffsetRef = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
+        setDragOffset({ x: resolvedInitialTransform.x, y: resolvedInitialTransform.y });
+        setCurrentSwipeDirection(undefined);
+        updateSwipeProgress(0, progressDetails);
+      }
+    });
   };
 
   const getDragStyles = (): JSX.CSSProperties => {

@@ -321,7 +321,9 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
           !isInMenubar ||
           !parentMenubarHasSubmenuOpen() ||
           isOpenedByThisTrigger() ||
-          disabledValue
+          disabledValue ||
+          lastOpenChangeReason() === REASONS.siblingOpen ||
+          lastOpenChangeReason() === REASONS.escapeKey
         ) {
           return;
         }
@@ -329,7 +331,11 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
         const triggerElement = event.currentTarget as HTMLElement;
 
         queueMicrotask(() => {
-          if (disabledValue) {
+          if (
+            disabledValue ||
+            lastOpenChangeReason() === REASONS.siblingOpen ||
+            lastOpenChangeReason() === REASONS.escapeKey
+          ) {
             return;
           }
 

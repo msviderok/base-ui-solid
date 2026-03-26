@@ -239,17 +239,6 @@ export function NavigationMenuTrigger(componentProps: NavigationMenuTrigger.Prop
         return;
       }
 
-      if (
-        event.type === 'click' &&
-        currentValue === itemValue() &&
-        context.context.dataRef.openEvent?.type === 'click'
-      ) {
-        queueMicrotask(() => {
-          setValue(null, createChangeEventDetails(REASONS.triggerPress, event));
-        });
-        return;
-      }
-
       if (currentValue != null) {
         setValue(
           itemValue(),

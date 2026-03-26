@@ -1,5 +1,5 @@
 import { isElement } from '@floating-ui/utils/dom';
-import { createEffect, createMemo } from 'solid-js';
+import { createEffect } from 'solid-js';
 import { defaultProps } from '../../solid-helpers';
 import { BaseUIChangeEventDetails } from '../../types';
 import { PopupStoreContext, PopupStoreSelectors, PopupStoreState } from '../../utils/popups';
@@ -33,12 +33,10 @@ export function useSyncedFloatingRootContext<State extends PopupStoreState<any>>
   const floatingId = useId();
   const nested = useFloatingParentNodeId() != null;
 
-  const open = createMemo(() => props.popupStore.select('open'));
-  const referenceElement = createMemo(() => props.popupStore.select('activeTriggerElement'));
-  const floatingElement = createMemo(() =>
-    props.popupStore.select(
-      props.treatPopupAsFloatingElement ? 'popupElement' : 'positionerElement',
-    ),
+  const open = props.popupStore.useState('open');
+  const referenceElement = props.popupStore.useState('activeTriggerElement');
+  const floatingElement = props.popupStore.useState(
+    props.treatPopupAsFloatingElement ? 'popupElement' : 'positionerElement',
   );
 
   const store = FloatingRootStore({

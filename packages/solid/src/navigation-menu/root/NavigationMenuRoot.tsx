@@ -100,11 +100,11 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
         closeReasonRef.current = eventDetails.reason;
         setActivationDirection(null);
         setFloatingRootContext(undefined);
-      }
 
-      if (positionerElement() && popupElement()) {
-        setFixedSize(popupElement()!, 'popup');
-        setFixedSize(positionerElement()!, 'positioner');
+        if (positionerElement() && popupElement()) {
+          setFixedSize(popupElement()!, 'popup');
+          setFixedSize(positionerElement()!, 'positioner');
+        }
       }
 
       if (nextValue !== value()) {
@@ -161,7 +161,7 @@ export function NavigationMenuRoot(componentProps: NavigationMenuRoot.Props) {
   useOpenChangeComplete({
     enabled: () => !local.actionsRef,
     open,
-    ref: viewportElement,
+    ref: viewportTargetElement,
     onComplete() {
       if (!open()) {
         handleUnmount();

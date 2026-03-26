@@ -130,7 +130,7 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
   };
 
   const portalContainer = () => viewportTargetElement() || viewportElement();
-  const hidden = () => keepMounted() && !mounted();
+  const hidden = () => keepMounted() && !open() && !mounted();
   const shouldRenderInline = () => keepMounted() && !portalContainer() && !hasMountedInPortal();
 
   createEffect(() => {
@@ -162,7 +162,7 @@ export function NavigationMenuContent(componentProps: NavigationMenuContent.Prop
         </CompositeRoot>
       </Match>
 
-      <Match when={portalContainer() && (mounted() || keepMounted())}>
+      <Match when={portalContainer() && (open() || mounted() || keepMounted())}>
         <Portal mount={portalContainer()!}>
           <FloatingNode id={nodeId?.()}>
             <CompositeRoot

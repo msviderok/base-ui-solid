@@ -18,7 +18,7 @@ describe('<Drawer.Popup />', () => {
   }));
 
   it('defaults initial focus to the popup element', async () => {
-    render(() => (
+    const { user } = render(() => (
       <div>
         <input />
         <Drawer.Root modal={false}>
@@ -34,7 +34,7 @@ describe('<Drawer.Popup />', () => {
       </div>
     ));
 
-    screen.getByRole('button', { name: 'Open' }).click();
+    await user.click(screen.getByRole('button', { name: 'Open' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('popup')).toHaveFocus();

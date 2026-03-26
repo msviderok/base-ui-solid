@@ -279,7 +279,9 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeArea.Props) {
     get directions() {
       return [resolvedSwipeDirection()];
     },
-    elementRef: swipeAreaRef,
+    get elementRef() {
+      return swipeAreaRef;
+    },
     trackDrag: false,
     movementCssVars: {
       x: DrawerPopupCssVars.swipeMovementX,
