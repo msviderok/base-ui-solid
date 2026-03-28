@@ -11,7 +11,7 @@ describe('<PreviewCard.Root />', () => {
     globalThis.BASE_UI_ANIMATIONS_DISABLED = true;
   });
 
-  const { render, clock } = createRenderer();
+  const { render } = createRenderer();
 
   popupConformanceTests({
     createComponent: (props) => (
@@ -36,10 +36,12 @@ describe('<PreviewCard.Root />', () => {
     { name: 'multiple detached triggers', Component: MultipleDetachedTriggersPreviewCard },
   ])('when using $name', ({ Component: TestPreviewCard }) => {
     describe('uncontrolled open', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should open when the trigger is hovered', async () => {
-        render(() => <TestPreviewCard />);
+        renderFakeTimers(() => <TestPreviewCard />);
 
         const trigger = screen.getByRole('link', { name: 'Link' });
 
@@ -55,7 +57,7 @@ describe('<PreviewCard.Root />', () => {
       });
 
       it('should close when the trigger is unhovered', async () => {
-        render(() => <TestPreviewCard />);
+        renderFakeTimers(() => <TestPreviewCard />);
 
         const trigger = screen.getByRole('link', { name: 'Link' });
 
@@ -80,7 +82,7 @@ describe('<PreviewCard.Root />', () => {
           return;
         }
 
-        render(() => <TestPreviewCard />);
+        renderFakeTimers(() => <TestPreviewCard />);
 
         const trigger = screen.getByRole('link', { name: 'Link' });
 
@@ -94,7 +96,7 @@ describe('<PreviewCard.Root />', () => {
       });
 
       it('should close when the trigger is blurred', async () => {
-        render(() => <TestPreviewCard />);
+        renderFakeTimers(() => <TestPreviewCard />);
 
         const trigger = screen.getByRole('link', { name: 'Link' });
 
@@ -110,6 +112,8 @@ describe('<PreviewCard.Root />', () => {
     });
 
     describe('prop: onOpenChange', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should call onOpenChange when the open state changes', async () => {
@@ -131,7 +135,7 @@ describe('<PreviewCard.Root />', () => {
           );
         }
 
-        render(() => <App />);
+        renderFakeTimers(() => <App />);
 
         expect(screen.queryByText('Content')).to.equal(null);
 
@@ -175,7 +179,7 @@ describe('<PreviewCard.Root />', () => {
           );
         }
 
-        render(() => <App />);
+        renderFakeTimers(() => <App />);
 
         expect(screen.queryByText('Content')).to.equal(null);
 
@@ -195,10 +199,12 @@ describe('<PreviewCard.Root />', () => {
     });
 
     describe('prop: defaultOpen', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should open when the component is rendered', async () => {
-        render(() => (
+        renderFakeTimers(() => (
           <TestPreviewCard
             rootProps={{
               defaultOpen: true,
@@ -210,7 +216,7 @@ describe('<PreviewCard.Root />', () => {
       });
 
       it('should not open when the component is rendered and open is controlled', async () => {
-        render(() => (
+        renderFakeTimers(() => (
           <TestPreviewCard
             rootProps={{
               defaultOpen: true,
@@ -223,7 +229,7 @@ describe('<PreviewCard.Root />', () => {
       });
 
       it('should not close when the component is rendered and open is controlled', async () => {
-        render(() => (
+        renderFakeTimers(() => (
           <TestPreviewCard
             rootProps={{
               defaultOpen: true,
@@ -236,7 +242,7 @@ describe('<PreviewCard.Root />', () => {
       });
 
       it('should remain uncontrolled', async () => {
-        render(() => (
+        renderFakeTimers(() => (
           <TestPreviewCard
             rootProps={{
               defaultOpen: true,
@@ -257,10 +263,12 @@ describe('<PreviewCard.Root />', () => {
     });
 
     describe('prop: delay', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should open after delay with rest type by default', async () => {
-        render(() => <TestPreviewCard triggerProps={{ delay: 100 }} />);
+        renderFakeTimers(() => <TestPreviewCard triggerProps={{ delay: 100 }} />);
 
         const trigger = screen.getByRole('link', { name: 'Link' });
 
@@ -280,10 +288,12 @@ describe('<PreviewCard.Root />', () => {
     });
 
     describe('prop: closeDelay', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should close after delay', async () => {
-        render(() => <TestPreviewCard triggerProps={{ closeDelay: 100 }} />);
+        renderFakeTimers(() => <TestPreviewCard triggerProps={{ closeDelay: 100 }} />);
 
         const trigger = screen.getByRole('link', { name: 'Link' });
 

@@ -158,11 +158,17 @@ export function useFocus(parameters: {
         event.relatedTarget,
         store().context.triggerElements,
       );
+      const domReference = store().select('domReferenceElement');
+      const focusingDifferentEnabledTrigger =
+        isElement(domReference) &&
+        isTargetInsideEnabledTrigger(event.currentTarget, store().context.triggerElements) &&
+        !contains(domReference, event.currentTarget as Element);
 
       const { currentTarget } = event;
 
       if (
-        (store().select('open') && movedFromOtherEnabledTrigger) ||
+        (store().select('open') &&
+          (movedFromOtherEnabledTrigger || focusingDifferentEnabledTrigger)) ||
         props.delay === 0 ||
         props.delay === undefined
       ) {
@@ -196,14 +202,13 @@ export function useFocus(parameters: {
         relatedTarget.hasAttribute(createAttribute('focus-guard')) &&
         relatedTarget.getAttribute('data-type') === 'outside';
 
-      // Wait for the window blur listener to fire.
-      timeout.start(0, () => {
+      const shouldCloseOnBlur = () => {
         const domReference = store().select('domReferenceElement');
         const activeEl = activeElement(domReference ? domReference.ownerDocument : document);
 
         // Focus left the page, keep it open.
         if (!relatedTarget && activeEl === domReference) {
-          return;
+          return false;
         }
 
         // When focusing the reference element (e.g. regular click), then
@@ -218,18 +223,39 @@ export function useFocus(parameters: {
           contains(domReference, activeEl) ||
           movedToFocusGuard
         ) {
-          return;
+          return false;
         }
 
         // If the next focused element is one of the triggers, do not close
         // the floating element. The focus handler of that trigger will
         // handle the open state.
-        const nextFocusedElement = relatedTarget ?? activeEl;
-        if (isTargetInsideEnabledTrigger(nextFocusedElement, store().context.triggerElements)) {
+        const nextFocusedElement = activeEl ?? relatedTarget;
+        if (
+          isTargetInsideEnabledTrigger(nextFocusedElement, store().context.triggerElements) ||
+          (relatedTarget !== nextFocusedElement &&
+            isTargetInsideEnabledTrigger(relatedTarget, store().context.triggerElements))
+        ) {
+          return false;
+        }
+
+        return true;
+      };
+
+      // Wait for the window blur listener to fire.
+      timeout.start(0, () => {
+        if (!shouldCloseOnBlur()) {
           return;
         }
 
-        store().setOpen(false, createChangeEventDetails(REASONS.triggerFocus, event));
+        // Programmatic focus transitions between triggers can settle one task
+        // later in Chromium. Re-check once more before closing.
+        timeout.start(0, () => {
+          if (!shouldCloseOnBlur()) {
+            return;
+          }
+
+          store().setOpen(false, createChangeEventDetails(REASONS.triggerFocus, event));
+        });
       });
     },
   };

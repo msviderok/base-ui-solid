@@ -16,7 +16,7 @@ describe('<Tooltip.Root />', () => {
     document.body.click();
   });
 
-  const { render, clock } = createRenderer();
+  const { render } = createRenderer();
 
   popupConformanceTests({
     createComponent: (props) => (
@@ -39,10 +39,12 @@ describe('<Tooltip.Root />', () => {
     { name: 'multiple detached triggers', Component: MultipleDetachedTriggersTooltip },
   ])('when using $name', ({ Component: TestTooltip }) => {
     describe('uncontrolled open', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should open when the trigger is hovered', async () => {
-        render(() => <TestTooltip />);
+        renderFakeTimers(() => <TestTooltip />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 
@@ -58,7 +60,7 @@ describe('<Tooltip.Root />', () => {
       });
 
       it('should close when the trigger is unhovered', async () => {
-        render(() => <TestTooltip />);
+        renderFakeTimers(() => <TestTooltip />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 
@@ -81,7 +83,7 @@ describe('<Tooltip.Root />', () => {
           skip();
         }
 
-        render(() => <TestTooltip />);
+        renderFakeTimers(() => <TestTooltip />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 
@@ -93,7 +95,7 @@ describe('<Tooltip.Root />', () => {
       });
 
       it('should close when the trigger is blurred', async () => {
-        render(() => <TestTooltip />);
+        renderFakeTimers(() => <TestTooltip />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 
@@ -112,7 +114,10 @@ describe('<Tooltip.Root />', () => {
     });
 
     describe('controlled open', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
+
       it('should call onOpenChange when the open state changes', async () => {
         const handleChange = spy();
 
@@ -132,7 +137,7 @@ describe('<Tooltip.Root />', () => {
           );
         }
 
-        render(() => <App />);
+        renderFakeTimers(() => <App />);
 
         expect(screen.queryByText('Content')).to.equal(null);
 
@@ -174,7 +179,7 @@ describe('<Tooltip.Root />', () => {
           );
         }
 
-        render(() => <App />);
+        renderFakeTimers(() => <App />);
 
         expect(screen.queryByText('Content')).to.equal(null);
 
@@ -236,10 +241,12 @@ describe('<Tooltip.Root />', () => {
     });
 
     describe('prop: delay', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should open after rest delay', async () => {
-        render(() => <TestTooltip triggerProps={{ delay: 100 }} />);
+        renderFakeTimers(() => <TestTooltip triggerProps={{ delay: 100 }} />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 
@@ -259,10 +266,12 @@ describe('<Tooltip.Root />', () => {
     });
 
     describe('prop: closeDelay', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should close after delay', async () => {
-        render(() => <TestTooltip triggerProps={{ closeDelay: 100 }} />);
+        renderFakeTimers(() => <TestTooltip triggerProps={{ closeDelay: 100 }} />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 
@@ -794,10 +803,12 @@ describe('<Tooltip.Root />', () => {
     });
 
     describe('dismissal', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should not open when the trigger was clicked before delay duration', async () => {
-        render(() => <TestTooltip />);
+        renderFakeTimers(() => <TestTooltip />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 
@@ -817,7 +828,7 @@ describe('<Tooltip.Root />', () => {
       });
 
       it('should close when the trigger is clicked after delay duration', async () => {
-        render(() => <TestTooltip />);
+        renderFakeTimers(() => <TestTooltip />);
 
         const trigger = screen.getByRole('button', { name: 'Toggle' });
 

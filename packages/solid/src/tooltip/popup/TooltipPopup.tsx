@@ -33,10 +33,11 @@ export function TooltipPopup(componentProps: TooltipPopup.Props) {
   const instantType = store.useState('instantType');
   const transitionStatus = store.useState('transitionStatus');
   const popupProps = store.useState('popupProps');
+  const popupElement = store.useState('popupElement');
 
   useOpenChangeComplete({
     open,
-    ref: () => store.context.popupRef.current,
+    ref: popupElement,
     onComplete() {
       if (open()) {
         store.context.onOpenChangeComplete?.(true);

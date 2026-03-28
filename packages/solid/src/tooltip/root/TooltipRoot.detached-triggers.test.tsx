@@ -109,19 +109,25 @@ describe('<Tooltip.Root />', () => {
       await flushMicrotasks();
       expect(screen.getByText('Tooltip Content')).toBeVisible();
       trigger1.blur();
-      expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      });
 
       trigger2.focus();
       await flushMicrotasks();
       expect(screen.getByText('Tooltip Content')).toBeVisible();
       trigger2.blur();
-      expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      });
 
       trigger3.focus();
       await flushMicrotasks();
       expect(screen.getByText('Tooltip Content')).toBeVisible();
       trigger3.blur();
-      expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      });
     });
 
     it('should set the payload and render content based on its value', async () => {
@@ -384,19 +390,25 @@ describe('<Tooltip.Root />', () => {
       await flushMicrotasks();
       expect(screen.getByText('Tooltip Content')).toBeVisible();
       trigger1.blur();
-      expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      });
 
       trigger2.focus();
       await flushMicrotasks();
       expect(screen.getByText('Tooltip Content')).toBeVisible();
       trigger2.blur();
-      expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      });
 
       trigger3.focus();
       await flushMicrotasks();
       expect(screen.getByText('Tooltip Content')).toBeVisible();
       trigger3.blur();
-      expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Tooltip Content')).to.equal(null);
+      });
     });
 
     it('should close when focusing a disabled trigger while another trigger is open', async () => {
@@ -793,7 +805,7 @@ describe('<Tooltip.Root />', () => {
       const trigger = screen.getByRole('button', { name: 'Trigger' });
       expect(screen.queryByTestId('content')).to.equal(null);
 
-      open('trigger');
+      tooltip.open('trigger');
       await waitFor(() => {
         expect(screen.queryByTestId('content')).not.to.equal(null);
       });
@@ -801,7 +813,7 @@ describe('<Tooltip.Root />', () => {
       expect(screen.getByTestId('content').textContent).to.equal('Content');
       expect(trigger).to.have.attribute('data-popup-open');
 
-      close();
+      tooltip.close();
       await waitFor(() => {
         expect(screen.queryByTestId('content')).to.equal(null);
       });
@@ -835,7 +847,7 @@ describe('<Tooltip.Root />', () => {
       const trigger2 = screen.getByRole('button', { name: 'Trigger 2' });
       expect(screen.queryByTestId('content')).to.equal(null);
 
-      open('trigger2');
+      tooltip.open('trigger2');
       await waitFor(() => {
         expect(screen.queryByTestId('content')).not.to.equal(null);
       });
@@ -844,7 +856,7 @@ describe('<Tooltip.Root />', () => {
       expect(trigger2).to.have.attribute('data-popup-open');
       expect(trigger1).not.to.have.attribute('data-popup-open');
 
-      close();
+      tooltip.close();
       await waitFor(() => {
         expect(screen.queryByTestId('content')).to.equal(null);
       });

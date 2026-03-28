@@ -146,17 +146,16 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
     },
   });
 
-  const focusProps = () =>
-    useFocus({
-      get context() {
-        return store.context.floatingRootContext;
+  const focus = useFocus({
+    get context() {
+      return store.context.floatingRootContext;
+    },
+    props: {
+      get enabled() {
+        return !disabled();
       },
-      props: {
-        get enabled() {
-          return !disabled();
-        },
-      },
-    }).reference;
+    },
+  });
 
   const state: TooltipTrigger.State = {
     get open() {
@@ -175,7 +174,7 @@ export function TooltipTrigger<Payload>(componentProps: TooltipTrigger.Props<Pay
     get props() {
       return [
         hoverProps,
-        focusProps(),
+        focus.reference,
         rootTriggerProps(),
         {
           get id() {

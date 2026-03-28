@@ -143,19 +143,25 @@ describe('<PreviewCard.Root />', () => {
       await flushMicrotasks();
       expect(screen.getByText('Content')).toBeVisible();
       trigger1.blur();
-      expect(screen.queryByText('Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Content')).to.equal(null);
+      });
 
       trigger2.focus();
       await flushMicrotasks();
       expect(screen.getByText('Content')).toBeVisible();
       trigger2.blur();
-      expect(screen.queryByText('Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Content')).to.equal(null);
+      });
 
       trigger3.focus();
       await flushMicrotasks();
       expect(screen.getByText('Content')).toBeVisible();
       trigger3.blur();
-      expect(screen.queryByText('Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Content')).to.equal(null);
+      });
     });
 
     it('should open again after escape when focusing another trigger', async () => {
@@ -233,7 +239,9 @@ describe('<PreviewCard.Root />', () => {
 
       trigger2.focus();
       await flushMicrotasks();
-      expect(screen.getByTestId('content').textContent).to.equal('2');
+      await waitFor(() => {
+        expect(screen.getByTestId('content').textContent).to.equal('2');
+      });
     });
 
     it('should set the payload and render content based on its value', async () => {
@@ -506,19 +514,25 @@ describe('<PreviewCard.Root />', () => {
       await flushMicrotasks();
       expect(screen.getByText('Content')).toBeVisible();
       trigger1.blur();
-      expect(screen.queryByText('Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Content')).to.equal(null);
+      });
 
       trigger2.focus();
       await flushMicrotasks();
       expect(screen.getByText('Content')).toBeVisible();
       trigger2.blur();
-      expect(screen.queryByText('Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Content')).to.equal(null);
+      });
 
       trigger3.focus();
       await flushMicrotasks();
       expect(screen.getByText('Content')).toBeVisible();
       trigger3.blur();
-      expect(screen.queryByText('Content')).to.equal(null);
+      await waitFor(() => {
+        expect(screen.queryByText('Content')).to.equal(null);
+      });
     });
 
     it('should set the payload and render content based on its value', async () => {
