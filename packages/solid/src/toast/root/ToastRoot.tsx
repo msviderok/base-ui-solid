@@ -158,17 +158,7 @@ export function ToastRoot(componentProps: ToastRoot.Props) {
     update();
   };
 
-  // TODO: Keep this in SolidJS?
   onMount(() => {
-    if (typeof ResizeObserver === 'function' && rootRef.current) {
-      const resizeObserver = new ResizeObserver(recalculateHeight);
-      resizeObserver.observe(rootRef.current);
-      onCleanup(() => {
-        resizeObserver.disconnect();
-      });
-      return;
-    }
-
     recalculateHeight();
   });
 

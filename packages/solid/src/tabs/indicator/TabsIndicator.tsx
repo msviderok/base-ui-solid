@@ -1,6 +1,6 @@
 import {
-  createEffect,
   createMemo,
+  createRenderEffect,
   createSignal,
   onCleanup,
   onMount,
@@ -44,80 +44,15 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
   const { tabsListElement } = useTabsListContext();
 
   const [isMounted, setIsMounted] = createSignal(false);
-  const [meta, setMeta] = createSignal({
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 0,
-    height: 0,
-    isTabSelected: false,
-  });
-  const { value: activeTabValue } = useTabsRootContext();
+  const [positioningTick, forcePositioningUpdate] = createSignal(undefined, { equals: false });
+  const activeTabValue = value;
 
   onMount(() => {
     setIsMounted(true);
-  });
+    forcePositioningUpdate();
 
-  createEffect(() => {
-    if (
-      value() != null &&
-      tabsListElement.current != null &&
-      typeof ResizeObserver !== 'undefined'
-    ) {
-      const resizeObserver = new ResizeObserver(() => {
-        setMeta((prev) => {
-          if (value() != null && tabsListElement.current != null) {
-            const activeTab = getTabElementBySelectedValue(value());
-
-            let left = prev.left;
-            let right = prev.right;
-            let top = prev.top;
-            let bottom = prev.bottom;
-            let width = prev.width;
-            let height = prev.height;
-
-            if (activeTab != null) {
-              const { width: computedWidth, height: computedHeight } = getCssDimensions(activeTab);
-              const { width: tabListWidth, height: tabListHeight } = getCssDimensions(
-                tabsListElement.current,
-              );
-              const tabRect = activeTab.getBoundingClientRect();
-              const tabsListRect = tabsListElement.current.getBoundingClientRect();
-              const scaleX = tabListWidth > 0 ? tabsListRect.width / tabListWidth : 1;
-              const scaleY = tabListHeight > 0 ? tabsListRect.height / tabListHeight : 1;
-              const hasNonZeroScale =
-                Math.abs(scaleX) > Number.EPSILON && Math.abs(scaleY) > Number.EPSILON;
-
-              if (hasNonZeroScale) {
-                const tabLeftDelta = tabRect.left - tabsListRect.left;
-                const tabTopDelta = tabRect.top - tabsListRect.top;
-
-                left =
-                  tabLeftDelta / scaleX +
-                  tabsListElement.current.scrollLeft -
-                  tabsListElement.current.clientLeft;
-                top =
-                  tabTopDelta / scaleY +
-                  tabsListElement.current.scrollTop -
-                  tabsListElement.current.clientTop;
-              } else {
-                left = activeTab.offsetLeft;
-                top = activeTab.offsetTop;
-              }
-
-              width = computedWidth;
-              height = computedHeight;
-              right = tabsListElement.current.scrollWidth - left - width;
-              bottom = tabsListElement.current.scrollHeight - top - height;
-
-              return { ...prev, left, right, top, bottom, width, height };
-            }
-          }
-
-          return prev;
-        });
-      });
+    if (typeof ResizeObserver !== 'undefined' && tabsListElement.current != null) {
+      const resizeObserver = new ResizeObserver(forcePositioningUpdate);
 
       resizeObserver.observe(tabsListElement.current);
 
@@ -125,8 +60,76 @@ export function TabsIndicator(componentProps: TabsIndicator.Props) {
         resizeObserver.disconnect();
       });
     }
+  });
 
-    return;
+  const meta = createMemo(() => {
+    positioningTick();
+
+    const selectedValue = value();
+    const tabsList = tabsListElement.current;
+
+    if (selectedValue == null || tabsList == null) {
+      return {
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: 0,
+        height: 0,
+        isTabSelected: false,
+      };
+    }
+
+    const activeTab = getTabElementBySelectedValue(selectedValue);
+
+    let left = 0;
+    let right = 0;
+    let top = 0;
+    let bottom = 0;
+    let width = 0;
+    let height = 0;
+
+    if (activeTab != null) {
+      const { width: computedWidth, height: computedHeight } = getCssDimensions(activeTab);
+      const { width: tabListWidth, height: tabListHeight } = getCssDimensions(tabsList);
+      const tabRect = activeTab.getBoundingClientRect();
+      const tabsListRect = tabsList.getBoundingClientRect();
+      const scaleX = tabListWidth > 0 ? tabsListRect.width / tabListWidth : 1;
+      const scaleY = tabListHeight > 0 ? tabsListRect.height / tabListHeight : 1;
+      const hasNonZeroScale =
+        Math.abs(scaleX) > Number.EPSILON && Math.abs(scaleY) > Number.EPSILON;
+
+      if (hasNonZeroScale) {
+        const tabLeftDelta = tabRect.left - tabsListRect.left;
+        const tabTopDelta = tabRect.top - tabsListRect.top;
+
+        left = tabLeftDelta / scaleX + tabsList.scrollLeft - tabsList.clientLeft;
+        top = tabTopDelta / scaleY + tabsList.scrollTop - tabsList.clientTop;
+      } else {
+        left = activeTab.offsetLeft;
+        top = activeTab.offsetTop;
+      }
+
+      width = computedWidth;
+      height = computedHeight;
+      right = tabsList.scrollWidth - left - width;
+      bottom = tabsList.scrollHeight - top - height;
+    }
+
+    return {
+      left,
+      right,
+      top,
+      bottom,
+      width,
+      height,
+      isTabSelected: true,
+    };
+  });
+
+  createRenderEffect(() => {
+    value();
+    forcePositioningUpdate();
   });
 
   const activeTabPosition = createMemo(() =>

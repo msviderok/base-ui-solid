@@ -130,8 +130,8 @@ export function useCompositeRoot<Metadata>(
       const orientationValue = orientation();
       return orientationValue === 'both' ? undefined : orientationValue;
     },
-    // We need to capture the focus event in order to also trigger the focus event on the root element
-    onFocus(event) {
+    // Use focusin so the root is notified when one of its composite items receives focus.
+    onFocusIn(event) {
       if (!rootRef() || !isNativeInput(event.target)) {
         return;
       }

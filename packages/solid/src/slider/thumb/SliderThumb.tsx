@@ -264,6 +264,89 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
     return undefined;
   });
 
+  function handleKeyDown(event: KeyboardEvent) {
+    if (!ALL_KEYS.has(event.key)) {
+      return;
+    }
+    if (COMPOSITE_KEYS.has(event.key)) {
+      event.stopPropagation();
+    }
+
+    let newValue = null;
+    const roundedValue = roundValueToStep(thumbValue(), step(), min());
+    switch (event.key) {
+      case ARROW_UP:
+        newValue = getNewValue(
+          roundedValue,
+          event.shiftKey ? largeStep() : step(),
+          1,
+          min(),
+          max(),
+        );
+        break;
+      case ARROW_RIGHT:
+        newValue = getNewValue(
+          roundedValue,
+          event.shiftKey ? largeStep() : step(),
+          rtl() ? -1 : 1,
+          min(),
+          max(),
+        );
+        break;
+      case ARROW_DOWN:
+        newValue = getNewValue(
+          roundedValue,
+          event.shiftKey ? largeStep() : step(),
+          -1,
+          min(),
+          max(),
+        );
+        break;
+      case ARROW_LEFT:
+        newValue = getNewValue(
+          roundedValue,
+          event.shiftKey ? largeStep() : step(),
+          rtl() ? 1 : -1,
+          min(),
+          max(),
+        );
+        break;
+      case PAGE_UP:
+        newValue = getNewValue(roundedValue, largeStep(), 1, min(), max());
+        break;
+      case PAGE_DOWN:
+        newValue = getNewValue(roundedValue, largeStep(), -1, min(), max());
+        break;
+      case END:
+        newValue = max();
+
+        if (range()) {
+          newValue = Number.isFinite(sliderValues()[index() + 1])
+            ? sliderValues()[index() + 1] - step() * minStepsBetweenValues()
+            : max();
+        }
+        break;
+      case HOME:
+        newValue = min();
+
+        if (range()) {
+          newValue = Number.isFinite(sliderValues()[index() - 1])
+            ? sliderValues()[index() - 1] + step() * minStepsBetweenValues()
+            : min();
+        }
+        break;
+      default:
+        break;
+    }
+
+    if (newValue !== null) {
+      handleInputChange(newValue, index(), event);
+      event.preventDefault();
+    }
+
+    callEventHandler(local.onKeyDown, event as any);
+  }
+
   const inputProps = {
       get 'aria-label'() {
         return typeof local.getAriaLabel === 'function'
@@ -335,86 +418,6 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
         }
 
         callEventHandler(local.onBlur, event as any);
-      },
-      onKeyDown(event) {
-        if (!ALL_KEYS.has(event.key)) {
-          return;
-        }
-        if (COMPOSITE_KEYS.has(event.key)) {
-          event.stopPropagation();
-        }
-
-        let newValue = null;
-        const roundedValue = roundValueToStep(thumbValue(), step(), min());
-        switch (event.key) {
-          case ARROW_UP:
-            newValue = getNewValue(
-              roundedValue,
-              event.shiftKey ? largeStep() : step(),
-              1,
-              min(),
-              max(),
-            );
-            break;
-          case ARROW_RIGHT:
-            newValue = getNewValue(
-              roundedValue,
-              event.shiftKey ? largeStep() : step(),
-              rtl() ? -1 : 1,
-              min(),
-              max(),
-            );
-            break;
-          case ARROW_DOWN:
-            newValue = getNewValue(
-              roundedValue,
-              event.shiftKey ? largeStep() : step(),
-              -1,
-              min(),
-              max(),
-            );
-            break;
-          case ARROW_LEFT:
-            newValue = getNewValue(
-              roundedValue,
-              event.shiftKey ? largeStep() : step(),
-              rtl() ? 1 : -1,
-              min(),
-              max(),
-            );
-            break;
-          case PAGE_UP:
-            newValue = getNewValue(roundedValue, largeStep(), 1, min(), max());
-            break;
-          case PAGE_DOWN:
-            newValue = getNewValue(roundedValue, largeStep(), -1, min(), max());
-            break;
-          case END:
-            newValue = max();
-
-            if (range()) {
-              newValue = Number.isFinite(sliderValues()[index() + 1])
-                ? sliderValues()[index() + 1] - step() * minStepsBetweenValues()
-                : max();
-            }
-            break;
-          case HOME:
-            newValue = min();
-
-            if (range()) {
-              newValue = Number.isFinite(sliderValues()[index() - 1])
-                ? sliderValues()[index() - 1] + step() * minStepsBetweenValues()
-                : min();
-            }
-            break;
-          default:
-            break;
-        }
-
-        if (newValue !== null) {
-          handleInputChange(newValue, index(), event);
-          event.preventDefault();
-        }
       },
       get step() {
         return step();
@@ -500,6 +503,7 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
                 }
               }
             }}
+            on:keydown={handleKeyDown}
             {...(validation.getInputValidationProps(inputProps) as any)}
           />
           {inset() &&

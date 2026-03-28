@@ -19,6 +19,8 @@ export function ToolbarInput(componentProps: ToolbarInput.Props) {
   const [renderProps, local, elementProps] = splitComponentProps(componentProps, [
     'focusableWhenDisabled',
     'disabled',
+    'defaultValue',
+    'value',
     'children',
   ]);
   const focusableWhenDisabled = () => local.focusableWhenDisabled ?? true;
@@ -51,7 +53,10 @@ export function ToolbarInput(componentProps: ToolbarInput.Props) {
     },
   };
 
-  const defaultProps: Omit<HTMLProps, 'children'> = {
+  const defaultProps: Omit<ComponentProps<'input'>, 'children'> = {
+    get value() {
+      return local.value ?? local.defaultValue;
+    },
     onClick(event) {
       if (disabled()) {
         event.preventDefault();

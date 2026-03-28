@@ -828,7 +828,7 @@ describe.skipIf(typeof Touch === 'undefined')('<Slider.Root />', () => {
         );
         expect(handleValueChange.callCount).to.equal(1);
         expect(handleValueCommitted.callCount).to.equal(1);
-        expect(handleValueCommitted.lastCall.returnValue.reason).to.equal(REASONS.drag);
+        expect(handleValueCommitted.firstCall.args[1].reason).to.equal(REASONS.drag);
       },
     );
 

@@ -101,7 +101,7 @@ describe('<Tabs.Indicator />', () => {
     it('should update the position and movement variables when the active tab changes', async () => {
       const [value, setValue] = createSignal(2);
       render(() => (
-        <Tabs.Root value={value}>
+        <Tabs.Root value={value()}>
           <Tabs.List>
             <Tabs.Tab value={1}>One</Tabs.Tab>
             <Tabs.Tab value={2}>Two</Tabs.Tab>
@@ -118,7 +118,9 @@ describe('<Tabs.Indicator />', () => {
       let activeTab = tabs[2];
       const tabList = screen.getByRole('tablist');
 
-      assertBubblePositionVariables(bubble, tabList, activeTab);
+      await waitFor(() => {
+        assertBubblePositionVariables(bubble, tabList, activeTab);
+      });
 
       setValue(1);
       activeTab = tabs[0];

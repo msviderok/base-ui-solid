@@ -70,11 +70,7 @@
     "test:solid:webkit": "cross-env VITEST_ENV=webkit pnpm test:solid:_unit",
     "test:solid:webkit:ui": "pnpm test:solid:webkit --browser.headless=false",
     "test:solid:browsers": "cross-env VITEST_ENV=all-browsers pnpm test:solid:_unit",
-    "test:solid:subset": "pnpm test:solid:chromium src/accordion src/avatar src/dialog src/autocomplete src/alert-dialog src/button src/checkbox src/checkbox-group src/combobox src/collapsible src/composite src/context-menu src/csp-provider src/dialog src/direction-provider src/drawer src/field src/fieldset src/form src/floating-ui-solid src/input src/menu src/menubar src/merge-props src/meter src/navigation-menu src/number-field src/progress src/radio src/radio-group src/scroll-area src/separator src/switch src/toggle src/toggle-group src/use-button src/use-render src/utils",
-    "test:solid:agent:jsdom": "cross-env VITEST_ENV=jsdom vitest --hideSkippedTests --retry=0 --project @msviderok/base-ui-solid --reporter=dot",
-    "test:solid:agent:chromium": "cross-env VITEST_ENV=chromium vitest --hideSkippedTests --retry=0 --project @msviderok/base-ui-solid --reporter=dot",
-    "test:solid:agent:firefox": "cross-env VITEST_ENV=firefox vitest --hideSkippedTests --retry=0 --project @msviderok/base-ui-solid --reporter=dot",
-    "test:solid:agent:webkit": "cross-env VITEST_ENV=webkit vitest --hideSkippedTests --retry=0 --project @msviderok/base-ui-solid --reporter=dot",
+    "test:solid:subset": "pnpm test:solid:chromium src/accordion src/avatar src/dialog src/autocomplete src/alert-dialog src/button src/checkbox src/checkbox-group src/combobox src/collapsible src/composite src/context-menu src/csp-provider src/dialog src/direction-provider src/drawer src/field src/fieldset src/form src/floating-ui-solid src/input src/menu src/menubar src/merge-props src/meter src/navigation-menu src/number-field src/progress src/radio src/radio-group src/scroll-area src/separator src/slider src/switch src/tabs src/toast src/toggle src/toggle-group src/toolbar src/use-button src/use-render src/utils",
     "typescript": "tsc -b tsconfig.json",
     "inline-scripts": "tsx ./scripts/inlineScripts.mts",
     "use-react-18": "code-infra set-version-overrides --pkg react@18"
@@ -94,9 +90,9 @@
     "@types/react": "19.2.10",
     "@types/yargs": "17.0.35",
     "@vitejs/plugin-react": "5.1.2",
-    "@vitest/browser-playwright": "4.0.18",
-    "@vitest/coverage-istanbul": "4.0.18",
-    "@vitest/ui": "4.0.18",
+    "@vitest/browser-playwright": "4.1.2",
+    "@vitest/coverage-istanbul": "4.1.2",
+    "@vitest/ui": "4.1.2",
     "chai-dom": "1.12.1",
     "concurrently": "9.2.1",
     "cross-env": "10.1.0",
@@ -122,7 +118,7 @@
     "tsx": "4.21.0",
     "typescript": "5.9.3",
     "vite": "7.3.1",
-    "vitest": "4.0.18"
+    "vitest": "4.1.2"
   },
   "packageManager": "pnpm@10.28.2",
   "engines": {
