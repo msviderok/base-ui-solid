@@ -1,4 +1,10 @@
-import { createRenderer, describeConformance, isJSDOM, waitSingleFrame } from '#test-utils';
+import {
+  createRenderer,
+  describeConformance,
+  isJSDOM,
+  mockAnimationsFinished,
+  waitSingleFrame,
+} from '#test-utils';
 import { PreviewCard } from '@msviderok/base-ui-solid/preview-card';
 import { screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
@@ -186,19 +192,25 @@ describe('<PreviewCard.Viewport />', () => {
 
       // Check for morphing containers during transition
       let previousContainer: HTMLElement | null = null;
+      let nextContainer: HTMLElement | null = null;
       await waitFor(() => {
         previousContainer = document.querySelector('[data-previous]');
+        nextContainer = document.querySelector('[data-current]');
         expect(previousContainer).not.to.equal(null);
+        expect(nextContainer).not.to.equal(null);
       });
 
-      expect(previousContainer).to.have.attribute('inert');
-      expect(previousContainer!.textContent).to.equal('Content 0');
+      const animation = mockAnimationsFinished(nextContainer!);
 
-      const nextContainer = document.querySelector('[data-current]');
-      expect(nextContainer).not.to.equal(null);
-      expect(nextContainer!.textContent).to.equal('Content 1');
+      await waitFor(() => {
+        expect(previousContainer).to.have.attribute('inert');
+        expect(previousContainer!.textContent).to.equal('Content 0');
+        expect(nextContainer!.textContent).to.equal('Content 1');
+      });
 
       // Verify they are cleaned up after animation
+      animation.finish();
+
       await waitFor(() => {
         expect(document.querySelector('[data-previous]')).to.equal(null);
       });

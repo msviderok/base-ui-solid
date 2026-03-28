@@ -314,11 +314,12 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
       onChange(event) {
         handleInputChange(event.target.valueAsNumber, index(), event as any);
       },
-      onFocus() {
+      onFocus(event) {
         setActive(index());
         setFocused(true);
+        callEventHandler(local.onFocus, event as any);
       },
-      onBlur() {
+      onBlur(event) {
         if (!thumbRef) {
           return;
         }
@@ -332,6 +333,8 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
             getSliderValue(thumbValue(), index(), min(), max(), range(), sliderValues()),
           );
         }
+
+        callEventHandler(local.onBlur, event as any);
       },
       onKeyDown(event) {
         if (!ALL_KEYS.has(event.key)) {
@@ -447,12 +450,6 @@ export function SliderThumb(componentProps: SliderThumb.Props) {
         },
         get id() {
           return id();
-        },
-        onBlur(event: FocusEvent) {
-          callEventHandler(local.onBlur, event as any);
-        },
-        onFocus(event: FocusEvent) {
-          callEventHandler(local.onFocus, event as any);
         },
         onPointerDown(event: PointerEvent) {
           pressedThumbIndexRef.current = index();

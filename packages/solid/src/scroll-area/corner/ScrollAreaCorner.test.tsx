@@ -29,7 +29,6 @@ describe('<ScrollArea.Corner />', () => {
         const corner = screen.getByTestId('corner');
         const style = getComputedStyle(corner);
         expect(style.getPropertyValue('--scroll-area-corner-width')).to.equal('10px');
-        // eslint-disable-next-line testing-library/no-wait-for-multiple-assertions
         expect(style.getPropertyValue('--scroll-area-corner-height')).to.equal('10px');
       });
     });

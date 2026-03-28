@@ -71,3 +71,6 @@
 - Navigation menu is not changing its position on scroll
 
 - TODO: FIX IN SOLID
+
+- popover
+- select

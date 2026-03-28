@@ -72,7 +72,12 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
   const {
-    refs,
+    viewportRef,
+    scrollbarYRef,
+    scrollbarXRef,
+    thumbYRef,
+    thumbXRef,
+    cornerRef,
     cornerSize,
     setCornerSize,
     setThumbSize,
@@ -97,12 +102,12 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
 
   function computeThumbPosition() {
     batch(() => {
-      const viewportEl = refs.viewportRef;
-      const scrollbarXEl = refs.scrollbarXRef;
-      const scrollbarYEl = refs.scrollbarYRef;
-      const thumbXEl = refs.thumbXRef;
-      const thumbYEl = refs.thumbYRef;
-      const cornerEl = refs.cornerRef;
+      const viewportEl = viewportRef.current;
+      const scrollbarXEl = scrollbarXRef.current;
+      const scrollbarYEl = scrollbarYRef.current;
+      const thumbXEl = thumbXRef.current;
+      const thumbYEl = thumbYRef.current;
+      const cornerEl = cornerRef.current;
 
       if (!viewportEl) {
         return;
@@ -279,15 +284,16 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
   }
 
   onMount(() => {
-    if (!refs.viewportRef) {
+    if (!viewportRef.current) {
       return;
     }
 
     removeCSSVariableInheritance();
+    computeThumbPosition();
 
     let hasInitialized = false;
     onCleanup(
-      onVisible(refs.viewportRef!, () => {
+      onVisible(viewportRef.current!, () => {
         if (!hasInitialized) {
           hasInitialized = true;
           return;
@@ -307,13 +313,13 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
   onMount(() => {
     // `onMouseEnter` doesn't fire upon load, so we need to check if the viewport is already
     // being hovered.
-    if (refs.viewportRef?.matches(':hover')) {
+    if (viewportRef.current?.matches(':hover')) {
       setHovering(true);
     }
   });
 
   onMount(() => {
-    const viewport = refs.viewportRef;
+    const viewport = viewportRef.current;
     if (typeof ResizeObserver === 'undefined' || !viewport) {
       return;
     }
@@ -377,7 +383,7 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
       overflow: 'scroll',
     },
     onScroll: () => {
-      if (!refs.viewportRef) {
+      if (!viewportRef.current) {
         return;
       }
 
@@ -385,8 +391,8 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
 
       if (!programmaticScrollRef) {
         handleScroll({
-          x: refs.viewportRef?.scrollLeft,
-          y: refs.viewportRef?.scrollTop,
+          x: viewportRef.current?.scrollLeft,
+          y: viewportRef.current?.scrollTop,
         });
       }
 
@@ -436,7 +442,7 @@ export function ScrollAreaViewport(componentProps: ScrollAreaViewport.Props) {
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      refs.viewportRef = el;
+      viewportRef.current = el;
     },
     state: viewportState,
     props: [props, elementProps],

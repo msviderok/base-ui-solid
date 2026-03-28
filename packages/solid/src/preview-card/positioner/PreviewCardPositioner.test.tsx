@@ -43,9 +43,11 @@ describe('<PreviewCard.Positioner />', () => {
         </PreviewCard.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX,
-        y: baselineY + sideOffset,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX,
+          y: baselineY + sideOffset,
+        });
       });
     });
 
@@ -64,9 +66,11 @@ describe('<PreviewCard.Positioner />', () => {
         </PreviewCard.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX,
-        y: baselineY + popupWidth + anchorWidth,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX,
+          y: baselineY + popupWidth + anchorWidth,
+        });
       });
     });
 
@@ -91,7 +95,9 @@ describe('<PreviewCard.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('right');
+      await waitFor(() => {
+        expect(side).to.equal('right');
+      });
     });
 
     it('can read the latest align inside sideOffset', async () => {
@@ -116,7 +122,9 @@ describe('<PreviewCard.Positioner />', () => {
       ));
 
       // correctly flips the align in the browser
-      expect(align).to.equal('end');
+      await waitFor(() => {
+        expect(align).to.equal('end');
+      });
     });
 
     it('reads logical side inside sideOffset', async () => {
@@ -140,7 +148,9 @@ describe('<PreviewCard.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('inline-end');
+      await waitFor(() => {
+        expect(side).to.equal('inline-end');
+      });
     });
   });
 
@@ -158,9 +168,11 @@ describe('<PreviewCard.Positioner />', () => {
         </PreviewCard.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX + alignOffset,
-        y: baselineY,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX + alignOffset,
+          y: baselineY,
+        });
       });
     });
 
@@ -179,9 +191,11 @@ describe('<PreviewCard.Positioner />', () => {
         </PreviewCard.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX + popupWidth,
-        y: baselineY,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX + popupWidth,
+          y: baselineY,
+        });
       });
     });
 
@@ -206,7 +220,9 @@ describe('<PreviewCard.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('right');
+      await waitFor(() => {
+        expect(side).to.equal('right');
+      });
     });
 
     it('can read the latest align inside alignOffset', async () => {
@@ -231,7 +247,9 @@ describe('<PreviewCard.Positioner />', () => {
       ));
 
       // correctly flips the align in the browser
-      expect(align).to.equal('end');
+      await waitFor(() => {
+        expect(align).to.equal('end');
+      });
     });
 
     it('reads logical side inside alignOffset', async () => {
@@ -255,7 +273,9 @@ describe('<PreviewCard.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('inline-end');
+      await waitFor(() => {
+        expect(side).to.equal('inline-end');
+      });
     });
   });
 

@@ -1,7 +1,7 @@
 import { batch, createMemo, createSignal, type JSX } from 'solid-js';
 import { useCSPContext } from '../../csp-provider/CSPContext';
 import { contains } from '../../floating-ui-solid/utils';
-import { splitComponentProps } from '../../solid-helpers';
+import { splitComponentProps, useRef } from '../../solid-helpers';
 import { useStyleDisableScrollbar } from '../../utils/styles';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
@@ -52,15 +52,13 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
   const [overflowEdges, setOverflowEdges] = createSignal(DEFAULT_OVERFLOW_EDGES);
   const [hiddenState, setHiddenState] = createSignal(DEFAULT_HIDDEN_STATE);
 
-  const refs: ScrollAreaRootContext['refs'] = {
-    rootRef: null,
-    viewportRef: null,
-    scrollbarYRef: null,
-    scrollbarXRef: null,
-    thumbYRef: null,
-    thumbXRef: null,
-    cornerRef: null,
-  };
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const scrollbarYRef = useRef<HTMLDivElement | null>(null);
+  const scrollbarXRef = useRef<HTMLDivElement | null>(null);
+  const thumbYRef = useRef<HTMLDivElement | null>(null);
+  const thumbXRef = useRef<HTMLDivElement | null>(null);
+  const cornerRef = useRef<HTMLDivElement | null>(null);
 
   let thumbDraggingRef = false;
   let startYRef = 0;
@@ -104,16 +102,16 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
       ScrollAreaScrollbarDataAttributes.orientation,
     ) as 'vertical' | 'horizontal';
 
-    if (refs.viewportRef) {
-      startScrollTopRef = refs.viewportRef.scrollTop;
-      startScrollLeftRef = refs.viewportRef.scrollLeft;
+    if (viewportRef.current) {
+      startScrollTopRef = viewportRef.current.scrollTop;
+      startScrollLeftRef = viewportRef.current.scrollLeft;
     }
 
-    if (refs.thumbYRef && currentOrientationRef === 'vertical') {
-      refs.thumbYRef.setPointerCapture(event.pointerId);
+    if (thumbYRef.current && currentOrientationRef === 'vertical') {
+      thumbYRef.current.setPointerCapture(event.pointerId);
     }
-    if (refs.thumbXRef && currentOrientationRef === 'horizontal') {
-      refs.thumbXRef.setPointerCapture(event.pointerId);
+    if (thumbXRef.current && currentOrientationRef === 'horizontal') {
+      thumbXRef.current.setPointerCapture(event.pointerId);
     }
   }
 
@@ -125,20 +123,20 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
     const deltaY = event.clientY - startYRef;
     const deltaX = event.clientX - startXRef;
 
-    if (refs.viewportRef) {
-      const scrollableContentHeight = refs.viewportRef.scrollHeight;
-      const viewportHeight = refs.viewportRef.clientHeight;
-      const scrollableContentWidth = refs.viewportRef.scrollWidth;
-      const viewportWidth = refs.viewportRef.clientWidth;
+    if (viewportRef.current) {
+      const scrollableContentHeight = viewportRef.current.scrollHeight;
+      const viewportHeight = viewportRef.current.clientHeight;
+      const scrollableContentWidth = viewportRef.current.scrollWidth;
+      const viewportWidth = viewportRef.current.clientWidth;
 
-      if (refs.thumbYRef && refs.scrollbarYRef && currentOrientationRef === 'vertical') {
-        const scrollbarYOffset = getOffset(refs.scrollbarYRef, 'padding', 'y');
-        const thumbYOffset = getOffset(refs.thumbYRef, 'margin', 'y');
-        const thumbHeight = refs.thumbYRef.offsetHeight;
+      if (thumbYRef.current && scrollbarYRef.current && currentOrientationRef === 'vertical') {
+        const scrollbarYOffset = getOffset(scrollbarYRef.current, 'padding', 'y');
+        const thumbYOffset = getOffset(thumbYRef.current, 'margin', 'y');
+        const thumbHeight = thumbYRef.current.offsetHeight;
         const maxThumbOffsetY =
-          refs.scrollbarYRef.offsetHeight - thumbHeight - scrollbarYOffset - thumbYOffset;
+          scrollbarYRef.current.offsetHeight - thumbHeight - scrollbarYOffset - thumbYOffset;
         const scrollRatioY = deltaY / maxThumbOffsetY;
-        refs.viewportRef.scrollTop =
+        viewportRef.current.scrollTop =
           startScrollTopRef + scrollRatioY * (scrollableContentHeight - viewportHeight);
         event.preventDefault();
 
@@ -149,14 +147,14 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
         });
       }
 
-      if (refs.thumbXRef && refs.scrollbarXRef && currentOrientationRef === 'horizontal') {
-        const scrollbarXOffset = getOffset(refs.scrollbarXRef, 'padding', 'x');
-        const thumbXOffset = getOffset(refs.thumbXRef, 'margin', 'x');
-        const thumbWidth = refs.thumbXRef.offsetWidth;
+      if (thumbXRef.current && scrollbarXRef.current && currentOrientationRef === 'horizontal') {
+        const scrollbarXOffset = getOffset(scrollbarXRef.current, 'padding', 'x');
+        const thumbXOffset = getOffset(thumbXRef.current, 'margin', 'x');
+        const thumbWidth = thumbXRef.current.offsetWidth;
         const maxThumbOffsetX =
-          refs.scrollbarXRef.offsetWidth - thumbWidth - scrollbarXOffset - thumbXOffset;
+          scrollbarXRef.current.offsetWidth - thumbWidth - scrollbarXOffset - thumbXOffset;
         const scrollRatioX = deltaX / maxThumbOffsetX;
-        refs.viewportRef.scrollLeft =
+        viewportRef.current.scrollLeft =
           startScrollLeftRef + scrollRatioX * (scrollableContentWidth - viewportWidth);
         event.preventDefault();
 
@@ -172,11 +170,11 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
   function handlePointerUp(event: PointerEvent) {
     thumbDraggingRef = false;
 
-    if (refs.thumbYRef && currentOrientationRef === 'vertical') {
-      refs.thumbYRef.releasePointerCapture(event.pointerId);
+    if (thumbYRef.current && currentOrientationRef === 'vertical') {
+      thumbYRef.current.releasePointerCapture(event.pointerId);
     }
-    if (refs.thumbXRef && currentOrientationRef === 'horizontal') {
-      refs.thumbXRef.releasePointerCapture(event.pointerId);
+    if (thumbXRef.current && currentOrientationRef === 'horizontal') {
+      thumbXRef.current.releasePointerCapture(event.pointerId);
     }
   }
 
@@ -189,7 +187,7 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
       handleTouchModalityChange(event);
 
       if (event.pointerType !== 'touch') {
-        const isTargetRootChild = contains(refs.rootRef, event.target as Element);
+        const isTargetRootChild = contains(rootRef.current, event.target as Element);
         setHovering(isTargetRootChild);
       }
     });
@@ -255,7 +253,13 @@ export function ScrollAreaRoot(componentProps: ScrollAreaRoot.Props) {
     thumbSize,
     setThumbSize,
     touchModality,
-    refs,
+    rootRef,
+    viewportRef,
+    scrollbarYRef,
+    scrollbarXRef,
+    thumbYRef,
+    thumbXRef,
+    cornerRef,
     scrollingX,
     setScrollingX,
     scrollingY,

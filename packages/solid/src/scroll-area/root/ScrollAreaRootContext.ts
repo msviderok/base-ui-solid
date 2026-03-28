@@ -1,4 +1,5 @@
 import { createContext, useContext, type Accessor, type Setter } from 'solid-js';
+import type { ReactLikeRef } from '../../solid-helpers';
 import type { Coords, HiddenState, OverflowEdges, ScrollAreaRoot, Size } from './ScrollAreaRoot';
 
 export interface ScrollAreaRootContext {
@@ -13,15 +14,13 @@ export interface ScrollAreaRootContext {
   setScrollingX: Setter<boolean>;
   scrollingY: Accessor<boolean>;
   setScrollingY: Setter<boolean>;
-  refs: {
-    rootRef: HTMLDivElement | null | undefined;
-    viewportRef: HTMLDivElement | null | undefined;
-    scrollbarYRef: HTMLDivElement | null | undefined;
-    scrollbarXRef: HTMLDivElement | null | undefined;
-    thumbYRef: HTMLDivElement | null | undefined;
-    thumbXRef: HTMLDivElement | null | undefined;
-    cornerRef: HTMLDivElement | null | undefined;
-  };
+  rootRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  viewportRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  scrollbarYRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  scrollbarXRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  thumbYRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  thumbXRef: ReactLikeRef<HTMLDivElement | null | undefined>;
+  cornerRef: ReactLikeRef<HTMLDivElement | null | undefined>;
   handlePointerDown: (event: PointerEvent) => void;
   handlePointerMove: (event: PointerEvent) => void;
   handlePointerUp: (event: PointerEvent) => void;

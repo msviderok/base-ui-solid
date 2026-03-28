@@ -27,7 +27,7 @@ describe('<Radio.Indicator />', () => {
       return (
         <div>
           <button onClick={() => setValue('b')}>Close</button>
-          <RadioGroup value={value}>
+          <RadioGroup value={value()}>
             <Radio.Root value="a">
               <Radio.Indicator class="animation-test-indicator" data-testid="indicator-a" />
             </Radio.Root>
@@ -84,7 +84,7 @@ describe('<Radio.Indicator />', () => {
           {/* eslint-disable-next-line solid/no-innerhtml */}
           <style innerHTML={style} />
           <button onClick={() => setValue('b')}>Close</button>
-          <RadioGroup value={value}>
+          <RadioGroup value={value()}>
             <Radio.Root value="a">
               <Radio.Indicator
                 class="animation-test-indicator"

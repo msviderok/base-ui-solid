@@ -1,14 +1,11 @@
 import {
-  children,
   createEffect,
   createMemo,
   createSignal,
+  on,
   onCleanup,
-  onMount,
   Show,
   type Accessor,
-  type Component,
-  type ComponentProps,
   type JSX,
   type ParentProps,
 } from 'solid-js';
@@ -82,6 +79,7 @@ export interface UsePopupViewportResult {
 export function usePopupViewport(parameters: UsePopupViewportParameters): UsePopupViewportResult {
   const direction = useDirection();
   const activeTrigger = parameters.store.useState('activeTriggerElement');
+  const activeTriggerId = parameters.store.useState('activeTriggerId');
   const open = parameters.store.useState('open');
   const payload = parameters.store.useState('payload');
   const mounted = parameters.store.useState('mounted');
@@ -89,6 +87,10 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
   const positionerElement = parameters.store.useState('positionerElement');
 
   const previousActiveTrigger = usePreviousValue(() => (open() ? activeTrigger() : null));
+  const currentContentKey = usePopupContentKey({
+    activeTriggerId,
+    payload,
+  });
 
   let capturedNodeRef = null as HTMLElement | null | undefined;
   const [previousContentNode, setPreviousContentNode] = createSignal<
@@ -100,7 +102,7 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
   let currentContainerRef: HTMLDivElement | undefined;
   let previousContainerRef: HTMLDivElement | undefined;
 
-  const onAnimationsFinished = useAnimationsFinished(currentContainerRef, true, false);
+  const onAnimationsFinished = useAnimationsFinished(() => currentContainerRef, true, false);
   const cleanupFrame = useAnimationFrame();
 
   const [previousContentDimensions, setPreviousContentDimensions] = createSignal<{
@@ -170,37 +172,69 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
 
   // Capture a clone of the current content DOM subtree when not transitioning.
   // We can't store previous React nodes as they may be stateful; instead we capture DOM clones for visual continuity.
-  createEffect(() => {
-    // When a transition is in progress, we store the next content in capturedNodeRef.
-    // This handles the case where the trigger changes multiple times before the transition finishes.
-    // We want to always capture the latest content for the previous snapshot.
-    // So clicking quickly on T1, T2, T3 will result in the following sequence:
-    // 1. T1 -> T2: previousContent = T1, currentContent = T2
-    // 2. T2 -> T3: previousContent = T2, currentContent = T3
-    const source = currentContainerRef;
-    if (!source) {
-      return;
-    }
+  createEffect(
+    on(currentContentKey, () => {
+      let cancelled = false;
 
-    const wrapper = document.createElement('div');
-    for (const child of Array.from(source.childNodes)) {
-      wrapper.appendChild(child.cloneNode(true));
-    }
+      queueMicrotask(() => {
+        if (cancelled) {
+          return;
+        }
 
-    capturedNodeRef = wrapper;
-  });
+        // When a transition is in progress, we store the next content in capturedNodeRef.
+        // This handles the case where the trigger changes multiple times before the transition finishes.
+        // We want to always capture the latest content for the previous snapshot.
+        // So clicking quickly on T1, T2, T3 will result in the following sequence:
+        // 1. T1 -> T2: previousContent = T1, currentContent = T2
+        // 2. T2 -> T3: previousContent = T2, currentContent = T3
+        const source = currentContainerRef;
+        if (!source) {
+          return;
+        }
+
+        const wrapper = document.createElement('div');
+        for (const child of Array.from(source.childNodes)) {
+          wrapper.appendChild(child.cloneNode(true));
+        }
+
+        capturedNodeRef = wrapper;
+      });
+
+      onCleanup(() => {
+        cancelled = true;
+      });
+    }),
+  );
 
   const isTransitioning = () => previousContentNode() != null;
 
   // When previousContentNode is present, imperatively populate the previous container with the cloned children.
-  createEffect(() => {
-    const container = previousContainerRef;
-    if (!container || !previousContentNode()) {
-      return;
-    }
+  createEffect(
+    on(previousContentNode, (contentNode) => {
+      if (!contentNode) {
+        return;
+      }
 
-    container.replaceChildren(...Array.from(previousContentNode()!.childNodes));
-  });
+      let cancelled = false;
+
+      queueMicrotask(() => {
+        if (cancelled) {
+          return;
+        }
+
+        const container = previousContainerRef;
+        if (!container) {
+          return;
+        }
+
+        container.replaceChildren(...Array.from(contentNode.childNodes));
+      });
+
+      onCleanup(() => {
+        cancelled = true;
+      });
+    }),
+  );
 
   usePopupAutoResize({
     popupElement,
@@ -226,13 +260,21 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
     return <div data-current ref={currentContainerRef} {...props} />;
   }
 
+  function CurrentContainer(props: ParentProps<{ 'data-starting-style'?: '' | undefined }>) {
+    return (
+      <Show keyed when={currentContentKey()}>
+        {() => <ContainerComponent {...props}>{parameters.children}</ContainerComponent>}
+      </Show>
+    );
+  }
+
   return {
     state,
     get children() {
       return (
         <>
           <Show when={!isTransitioning()}>
-            {<ContainerComponent>{parameters.children}</ContainerComponent>}
+            {<CurrentContainer>{parameters.children}</CurrentContainer>}
           </Show>
           <Show when={isTransitioning()}>
             <div
@@ -248,9 +290,9 @@ export function usePopupViewport(parameters: UsePopupViewportParameters): UsePop
               }
               data-ending-style={showStartingStyleAttribute() ? undefined : ''}
             />
-            <ContainerComponent data-starting-style={showStartingStyleAttribute() ? '' : undefined}>
+            <CurrentContainer data-starting-style={showStartingStyleAttribute() ? '' : undefined}>
               {parameters.children}
-            </ContainerComponent>
+            </CurrentContainer>
           </Show>
         </>
       );
@@ -330,20 +372,23 @@ function calculateRelativePosition(from: Element, to: Element): Offset {
  * Returns a key that forces remounting content when triggers change or a payload is updated.
  */
 function usePopupContentKey(parameters: {
-  activeTriggerId: string | null;
-  payload: unknown;
+  activeTriggerId: Accessor<string | null>;
+  payload: Accessor<unknown>;
 }): Accessor<string> {
   const [contentKey, setContentKey] = createSignal(0);
-  let previousActiveTriggerIdRef = parameters.activeTriggerId;
-  let previousPayloadRef = parameters.payload;
+  let previousActiveTriggerIdRef = parameters.activeTriggerId();
+  let previousPayloadRef = parameters.payload();
   let pendingPayloadUpdateRef = false;
 
   createEffect(() => {
+    const activeTriggerId = parameters.activeTriggerId();
+    const payload = parameters.payload();
+
     // Compare against the last committed values to decide whether we need a new DOM subtree.
     const previousActiveTriggerId = previousActiveTriggerIdRef;
     const previousPayload = previousPayloadRef;
-    const triggerIdChanged = parameters.activeTriggerId !== previousActiveTriggerId;
-    const payloadChanged = parameters.payload !== previousPayload;
+    const triggerIdChanged = activeTriggerId !== previousActiveTriggerId;
+    const payloadChanged = payload !== previousPayload;
 
     if (triggerIdChanged) {
       // Remount immediately on trigger change; remember if payload hasn't caught up yet.
@@ -356,10 +401,10 @@ function usePopupContentKey(parameters: {
     }
 
     // Persist current values for the next render's comparison.
-    previousActiveTriggerIdRef = parameters.activeTriggerId;
-    previousPayloadRef = parameters.payload;
+    previousActiveTriggerIdRef = activeTriggerId;
+    previousPayloadRef = payload;
   });
 
-  const key = createMemo(() => `${parameters.activeTriggerId ?? 'current'}-${contentKey()}`);
+  const key = createMemo(() => `${parameters.activeTriggerId() ?? 'current'}-${contentKey()}`);
   return key;
 }

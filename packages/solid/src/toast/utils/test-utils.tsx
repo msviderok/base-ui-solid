@@ -31,10 +31,6 @@ export function Button() {
 export function List() {
   const { toasts } = Toast.useToastManager();
 
-  createEffect(() => {
-    console.log(toasts());
-  });
-
   return (
     <For each={toasts()}>
       {(toastItem) => (

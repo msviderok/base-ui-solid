@@ -28,7 +28,6 @@ export function ToolbarRoot(componentProps: ToolbarRoot.Props) {
 
   const disabledIndices = createMemo(() => {
     const output: number[] = [];
-    console.log(itemArray());
     for (const { metadata } of itemArray()) {
       const idx = metadata?.index;
       if (idx && !metadata?.focusableWhenDisabled()) {

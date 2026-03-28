@@ -19,7 +19,7 @@ import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
 } from '../../utils/createBaseUIEventDetails';
-import { compareItemEquality, defaultItemEquality, findItemIndex } from '../../utils/itemEquality';
+import { defaultItemEquality, findItemIndex } from '../../utils/itemEquality';
 import { REASONS } from '../../utils/reasons';
 import { stringifyAsValue } from '../../utils/resolveValueLabel';
 import { SolidStore } from '../../utils/store/SolidStoreV2';

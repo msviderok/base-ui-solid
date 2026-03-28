@@ -20,7 +20,7 @@ export interface UseFloatingRootContextOptions {
 }
 
 export function useFloatingRootContext(options: UseFloatingRootContextOptions): FloatingRootStore {
-  const props = defaultProps(options, { open: false });
+  const props = defaultProps(options, { open: false, elements: {} as any });
   const floatingId = useId();
   const nested = useFloatingParentNodeId() != null;
 
@@ -41,7 +41,9 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
     get open() {
       return props.open;
     },
-    onOpenChange: options.onOpenChange,
+    get onOpenChange() {
+      return props.onOpenChange;
+    },
     get referenceElement() {
       return props.elements?.reference ?? null;
     },
@@ -57,22 +59,25 @@ export function useFloatingRootContext(options: UseFloatingRootContextOptions): 
   });
 
   createEffect(() => {
+    const ref = props.elements?.reference;
     const valuesToSync: Writeable<Partial<FloatingRootState>> = {
       open: props.open,
       floatingId: floatingId(),
     };
 
     // Only sync elements that are defined to avoid overwriting existing ones
-    if (options.elements?.reference !== undefined) {
-      valuesToSync.referenceElement = props.elements?.reference;
-      valuesToSync.domReferenceElement = isElement(props.elements?.reference)
-        ? props.elements?.reference
-        : null;
+    if (ref !== undefined) {
+      valuesToSync.referenceElement = ref;
+      valuesToSync.domReferenceElement = isElement(ref) ? ref : null;
     }
 
-    if (options.elements?.floating !== undefined) {
-      valuesToSync.floatingElement = options.elements.floating;
+    if (props.elements?.floating !== undefined) {
+      valuesToSync.floatingElement = props.elements.floating;
     }
+
+    store.context.onOpenChange = props.onOpenChange;
+    store.context.nested = nested;
+    store.context.noEmit = false;
 
     store.update(valuesToSync);
   });

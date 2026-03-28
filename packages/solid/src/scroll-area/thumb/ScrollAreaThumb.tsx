@@ -16,7 +16,8 @@ export function ScrollAreaThumb(componentProps: ScrollAreaThumb.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
 
   const {
-    refs,
+    thumbYRef,
+    thumbXRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
@@ -35,9 +36,9 @@ export function ScrollAreaThumb(componentProps: ScrollAreaThumb.Props) {
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
       if (orientation() === 'vertical') {
-        refs.thumbYRef = el;
+        thumbYRef.current = el;
       } else {
-        refs.thumbXRef = el;
+        thumbXRef.current = el;
       }
     },
     state,
@@ -45,7 +46,7 @@ export function ScrollAreaThumb(componentProps: ScrollAreaThumb.Props) {
       {
         onPointerDown: handlePointerDown,
         onPointerMove: handlePointerMove,
-        onPointerUp(event) {
+        onPointerUp(event: PointerEvent) {
           if (orientation() === 'vertical') {
             setScrollingY(false);
           }

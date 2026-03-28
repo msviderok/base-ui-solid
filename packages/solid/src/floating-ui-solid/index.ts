@@ -22,7 +22,6 @@ export { useInteractions } from './hooks/useInteractions';
 export { useListNavigation } from './hooks/useListNavigation';
 export { useRole } from './hooks/useRole';
 export { useSyncedFloatingRootContext } from './hooks/useSyncedFloatingRootContext';
-export { useSyncedFloatingRootContext as useSyncedFloatingRootContextV2 } from './hooks/useSyncedFloatingRootContextV2';
 export { useTypeahead } from './hooks/useTypeahead';
 export { safePolygon } from './safePolygon';
 export type * from './types';

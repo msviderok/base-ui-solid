@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
+import { createRenderer, describeConformance, flushMicrotasks, isJSDOM } from '#test-utils';
 import { ScrollArea } from '@msviderok/base-ui-solid/scroll-area';
 import { fireEvent, screen } from '@solidjs/testing-library';
 import { expect } from 'chai';
@@ -19,6 +19,11 @@ describe('<ScrollArea.Viewport />', () => {
 
     clock.withFakeTimers();
 
+    async function tick(ms: number) {
+      clock.tick(ms);
+      await flushMicrotasks();
+    }
+
     it('adds [data-scrolling] attribute when viewport is scrolled', async () => {
       renderWithClock(() => (
         <ScrollArea.Root style={{ width: '200px', height: '200px' }}>
@@ -37,7 +42,7 @@ describe('<ScrollArea.Viewport />', () => {
 
       expect(viewport).to.have.attribute('data-scrolling', '');
 
-      await clock.tickAsync(SCROLL_TIMEOUT);
+      await tick(SCROLL_TIMEOUT);
 
       expect(viewport).not.to.have.attribute('data-scrolling');
 
@@ -47,7 +52,7 @@ describe('<ScrollArea.Viewport />', () => {
 
       expect(viewport).to.have.attribute('data-scrolling', '');
 
-      await clock.tickAsync(SCROLL_TIMEOUT);
+      await tick(SCROLL_TIMEOUT);
 
       expect(viewport).not.to.have.attribute('data-scrolling');
     });
@@ -70,12 +75,12 @@ describe('<ScrollArea.Viewport />', () => {
       expect(viewport).to.have.attribute('data-scrolling', '');
 
       // Wait less than timeout - should still be scrolling
-      await clock.tickAsync(SCROLL_TIMEOUT - 1);
+      await tick(SCROLL_TIMEOUT - 1);
 
       expect(viewport).to.have.attribute('data-scrolling', '');
 
       // Wait for remaining timeout
-      await clock.tickAsync(1);
+      await tick(1);
 
       expect(viewport).not.to.have.attribute('data-scrolling');
     });
@@ -93,6 +98,8 @@ describe('<ScrollArea.Viewport />', () => {
           </ScrollArea.Viewport>
         </ScrollArea.Root>
       ));
+
+      await flushMicrotasks();
 
       const viewport = screen.getByTestId('viewport');
 

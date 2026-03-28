@@ -12,11 +12,11 @@ import { useScrollAreaRootContext } from '../root/ScrollAreaRootContext';
  */
 export function ScrollAreaCorner(componentProps: ScrollAreaCorner.Props) {
   const [, , elementProps] = splitComponentProps(componentProps, []);
-  const { refs, cornerSize, hiddenState } = useScrollAreaRootContext();
+  const { cornerRef, cornerSize, hiddenState } = useScrollAreaRootContext();
 
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
-      refs.cornerRef = el;
+      cornerRef.current = el;
     },
     props: [
       {

@@ -1,12 +1,17 @@
 import { createRenderer, describeConformance, flushMicrotasks, isJSDOM } from '#test-utils';
 import { ScrollArea } from '@msviderok/base-ui-solid/scroll-area';
-import { fireEvent, screen } from '@solidjs/testing-library';
+import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { SCROLL_TIMEOUT } from '../constants';
 
 describe('<ScrollArea.Scrollbar />', () => {
   const { render, clock } = createRenderer();
 
   clock.withFakeTimers();
+
+  async function tick(ms: number) {
+    clock.tick(ms);
+    await flushMicrotasks();
+  }
 
   describeConformance(
     (props) => <ScrollArea.Scrollbar keepMounted {...props} ref={props.ref} />,
@@ -47,7 +52,7 @@ describe('<ScrollArea.Scrollbar />', () => {
     expect(verticalScrollbar).toHaveAttribute('data-scrolling', '');
     expect(horizontalScrollbar).not.toHaveAttribute('data-scrolling', '');
 
-    await clock.tickAsync(SCROLL_TIMEOUT - 1);
+    await tick(SCROLL_TIMEOUT - 1);
 
     expect(verticalScrollbar).toHaveAttribute('data-scrolling', '');
     expect(horizontalScrollbar).not.toHaveAttribute('data-scrolling', '');
@@ -59,17 +64,17 @@ describe('<ScrollArea.Scrollbar />', () => {
       },
     });
 
-    await clock.tickAsync(1); // vertical just finished
+    await tick(1); // vertical just finished
 
     expect(verticalScrollbar).not.toHaveAttribute('data-scrolling');
     expect(horizontalScrollbar).toHaveAttribute('data-scrolling');
 
-    await clock.tickAsync(SCROLL_TIMEOUT - 2); // already ticked 1ms above
+    await tick(SCROLL_TIMEOUT - 2); // already ticked 1ms above
 
     expect(verticalScrollbar).not.toHaveAttribute('data-scrolling');
     expect(horizontalScrollbar).toHaveAttribute('data-scrolling');
 
-    await clock.tickAsync(1);
+    await tick(1);
 
     expect(verticalScrollbar).not.toHaveAttribute('data-scrolling');
     expect(horizontalScrollbar).not.toHaveAttribute('data-scrolling');

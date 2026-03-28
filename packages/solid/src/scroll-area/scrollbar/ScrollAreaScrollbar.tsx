@@ -31,7 +31,11 @@ export function ScrollAreaScrollbar(componentProps: ScrollAreaScrollbar.Props) {
     scrollingY,
     hiddenState,
     overflowEdges,
-    refs,
+    viewportRef,
+    scrollbarYRef,
+    scrollbarXRef,
+    thumbYRef,
+    thumbXRef,
     handlePointerDown,
     handlePointerUp,
     rootId,
@@ -74,8 +78,9 @@ export function ScrollAreaScrollbar(componentProps: ScrollAreaScrollbar.Props) {
   const direction = useDirection();
 
   createEffect(() => {
-    const viewportEl = refs.viewportRef;
-    const scrollbarEl = orientation() === 'vertical' ? refs.scrollbarYRef : refs.scrollbarXRef;
+    const viewportEl = viewportRef.current;
+    const scrollbarEl =
+      orientation() === 'vertical' ? scrollbarYRef.current : scrollbarXRef.current;
 
     if (!scrollbarEl) {
       return;
@@ -138,11 +143,11 @@ export function ScrollAreaScrollbar(componentProps: ScrollAreaScrollbar.Props) {
         return;
       }
 
-      const viewportEl = refs.viewportRef;
-      const thumbYEl = refs.thumbYRef;
-      const scrollbarYEl = refs.scrollbarYRef;
-      const thumbXEl = refs.thumbXRef;
-      const scrollbarXEl = refs.scrollbarXRef;
+      const viewportEl = viewportRef.current;
+      const thumbYEl = thumbYRef.current;
+      const scrollbarYEl = scrollbarYRef.current;
+      const thumbXEl = thumbXRef.current;
+      const scrollbarXEl = scrollbarXRef.current;
 
       if (!viewportEl) {
         return;
@@ -225,9 +230,9 @@ export function ScrollAreaScrollbar(componentProps: ScrollAreaScrollbar.Props) {
   const element = useRenderElement('div', componentProps, {
     ref: (el) => {
       if (orientation() === 'vertical') {
-        refs.scrollbarYRef = el;
+        scrollbarYRef.current = el;
       } else {
-        refs.scrollbarXRef = el;
+        scrollbarXRef.current = el;
       }
     },
     state,

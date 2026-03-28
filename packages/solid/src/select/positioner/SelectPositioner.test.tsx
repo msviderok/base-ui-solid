@@ -1,6 +1,6 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Select } from '@msviderok/base-ui-solid/select';
-import { screen } from '@solidjs/testing-library';
+import { screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 
 function Trigger(props: Select.Trigger.Props) {
@@ -49,9 +49,11 @@ describe('<Select.Positioner />', () => {
         </Select.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX}px, ${baselineY + sideOffset}px)`,
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').style.transform).to.equal(
+          `translate(${baselineX}px, ${baselineY + sideOffset}px)`,
+        );
+      });
     });
 
     it('offsets the side when a function is specified', async () => {
@@ -71,9 +73,11 @@ describe('<Select.Positioner />', () => {
         </Select.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX}px, ${baselineY + popupWidth + anchorWidth}px)`,
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').style.transform).to.equal(
+          `translate(${baselineX}px, ${baselineY + popupWidth + anchorWidth}px)`,
+        );
+      });
     });
 
     it('can read the latest side inside sideOffset', async () => {
@@ -99,7 +103,9 @@ describe('<Select.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('right');
+      await waitFor(() => {
+        expect(side).to.equal('right');
+      });
     });
 
     it('can read the latest align inside sideOffset', async () => {
@@ -125,7 +131,9 @@ describe('<Select.Positioner />', () => {
       ));
 
       // correctly flips the align in the browser
-      expect(align).to.equal('end');
+      await waitFor(() => {
+        expect(align).to.equal('end');
+      });
     });
 
     it('reads logical side inside sideOffset', async () => {
@@ -150,7 +158,9 @@ describe('<Select.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('inline-end');
+      await waitFor(() => {
+        expect(side).to.equal('inline-end');
+      });
     });
   });
 
@@ -173,9 +183,11 @@ describe('<Select.Positioner />', () => {
         </Select.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX + alignOffset}px, ${baselineY}px)`,
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').style.transform).to.equal(
+          `translate(${baselineX + alignOffset}px, ${baselineY}px)`,
+        );
+      });
     });
 
     it('offsets the align when a function is specified', async () => {
@@ -195,9 +207,11 @@ describe('<Select.Positioner />', () => {
         </Select.Root>
       ));
 
-      expect(screen.getByTestId('positioner').style.transform).to.equal(
-        `translate(${baselineX + popupWidth}px, ${baselineY}px)`,
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').style.transform).to.equal(
+          `translate(${baselineX + popupWidth}px, ${baselineY}px)`,
+        );
+      });
     });
 
     it('can read the latest side inside alignOffset', async () => {
@@ -223,7 +237,9 @@ describe('<Select.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('right');
+      await waitFor(() => {
+        expect(side).to.equal('right');
+      });
     });
 
     it('can read the latest align inside alignOffset', async () => {
@@ -249,7 +265,9 @@ describe('<Select.Positioner />', () => {
       ));
 
       // correctly flips the align in the browser
-      expect(align).to.equal('end');
+      await waitFor(() => {
+        expect(align).to.equal('end');
+      });
     });
 
     it('reads logical side inside alignOffset', async () => {
@@ -274,7 +292,9 @@ describe('<Select.Positioner />', () => {
       ));
 
       // correctly flips the side in the browser
-      expect(side).to.equal('inline-end');
+      await waitFor(() => {
+        expect(side).to.equal('inline-end');
+      });
     });
   });
 });

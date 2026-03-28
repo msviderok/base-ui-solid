@@ -42,7 +42,8 @@ describe('<ScrollArea.Root />', () => {
 
       expect(root).to.have.attribute('data-scrolling', '');
 
-      await clock.tickAsync(SCROLL_TIMEOUT);
+      clock.tick(SCROLL_TIMEOUT);
+      await flushMicrotasks();
 
       expect(root).not.to.have.attribute('data-scrolling');
 
@@ -52,7 +53,8 @@ describe('<ScrollArea.Root />', () => {
 
       expect(root).to.have.attribute('data-scrolling', '');
 
-      await clock.tickAsync(SCROLL_TIMEOUT);
+      clock.tick(SCROLL_TIMEOUT);
+      await flushMicrotasks();
 
       expect(root).not.to.have.attribute('data-scrolling');
     });
@@ -86,7 +88,6 @@ describe('<ScrollArea.Root />', () => {
         expect(
           getComputedStyle(verticalThumb).getPropertyValue('--scroll-area-thumb-height'),
         ).to.equal(`${(VIEWPORT_SIZE / SCROLLABLE_CONTENT_SIZE) * VIEWPORT_SIZE}px`);
-        // eslint-disable-next-line testing-library/no-wait-for-multiple-assertions
         expect(
           getComputedStyle(horizontalThumb).getPropertyValue('--scroll-area-thumb-width'),
         ).to.equal(`${(VIEWPORT_SIZE / SCROLLABLE_CONTENT_SIZE) * VIEWPORT_SIZE}px`);
@@ -164,7 +165,6 @@ describe('<ScrollArea.Root />', () => {
         ).to.equal(
           `${(VIEWPORT_SIZE - PADDING * 2) * (VIEWPORT_SIZE / SCROLLABLE_CONTENT_SIZE)}px`,
         );
-        // eslint-disable-next-line testing-library/no-wait-for-multiple-assertions
         expect(
           getComputedStyle(horizontalThumb).getPropertyValue('--scroll-area-thumb-width'),
         ).to.equal(
@@ -211,7 +211,6 @@ describe('<ScrollArea.Root />', () => {
         expect(
           getComputedStyle(verticalThumb).getPropertyValue('--scroll-area-thumb-height'),
         ).to.equal(`${viewportSize * (viewportSize / SCROLLABLE_CONTENT_SIZE)}px`);
-        // eslint-disable-next-line testing-library/no-wait-for-multiple-assertions
         expect(
           getComputedStyle(horizontalThumb).getPropertyValue('--scroll-area-thumb-width'),
         ).to.equal(`${viewportSize * (viewportSize / SCROLLABLE_CONTENT_SIZE)}px`);
