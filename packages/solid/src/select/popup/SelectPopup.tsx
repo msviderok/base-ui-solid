@@ -59,6 +59,7 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
     highlightItemOnHover,
     listRef,
     lastCloseReasonRef,
+    triggerPressedRef,
   } = useSelectRootContext();
   const { side, align, alignItemWithTriggerActive, setControlledAlignItemWithTrigger } =
     useSelectPositionerContext();
@@ -104,10 +105,7 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
       return true;
     }
 
-    const trigger = triggerElement();
-    return (
-      trigger != null && openMethod() == null && ownerDocument(trigger).activeElement === trigger
-    );
+    return triggerPressedRef.current;
   };
 
   const handleScroll = (scroller: HTMLDivElement) => {
@@ -772,7 +770,18 @@ export function SelectPopup(componentProps: SelectPopup.Props) {
         initialFocus={getInitialFocus}
         modal={false}
         disabled={!mounted()}
-        returnFocus={local.finalFocus}
+        returnFocus={(closeType) => {
+          if (
+            lastCloseReasonRef.current === REASONS.focusOut ||
+            lastCloseReasonRef.current === REASONS.outsidePress
+          ) {
+            return false;
+          }
+
+          return typeof local.finalFocus === 'function'
+            ? local.finalFocus(closeType)
+            : local.finalFocus;
+        }}
         restoreFocus
       >
         {element()}

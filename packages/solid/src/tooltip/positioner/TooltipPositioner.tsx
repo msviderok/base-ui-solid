@@ -127,7 +127,10 @@ export function TooltipPositioner(componentProps: TooltipPositioner.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: store.useStateSetter('positionerElement'),
+    ref: (el) => {
+      store.set('positionerElement', el);
+      positioning.context.refs.setFloating(el);
+    },
     get props() {
       return [defaultProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];
     },

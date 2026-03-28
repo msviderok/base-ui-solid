@@ -138,6 +138,8 @@ export function SelectTrigger(componentProps: SelectTrigger.Props) {
         selectedDelayTimeout.clear();
         unselectedDelayTimeout.clear();
       });
+
+      return;
     }
 
     selectionRef.current = {

@@ -2296,7 +2296,7 @@ describe.skipIf(typeof Touch === 'undefined')('<Slider.Root />', () => {
       it('receives an array value for range sliders', async () => {
         const validateSpy = spy();
         render(() => (
-          <Form>
+          <Form onSubmit={(event) => event.preventDefault()}>
             <Field.Root validate={validateSpy}>
               <Slider.Root defaultValue={[5, 12]}>
                 <Slider.Control>

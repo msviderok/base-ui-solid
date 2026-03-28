@@ -136,8 +136,9 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
   });
 
   const renderedSide = () => (alignItemWithTriggerActive() ? 'none' : positioning.side());
-  const positionerStyles = () =>
-    alignItemWithTriggerActive() ? FIXED : positioning.positionerStyles();
+  const positionerStyles = () => {
+    return alignItemWithTriggerActive() ? FIXED : positioning.positionerStyles();
+  };
 
   const defaultProps = {
     role: 'presentation',
@@ -179,7 +180,10 @@ export function SelectPositioner(componentProps: SelectPositioner.Props) {
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: setPositionerElement,
+    ref: (el) => {
+      setPositionerElement(el);
+      positioning.context.refs.setFloating(el);
+    },
     stateAttributesMapping: popupStateMapping,
     get props() {
       return [defaultProps, getDisabledMountTransitionStyles(transitionStatus()), elementProps];

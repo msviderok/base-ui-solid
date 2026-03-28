@@ -159,6 +159,7 @@ export function MenuPositioner(componentProps: MenuPositioner.Props) {
         hiddenStyles['pointer-events'] = 'none';
       }
 
+      console.log('positionerStyles', positioner.positionerStyles());
       return {
         ...positioner.positionerStyles(),
         ...hiddenStyles,

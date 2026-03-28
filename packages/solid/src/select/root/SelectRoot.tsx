@@ -385,6 +385,18 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     },
   });
 
+  createEffect(() => {
+    const ref = triggerElement();
+
+    if (
+      ref !== undefined &&
+      floatingContext.state.floatingElement == null &&
+      floatingContext.state.positionReference === floatingContext.state.referenceElement
+    ) {
+      floatingContext.update({ positionReference: ref });
+    }
+  });
+
   const click = useClick({
     get context() {
       return floatingContext;
@@ -534,7 +546,9 @@ export function SelectRoot<Value, Multiple extends boolean | undefined = false>(
     handleScrollArrowVisibility,
     scrollArrowsMountedCountRef,
     getItemProps,
-    events: floatingContext.context.events,
+    get events() {
+      return floatingContext.context.events;
+    },
     valueRef,
     valuesRef,
     labelsRef,
