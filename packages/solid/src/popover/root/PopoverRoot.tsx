@@ -2,9 +2,9 @@
 import {
   createEffect,
   createMemo,
+  createRenderEffect,
   onMount,
   Show,
-  untrack,
   type Accessor,
   type JSX,
 } from 'solid-js';
@@ -42,54 +42,53 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   const triggerIdProp = () => props.triggerId;
   const defaultTriggerIdProp = () => props.defaultTriggerId ?? null;
 
-  const store = PopoverStore.useStore(
-    untrack(() => props.handle?.store),
-    {
-      get modal() {
-        return modal();
-      },
-      get open() {
-        return defaultOpen();
-      },
-      get openProp() {
-        return openProp();
-      },
-      get activeTriggerId() {
-        return defaultTriggerIdProp();
-      },
-      get triggerIdProp() {
-        return triggerIdProp();
-      },
+  const internalStore = PopoverStore({
+    get modal() {
+      return modal();
     },
-  );
-
-  // Support initially open state when uncontrolled
-  onMount(() => {
-    if (openProp() === undefined && store.state.open === false && defaultOpen() === true) {
-      store.update({
-        open: true,
-        activeTriggerId: defaultTriggerIdProp(),
-      });
-    }
+    get open() {
+      return defaultOpen();
+    },
+    get openProp() {
+      return openProp();
+    },
+    get activeTriggerId() {
+      return defaultTriggerIdProp();
+    },
+    get triggerIdProp() {
+      return triggerIdProp();
+    },
   });
 
-  store.useControlledProp('openProp', openProp);
-  store.useControlledProp('triggerIdProp', triggerIdProp);
+  return (
+    <Show when={props.handle?.store ?? internalStore} keyed>
+      {(resolvedStore) => (
+        <PopoverRootComponentImpl
+          {...props}
+          parentPopoverContext={parentPopoverContext}
+          store={resolvedStore as any}
+        />
+      )}
+    </Show>
+  );
+}
 
-  const open = store.useState('open');
-  const positionerElement = store.useState('positionerElement');
-  const payload = store.useState('payload') as Accessor<Payload | undefined>;
-  const openReason = store.useState('openChangeReason');
+function PopoverRootComponentImpl<Payload>(
+  props: PopoverRoot.Props<Payload> & {
+    parentPopoverContext: ReturnType<typeof usePopoverRootContext>;
+    store: PopoverStore<Payload>;
+  },
+) {
+  const openProp = () => props.open;
+  const defaultOpen = () => props.defaultOpen ?? false;
+  const modal = () => props.modal ?? false;
+  const triggerIdProp = () => props.triggerId;
+  const defaultTriggerIdProp = () => props.defaultTriggerId ?? null;
 
-  const floatingTreeFromContext = useFloatingTree();
-  if (floatingTreeFromContext) {
-    store.context.floatingTreeRoot = floatingTreeFromContext;
-  } else if (parentPopoverContext) {
-    store.context.floatingTreeRoot = parentPopoverContext.store.context.floatingTreeRoot;
-  }
-
-  store.useContextCallback('onOpenChange', props.onOpenChange);
-  store.useContextCallback('onOpenChangeComplete', props.onOpenChangeComplete);
+  const open = () => props.store.select('open');
+  const positionerElement = () => props.store.select('positionerElement');
+  const payload = () => props.store.select('payload') as Payload | undefined;
+  const openReason = () => props.store.select('openChangeReason');
 
   const {
     openMethod,
@@ -97,14 +96,20 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
     reset: resetOpenInteractionType,
   } = useOpenInteractionType(open);
 
-  useImplicitActiveTrigger({ store });
+  useImplicitActiveTrigger({
+    get store() {
+      return props.store;
+    },
+  });
   const { forceUnmount } = useOpenStateTransitions({
     get open() {
       return open();
     },
-    store,
+    get store() {
+      return props.store;
+    },
     onUnmount: () => {
-      store.update({ stickIfOpen: true, openChangeReason: null });
+      props.store.update({ stickIfOpen: true, openChangeReason: null });
       resetOpenInteractionType();
     },
   });
@@ -120,7 +125,7 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
 
   createEffect(() => {
     if (!open()) {
-      store.context.stickIfOpenTimeout.clear();
+      props.store.context.stickIfOpenTimeout.clear();
     }
   });
 
@@ -130,33 +135,63 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
         reason,
       ) as PopoverRoot.ChangeEventDetails;
     details.preventUnmountOnClose = () => {
-      store.set('preventUnmountingOnClose', true);
+      props.store.set('preventUnmountingOnClose', true as any);
     };
 
     return details;
   };
 
   const handleImperativeClose = () => {
-    store.setOpen(false, createPopoverEventDetails(REASONS.imperativeAction));
+    props.store.setOpen(false, createPopoverEventDetails(REASONS.imperativeAction));
   };
 
+  const floatingTreeFromContext = useFloatingTree();
+  const floatingRootContext = useSyncedFloatingRootContext({
+    get popupStore() {
+      return props.store;
+    },
+    get onOpenChange() {
+      return props.store.setOpen;
+    },
+  });
+
+  createRenderEffect(() => {
+    props.store.context.onOpenChange = props.onOpenChange;
+    props.store.context.onOpenChangeComplete = props.onOpenChangeComplete;
+    props.store.context.floatingRootContext = floatingRootContext;
+
+    if (floatingTreeFromContext) {
+      props.store.context.floatingTreeRoot = floatingTreeFromContext;
+    } else if (props.parentPopoverContext) {
+      props.store.context.floatingTreeRoot =
+        props.parentPopoverContext.store.context.floatingTreeRoot;
+    }
+
+    props.store.useControlledProp('openProp', openProp);
+    props.store.useControlledProp('triggerIdProp', triggerIdProp);
+  });
+
+  // Support initially open state when uncontrolled
   onMount(() => {
+    if (openProp() === undefined && props.store.state.open === false && defaultOpen() === true) {
+      props.store.update({
+        open: true,
+        activeTriggerId: defaultTriggerIdProp(),
+      });
+    }
+
     if (props.actionsRef) {
       props.actionsRef.current = { unmount: forceUnmount, close: handleImperativeClose };
     }
   });
 
-  const floatingRootContext = useSyncedFloatingRootContext({
-    popupStore: store,
-    onOpenChange: store.setOpen,
-  });
-  store.context.floatingRootContext = floatingRootContext;
-
   const dismiss = useDismiss({
-    context: floatingRootContext,
+    get context() {
+      return floatingRootContext;
+    },
     props: {
       get externalTree() {
-        return store.context.floatingTreeRoot;
+        return props.store.context.floatingTreeRoot;
       },
       outsidePressEvent: {
         // Ensure `aria-hidden` on outside elements is removed immediately
@@ -169,7 +204,11 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
     },
   });
 
-  const role = useRole({ context: floatingRootContext });
+  const role = useRole({
+    get context() {
+      return floatingRootContext;
+    },
+  });
 
   const { getReferenceProps, getFloatingProps, getTriggerProps } = useInteractions([dismiss, role]);
 
@@ -178,16 +217,22 @@ function PopoverRootComponent<Payload>(props: PopoverRoot.Props<Payload>) {
   const popupProps = createMemo(() => getFloatingProps());
   const nested = createMemo(() => useFloatingParentNodeId() != null);
 
-  store.useSyncedValues({
-    modal,
-    openMethod,
-    activeTriggerProps,
-    inactiveTriggerProps,
-    popupProps,
-    nested,
+  createRenderEffect(() => {
+    props.store.useSyncedValues({
+      modal,
+      openMethod,
+      activeTriggerProps,
+      inactiveTriggerProps,
+      popupProps,
+      nested,
+    });
   });
 
-  const popoverContext: PopoverRootContext<Payload> = { store };
+  const popoverContext: PopoverRootContext<Payload> = {
+    get store() {
+      return props.store;
+    },
+  };
 
   return (
     <PopoverRootContext.Provider value={popoverContext as PopoverRootContext<unknown>}>

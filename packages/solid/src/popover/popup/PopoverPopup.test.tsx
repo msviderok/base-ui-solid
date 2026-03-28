@@ -11,7 +11,7 @@ import { expect } from 'chai';
 import { createSignal } from 'solid-js';
 
 describe('<Popover.Popup />', () => {
-  const { render, clock } = createRenderer();
+  const { render } = createRenderer();
 
   describeConformance(Popover.Popup, () => ({
     render: (node, props) =>
@@ -43,7 +43,7 @@ describe('<Popover.Popup />', () => {
 
   describe('prop: initialFocus', () => {
     it('should focus the first focusable element within the popup by default', async () => {
-      render(() => (
+      const { user } = render(() => (
         <div>
           <input />
           <Popover.Root>
@@ -62,7 +62,7 @@ describe('<Popover.Popup />', () => {
       ));
 
       const trigger = screen.getByText('Open');
-      trigger.click();
+      await user.click(trigger);
 
       await waitFor(() => {
         const innerInput = screen.getByTestId('popover-input');
@@ -304,10 +304,11 @@ describe('<Popover.Popup />', () => {
   });
 
   describe('openOnHover: delay + click', () => {
+    const { render: renderFakeTimers, clock } = createRenderer();
     clock.withFakeTimers();
 
     it('returns focus to the trigger if opened by click before the hover delay completes', async () => {
-      render(() => (
+      renderFakeTimers(() => (
         <Popover.Root>
           <Popover.Trigger openOnHover delay={300}>
             Open
@@ -338,6 +339,8 @@ describe('<Popover.Popup />', () => {
       await flushMicrotasks();
 
       fireEvent.click(screen.getByText('Close'));
+      await flushMicrotasks();
+      clock.tick(16);
       await flushMicrotasks();
 
       expect(trigger).toHaveFocus();

@@ -15,7 +15,7 @@ describe('<Popover.Root />', () => {
     globalThis.BASE_UI_ANIMATIONS_DISABLED = true;
   });
 
-  const { render, clock } = createRenderer();
+  const { render } = createRenderer();
 
   popupConformanceTests({
     createComponent: (props) => (
@@ -35,8 +35,8 @@ describe('<Popover.Root />', () => {
 
   describe.for([
     { name: 'contained triggers', Component: ContainedTriggerPopover },
-    // { name: 'detached triggers', Component: DetachedTriggerPopover },
-    // { name: 'multiple detached triggers', Component: MultipleDetachedTriggersPopover },
+    { name: 'detached triggers', Component: DetachedTriggerPopover },
+    { name: 'multiple detached triggers', Component: MultipleDetachedTriggersPopover },
   ])('when using $name', ({ Component: TestPopover }) => {
     it('should render the children', async () => {
       render(() => <TestPopover />);
@@ -263,10 +263,12 @@ describe('<Popover.Root />', () => {
     });
 
     describe('prop: delay', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should open after delay with rest type by default', async () => {
-        render(() => <TestPopover triggerProps={{ openOnHover: true, delay: 100 }} />);
+        renderFakeTimers(() => <TestPopover triggerProps={{ openOnHover: true, delay: 100 }} />);
 
         const anchor = screen.getByRole('button', { name: 'Toggle' });
 
@@ -286,10 +288,14 @@ describe('<Popover.Root />', () => {
     });
 
     describe('prop: closeDelay', () => {
+      const { render: renderFakeTimers, clock } = createRenderer();
+
       clock.withFakeTimers();
 
       it('should close after delay', async () => {
-        render(() => <TestPopover triggerProps={{ openOnHover: true, closeDelay: 100 }} />);
+        renderFakeTimers(() => (
+          <TestPopover triggerProps={{ openOnHover: true, closeDelay: 100 }} />
+        ));
 
         const anchor = screen.getByRole('button', { name: 'Toggle' });
 
@@ -1042,10 +1048,12 @@ describe('<Popover.Root />', () => {
       });
 
       describe('with openOnHover', () => {
+        const { render: renderFakeTimers, clock } = createRenderer();
+
         clock.withFakeTimers();
 
         it('enables modal behavior after a hover-open is clicked', async () => {
-          render(() => (
+          renderFakeTimers(() => (
             <TestPopover
               rootProps={{ modal: true }}
               triggerProps={{ openOnHover: true, delay: 0 }}

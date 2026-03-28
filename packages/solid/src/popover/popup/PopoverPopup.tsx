@@ -148,8 +148,6 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
   return (
     <FloatingFocusManager
       context={store.context.floatingRootContext}
-      externalTree={store.context.floatingTreeRoot}
-      closeOnFocusOut={!nested()}
       openInteractionType={openMethod()}
       modal={modal() === 'trap-focus'}
       disabled={!mounted() || openReason() === REASONS.triggerHover}

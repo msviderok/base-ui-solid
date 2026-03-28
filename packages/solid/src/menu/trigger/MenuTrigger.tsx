@@ -26,6 +26,7 @@ import {
 import { FloatingTreeStore } from '../../floating-ui-solid/components/FloatingTreeStore';
 import {
   contains,
+  enableFocusInside,
   getNextTabbable,
   getTabbableAfterElement,
   getTabbableBeforeElement,
@@ -392,19 +393,35 @@ export function MenuTrigger<Payload>(componentProps: MenuTrigger.Props<Payload>)
 
   const handleFocusTargetFocus = (event: FocusEvent) => {
     const currentPositionerElement = access(store.select('positionerElement'));
+    const containingPortal = (event.currentTarget as HTMLElement | null)?.closest(
+      '[data-base-ui-portal]',
+    ) as HTMLElement | null;
+    if (containingPortal) {
+      enableFocusInside(containingPortal);
+    }
+
     if (currentPositionerElement && isOutsideEvent(event, currentPositionerElement)) {
       store.context.beforeContentFocusGuardRef.current?.focus();
     } else {
+      const focusTargetElement = store.context.triggerFocusTargetRef.current;
       store.setOpen(
         false,
         createChangeEventDetails(REASONS.focusOut, event, event.currentTarget as HTMLElement),
       );
 
       let nextTabbable = getTabbableAfterElement(
-        store.context.triggerFocusTargetRef.current || triggerElementRef,
+        focusTargetElement?.isConnected ? focusTargetElement : triggerElementRef,
       );
 
-      while (nextTabbable !== null && contains(currentPositionerElement, nextTabbable)) {
+      if (nextTabbable === null && focusTargetElement && focusTargetElement !== triggerElementRef) {
+        nextTabbable = getTabbableAfterElement(triggerElementRef);
+      }
+
+      while (
+        nextTabbable !== null &&
+        (contains(currentPositionerElement, nextTabbable) ||
+          nextTabbable.hasAttribute('data-base-ui-focus-guard'))
+      ) {
         const prevTabbable = nextTabbable;
         nextTabbable = getNextTabbable(nextTabbable);
         if (nextTabbable === prevTabbable) {

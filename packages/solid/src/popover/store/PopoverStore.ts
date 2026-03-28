@@ -1,4 +1,4 @@
-import { onCleanup, mergeProps as solidMergeProps } from 'solid-js';
+import { mergeProps as solidMergeProps } from 'solid-js';
 import { FloatingTreeStore } from '../../floating-ui-solid/components/FloatingTreeStore';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import { type ReactLikeRef } from '../../solid-helpers';
@@ -173,27 +173,8 @@ export function PopoverStore<Payload>(initialState?: Partial<State<Payload>>) {
     return store.context.stickIfOpenTimeout.clear();
   }
 
-  onCleanup(() => {
-    disposeEffect();
-  });
-
   const merged = solidMergeProps(store, { setOpen, disposeEffect });
   return merged;
 }
 
 export type PopoverStore<Payload> = ReturnType<typeof PopoverStore<Payload>>;
-
-PopoverStore.useStore = <Payload>(
-  externalStore: PopoverStore<Payload> | undefined,
-  initialState: Partial<State<Payload>>,
-) => {
-  if (externalStore) {
-    return externalStore;
-  }
-
-  const internalStore = PopoverStore(initialState);
-  onCleanup(() => {
-    internalStore.disposeEffect();
-  });
-  return internalStore;
-};
