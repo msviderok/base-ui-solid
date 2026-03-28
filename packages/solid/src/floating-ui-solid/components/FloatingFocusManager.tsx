@@ -686,7 +686,9 @@ export function FloatingFocusManager(componentProps: FloatingFocusManagerProps):
             // so we focus the first item instead of the container.
             if (focusableElements.length === 0 && elToFocus === floatingEl) {
               requestAnimationFrame(() => {
-                if (!open()) return;
+                if (!open()) {
+                  return;
+                }
                 const retryElements = getTabbableElements(floatingEl);
                 const retryEl = retryElements[0] || floatingEl;
                 enqueueFocus(retryEl, { preventScroll: retryEl === floatingEl });

@@ -144,7 +144,6 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
     },
     stateAttributesMapping,
   });
-  const activeTriggerElement = store.select('activeTriggerElement');
 
   return (
     <FloatingFocusManager
@@ -158,7 +157,9 @@ export function PopoverPopup(componentProps: PopoverPopup.Props) {
       returnFocus={local.finalFocus}
       restoreFocus="popup"
       previousFocusableElement={
-        isHTMLElement(activeTriggerElement) ? (activeTriggerElement as HTMLElement) : undefined
+        isHTMLElement(store.state.activeTriggerElement)
+          ? (store.state.activeTriggerElement as HTMLElement)
+          : undefined
       }
       nextFocusableElement={store.context.triggerFocusTargetRef}
       beforeContentFocusGuardRef={store.context.beforeContentFocusGuardRef}

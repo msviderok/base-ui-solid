@@ -22,9 +22,11 @@ export default mergeConfig(
       },
     },
     test: {
+      // TODO: Remove this once we have solved the PopoverPopup test timeout issue.
+      // testTimeout: 500,
       server: {
         deps: {
-          inline: ['@solidjs/testing-library', 'solid-js'],
+          inline: ['@solidjs/testing-library', 'solid-js', '@solidjs/router'],
         },
       },
     },

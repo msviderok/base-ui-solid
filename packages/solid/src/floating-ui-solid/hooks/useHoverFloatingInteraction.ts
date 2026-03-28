@@ -45,7 +45,6 @@ export function useHoverFloatingInteraction(parameters: {
   const open = store.useState('open');
   const floatingElement = store.useState('floatingElement');
   const domReferenceElement = store.useState('domReferenceElement');
-  const dataRef = store.context.dataRef;
 
   const [instance, setInstanceState] = useHoverInteractionSharedState({
     get store() {
@@ -61,11 +60,14 @@ export function useHoverFloatingInteraction(parameters: {
       return true;
     }
 
-    return dataRef.openEvent ? clickLikeEvents.has(dataRef.openEvent.type) : false;
+    return store.context.dataRef.openEvent
+      ? clickLikeEvents.has(store.context.dataRef.openEvent.type)
+      : false;
   };
 
   const isHoverOpen = () =>
-    dataRef.openEvent?.type?.includes('mouse') && dataRef.openEvent.type !== 'mousedown';
+    store.context.dataRef.openEvent?.type?.includes('mouse') &&
+    store.context.dataRef.openEvent.type !== 'mousedown';
 
   const isRelatedTargetInsideEnabledTrigger = (target: EventTarget | null | undefined) =>
     isTargetInsideEnabledTrigger(target, store.context.triggerElements);
@@ -174,7 +176,7 @@ export function useHoverFloatingInteraction(parameters: {
     // did not move.
     // https://github.com/floating-ui/floating-ui/discussions/1692
     function onScrollMouseLeave(event: MouseEvent) {
-      if (isClickLikeOpenEvent() || !dataRef.floatingContext || !store.select('open')) {
+      if (isClickLikeOpenEvent() || !store.context.dataRef.floatingContext || !open()) {
         return;
       }
 

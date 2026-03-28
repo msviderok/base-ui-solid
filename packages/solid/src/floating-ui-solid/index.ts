@@ -1,19 +1,3 @@
-export {
-  arrow,
-  autoPlacement,
-  autoUpdate,
-  computePosition,
-  detectOverflow,
-  flip,
-  getOverflowAncestors,
-  hide,
-  inline,
-  limitShift,
-  offset,
-  platform,
-  shift,
-  size,
-} from '@floating-ui/dom';
 export { FloatingDelayGroup, useDelayGroup } from './components/FloatingDelayGroup';
 export { FloatingFocusManager } from './components/FloatingFocusManager';
 export { FloatingPortal, useFloatingPortalNode } from './components/FloatingPortal';
@@ -38,6 +22,23 @@ export { useInteractions } from './hooks/useInteractions';
 export { useListNavigation } from './hooks/useListNavigation';
 export { useRole } from './hooks/useRole';
 export { useSyncedFloatingRootContext } from './hooks/useSyncedFloatingRootContext';
+export { useSyncedFloatingRootContext as useSyncedFloatingRootContextV2 } from './hooks/useSyncedFloatingRootContextV2';
 export { useTypeahead } from './hooks/useTypeahead';
 export { safePolygon } from './safePolygon';
 export type * from './types';
+export {
+  arrow,
+  autoPlacement,
+  autoUpdate,
+  computePosition,
+  detectOverflow,
+  flip,
+  getOverflowAncestors,
+  hide,
+  inline,
+  limitShift,
+  offset,
+  platform,
+  shift,
+  size,
+} from '@floating-ui/dom';

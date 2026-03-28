@@ -9,7 +9,13 @@
     "moduleResolution": "bundler",
     "rootDir": ".",
     "outDir": "build-tests",
-    "types": ["vitest/globals", "@types/chai", "@types/chai-dom", "@testing-library/jest-dom"],
+    "types": [
+      "vitest/globals",
+      "@types/chai",
+      "@types/chai-dom",
+      "@testing-library/jest-dom",
+      "vitest/browser"
+    ],
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
     "skipLibCheck": true

@@ -45,9 +45,11 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX,
-        y: baselineY + sideOffset,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX,
+          y: baselineY + sideOffset,
+        });
       });
     });
 
@@ -66,9 +68,11 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX,
-        y: baselineY + popupWidth + anchorWidth,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX,
+          y: baselineY + popupWidth + anchorWidth,
+        });
       });
     });
 
@@ -92,8 +96,10 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      // correctly flips the side in the browser
-      expect(side).to.equal('right');
+      await waitFor(() => {
+        // correctly flips the side in the browser
+        expect(side).to.equal('right');
+      });
     });
 
     it('can read the latest align inside sideOffset', async () => {
@@ -117,8 +123,10 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      // correctly flips the align in the browser
-      expect(align).to.equal('end');
+      await waitFor(() => {
+        // correctly flips the align in the browser
+        expect(align).to.equal('end');
+      });
     });
 
     it('reads logical side inside sideOffset', async () => {
@@ -141,8 +149,10 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      // correctly flips the side in the browser
-      expect(side).to.equal('inline-end');
+      await waitFor(() => {
+        // correctly flips the side in the browser
+        expect(side).to.equal('inline-end');
+      });
     });
   });
 
@@ -160,9 +170,11 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX + alignOffset,
-        y: baselineY,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX + alignOffset,
+          y: baselineY,
+        });
       });
     });
 
@@ -181,9 +193,11 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
-        x: baselineX + popupWidth,
-        y: baselineY,
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').getBoundingClientRect()).to.include({
+          x: baselineX + popupWidth,
+          y: baselineY,
+        });
       });
     });
 
@@ -207,8 +221,10 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      // correctly flips the side in the browser
-      expect(side).to.equal('right');
+      await waitFor(() => {
+        // correctly flips the side in the browser
+        expect(side).to.equal('right');
+      });
     });
 
     it('can read the latest align inside alignOffset', async () => {
@@ -232,8 +248,10 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      // correctly flips the align in the browser
-      expect(align).to.equal('end');
+      await waitFor(() => {
+        // correctly flips the align in the browser
+        expect(align).to.equal('end');
+      });
     });
 
     it('reads logical side inside alignOffset', async () => {
@@ -256,8 +274,10 @@ describe('<Popover.Positioner />', () => {
         </Popover.Root>
       ));
 
-      // correctly flips the side in the browser
-      expect(side).to.equal('inline-end');
+      await waitFor(() => {
+        // correctly flips the side in the browser
+        expect(side).to.equal('inline-end');
+      });
     });
   });
 
@@ -286,7 +306,9 @@ describe('<Popover.Positioner />', () => {
     const initial = { x: 5, y: 100 };
     const final = { x: 5, y: 200 };
 
-    expect(positioner.getBoundingClientRect()).to.include(initial);
+    await waitFor(() => {
+      expect(positioner.getBoundingClientRect()).to.include(initial);
+    });
 
     setTop(100);
 
@@ -294,7 +316,9 @@ describe('<Popover.Positioner />', () => {
       expect(positioner.getBoundingClientRect()).not.to.include(initial);
     });
 
-    expect(positioner.getBoundingClientRect()).to.include(final);
+    await waitFor(() => {
+      expect(positioner.getBoundingClientRect()).to.include(final);
+    });
   });
 
   it.skipIf(isJSDOM)('remains anchored if keepMounted=true', async () => {
@@ -322,7 +346,9 @@ describe('<Popover.Positioner />', () => {
     const initial = { x: 5, y: 100 };
     const final = { x: 5, y: 200 };
 
-    expect(positioner.getBoundingClientRect()).to.include(initial);
+    await waitFor(() => {
+      expect(positioner.getBoundingClientRect()).to.include(initial);
+    });
 
     setTop(100);
 
@@ -330,6 +356,8 @@ describe('<Popover.Positioner />', () => {
       expect(positioner.getBoundingClientRect()).not.to.include(initial);
     });
 
-    expect(positioner.getBoundingClientRect()).to.include(final);
+    await waitFor(() => {
+      expect(positioner.getBoundingClientRect()).to.include(final);
+    });
   });
 });

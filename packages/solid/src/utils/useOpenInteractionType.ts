@@ -10,10 +10,9 @@ import { InteractionType, useEnhancedClickHandler } from './useEnhancedClickHand
  */
 export function useOpenInteractionType(open: MaybeAccessor<boolean>) {
   const [openMethod, setOpenMethod] = createSignal<InteractionType | null>(null);
-  const openProp = () => access(open);
 
-  const handleTriggerClick = (_: MouseEvent, interactionType: InteractionType) => {
-    if (!openProp()) {
+  function handleTriggerClick(_: MouseEvent, interactionType: InteractionType) {
+    if (!access(open)) {
       setOpenMethod(
         interactionType ||
           // On iOS Safari, the hitslop around touch targets means tapping outside an element's
@@ -22,11 +21,11 @@ export function useOpenInteractionType(open: MaybeAccessor<boolean>) {
           (isIOS ? 'touch' : ''),
       );
     }
-  };
+  }
 
-  const reset = () => {
+  function reset() {
     setOpenMethod(null);
-  };
+  }
 
   const { onClick, onPointerDown } = useEnhancedClickHandler(handleTriggerClick);
 
