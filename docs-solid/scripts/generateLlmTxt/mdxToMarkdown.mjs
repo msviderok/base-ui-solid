@@ -5,16 +5,16 @@
  * using remark and remark-mdx plugin.
  */
 
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkMdx from 'remark-mdx';
 import remarkGfm from 'remark-gfm';
+import remarkMdx from 'remark-mdx';
+import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
+import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
-import { processReference } from './referenceProcessor.mjs';
 import { processDemo } from './demoProcessor.mjs';
-import { processPropsReferenceTable } from './propsReferenceTableProcessor.mjs';
 import * as mdx from './mdxNodeHelpers.mjs';
+import { processPropsReferenceTable } from './propsReferenceTableProcessor.mjs';
+import { processReference } from './referenceProcessor.mjs';
 import { resolveMdLinks } from './resolver.mjs';
 
 /**
@@ -81,13 +81,15 @@ function transformJsx() {
           if (node.data.estree.type === 'Program') {
             const estree = node.data.estree;
             if (estree.body[0].type === 'ImportDeclaration') {
-              // Collect demo for processing
               const importPath = estree.body[0].source.value;
-              demosToProcess.push({
-                index,
-                parent,
-                importPath,
-              });
+              // Only collect demo imports (those starting with ./demos/)
+              if (importPath.startsWith('./demos/')) {
+                demosToProcess.push({
+                  index,
+                  parent,
+                  importPath,
+                });
+              }
               return visit.CONTINUE;
             }
             if (estree.body[0].type === 'ExportNamedDeclaration') {
@@ -136,6 +138,12 @@ function transformJsx() {
           case 'Subtitle': {
             parent.children.splice(index, 1);
             return visit.CONTINUE;
+          }
+
+          case 'ReleaseTimeline': {
+            // Remove the ReleaseTimeline component from LLM output
+            parent.children.splice(index, 1);
+            return [visit.SKIP, index];
           }
 
           case 'Meta': {

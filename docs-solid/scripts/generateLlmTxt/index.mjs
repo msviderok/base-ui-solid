@@ -3,16 +3,16 @@
 /* eslint-disable no-console */
 
 import fs from 'fs/promises';
-import path from 'path';
 import { globby } from 'globby';
+import path from 'path';
 import * as prettier from 'prettier';
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
+import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
+import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 import { mdxToMarkdown } from './mdxToMarkdown.mjs';
-import { resolveUrl, isAbsoluteUrl } from './resolver.mjs';
+import { isAbsoluteUrl, resolveUrl } from './resolver.mjs';
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, '../..');
 const MDX_SOURCE_DIR = path.join(PROJECT_ROOT, 'src/app/(docs)/react');
@@ -204,6 +204,7 @@ async function generateLlmsTxt() {
       'It contains a collection of components and utilities for building user interfaces in React.',
       'The library is designed to be composable and styling agnostic.',
       '',
+      'The Tailwind CSS examples are written for Tailwind CSS v4. If `package.json` uses Tailwind CSS v3, automatically convert unsupported styles to v3-compatible equivalents.',
     ];
 
     // Page rendering functions - focused only on their unique logic

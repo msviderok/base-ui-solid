@@ -1,38 +1,57 @@
 import { useMediaQuery } from '@msviderok/base-ui-solid/unstable-use-media-query';
-import { createEffect, on, onCleanup, onMount } from 'solid-js';
+import { createContext, createEffect, on, onMount, useContext, type JSX } from 'solid-js';
 
-let boundDataGaListener = false;
+declare global {
+  interface Window {
+    dataLayer: unknown[];
+  }
+}
 
-/**
- * basically just a `useAnalytics` hook.
- * However, it needs the redux store which is created
- * in the same component this "hook" is used.
- */
-export function GoogleAnalytics(props: GoogleAnalytics.Props) {
-  onMount(() => {
-    // @ts-expect-error
+export interface GoogleAnalyticsEvent {
+  category: string;
+  action: string;
+  label?: string;
+  params?: Record<string, string | number | boolean>;
+}
+
+export interface GoogleAnalyticsContextValue {
+  trackEvent: (event: GoogleAnalyticsEvent) => void;
+}
+
+export const GoogleAnalyticsContext = createContext<GoogleAnalyticsContextValue | null>(null);
+
+export function useGoogleAnalytics() {
+  return useContext(GoogleAnalyticsContext);
+}
+
+export interface GoogleAnalyticsProviderProps {
+  id: string;
+  productId: string;
+  productCategoryId: string;
+  codeStylingVariant: string | null;
+  codeLanguage: string;
+  currentRoute: string;
+  userLanguage: string;
+  children?: JSX.Element;
+}
+
+export function GoogleAnalyticsProvider(props: GoogleAnalyticsProviderProps) {
+  createEffect(() => {
     window.dataLayer = window.dataLayer || [];
 
-    function gtag(...args: unknown[]) {
-      // @ts-expect-error
-      window.dataLayer.push([...args]);
-    }
+    const gtag: Gtag.Gtag = function gtag() {
+      // gtag expects the Arguments object
+      // eslint-disable-next-line prefer-rest-params
+      window.dataLayer.push(arguments);
+    };
 
     window.gtag = gtag;
 
     gtag('js', new Date());
 
-    // eslint-disable-next-line no-template-curly-in-string
-    gtag('config', '${id}', {
+    gtag('config', props.id, {
       send_page_view: false,
     });
-  });
-
-  onMount(() => {
-    if (!boundDataGaListener) {
-      boundDataGaListener = true;
-      document.addEventListener('click', handleDocumentClick);
-    }
   });
 
   let timeout = null as NodeJS.Timeout | null;
@@ -95,9 +114,9 @@ export function GoogleAnalytics(props: GoogleAnalytics.Props) {
     );
 
     matchMedia.addEventListener('change', trackDevicePixelRatio);
-    onCleanup(() => {
+    return () => {
       matchMedia.removeEventListener('change', trackDevicePixelRatio);
-    });
+    };
   });
 
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)', { noSsr: true });
@@ -109,51 +128,19 @@ export function GoogleAnalytics(props: GoogleAnalytics.Props) {
     });
   });
 
-  return null;
-}
-
-export namespace GoogleAnalytics {
-  export interface Props {
-    productId: string;
-    productCategoryId: string;
-    codeStylingVariant: string;
-    codeLanguage: string;
-    currentRoute: string;
-    packageManager: string;
-    userLanguage: string;
-  }
-}
-
-// So we can write code like:
-//
-// <Button
-//   data-ga-event-category="demo"
-//   data-ga-event-action="expand"
-// >
-//   Foo
-// </Button>
-function handleDocumentClick(event: MouseEvent) {
-  let node = event.target as Node | null;
-
-  while (node && node !== document) {
-    const element: Element | null = node as Element;
-    const category = (element as Element).getAttribute('data-ga-event-category');
-
-    // We reach a tracking element, no need to look higher in the dom tree.
-    if (category) {
-      const split = parseFloat(element.getAttribute('data-ga-event-split') ?? '0');
-
-      if (split && split < Math.random()) {
-        return;
-      }
-
+  const contextValue: GoogleAnalyticsContextValue = {
+    trackEvent({ category, action, label, params }) {
       window.gtag('event', category, {
-        eventAction: element.getAttribute('data-ga-event-action'),
-        eventLabel: element.getAttribute('data-ga-event-label'),
+        action,
+        label,
+        ...params,
       });
-      break;
-    }
+    },
+  };
 
-    node = element.parentElement;
-  }
+  return (
+    <GoogleAnalyticsContext.Provider value={contextValue}>
+      {props.children}
+    </GoogleAnalyticsContext.Provider>
+  );
 }
