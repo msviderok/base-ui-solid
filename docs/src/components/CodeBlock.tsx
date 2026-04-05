@@ -11,7 +11,7 @@ import { GhostButton } from './GhostButton';
 
 const CodeBlockContext = React.createContext({ codeId: '', titleId: '' });
 
-export function Root({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function Root(props: React.ComponentPropsWithoutRef<'div'>) {
   const titleId = React.useId();
   const codeId = React.useId();
   const context = React.useMemo(() => ({ codeId, titleId }), [codeId, titleId]);
@@ -20,21 +20,21 @@ export function Root({ className, ...props }: React.ComponentPropsWithoutRef<'di
       <div
         role="figure"
         aria-labelledby={titleId}
-        className={clsx('CodeBlockRoot', className)}
         {...props}
+        className={clsx('CodeBlockRoot', props.className)}
       />
     </CodeBlockContext.Provider>
   );
 }
 
-export function Panel({ className, children, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function Panel({ className, children, ...other }: React.ComponentPropsWithoutRef<'div'>) {
   const { codeId, titleId } = React.useContext(CodeBlockContext);
   const [copyTimeout, setCopyTimeout] = React.useState<number>(0);
   const ga = useGoogleAnalytics();
   const pathname = usePathname();
 
   return (
-    <div className={clsx('CodeBlockPanel', className)} {...props}>
+    <div className={clsx('CodeBlockPanel', className)} {...other}>
       <div id={titleId} className="CodeBlockPanelTitle">
         {children}
       </div>
@@ -74,7 +74,7 @@ export function Panel({ className, children, ...props }: React.ComponentPropsWit
   );
 }
 
-export function Pre({ className, ...props }: React.ComponentProps<'pre'>) {
+export function Pre(props: React.ComponentProps<'pre'>) {
   const { codeId } = React.useContext(CodeBlockContext);
   return (
     <ScrollArea.Root
@@ -83,8 +83,8 @@ export function Pre({ className, ...props }: React.ComponentProps<'pre'>) {
       className="CodeBlockPreContainer"
       onKeyDown={(event) => {
         if (
-          event.key === 'a' &&
-          (event.metaKey || event.ctrlKey) &&
+          (event.ctrlKey || event.metaKey) &&
+          String.fromCharCode(event.keyCode) === 'A' &&
           !event.shiftKey &&
           !event.altKey
         ) {
@@ -95,7 +95,7 @@ export function Pre({ className, ...props }: React.ComponentProps<'pre'>) {
     >
       <ScrollArea.Viewport
         style={{ overflow: undefined }}
-        render={<pre {...props} id={codeId} className={clsx('CodeBlockPre', className)} />}
+        render={<pre {...props} id={codeId} className={clsx('CodeBlockPre', props.className)} />}
       />
       <ScrollArea.Scrollbar orientation="horizontal" />
     </ScrollArea.Root>

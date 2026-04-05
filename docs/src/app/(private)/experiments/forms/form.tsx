@@ -1,16 +1,18 @@
 'use client';
 import * as React from 'react';
-import { Field } from '@base-ui-components/react/field';
-import { Fieldset } from '@base-ui-components/react/fieldset';
-import { Form } from '@base-ui-components/react/form';
-import { Select } from '@base-ui-components/react/select';
-import { Radio } from '@base-ui-components/react/radio';
-import { RadioGroup } from '@base-ui-components/react/radio-group';
-import { Checkbox } from '@base-ui-components/react/checkbox';
-import { CheckboxGroup } from '@base-ui-components/react/checkbox-group';
-import { Switch } from '@base-ui-components/react/switch';
-import { NumberField } from '@base-ui-components/react/number-field';
-import { Slider } from '@base-ui-components/react/slider';
+import { Field } from '@base-ui/react/field';
+import { Fieldset } from '@base-ui/react/fieldset';
+import { Form } from '@base-ui/react/form';
+import { Select } from '@base-ui/react/select';
+import { Radio } from '@base-ui/react/radio';
+import { RadioGroup } from '@base-ui/react/radio-group';
+import { Checkbox } from '@base-ui/react/checkbox';
+import { CheckboxGroup } from '@base-ui/react/checkbox-group';
+import { Switch } from '@base-ui/react/switch';
+import { NumberField } from '@base-ui/react/number-field';
+import { Slider } from '@base-ui/react/slider';
+import { Combobox } from '@base-ui/react/combobox';
+import { Autocomplete } from '@base-ui/react/autocomplete';
 import { z } from 'zod';
 import styles from './form.module.css';
 
@@ -19,21 +21,46 @@ import {
   useExperimentSettings,
 } from '../../../../components/Experiments/SettingsPanel';
 
+const fonts = [
+  { value: 'sans', label: 'Sans-serif' },
+  { value: 'serif', label: 'Serif' },
+  { value: 'mono', label: 'Monospace' },
+  { value: 'cursive', label: 'Cursive' },
+];
+
 const schema = z.object({
   input: z.string().min(1, 'This field is required'),
-  checkbox: z.enum(['on']),
+  'required-checkbox': z.enum(['on']),
   switch: z.enum(['on']),
-  slider: z.number().min(40),
+  slider: z.number().max(90, 'Too loud'),
   'range-slider': z.array(z.number()),
   'number-field': z.number().min(0).max(100),
   select: z.enum(['sans', 'serif', 'mono', 'cursive']),
   'radio-group': z.enum(['auto', 'scrolling', 'always']),
+  'multi-select': z.array(z.enum(['sans', 'serif', 'mono', 'cursive'])).min(1),
+  combobox: z.string().min(1, 'Please select a framework'),
+  autocomplete: z.string().min(1, 'Please input a framework'),
 });
 
-interface Settings extends Record<string, boolean> {}
+interface Settings {
+  native: boolean;
+  validationMode: Form.Props['validationMode'];
+}
 
-interface Values {
-  numberField: number | null;
+const frameworks = ['React', 'Vue', 'Angular', 'Svelte', 'Next.js', 'Nuxt.js', 'Gatsby', 'Remix'];
+
+interface MyFormValues {
+  input: string;
+  'required-checkbox': boolean;
+  switch: boolean;
+  slider: number;
+  'range-slider': number[];
+  'number-field': number;
+  select: string[];
+  'radio-group': string[];
+  'multi-select': string[];
+  combobox: string;
+  autocomplete: string;
 }
 
 export const settingsMetadata: SettingsMetadata<Settings> = {
@@ -42,23 +69,26 @@ export const settingsMetadata: SettingsMetadata<Settings> = {
     label: 'Native validation',
     default: true,
   },
+  validationMode: {
+    type: 'string',
+    label: 'Validation mode',
+    options: ['onSubmit', 'onBlur', 'onChange'],
+    default: 'onSubmit',
+  },
 };
 
-async function submitForm(event: React.FormEvent<HTMLFormElement>, values: Values) {
-  event.preventDefault();
+async function submitForm(values: MyFormValues, native: boolean) {
+  if (native) {
+    return {
+      errors: {},
+    };
+  }
 
-  const formData = new FormData(event.currentTarget);
-
-  const entries = Object.fromEntries(formData as any);
-
-  entries['number-field'] = values.numberField;
-  entries.slider = Number(entries.slider);
-
-  const result = schema.safeParse(entries);
+  const result = schema.safeParse(values);
 
   if (!result.success) {
     return {
-      errors: result.error.flatten().fieldErrors,
+      errors: z.flattenError(result.error).fieldErrors,
     };
   }
 
@@ -81,16 +111,14 @@ export default function Page() {
 
       <hr style={{ margin: '1rem 0' }} />
 
-      <Form
+      <Form<MyFormValues>
         className={styles.Form}
         errors={errors}
-        onClearErrors={setErrors}
-        onSubmit={async (event) => {
-          const response = await submitForm(event, {
-            numberField: numberFieldValueRef.current,
-          });
+        onFormSubmit={async (values) => {
+          const response = await submitForm(values, native);
           setErrors(response.errors);
         }}
+        validationMode={settings.validationMode}
       >
         <Field.Root name="input" className={styles.Field}>
           <Field.Label className={styles.Label}>Local hostname</Field.Label>
@@ -107,12 +135,23 @@ export default function Page() {
 
         <Field.Root name="checkbox" className={styles.Field}>
           <Field.Label className={styles.Label}>
-            <Checkbox.Root required={native} className={styles.Checkbox}>
+            <Checkbox.Root className={styles.Checkbox}>
               <Checkbox.Indicator className={styles.CheckboxIndicator}>
                 <CheckIcon />
               </Checkbox.Indicator>
             </Checkbox.Root>
             Reduce motion
+          </Field.Label>
+        </Field.Root>
+
+        <Field.Root name="required-checkbox" className={styles.Field}>
+          <Field.Label className={styles.Label}>
+            <Checkbox.Root required={native} className={styles.Checkbox}>
+              <Checkbox.Indicator className={styles.CheckboxIndicator}>
+                <CheckIcon />
+              </Checkbox.Indicator>
+            </Checkbox.Root>
+            I have downloaded or saved these backup codes
           </Field.Label>
           <Field.Error className={styles.Error} />
         </Field.Root>
@@ -141,31 +180,34 @@ export default function Page() {
           <Field.Error className={styles.Error} />
         </Field.Root>
 
-        <Field.Root name="range-slider" render={<Fieldset.Root />} className={styles.Field}>
-          <Slider.Root
-            defaultValue={[500, 1200]}
-            min={100}
-            max={2000}
-            step={1}
-            minStepsBetweenValues={1}
-            className={styles.Slider}
-            format={{
-              style: 'currency',
-              currency: 'EUR',
-            }}
-            locale="nl-NL"
-            role={undefined}
+        <Field.Root name="range-slider" className={styles.Field}>
+          <Fieldset.Root
+            render={
+              <Slider.Root
+                defaultValue={[500, 1200]}
+                min={100}
+                max={2000}
+                step={1}
+                minStepsBetweenValues={1}
+                className={styles.Slider}
+                format={{
+                  style: 'currency',
+                  currency: 'EUR',
+                }}
+                locale="nl-NL"
+              />
+            }
           >
             <Fieldset.Legend className={styles.Label}>Price range</Fieldset.Legend>
             <Slider.Value className={styles.SliderValue} />
             <Slider.Control className={styles.SliderControl}>
               <Slider.Track className={styles.SliderTrack}>
                 <Slider.Indicator className={styles.SliderIndicator} />
-                <Slider.Thumb className={styles.SliderThumb} />
-                <Slider.Thumb className={styles.SliderThumb} />
+                <Slider.Thumb index={0} className={styles.SliderThumb} />
+                <Slider.Thumb index={1} className={styles.SliderThumb} />
               </Slider.Track>
             </Slider.Control>
-          </Slider.Root>
+          </Fieldset.Root>
           <Field.Error className={styles.Error} />
         </Field.Root>
 
@@ -204,24 +246,28 @@ export default function Page() {
                     <Select.ItemIndicator className={styles.ItemIndicator}>
                       <CheckIcon className={styles.ItemIndicatorIcon} />
                     </Select.ItemIndicator>
+
                     <Select.ItemText className={styles.ItemText}>Sans-serif</Select.ItemText>
                   </Select.Item>
                   <Select.Item className={styles.Item} value="serif">
                     <Select.ItemIndicator className={styles.ItemIndicator}>
                       <CheckIcon className={styles.ItemIndicatorIcon} />
                     </Select.ItemIndicator>
+
                     <Select.ItemText className={styles.ItemText}>Serif</Select.ItemText>
                   </Select.Item>
                   <Select.Item className={styles.Item} value="mono">
                     <Select.ItemIndicator className={styles.ItemIndicator}>
                       <CheckIcon className={styles.ItemIndicatorIcon} />
                     </Select.ItemIndicator>
+
                     <Select.ItemText className={styles.ItemText}>Monospace</Select.ItemText>
                   </Select.Item>
                   <Select.Item className={styles.Item} value="cursive">
                     <Select.ItemIndicator className={styles.ItemIndicator}>
                       <CheckIcon className={styles.ItemIndicatorIcon} />
                     </Select.ItemIndicator>
+
                     <Select.ItemText className={styles.ItemText}>Cursive</Select.ItemText>
                   </Select.Item>
                 </Select.Popup>
@@ -232,97 +278,199 @@ export default function Page() {
           <Field.Error className={styles.Error} />
         </Field.Root>
 
-        <Field.Root name="radio-group" render={<Fieldset.Root />} className={styles.Field}>
-          <Fieldset.Legend className={styles.Legend}>Show scroll bars</Fieldset.Legend>
-          <RadioGroup required={native} className={styles.RadioGroup}>
-            <Field.Label className={styles.Label}>
-              <Radio.Root value="auto" className={styles.Radio}>
-                <Radio.Indicator className={styles.Indicator} />
-              </Radio.Root>
-              Automatically based on mouse or trackpad
-            </Field.Label>
+        <Field.Root name="radio-group" className={styles.Field}>
+          <Fieldset.Root render={<RadioGroup required={native} className={styles.RadioGroup} />}>
+            <Fieldset.Legend className={styles.Legend}>Show scroll bars</Fieldset.Legend>
 
-            <Field.Label className={styles.Label}>
-              <Radio.Root value="scrolling" className={styles.Radio}>
-                <Radio.Indicator className={styles.Indicator} />
-              </Radio.Root>
-              When scrolling
-            </Field.Label>
+            <Field.Item className={styles.FieldItem}>
+              <Field.Label className={styles.Label}>
+                <Radio.Root value="auto" className={styles.Radio}>
+                  <Radio.Indicator className={styles.Indicator} />
+                </Radio.Root>
+                Automatically based on mouse or trackpad
+              </Field.Label>
+            </Field.Item>
 
-            <Field.Label className={styles.Label}>
-              <Radio.Root value="always" className={styles.Radio}>
-                <Radio.Indicator className={styles.Indicator} />
-              </Radio.Root>
-              Always
-            </Field.Label>
-          </RadioGroup>
+            <Field.Item className={styles.FieldItem}>
+              <Field.Label className={styles.Label}>
+                <Radio.Root value="scrolling" className={styles.Radio}>
+                  <Radio.Indicator className={styles.Indicator} />
+                </Radio.Root>
+                When scrolling
+              </Field.Label>
+            </Field.Item>
+
+            <Field.Item className={styles.FieldItem}>
+              <Field.Label className={styles.Label}>
+                <Radio.Root value="always" className={styles.Radio}>
+                  <Radio.Indicator className={styles.Indicator} />
+                </Radio.Root>
+                Always
+              </Field.Label>
+            </Field.Item>
+          </Fieldset.Root>
           <Field.Error className={styles.Error} />
         </Field.Root>
 
-        <Field.Root name="checkbox-group" render={<Fieldset.Root />} className={styles.Field}>
-          <Fieldset.Legend className={styles.Legend}>Content blocking</Fieldset.Legend>
-          <CheckboxGroup
-            aria-labelledby="parent-label"
-            value={checkboxGroupValue}
-            onValueChange={setCheckboxGroupValue}
-            allValues={ALL_CHECKBOX_GROUP_VALUES}
-            className={styles.CheckboxGroup}
-            style={{ marginLeft: '1rem' }}
+        <Field.Root name="combobox" className={styles.Field}>
+          <Field.Label className={styles.Label}>Framework (Combobox)</Field.Label>
+          <Combobox.Root required={native} items={frameworks}>
+            <Combobox.Input placeholder="Select a framework" className={styles.Input} />
+            <Combobox.Portal>
+              <Combobox.Positioner className={styles.Positioner} sideOffset={8}>
+                <Combobox.Popup className={styles.Popup}>
+                  <Combobox.Empty className={styles.Empty}>No frameworks found</Combobox.Empty>
+                  <Combobox.List>
+                    {(framework) => (
+                      <Combobox.Item key={framework} className={styles.Item} value={framework}>
+                        {framework}
+                      </Combobox.Item>
+                    )}
+                  </Combobox.List>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+          <Field.Error className={styles.Error} />
+        </Field.Root>
+
+        <Field.Root name="autocomplete" className={styles.Field}>
+          <Field.Label className={styles.Label}>Framework (Autocomplete)</Field.Label>
+          <Autocomplete.Root required={native} items={frameworks}>
+            <Autocomplete.Input placeholder="Input framework" className={styles.Input} />
+            <Autocomplete.Portal>
+              <Autocomplete.Positioner className={styles.Positioner} sideOffset={8}>
+                <Autocomplete.Popup className={styles.Popup}>
+                  <Autocomplete.Empty className={styles.Empty}>
+                    No frameworks found
+                  </Autocomplete.Empty>
+                  <Autocomplete.List>
+                    {(framework) => (
+                      <Autocomplete.Item key={framework} className={styles.Item} value={framework}>
+                        {framework}
+                      </Autocomplete.Item>
+                    )}
+                  </Autocomplete.List>
+                </Autocomplete.Popup>
+              </Autocomplete.Positioner>
+            </Autocomplete.Portal>
+          </Autocomplete.Root>
+          <Field.Error className={styles.Error} />
+        </Field.Root>
+
+        <Field.Root name="checkbox-group" className={styles.Field}>
+          <Fieldset.Root
+            render={
+              <CheckboxGroup
+                value={checkboxGroupValue}
+                onValueChange={setCheckboxGroupValue}
+                allValues={ALL_CHECKBOX_GROUP_VALUES}
+                className={styles.CheckboxGroup}
+              />
+            }
           >
-            <Field.Label className={styles.Label} style={{ marginLeft: '-1rem' }} id="parent-label">
-              <Checkbox.Root parent className={styles.Checkbox}>
-                <Checkbox.Indicator
-                  className={styles.CheckboxIndicator}
-                  render={(props, state) => (
-                    <span {...props}>
-                      {state.indeterminate ? (
-                        <HorizontalRuleIcon className={styles.Icon} />
-                      ) : (
-                        <CheckIcon className={styles.Icon} />
-                      )}
-                    </span>
-                  )}
-                />
-              </Checkbox.Root>
-              Block everything
-            </Field.Label>
+            <Fieldset.Legend className={styles.Legend}>Content blocking</Fieldset.Legend>
+            <Field.Item className={styles.FieldItem}>
+              <Field.Label className={styles.Label}>
+                <Checkbox.Root parent className={styles.Checkbox}>
+                  <Checkbox.Indicator
+                    className={styles.CheckboxIndicator}
+                    render={(props, state) => (
+                      <span {...props}>
+                        {state.indeterminate ? (
+                          <HorizontalRuleIcon className={styles.Icon} />
+                        ) : (
+                          <CheckIcon className={styles.Icon} />
+                        )}
+                      </span>
+                    )}
+                  />
+                </Checkbox.Root>
+                Block everything
+              </Field.Label>
+            </Field.Item>
 
-            <Field.Label className={styles.Label}>
-              <Checkbox.Root value="ads" className={styles.Checkbox}>
-                <Checkbox.Indicator className={styles.CheckboxIndicator}>
-                  <CheckIcon className={styles.Icon} />
-                </Checkbox.Indicator>
-              </Checkbox.Root>
-              Block ads
-            </Field.Label>
+            <Field.Item className={styles.FieldItem}>
+              <Field.Label className={styles.Label}>
+                <Checkbox.Root value="ads" className={styles.Checkbox}>
+                  <Checkbox.Indicator className={styles.CheckboxIndicator}>
+                    <CheckIcon className={styles.Icon} />
+                  </Checkbox.Indicator>
+                </Checkbox.Root>
+                Block ads
+              </Field.Label>
+            </Field.Item>
 
-            <Field.Label className={styles.Label}>
+            <Field.Item className={styles.FieldItem}>
               <Checkbox.Root value="annoyances" className={styles.Checkbox}>
                 <Checkbox.Indicator className={styles.CheckboxIndicator}>
                   <CheckIcon className={styles.Icon} />
                 </Checkbox.Indicator>
               </Checkbox.Root>
-              Block annoyances
-            </Field.Label>
+              <div className={styles.FieldItemName}>
+                <Field.Label className={styles.Label}>Block annoyances</Field.Label>
+                <Field.Description className={styles.Description}>
+                  Blocks social media content and in-page pop-ups
+                </Field.Description>
+              </div>
+            </Field.Item>
 
-            <Field.Label className={styles.Label}>
-              <Checkbox.Root value="comments" className={styles.Checkbox}>
-                <Checkbox.Indicator className={styles.CheckboxIndicator}>
-                  <CheckIcon className={styles.Icon} />
-                </Checkbox.Indicator>
-              </Checkbox.Root>
-              Block comments
-            </Field.Label>
+            <Field.Item className={styles.FieldItem}>
+              <Field.Label className={styles.Label}>
+                <Checkbox.Root value="comments" className={styles.Checkbox}>
+                  <Checkbox.Indicator className={styles.CheckboxIndicator}>
+                    <CheckIcon className={styles.Icon} />
+                  </Checkbox.Indicator>
+                </Checkbox.Root>
+                Block comments
+              </Field.Label>
+            </Field.Item>
 
-            <Field.Label className={styles.Label}>
-              <Checkbox.Root value="trackers" className={styles.Checkbox}>
-                <Checkbox.Indicator className={styles.CheckboxIndicator}>
-                  <CheckIcon className={styles.Icon} />
-                </Checkbox.Indicator>
-              </Checkbox.Root>
-              Block trackers
-            </Field.Label>
-          </CheckboxGroup>
+            <Field.Item className={styles.FieldItem}>
+              <Field.Label className={styles.Label}>
+                <Checkbox.Root value="trackers" className={styles.Checkbox}>
+                  <Checkbox.Indicator className={styles.CheckboxIndicator}>
+                    <CheckIcon className={styles.Icon} />
+                  </Checkbox.Indicator>
+                </Checkbox.Root>
+                Block trackers
+              </Field.Label>
+            </Field.Item>
+          </Fieldset.Root>
+        </Field.Root>
+
+        <Field.Root name="multi-select" className={styles.Field}>
+          <Field.Label className={styles.Label}>Fonts (multiple)</Field.Label>
+          <Select.Root multiple required={native} items={fonts}>
+            <Select.Trigger className={styles.Select}>
+              <Select.Value>
+                {(value: string[]) =>
+                  value.length > 0
+                    ? value.map((v) => fonts.find((f) => f.value === v)?.label).join(', ')
+                    : 'Select fonts…'
+                }
+              </Select.Value>
+              <Select.Icon className={styles.SelectIcon}>
+                <ChevronUpDownIcon />
+              </Select.Icon>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner className={styles.Positioner} sideOffset={8}>
+                <Select.ScrollUpArrow className={styles.ScrollArrow} />
+                <Select.Popup className={styles.Popup}>
+                  {fonts.map(({ value, label }) => (
+                    <Select.Item key={value} className={styles.Item} value={value}>
+                      <Select.ItemIndicator className={styles.ItemIndicator}>
+                        <CheckIcon className={styles.ItemIndicatorIcon} />
+                      </Select.ItemIndicator>
+                      <Select.ItemText className={styles.ItemText}>{label}</Select.ItemText>
+                    </Select.Item>
+                  ))}
+                </Select.Popup>
+                <Select.ScrollDownArrow className={styles.ScrollArrow} />
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
           <Field.Error className={styles.Error} />
         </Field.Root>
 
