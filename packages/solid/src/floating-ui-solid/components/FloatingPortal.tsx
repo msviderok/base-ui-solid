@@ -1,7 +1,4 @@
 import { EMPTY_OBJECT } from '@base-ui/utils/empty';
-import { createChangeEventDetails } from '@msviderok/base-ui-solid/utils/createBaseUIEventDetails';
-import { REASONS } from '@msviderok/base-ui-solid/utils/reasons';
-import type { BaseUIComponentProps } from '@msviderok/base-ui-solid/utils/types';
 import {
   createContext,
   createEffect,
@@ -18,7 +15,10 @@ import {
 import { Portal } from 'solid-js/web';
 import { defaultProps } from '../../solid-helpers';
 import { ownerVisuallyHidden } from '../../utils/constants';
+import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { FocusGuard } from '../../utils/FocusGuard';
+import { REASONS } from '../../utils/reasons';
+import type { BaseUIComponentProps } from '../../utils/types';
 import { useId } from '../../utils/useId';
 import { useRenderElement } from '../../utils/useRenderElement';
 import {

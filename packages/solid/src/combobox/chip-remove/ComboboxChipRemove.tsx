@@ -1,5 +1,5 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { stopEvent } from '../../floating-ui-solid/utils';
+import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { findItemIndex } from '../../utils/itemEquality';

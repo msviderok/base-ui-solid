@@ -1,4 +1,4 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
+import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 import { useRenderElement } from '../../utils/useRenderElement';

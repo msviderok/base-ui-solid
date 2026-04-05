@@ -1,6 +1,5 @@
 import { isAndroid } from '@base-ui/utils/detectBrowser';
 import { ownerWindow } from '@base-ui/utils/owner';
-import { ComponentWithPayload, type ReactLikeRef } from '@msviderok/base-ui-solid/solid-helpers';
 import {
   createEffect,
   createMemo,
@@ -12,6 +11,7 @@ import {
 import { Dialog } from '../../dialog';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext';
 import type { DialogHandle } from '../../dialog/store/DialogHandle';
+import { ComponentWithPayload, type ReactLikeRef } from '../../solid-helpers';
 import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,

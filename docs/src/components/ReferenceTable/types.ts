@@ -11,6 +11,8 @@ export interface PropDef {
   default?: string;
   required?: boolean;
   description?: string;
+  detailedType?: string;
+  example?: string;
 }
 
 export interface AttributeDef {
@@ -21,4 +23,15 @@ export interface AttributeDef {
 export interface CssVariableDef {
   type?: string;
   description?: string;
+}
+
+export interface FunctionParamDef extends PropDef {
+  optional?: boolean;
+}
+
+export interface FunctionDef {
+  name: string;
+  description?: string;
+  parameters?: Record<string, FunctionParamDef>;
+  returnValue?: Record<string, PropDef> | PropDef | string;
 }

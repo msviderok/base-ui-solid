@@ -1,11 +1,8 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { createEffect, Show, type JSX } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
-import {
-  contains,
-  isOutsideEvent,
-} from '../../floating-ui-solid/utils';
+import { contains, isOutsideEvent } from '../../floating-ui-solid/utils';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
+import { splitComponentProps } from '../../solid-helpers';
 import { FocusGuard } from '../../utils/FocusGuard';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useId } from '../../utils/useId';

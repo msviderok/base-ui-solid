@@ -1,15 +1,14 @@
 import { isWebKit } from '@base-ui/utils/detectBrowser';
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { getNodeName, isHTMLElement } from '@floating-ui/utils/dom';
-import type { FloatingTreeStore } from '@msviderok/base-ui-solid/floating-ui-solid/components/FloatingTreeStore';
-import { CLICK_TRIGGER_IDENTIFIER } from '@msviderok/base-ui-solid/utils/constants';
-import type { FloatingUIOpenChangeDetails } from '@msviderok/base-ui-solid/utils/types';
 import { createEffect, createMemo, createSignal, on, onCleanup, Show, type JSX } from 'solid-js';
 import { focusable, isTabbable, tabbable, type FocusableElement } from 'tabbable';
 import { defaultProps, type ReactLikeRef } from '../../solid-helpers';
+import { CLICK_TRIGGER_IDENTIFIER } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { FocusGuard } from '../../utils/FocusGuard';
 import { REASONS } from '../../utils/reasons';
+import type { FloatingUIOpenChangeDetails } from '../../utils/types';
 import { useAnimationFrame } from '../../utils/useAnimationFrame';
 import type { InteractionType } from '../../utils/useEnhancedClickHandler';
 import { useTimeout } from '../../utils/useTimeout';
@@ -20,9 +19,9 @@ import {
   contains,
   enableFocusInside,
   getFloatingFocusElement,
+  getNextTabbable,
   getNodeAncestors,
   getNodeChildren,
-  getNextTabbable,
   getPreviousTabbable,
   getTabbableOptions,
   getTarget,
@@ -38,6 +37,7 @@ import { enqueueFocus } from '../utils/enqueueFocus';
 import { markOthers } from '../utils/markOthers';
 import { usePortalContext } from './FloatingPortal';
 import { useFloatingTree } from './FloatingTree';
+import type { FloatingTreeStore } from './FloatingTreeStore';
 
 function getEventType(event: Event, lastInteractionType?: InteractionType): InteractionType {
   const win = ownerWindow(event.target);

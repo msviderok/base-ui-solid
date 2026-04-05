@@ -20,8 +20,8 @@
       "@base-ui/utils/*": ["./packages/utils/src/*"],
       "@msviderok/base-ui-solid": ["./packages/solid/src"],
       "@msviderok/base-ui-solid/*": ["./packages/solid/src/*"],
-      "docs/*": ["./docs/*"],
-      "docs-solid/*": ["./docs-solid/*"]
+      "docs-solid/*": ["./docs-solid/*"],
+      "docs/*": ["./docs/*"]
     }
   },
   "exclude": ["**/.*/", "**/build", "**/build-tests", "**/node_modules", "docs/export"]

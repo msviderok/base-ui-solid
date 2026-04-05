@@ -1,1 +1,0 @@
-pnpm --filter "@msviderok/base-ui-solid" run typescript -- --noEmit --skipLibCheck

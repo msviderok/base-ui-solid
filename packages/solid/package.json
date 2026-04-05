@@ -1,6 +1,6 @@
 {
   "name": "@msviderok/base-ui-solid",
-  "version": "1.2.0",
+  "version": "1.2.0-alpha.3",
   "private": false,
   "author": "MUI Team",
   "description": "Base UI is a library of headless ('unstyled') Solid components and low-level hooks. You gain complete control over your app's CSS and accessibility features.",
@@ -78,13 +78,8 @@
   "type": "commonjs",
   "scripts": {
     "prebuild": "rimraf --glob build build-tests \"*.tsbuildinfo\"",
-    "build": "pnpm build:node && pnpm build:stable && pnpm build:types && pnpm build:copy-files && pnpm build:manifest",
-    "build:node": "node ./scripts/build.mjs node --cjsDir ./cjs",
-    "build:stable": "node ./scripts/build.mjs stable --cjsDir ./cjs",
-    "build:types": "tsx ../../scripts/buildTypes.mts --copy build/cjs",
-    "build:copy-files": "node ../../scripts/copyFiles.mjs ./.npmignore:./.npmignore",
-    "build:manifest": "tsx ./scripts/createPackageManifest.mts",
-    "test:package": "publint ./build && attw --pack ./build --exclude-entrypoints package.json",
+    "build": "node ./scripts-new/cli/index.mjs build --ignore \"**/*.template.js\" --copy .npmignore --noCheck",
+    "test:package": "publint ./build && cross-env NPM_CONFIG_CACHE=/tmp/base-ui-npm-cache attw --pack ./build --exclude-entrypoints package.json --exclude-entrypoints esm --exclude-entrypoints cjs",
     "release": "pnpm build && pnpm publish",
     "test": "cross-env VITEST_ENV=jsdom vitest",
     "typescript": "tsc -b tsconfig.json",
@@ -95,26 +90,27 @@
     "@base-ui/utils": "workspace:*",
     "@floating-ui/dom": "^1.7.2",
     "@floating-ui/utils": "^0.2.10",
-    "babel-preset-solid": "1.9.12",
     "tabbable": "^6.4.0"
   },
   "devDependencies": {
-    "@solidjs/router": "^0.16.1",
+    "@solidjs/router": "0.16.1",
     "@solidjs/testing-library": "0.8.10",
     "@testing-library/user-event": "14.6.1",
     "@types/chai": "5.2.3",
     "@types/chai-dom": "1.11.3",
     "@types/sinon": "21.0.0",
+    "babel-plugin-macros": "3.1.0",
+    "babel-preset-solid": "^1.9.8",
     "chai": "6.2.2",
     "clsx": "2.1.1",
     "eslint-plugin-solid": "0.14.5",
     "sinon": "21.0.1",
-    "solid-js": "1.9.12",
+    "solid-js": "1.9.7",
     "typescript": "5.9.3",
     "vite-plugin-solid": "2.11.11"
   },
   "peerDependencies": {
-    "solid-js": "^1.9.7"
+    "solid-js": "1.9.7"
   },
   "sideEffects": false,
   "publishConfig": {

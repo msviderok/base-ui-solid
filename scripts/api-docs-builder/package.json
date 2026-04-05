@@ -13,6 +13,7 @@
   },
   "scripts": {
     "start": "tsx src/index.ts -c ../../packages/react/tsconfig.build.json -o ../../docs/reference/generated",
-    "start:solid": "FRAMEWORK=solid tsx src/index.ts -c ../../packages/solid/tsconfig.build.json -o ../../docs-solid/reference/generated"
+    "start:solid": "FRAMEWORK=solid tsx src/index.ts -c ../../packages/solid/tsconfig.build.json -o ../../docs-solid/reference/generated",
+    "start:solid-v2": "FRAMEWORK=solid tsx src/index.ts -c ../../packages/solid/tsconfig.build.json -o ../../docs-solid-v2/reference/generated"
   }
 }

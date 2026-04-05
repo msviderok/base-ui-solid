@@ -29,7 +29,8 @@
     "paths": {
       "@msviderok/base-ui-solid": ["../packages/solid/src"],
       "@msviderok/base-ui-solid/*": ["../packages/solid/src/*"],
-      "@base-ui/utils/*": ["../packages/utils/src/*"]
+      "@base-ui/utils/*": ["../packages/utils/src/*"],
+      "docs-solid/*": ["../docs-solid/*"]
     },
     "strictNullChecks": true,
     "jsx": "preserve"

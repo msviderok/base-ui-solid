@@ -1,5 +1,8 @@
+import { callEventHandler } from '@msviderok/base-ui-solid/solid-helpers';
+import { useLocation } from '@solidjs/router';
 import clsx from 'clsx';
-import { onCleanup, onMount, splitProps, type ComponentProps } from 'solid-js';
+import { useGoogleAnalytics } from 'docs/src/blocks/GoogleAnalyticsProvider';
+import { createMemo, onCleanup, onMount, splitProps, type ComponentProps } from 'solid-js';
 
 export function Container(props: ComponentProps<'div'>) {
   const [local, rest] = splitProps(props, ['class']);
@@ -288,6 +291,26 @@ export function Item(props: ComponentProps<'li'>) {
 }
 
 export function Link(props: ComponentProps<'a'>) {
-  const [local, rest] = splitProps(props, ['class']);
-  return <a class={clsx('QuickNavLink', local.class)} {...rest} />;
+  const [local, rest] = splitProps(props, ['class', 'onClick']);
+  const ga = useGoogleAnalytics();
+  const location = useLocation();
+  const pathname = createMemo(() => location.pathname);
+
+  return (
+    <a
+      class={clsx('QuickNavLink', local.class)}
+      {...rest}
+      onClick={(event) => {
+        const slug = props.href ?? undefined;
+        const tocId = slug ? `${pathname()}${slug}` : pathname();
+        ga?.trackEvent({
+          category: 'table_of_contents',
+          action: 'click',
+          label: tocId,
+          params: { click: tocId, slug: slug || '' },
+        });
+        callEventHandler(local.onClick, event);
+      }}
+    />
+  );
 }

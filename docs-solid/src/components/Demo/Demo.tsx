@@ -1,4 +1,7 @@
 import { Collapsible } from '@msviderok/base-ui-solid/collapsible';
+import type { ContentProps } from '@mui/internal-docs-infra/CodeHighlighter/types';
+import { useDemo } from '@mui/internal-docs-infra/useDemo';
+import { useLocation } from '@solidjs/router';
 import clsx from 'clsx';
 import * as BaseDemo from 'docs-solid/src/blocks/Demo';
 import { CheckIcon } from 'docs-solid/src/icons/CheckIcon';

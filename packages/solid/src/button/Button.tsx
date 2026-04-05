@@ -1,4 +1,4 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
+import { splitComponentProps } from '../solid-helpers';
 import { useButton } from '../use-button/useButton';
 import type { BaseUIComponentProps, NativeButtonProps } from '../utils/types';
 import { useRenderElement } from '../utils/useRenderElement';

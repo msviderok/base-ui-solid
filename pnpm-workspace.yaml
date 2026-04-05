@@ -2,6 +2,7 @@ packages:
   - packages/*
   - docs
   - docs-solid
+  - docs-solid-v2
   - test
   - test/*
   - scripts/*

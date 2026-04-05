@@ -1,7 +1,7 @@
 'use client';
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { useCheckboxGroupContext } from '../../checkbox-group/CheckboxGroupContext';
 import { LabelableProvider } from '../../labelable-provider';
+import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { FieldRoot } from '../root/FieldRoot';

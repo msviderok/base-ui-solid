@@ -1,13 +1,15 @@
 import { useId } from '@msviderok/base-ui-solid/utils';
+import { useLocation } from '@solidjs/router';
 import copy from 'clipboard-copy';
 import clsx from 'clsx';
+import { useGoogleAnalytics } from 'docs-solid/src/blocks/GoogleAnalyticsProvider';
 import {
-  createContext,
-  createSignal,
-  splitProps,
-  useContext,
-  type Accessor,
-  type ComponentProps,
+    createContext,
+    createSignal,
+    splitProps,
+    useContext,
+    type Accessor,
+    type ComponentProps,
 } from 'solid-js';
 import { CheckIcon } from '../icons/CheckIcon';
 import { CopyIcon } from '../icons/CopyIcon';

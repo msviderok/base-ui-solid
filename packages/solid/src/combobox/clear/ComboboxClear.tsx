@@ -1,6 +1,6 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { createMemo, Show } from 'solid-js';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
+import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';

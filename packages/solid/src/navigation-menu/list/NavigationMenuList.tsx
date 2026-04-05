@@ -1,9 +1,9 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { createMemo, Show } from 'solid-js';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
 import { useDismiss } from '../../floating-ui-solid';
 import { contains, getTarget } from '../../floating-ui-solid/utils';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
+import { splitComponentProps } from '../../solid-helpers';
 import { EMPTY_OBJECT } from '../../utils/constants';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';

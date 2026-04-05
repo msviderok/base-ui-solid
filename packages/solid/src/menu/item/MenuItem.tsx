@@ -1,5 +1,5 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { useCompositeListItem } from '../../composite/list/useCompositeListItem';
+import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIComponentProps, NonNativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';

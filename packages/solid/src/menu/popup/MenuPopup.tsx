@@ -1,7 +1,7 @@
-import { splitComponentProps } from '@msviderok/base-ui-solid/solid-helpers';
 import { createEffect, createMemo, onCleanup, type JSX } from 'solid-js';
 import { COMPOSITE_KEYS } from '../../composite/composite';
 import { FloatingFocusManager, useHoverFloatingInteraction } from '../../floating-ui-solid';
+import { splitComponentProps } from '../../solid-helpers';
 import { useToolbarRootContext } from '../../toolbar/root/ToolbarRootContext';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
