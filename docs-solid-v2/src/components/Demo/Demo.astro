@@ -1,0 +1,12 @@
+---
+import { DemoShell } from './DemoShell';
+interface Props {
+  path: string;
+  class?: string;
+  defaultOpen?: boolean;
+}
+const { path, class: className, defaultOpen = false } = Astro.props;
+---
+<div class={`mt-5 mb-6 ${className ?? ''}`}>
+  <DemoShell path={path} defaultOpen={defaultOpen} client:load />
+</div>

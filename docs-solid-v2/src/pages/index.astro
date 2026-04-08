@@ -1,0 +1,64 @@
+---
+import HomepageLayout from '../layouts/HomepageLayout.astro';
+import { HomepageFaq } from '../components/HomepageFaq';
+---
+
+<HomepageLayout>
+  <section class="d-c">
+    <h1 class="Text size-3 bp2:size-4 gcs-1 gce-9 bp4:gce-5">
+      Unstyled UI components for building accessible user interfaces
+    </h1>
+    <div class="gcs-1 gce-9">
+      <a class="Text size-2 Link d-if" href="/solid/overview/quick-start">
+        Documentation
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="Icon"
+        >
+          <path class="LinkArrowCaret" d="M6 12L10 8L6 4"></path>
+          <path class="LinkArrowLine" d="M2 8L13 8"></path>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <section class="d-c">
+    <div class="d-f fd-c g-4 gcs-1 gce-9 bp2:gcs-3 bp4:gce-7">
+      <p class="Text size-2">
+        From the creators of Radix, Floating&nbsp;UI, and Material&nbsp;UI, Base&nbsp;UI is a
+        comprehensive UI component library for building accessible user interfaces — now available
+        for Solid.
+      </p>
+      <p class="Text size-2">
+        Each Base UI component is meticulously designed for composability, consistency, and craft.
+        The library's architecture prioritizes flexibility—without imposing visual opinions—helping
+        teams craft distinctive interfaces that are fundamentally accessible and reliable.
+      </p>
+      <p class="Text size-2">
+        Base UI is built to last. It is designed with care and maintained with intent. Our mission
+        is to provide a future-proof foundation for professional interface design on the Web.
+      </p>
+    </div>
+  </section>
+
+  <div class="gcs-1 gce-9 bp3:gcs-3">
+    <div class="Separator" role="separator" aria-hidden="true"></div>
+  </div>
+
+  <section class="d-c">
+    <div class="gcs-1 gce-9 bp2:gce-3">
+      <h2 class="Text size-2">The fine print</h2>
+    </div>
+    <div class="gcs-1 gce-9 bp2:gcs-3 bp4:gce-7">
+      <HomepageFaq client:load />
+    </div>
+  </section>
+</HomepageLayout>

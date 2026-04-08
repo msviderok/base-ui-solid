@@ -1,0 +1,27 @@
+---
+title: Composition
+order: 3
+description: How to compose Base UI components.
+---
+
+# Composition
+
+<Subtitle>How to compose Base UI components for Solid.</Subtitle>
+
+Base UI components are designed to be composable. Each component is broken into parts that you can assemble to build your UI.
+
+## render prop
+
+Most Base UI components support a `render` prop that lets you replace the rendered element or component.
+
+```tsx
+<Collapsible.Trigger
+  render={(props) => <MyButton {...props} />}
+>
+  Toggle
+</Collapsible.Trigger>
+```
+
+## Forwarding refs
+
+All Base UI components forward refs to the underlying DOM element.

@@ -1,0 +1,14 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "paths": {
+      "@base-ui/utils/*": ["../packages/utils/src/*"],
+      "@msviderok/base-ui-solid": ["../packages/solid/src"],
+      "@msviderok/base-ui-solid/*": ["../packages/solid/src/*"]
+    }
+  },
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist", "node_modules", "../../node_modules/@types/react"]
+}

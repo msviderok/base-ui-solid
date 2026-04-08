@@ -1,0 +1,20 @@
+{
+  "name": "AlertDialogPortal",
+  "description": "A portal element that moves the popup to a different part of the DOM.\nBy default, the portal element is appended to `<body>`.",
+  "props": {
+    "container": {
+      "type": "MaybeAccessorValue",
+      "description": "A parent element to render the portal element into."
+    },
+    "children": {
+      "type": "Element"
+    },
+    "keepMounted": {
+      "type": "MaybeAccessor",
+      "default": "false",
+      "description": "Whether to keep the portal mounted in the DOM while the popup is hidden."
+    }
+  },
+  "dataAttributes": {},
+  "cssVariables": {}
+}

@@ -1,0 +1,10 @@
+---
+const { id, ...props } = Astro.props;
+---
+<h2
+  id={id}
+  class="mt-10 mb-4 scroll-mt-18 text-xl font-medium text-balance show-side-nav:scroll-mt-6"
+  {...props}
+>
+  <a class="HeadingLink" href={`#${id}`}><slot /></a>
+</h2>

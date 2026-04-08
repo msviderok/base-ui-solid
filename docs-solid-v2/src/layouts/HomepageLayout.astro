@@ -1,0 +1,61 @@
+---
+import '../styles/website/fonts.css';
+import '../styles/website/index.css';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Base UI</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+    <link rel="icon" href="/static/favicon.ico" sizes="32x32" />
+  </head>
+  <body class="Body p-6 bp2:py-7 bp2:px-9">
+    <div class="bs-bb d-g gtc-8 g-8 bp2:g-9" style="max-width: 1480px; margin-inline: auto;">
+      <header class="d-c">
+        <div class="gcs-1 gce-4">
+          <a href="/" aria-label="Base UI">
+            <svg width="17" height="24" viewBox="0 0 17 24" fill="currentcolor">
+              <path d="M9.5001 7.01537C9.2245 6.99837 9 7.22385 9 7.49999V23C13.4183 23 17 19.4183 17 15C17 10.7497 13.6854 7.27351 9.5001 7.01537Z" />
+              <path d="M8 9.8V12V23C3.58172 23 0 19.0601 0 14.2V12V1C4.41828 1 8 4.93989 8 9.8Z" />
+            </svg>
+          </a>
+        </div>
+        <nav
+          class="d-f fd-c g-2 gcs-5 gce-8 bp2:gcs-5 bp2:gce-9 bp3:gcs-5 bp3:gce-7"
+          aria-label="social links"
+        >
+          <a class="Text size-1 Link" href="https://x.com/base_ui">X</a>
+          <a class="Text size-1 Link" href="https://github.com/mui/base-ui">GitHub</a>
+          <a class="Text size-1 Link" href="https://discord.com/invite/g6C3hUtuxz">Discord</a>
+        </nav>
+        <div class="d-n bp3:d-b gcs-7 gce-9">
+          <a class="Text size-1 Link" href="/solid/components/collapsible">Components</a>
+        </div>
+      </header>
+
+      <main id="main" class="d-c">
+        <slot />
+      </main>
+
+      <div class="gcs-1 gce-9 bp3:gcs-3">
+        <div class="Separator" role="separator" aria-hidden="true"></div>
+      </div>
+
+      <footer class="d-c">
+        <div class="gcs-1 gce-9 bp2:gce-3">
+          <span class="Text size-1">© Base UI</span>
+        </div>
+        <nav class="d-f fd-c g-2 gcs-1 gce-9 bp2:gcs-3 bp4:gce-7" aria-label="social links">
+          <a class="Text size-1 Link" href="https://x.com/base_ui">X</a>
+          <a class="Text size-1 Link" href="https://github.com/mui/base-ui">GitHub</a>
+          <a class="Text size-1 Link" href="https://discord.com/invite/g6C3hUtuxz">Discord</a>
+          <a class="Text size-1 Link" href="https://www.npmjs.com/package/@msviderok/base-ui-solid">npm</a>
+          <a class="Text size-1 Link" href="https://bsky.app/profile/did:plc:nwr6peuxqzdzlbi72qr5kldc">Bluesky</a>
+        </nav>
+      </footer>
+    </div>
+  </body>
+</html>

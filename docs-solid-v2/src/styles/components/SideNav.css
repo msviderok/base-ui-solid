@@ -1,0 +1,153 @@
+@layer components {
+  .SideNavRoot {
+    /* Match quick nav spacing so side nav and quick nav are visually aligned */
+    --side-nav-item-height: 2rem;
+    --side-nav-item-line-height: var(--text-md--line-height);
+    --side-nav-item-padding-y: calc(
+      var(--side-nav-item-height) / 2 - var(--side-nav-item-line-height) / 2
+    );
+
+    --side-nav-scrollbar-thumb-width: 0.25rem;
+    --side-nav-scrollbar-width: 1.5rem;
+    --side-nav-scrollbar-gap-left: 1rem;
+    --side-nav-scrollbar-gap-right: 2.5rem;
+    margin-right: calc(
+      var(--side-nav-scrollbar-gap-right) - var(--side-nav-scrollbar-width) / 2 +
+        var(--side-nav-scrollbar-thumb-width) / 2
+    );
+
+    @apply text-md;
+    position: sticky;
+    top: 0;
+
+    display: none;
+
+    @media (--show-side-nav) {
+      display: block;
+    }
+  }
+
+  .SideNavViewport {
+    max-height: 100vh;
+    padding: 0.75rem
+      calc(
+        var(--side-nav-scrollbar-gap-left) + var(--side-nav-scrollbar-width) / 2 +
+          var(--side-nav-scrollbar-thumb-width) / 2
+      )
+      6rem 1.5rem;
+
+    /* Scroll containers are focusable */
+    outline: 0;
+
+    .SideNavRoot:has(&:focus-visible)::before {
+      content: '';
+      inset: 0;
+      pointer-events: none;
+      position: absolute;
+      outline: 2px solid var(--color-blue);
+      outline-offset: -2px;
+      /* Don't inset the outline on the right */
+      right: -2px;
+    }
+  }
+
+  .SideNavScrollbar {
+    display: flex;
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+
+    /* Click target width */
+    width: var(--side-nav-scrollbar-width);
+
+    opacity: 0;
+    transition: opacity 200ms 500ms;
+
+    &:active,
+    &[data-scrolling],
+    .SideNavViewport:focus-visible + & {
+      transition-duration: 0ms;
+      transition-delay: 0ms;
+      opacity: 1;
+    }
+  }
+
+  .SideNavScrollbarThumb {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+
+    &::before {
+      content: '';
+      display: block;
+      height: 100%;
+      /* Visible thumb width */
+      width: var(--side-nav-scrollbar-thumb-width);
+      border-radius: var(--radius-sm);
+      background-color: var(--color-gray-400);
+    }
+  }
+
+  .SideNavSection {
+    margin-bottom: 1rem;
+  }
+
+  .SideNavHeading {
+    display: inline-flex;
+    padding-block: var(--side-nav-item-padding-y);
+    font-weight: 500;
+    letter-spacing: 0.00625em;
+  }
+
+  .SideNavItem {
+    display: flex;
+  }
+
+  .SideNavLink {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-grow: 1;
+    padding: calc(var(--side-nav-item-padding-y) - 1px) 0.75rem;
+    border-block: 1px solid transparent; /* Maintain a 1px gap between active an inactive item */
+    background-clip: padding-box;
+    border-radius: var(--radius-md);
+    letter-spacing: var(--text-md--letter-spacing);
+    user-select: none;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-gray-50);
+      }
+    }
+
+    &[data-active] {
+      border: none;
+      padding: var(--side-nav-item-padding-y) 0.75rem;
+      background-color: var(--color-gray-50);
+      outline: 1px solid var(--color-gray-200);
+      outline-offset: -1px;
+      font-weight: 500;
+      letter-spacing: 0.00625em;
+      word-spacing: -0.005em;
+      cursor: default;
+    }
+
+    &:focus-visible {
+      z-index: 1;
+      outline: 2px solid var(--color-blue);
+      outline-offset: -1px;
+    }
+  }
+}
+
+.SideNavBadge {
+  color: var(--color-red);
+  line-height: inherit;
+  user-select: none;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.035em;
+  padding-inline: 2px;
+  translate: 0 -2px;
+}

@@ -1,0 +1,30 @@
+---
+title: Quick start
+order: 1
+description: A quick guide to getting started with Base UI for Solid.
+---
+
+# Quick start
+
+<Subtitle>A quick guide to getting started with Base UI for Solid.</Subtitle>
+
+## Install the library
+
+Install Base UI for Solid using a package manager.
+
+```bash title="Terminal"
+npm i @msviderok/base-ui-solid
+```
+
+All components are included in a single package. Base UI is tree-shakeable, so your app bundle will contain only the components that you actually use.
+
+## Set up portals
+
+Base UI uses portals for components that render popups, such as Dialog and Popover.
+To make portalled components always appear on top of the entire page, add the following style to your application layout root:
+
+```css title="styles.css"
+.root {
+  isolation: isolate;
+}
+```

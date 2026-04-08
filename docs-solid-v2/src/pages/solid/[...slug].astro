@@ -1,0 +1,26 @@
+---
+import { getCollection, render } from 'astro:content';
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { mdxComponents } from '../../mdx-components';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('solid');
+
+  return entries.map((entry) => {
+    console.log(entry.id);
+    // Convert 'overview/quick-start.mdx' -> 'overview/quick-start'
+    const slug = entry.id.replace(/\.mdx$/, '');
+    return {
+      params: { slug },
+      props: { entry },
+    };
+  });
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+---
+
+<DocsLayout title={entry.data.title} description={entry.data.description}>
+  <Content components={mdxComponents as any} />
+</DocsLayout>

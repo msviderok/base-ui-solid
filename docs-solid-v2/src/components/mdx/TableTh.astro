@@ -1,0 +1,8 @@
+---
+const { scope, ...props } = Astro.props;
+---
+{scope === 'row' ? (
+  <th scope="row" class="TableRowHeader" {...props}><slot /></th>
+) : (
+  <th class="TableColumnHeader" {...props}><slot /></th>
+)}

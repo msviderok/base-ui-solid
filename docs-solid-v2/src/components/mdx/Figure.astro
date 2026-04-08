@@ -1,0 +1,9 @@
+---
+const props = Astro.props;
+const isCodeBlock = 'data-rehype-pretty-code-figure' in props;
+---
+{isCodeBlock ? (
+  <div role="figure" class="CodeBlockRoot mt-5 mb-6" {...props}><slot /></div>
+) : (
+  <figure {...props}><slot /></figure>
+)}

@@ -1,0 +1,35 @@
+---
+interface AttributeDef {
+  description?: string;
+}
+interface Props {
+  name: string;
+  data: Record<string, AttributeDef>;
+  class?: string;
+}
+const { name, data, class: className } = Astro.props;
+const entries = Object.entries(data ?? {});
+---
+
+{entries.length > 0 && (
+  <div class={`TableRoot my-5 ${className ?? ''}`} role="table" aria-label={`${name} data attributes`}>
+    <table>
+      <thead class="TableHead">
+        <tr class="TableRow">
+          <th class="TableColumnHeader">Attribute</th>
+          <th class="TableColumnHeader">Description</th>
+        </tr>
+      </thead>
+      <tbody class="TableBody">
+        {entries.map(([attrName, attr]) => (
+          <tr class="TableRow">
+            <th scope="row" class="TableRowHeader">
+              <code class="Code text-navy">{attrName}</code>
+            </th>
+            <td class="TableCell">{attr.description ?? ''}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}

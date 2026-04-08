@@ -1,0 +1,26 @@
+{
+  "name": "RenderElement",
+  "props": {
+    "componentProps": {
+      "type": "RenderElement.ComponentProps",
+      "required": true
+    },
+    "element": {
+      "type": "IntrinsicTagName | undefined",
+      "required": true
+    },
+    "params": {
+      "type": "RenderElement.Parameters",
+      "required": true
+    },
+    "ref": {
+      "type": "Ref<RenderedElementType | null | undefined>",
+      "required": true
+    },
+    "children": {
+      "type": "Element"
+    }
+  },
+  "dataAttributes": {},
+  "cssVariables": {}
+}

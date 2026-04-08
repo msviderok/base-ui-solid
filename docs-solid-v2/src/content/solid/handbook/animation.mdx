@@ -1,0 +1,32 @@
+---
+title: Animation
+order: 2
+description: How to animate Base UI components.
+---
+
+# Animation
+
+<Subtitle>How to animate Base UI components for Solid.</Subtitle>
+
+Base UI uses CSS variables to expose panel dimensions, enabling smooth height animations.
+
+## Height animation
+
+For components like Collapsible and Accordion, Base UI exposes a `--collapsible-panel-height` CSS variable. Use this with a CSS transition for smooth open/close animations.
+
+```css
+.Panel {
+  height: var(--collapsible-panel-height);
+  overflow: hidden;
+  transition: height 150ms ease-out;
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    height: 0;
+  }
+}
+```
+
+## Starting and ending styles
+
+Use `data-starting-style` and `data-ending-style` attributes to define the initial and final states for CSS transitions and animations.

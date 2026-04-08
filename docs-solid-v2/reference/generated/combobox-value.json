@@ -1,0 +1,16 @@
+{
+  "name": "ComboboxValue",
+  "description": "The current value of the combobox.\nDoesn't render its own HTML element.",
+  "props": {
+    "placeholder": {
+      "type": "JSX.Element",
+      "description": "The placeholder value to display when no value is selected.\nThis is overridden by `children` if specified, or by a null item's label in `items`."
+    },
+    "children": {
+      "type": "JSX.Element | ((selectedValue: Accessor<any>) => JSX.Element)",
+      "detailedType": "| JSX.Element\n| ((selectedValue: Accessor<any>) => JSX.Element)"
+    }
+  },
+  "dataAttributes": {},
+  "cssVariables": {}
+}

@@ -1,0 +1,6 @@
+---
+const { tabIndex, ...props } = Astro.props;
+---
+<div class="CodeBlockPreContainer" tabindex="-1">
+  <pre class="CodeBlockPre" {...props}><slot /></pre>
+</div>

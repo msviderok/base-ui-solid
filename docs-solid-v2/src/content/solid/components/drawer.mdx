@@ -1,0 +1,32 @@
+---
+title: Drawer
+description: A panel that slides in from the edge of the screen.
+---
+
+# Drawer
+
+<Subtitle>A panel that slides in from the edge of the screen.</Subtitle>
+
+> **Coming soon** — Demos and full documentation for this component are in progress.
+
+## Anatomy
+
+```jsx title="Anatomy"
+import { Drawer } from '@msviderok/base-ui-solid/drawer';
+
+<Drawer.Root>
+  <Drawer.Trigger />
+  <Drawer.Portal>
+    <Drawer.Backdrop />
+    <Drawer.Popup>
+      <Drawer.Title />
+      <Drawer.Description />
+      <Drawer.Close />
+    </Drawer.Popup>
+  </Drawer.Portal>
+</Drawer.Root>;
+```
+
+## API reference
+
+<Reference component="Drawer" parts="Root, Trigger, Portal, Backdrop, Popup, Title, Description, Close, Content, Viewport, Provider, SwipeArea, IndentBackground, Indent" />

@@ -1,0 +1,35 @@
+---
+interface CssVarDef {
+  description?: string;
+}
+interface Props {
+  name: string;
+  data: Record<string, CssVarDef>;
+  class?: string;
+}
+const { name, data, class: className } = Astro.props;
+const entries = Object.entries(data ?? {});
+---
+
+{entries.length > 0 && (
+  <div class={`TableRoot my-5 ${className ?? ''}`} role="table" aria-label={`${name} CSS variables`}>
+    <table>
+      <thead class="TableHead">
+        <tr class="TableRow">
+          <th class="TableColumnHeader">Variable</th>
+          <th class="TableColumnHeader">Description</th>
+        </tr>
+      </thead>
+      <tbody class="TableBody">
+        {entries.map(([varName, cssVar]) => (
+          <tr class="TableRow">
+            <th scope="row" class="TableRowHeader">
+              <code class="Code text-navy">{varName}</code>
+            </th>
+            <td class="TableCell">{cssVar.description ?? ''}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}

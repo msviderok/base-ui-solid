@@ -1,0 +1,11 @@
+{
+  "name": "DrawerProvider",
+  "description": "Provides a shared context for coordinating global Drawer UI,\nsuch as indent/background effects based on whether any Drawer is open.",
+  "props": {
+    "children": {
+      "type": "JSX.Element"
+    }
+  },
+  "dataAttributes": {},
+  "cssVariables": {}
+}

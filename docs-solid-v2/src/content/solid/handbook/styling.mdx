@@ -1,0 +1,44 @@
+---
+title: Styling
+order: 1
+description: How to style Base UI components.
+---
+
+# Styling
+
+<Subtitle>How to style Base UI components for Solid.</Subtitle>
+
+Base UI components are unstyled by default. You can style them using any CSS approach — CSS Modules, Tailwind CSS, plain CSS, or any CSS-in-JS solution.
+
+## Using data attributes
+
+Base UI components expose their state via `data-*` attributes on DOM elements. You can use these to write CSS that responds to component state.
+
+```css
+/* Style the trigger when the panel is open */
+[data-panel-open] .icon {
+  transform: rotate(90deg);
+}
+```
+
+## Tailwind CSS
+
+Use Tailwind's `data-[state]:` variant syntax to style components based on their state.
+
+```tsx
+<Collapsible.Trigger class="group data-[panel-open]:text-blue-600">
+  Toggle
+</Collapsible.Trigger>
+```
+
+## CSS Modules
+
+Import a CSS module and reference the class names.
+
+```tsx
+import styles from './component.module.css';
+
+<Collapsible.Root class={styles.Root}>
+  ...
+</Collapsible.Root>
+```
