@@ -1,5 +1,7 @@
 import type { AstroComponentFactory } from 'astro/runtime/server/index.js';
 import DemoWrapper from './components/Demo/Demo.astro';
+import Kbd from './components/Kbd.astro';
+import Link from './components/Link.astro';
 import CodeInline from './components/mdx/CodeInline.astro';
 import Figcaption from './components/mdx/Figcaption.astro';
 import Figure from './components/mdx/Figure.astro';
@@ -22,6 +24,7 @@ import TableTd from './components/mdx/TableTd.astro';
 import TableTh from './components/mdx/TableTh.astro';
 import Ul from './components/mdx/Ul.astro';
 import MetaWrapper from './components/Meta.astro';
+import ReleaseTimeline from './components/ReleaseTimeline.astro';
 import AttributesReferenceTable from './components/ReferenceTable/AttributesReferenceTable.astro';
 import CssVariablesReferenceTable from './components/ReferenceTable/CssVariablesReferenceTable.astro';
 import ParametersReferenceTable from './components/ReferenceTable/ParametersReferenceTable.astro';
@@ -30,6 +33,7 @@ import ReturnValueReferenceTable from './components/ReferenceTable/ReturnValueRe
 import SubtitleWrapper from './components/Subtitle.astro';
 
 export const mdxComponents: Record<string, AstroComponentFactory | string> = {
+  a: Link as any,
   h1: H1 as any,
   h2: H2 as any,
   h3: H3 as any,
@@ -40,6 +44,7 @@ export const mdxComponents: Record<string, AstroComponentFactory | string> = {
   li: Li as any,
   ul: Ul as any,
   ol: Ol as any,
+  kbd: Kbd as any,
   strong: Strong as any,
   code: CodeInline as any,
   figure: Figure as any,
@@ -54,6 +59,7 @@ export const mdxComponents: Record<string, AstroComponentFactory | string> = {
   Demo: DemoWrapper as any,
   Subtitle: SubtitleWrapper as any,
   Meta: MetaWrapper as any,
+  ReleaseTimeline: ReleaseTimeline as any,
   PropsReferenceTable: PropsReferenceTable as any,
   AttributesReferenceTable: AttributesReferenceTable as any,
   CssVariablesReferenceTable: CssVariablesReferenceTable as any,

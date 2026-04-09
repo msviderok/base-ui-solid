@@ -1,24 +1,94 @@
 ---
-title: Checkbox
-description: A checkbox component for Solid.
+title: "Checkbox"
+description: "A high-quality, unstyled React checkbox component that is easy to customize."
+order: 6
 ---
-
 # Checkbox
 
-<Subtitle>A control that allows the user to toggle between checked and not checked.</Subtitle>
+<Subtitle>An easily stylable checkbox component.</Subtitle>
+<Meta
+  name="description"
+  content="A high-quality, unstyled React checkbox component that is easy to customize."
+/>
 
-> **Coming soon** — Demos and full documentation for this component are in progress.
+<Demo path="checkbox/hero" />
+
+## Usage guidelines
+
+- **Form controls must have an accessible name**: It can be created using a `<label>` element or the `Field` component. See [Labeling a checkbox](#labeling-a-checkbox) and the [forms guide](/solid/handbook/forms).
 
 ## Anatomy
+
+Import the component and assemble its parts:
 
 ```jsx title="Anatomy"
 import { Checkbox } from '@msviderok/base-ui-solid/checkbox';
 
 <Checkbox.Root>
-  ...
+  <Checkbox.Indicator />
 </Checkbox.Root>;
+```
+
+## Examples
+
+### Labeling a checkbox
+
+Label a checkbox using an enclosing `<label>` element that wraps `<Checkbox.Root>`. An enclosing label is announced to screen readers when focus is on the control, and ensures that clicking on any gaps between the label and checkbox still toggles the control.
+
+```tsx title="Using an enclosing label to label a checkbox" {1,4}
+<label>
+  <Checkbox.Root />
+  Accept terms and conditions
+</label>
+```
+
+The [Field](/solid/components/field) component eliminates the need to track `id` or `aria-label` associations manually. It supports both enclosing and sibling labeling patterns, along with a UX improvement to prevent double clicks from selecting the label text.
+
+```tsx title="Using the Field component to label a checkbox" {2,5}
+<Field.Root>
+  <Field.Label>
+    <Checkbox.Root />
+    Accept terms and conditions
+  </Field.Label>
+</Field.Root>
+```
+
+### Form integration
+
+To use a single checkbox in a form, pass the checkbox's `name` to `<Field.Root>`:
+
+```tsx title="Using Checkbox in a form" {2}
+<Form>
+  <Field.Root name="stayLoggedIn">
+    <Field.Label>
+      <Checkbox.Root />
+      Stay logged in for 7 days
+    </Field.Label>
+  </Field.Root>
+</Form>
 ```
 
 ## API reference
 
 <Reference component="Checkbox" parts="Root, Indicator" />
+
+export const metadata = {
+  keywords: [
+    'React Checkbox',
+    'Checkbox Component',
+    'Accessible Checkbox',
+    'Customizable Checkbox',
+    'Form Control Checkbox',
+    'Checkmark',
+    'Tick Box',
+    'Selection Control',
+    'Checkbox Input',
+    'Binary Input',
+    'Checked State',
+    'Indeterminate Checkbox',
+    'Tri-State Checkbox',
+    'Headless React Components',
+    'Input Indicator',
+    'Base UI',
+  ],
+};

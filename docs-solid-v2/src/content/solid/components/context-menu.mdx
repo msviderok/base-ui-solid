@@ -1,25 +1,81 @@
 ---
-title: Context Menu
-isNew: true
-description: A context menu component for Solid.
+title: "Context Menu"
+description: "A high-quality, unstyled React context menu component that appears at the pointer on right click or long press."
+order: 10
 ---
-
 # Context Menu
 
-<Subtitle>A menu opened by right-clicking or pressing the context menu key.</Subtitle>
+<Subtitle>A menu that appears at the pointer on right click or long press.</Subtitle>
+<Meta
+  name="description"
+  content="A high-quality, unstyled React context menu component that appears at the pointer on right click or long press."
+/>
 
-> **Coming soon** — Demos and full documentation for this component are in progress.
+<Demo path="context-menu/hero" />
 
 ## Anatomy
+
+Import the components and place them together:
 
 ```jsx title="Anatomy"
 import { ContextMenu } from '@msviderok/base-ui-solid/context-menu';
 
 <ContextMenu.Root>
-  ...
+  <ContextMenu.Trigger />
+  <ContextMenu.Portal>
+    <ContextMenu.Backdrop />
+    <ContextMenu.Positioner>
+      <ContextMenu.Popup>
+        <ContextMenu.Arrow />
+        <ContextMenu.Item />
+        <ContextMenu.LinkItem />
+        <ContextMenu.Separator />
+        <ContextMenu.Group>
+          <ContextMenu.GroupLabel />
+        </ContextMenu.Group>
+        <ContextMenu.RadioGroup>
+          <ContextMenu.RadioItem />
+        </ContextMenu.RadioGroup>
+        <ContextMenu.CheckboxItem />
+        <ContextMenu.SubmenuRoot>
+          <ContextMenu.SubmenuTrigger />
+        </ContextMenu.SubmenuRoot>
+      </ContextMenu.Popup>
+    </ContextMenu.Positioner>
+  </ContextMenu.Portal>
 </ContextMenu.Root>;
 ```
+
+## Examples
+
+[Menu](/solid/components/menu#examples) displays additional demos, many of which apply to the context menu as well.
+
+### Nested menu
+
+To create a submenu, create a `<ContextMenu.SubmenuRoot>` inside the parent context menu. Use the `<ContextMenu.SubmenuTrigger>` part for the menu item that opens the nested menu.
+
+<Demo path="context-menu/submenu" />
 
 ## API reference
 
 <Reference component="ContextMenu" parts="Root, Trigger" />
+<Reference
+  component="Menu"
+  parts="Portal, Positioner, Popup, Arrow, Item, LinkItem, SubmenuRoot, SubmenuTrigger, Group, GroupLabel, RadioGroup, RadioItem, RadioItemIndicator, CheckboxItem, CheckboxItemIndicator, Separator"
+/>
+
+export const metadata = {
+  keywords: [
+    'React Context Menu',
+    'Context Menu Component',
+    'Right Click Menu',
+    'Secondary Click Menu',
+    'Pointer Menu',
+    'Touch Hold Menu',
+    'Long Press Menu',
+    'Nested Menu React',
+    'Accessible Context Menu',
+    'Headless React Components',
+    'Base UI',
+  ],
+};

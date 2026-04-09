@@ -1,24 +1,64 @@
 ---
-title: Number Field
-description: A number field component for Solid.
+title: "Number Field"
+description: "A high-quality, unstyled React number field component with increment and decrement buttons, and a scrub area."
+order: 21
 ---
-
 # Number Field
 
-<Subtitle>A numeric input with increment and decrement controls.</Subtitle>
+<Subtitle>A numeric input element with increment and decrement buttons, and a scrub area.</Subtitle>
 
-> **Coming soon** — Demos and full documentation for this component are in progress.
+<Meta
+  name="description"
+  content="A high-quality, unstyled React number field component with increment and decrement buttons, and a scrub area."
+/>
+
+<Demo path="number-field/hero" />
+
+## Usage guidelines
+
+- **Form controls must have an accessible name**: It can be created using a `<label>` element or the `Field` component. See the [forms guide](/solid/handbook/forms).
 
 ## Anatomy
+
+Import the component and assemble its parts:
 
 ```jsx title="Anatomy"
 import { NumberField } from '@msviderok/base-ui-solid/number-field';
 
 <NumberField.Root>
-  ...
+  <NumberField.ScrubArea>
+    <NumberField.ScrubAreaCursor />
+  </NumberField.ScrubArea>
+  <NumberField.Group>
+    <NumberField.Decrement />
+    <NumberField.Input />
+    <NumberField.Increment />
+  </NumberField.Group>
 </NumberField.Root>;
 ```
 
 ## API reference
 
-<Reference component="NumberField" parts="Root, Group, Input, Increment, Decrement, ScrubArea, ScrubAreaCursor" />
+<Reference
+  component="NumberField"
+  parts="Root, ScrubArea, ScrubAreaCursor, Group, Decrement, Input, Increment"
+/>
+
+export const metadata = {
+  keywords: [
+    'React Number Field',
+    'Number Input Component',
+    'Number Spinner',
+    'Spinner Input',
+    'Spin Button',
+    'Stepper',
+    'Numeric Input',
+    'Increment Decrement Buttons',
+    'Up Down Control',
+    'Scrub Area Input',
+    'Numeric Form Control',
+    'Accessible Number Field',
+    'Headless React Components',
+    'Base UI',
+  ],
+};

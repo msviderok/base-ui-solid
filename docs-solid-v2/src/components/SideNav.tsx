@@ -5,7 +5,6 @@ import type { NavLink, NavSection } from '../utils/buildNav';
 import { HEADER_HEIGHT } from '../utils/constants';
 
 export default function SideNav(props: ParentProps<{ pathname: string; sitemap: NavSection[] }>) {
-  console.log(props.sitemap);
   return (
     <ScrollArea.Root>
       <ScrollArea.Viewport data-side-nav-viewport class="SideNavViewport">
@@ -74,16 +73,17 @@ function Item(props: { link: NavLink; currentPath: string }) {
         href={props.link.href}
         aria-current={active() ? 'page' : undefined}
         data-active={active() || undefined}
-        onClick={(e) => {
-          if (!active()) {
-            e.preventDefault();
-          }
-          // Scroll to top smoothly when clicking on the currently active item
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        // onClick={(e) => {
+        //   if (!active()) {
+        //     e.preventDefault();
+        //   }
+        //   // Scroll to top smoothly when clicking on the currently active item
+        //   window.scrollTo({ top: 0, behavior: 'smooth' });
+        // }}
       >
         {props.link.label}
         {props.link.isNew && <span class="SideNavBadge">New</span>}
+        {props.link.isPreview && <span class="SideNavBadge">Preview</span>}
       </a>
     </li>
   );

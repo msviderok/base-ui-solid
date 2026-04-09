@@ -1,24 +1,52 @@
 ---
-title: Field
-description: A field component for Solid.
+title: "Field"
+description: "A high-quality, unstyled React field component that provides labeling and validation for form controls."
+order: 13
 ---
-
 # Field
 
-<Subtitle>A form field that groups a label, control, and description.</Subtitle>
+<Subtitle>A component that provides labeling and validation for form controls.</Subtitle>
 
-> **Coming soon** — Demos and full documentation for this component are in progress.
+<Meta
+  name="description"
+  content="A high-quality, unstyled React field component that provides labeling and validation for form controls."
+/>
+
+<Demo path="field/hero" />
 
 ## Anatomy
+
+Import the component and assemble its parts:
 
 ```jsx title="Anatomy"
 import { Field } from '@msviderok/base-ui-solid/field';
 
 <Field.Root>
-  ...
+  <Field.Label />
+  <Field.Control />
+  <Field.Description />
+  <Field.Item />
+  <Field.Error />
+  <Field.Validity />
 </Field.Root>;
 ```
 
 ## API reference
 
-<Reference component="Field" parts="Root, Label, Control, Description, Error, Validity" />
+<Reference component="Field" parts="Root, Label, Control, Description, Item, Error, Validity" />
+
+export const metadata = {
+  keywords: [
+    'React Field Component',
+    'Form Field Labeling',
+    'Form Label',
+    'Input Wrapper',
+    'Form Validation',
+    'Accessible Form Field',
+    'Field Validation UI',
+    'Headless React Components',
+    'Custom Form Control Wrapper',
+    'Form Description Error State',
+    'Base UI',
+  ],
+};

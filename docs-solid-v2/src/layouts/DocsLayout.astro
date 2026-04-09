@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from 'astro:transitions';
 import SideNav from '../components/SideNav';
 import Header from '../components/Header.astro';
 import { buildNav } from '../utils/buildNav';
@@ -28,6 +29,7 @@ const nav = await buildNav();
     <link rel="preload" href="/fonts/bold.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <link rel="icon" href="/static/favicon.ico" sizes="32x32" />
+    <ClientRouter />
   </head>
   <body>
     <div class="RootLayout">

@@ -2,7 +2,9 @@
 const { scope, ...props } = Astro.props;
 ---
 {scope === 'row' ? (
-  <th scope="row" class="TableRowHeader" {...props}><slot /></th>
+  <th scope="row" class="TableCell" {...props}><span class="TableCellInner"><slot /></span></th>
 ) : (
-  <th class="TableColumnHeader" {...props}><slot /></th>
+  <th scope="col" class="TableColumnHeader" {...props}>
+    <span class="TableCellInner"><slot /></span>
+  </th>
 )}

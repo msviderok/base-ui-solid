@@ -4,6 +4,8 @@ export interface NavLink {
   label: string;
   href: string;
   isNew?: boolean;
+  isPreview?: boolean;
+  isExternal?: boolean;
 }
 
 export interface NavSection {
@@ -21,54 +23,60 @@ const SECTION_LABELS: Record<string, string> = {
   utils: 'Utilities',
 };
 
+const TITLE_MAP: Record<string, string> = {
+  'About Base UI': 'About',
+  'About Base\u00A0UI': 'About',
+};
+
+const EXTRA_LINKS: Partial<Record<(typeof SECTION_ORDER)[number], NavLink[]>> = {
+  handbook: [{ label: 'llms.txt', href: '/llms.txt', isExternal: true }],
+};
+
 export async function buildNav(): Promise<NavSection[]> {
   const entries = await getCollection('solid');
-
-  const buckets: Record<string, NavLink[]> = {
-    overview: [],
-    handbook: [],
-    components: [],
-    utils: [],
-  };
+  const sectionEntries = new Map(
+    entries
+      .filter((entry) => !entry.id.includes('/'))
+      .map((entry) => [entry.id.replace(/\.mdx$/, ''), entry]),
+  );
+  const buckets = new Map<string, Array<NavLink & { order: number; depth: number }>>();
 
   for (const entry of entries) {
-    // entry.id = 'overview/quick-start.mdx'
     const id = entry.id.replace(/\.mdx$/, '');
-    const slash = id.indexOf('/');
-    if (slash === -1) continue;
+    const parts = id.split('/');
+    const [section, ...slugParts] = parts;
 
-    const section = id.slice(0, slash);
-    const slug = id.slice(slash + 1);
+    if (!SECTION_ORDER.includes(section as (typeof SECTION_ORDER)[number])) {
+      continue;
+    }
 
-    if (!(section in buckets)) continue;
+    if (slugParts.length !== 1) {
+      continue;
+    }
 
-    buckets[section].push({
-      label: entry.data.title ?? slug,
-      href: `/solid/${section}/${slug}`,
+    if (!buckets.has(section)) {
+      buckets.set(section, []);
+    }
+
+    buckets.get(section)?.push({
+      label: TITLE_MAP[entry.data.title ?? slugParts[0]] ?? entry.data.title ?? slugParts[0],
+      href: `/solid/${id}`,
       isNew: entry.data.isNew ?? false,
+      isPreview: entry.data.isPreview ?? false,
+      order: entry.data.order ?? Number.MAX_SAFE_INTEGER,
+      depth: slugParts.length,
     });
   }
 
-  // Sort each section: overview/handbook/utils by `order` frontmatter,
-  // components alphabetically by label (mirrors the React docs)
-  for (const [section, links] of Object.entries(buckets)) {
-    if (section === 'components') {
-      links.sort((a, b) => a.label.localeCompare(b.label));
-    } else {
-      links.sort((a, b) => {
-        const aOrder = entries.find(
-          (e) => e.id === `${section}/${a.href.split('/').pop()}.mdx`,
-        )?.data.order ?? 99;
-        const bOrder = entries.find(
-          (e) => e.id === `${section}/${b.href.split('/').pop()}.mdx`,
-        )?.data.order ?? 99;
-        return aOrder - bOrder;
-      });
-    }
+  for (const links of buckets.values()) {
+    links.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
   }
 
   return SECTION_ORDER.map((key) => ({
-    label: SECTION_LABELS[key],
-    links: buckets[key],
-  }));
+    label: sectionEntries.get(key)?.data.title ?? SECTION_LABELS[key],
+    links: [
+      ...(buckets.get(key) ?? []).map(({ order, depth, ...link }) => link),
+      ...(EXTRA_LINKS[key] ?? []),
+    ],
+  })).filter((section) => section.links.length > 0);
 }

@@ -1,15 +1,27 @@
 ---
-title: Button
-description: A button component with built-in accessibility.
+title: "Button"
+description: "A high-quality, unstyled React button component that can be rendered as another tag or focusable when disabled."
+order: 5
 ---
-
 # Button
 
-<Subtitle>A button component with built-in accessibility.</Subtitle>
+<Subtitle>
+  A button component that can be rendered as another tag or focusable when disabled.
+</Subtitle>
+<Meta
+  name="description"
+  content="A high-quality, unstyled React button component that can be rendered as another tag or focusable when disabled."
+/>
 
-> **Coming soon** — Demos and full documentation for this component are in progress.
+<Demo path="button/hero" />
+
+## Usage guidelines
+
+- **Submit buttons**: Unlike the native button element, `type="submit"` must be specified on Button for it to act as a submit button.
 
 ## Anatomy
+
+Import the component:
 
 ```jsx title="Anatomy"
 import { Button } from '@msviderok/base-ui-solid/button';
@@ -17,6 +29,42 @@ import { Button } from '@msviderok/base-ui-solid/button';
 <Button />;
 ```
 
+## Examples
+
+### Rendering as another tag
+
+The button can remain keyboard accessible while being rendered as another tag, such as a `<div>`, by specifying `nativeButton={false}`.
+
+```jsx title="Custom tag button" "nativeButton"
+import { Button } from '@msviderok/base-ui-solid/button';
+
+<Button render={<div />} nativeButton={false}>
+  Button that can contain complex children
+</Button>;
+```
+
+### Loading states
+
+For buttons that enter a loading state after being clicked, specify the `focusableWhenDisabled` prop to ensure focus remains on the button when it becomes disabled. This prevents focus from being lost and maintains the tab order.
+
+<Demo path="button/loading" compact />
+
 ## API reference
 
 <Reference component="Button" />
+
+export const metadata = {
+  keywords: [
+    'React Button',
+    'Button Component',
+    'Focusable Disabled Button',
+    'Custom Element Button',
+    'Clickable Element',
+    'Action Button',
+    'Submit Button',
+    'Accessible Button',
+    'Loading State Button',
+    'Headless React Components',
+    'Base UI',
+  ],
+};

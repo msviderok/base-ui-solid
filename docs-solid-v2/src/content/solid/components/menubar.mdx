@@ -1,25 +1,66 @@
 ---
-title: Menubar
-isNew: true
-description: A menubar component for Solid.
+title: "Menubar"
+description: "A menu bar providing commands and options for your application."
+order: 18
 ---
-
 # Menubar
 
-<Subtitle>A horizontal bar of menus.</Subtitle>
+<Subtitle>A menu bar providing commands and options for your application.</Subtitle>
+<Meta
+  name="description"
+  content="A menu bar providing commands and options for your application."
+/>
 
-> **Coming soon** — Demos and full documentation for this component are in progress.
+<Demo path="menubar/hero" />
 
 ## Anatomy
 
+Import the component and assemble its parts:
+
 ```jsx title="Anatomy"
 import { Menubar } from '@msviderok/base-ui-solid/menubar';
+import { Menu } from '@msviderok/base-ui-solid/menu';
 
-<Menubar.Root>
-  ...
-</Menubar.Root>;
+<Menubar>
+  <Menu.Root>
+    <Menu.Trigger />
+    <Menu.Portal>
+      <Menu.Backdrop />
+      <Menu.Positioner>
+        <Menu.Popup>
+          <Menu.Arrow />
+          <Menu.Item />
+          <Menu.Separator />
+          <Menu.Group>
+            <Menu.GroupLabel />
+          </Menu.Group>
+          <Menu.RadioGroup>
+            <Menu.RadioItem />
+          </Menu.RadioGroup>
+          <Menu.CheckboxItem />
+        </Menu.Popup>
+      </Menu.Positioner>
+    </Menu.Portal>
+  </Menu.Root>
+</Menubar>;
 ```
 
 ## API reference
 
 <Reference component="Menubar" />
+
+export const metadata = {
+  keywords: [
+    'React Menubar',
+    'Menubar Component',
+    'Application Menu Bar',
+    'App Menu',
+    'Navigation Bar',
+    'Command Bar',
+    'Desktop Style Menu',
+    'Keyboard Navigation Menu',
+    'Accessible Menubar',
+    'Headless React Components',
+    'Base UI',
+  ],
+};

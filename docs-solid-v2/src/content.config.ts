@@ -8,6 +8,7 @@ const solid = defineCollection({
     description: z.string().optional(),
     order: z.number().optional(),
     isNew: z.boolean().optional(),
+    isPreview: z.boolean().optional(),
   }),
 });
 

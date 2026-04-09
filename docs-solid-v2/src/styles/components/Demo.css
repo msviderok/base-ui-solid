@@ -4,6 +4,11 @@
     border: 1px solid var(--color-gray-200);
     border-radius: var(--radius-md);
     margin-bottom: calc(var(--spacing) * 6);
+
+    &[data-compact] .DemoPlaygroundInner {
+      padding-block: 1.5rem;
+      min-height: 6.5rem;
+    }
   }
 
   .DemoPlayground {
@@ -104,6 +109,10 @@
       background: linear-gradient(to right, transparent, var(--color-gray-50));
       pointer-events: none;
     }
+  }
+
+  .DemoHelperText {
+    color: var(--color-gray-500);
   }
 
   .DemoFilename {
@@ -209,6 +218,22 @@
           background: linear-gradient(to bottom, rgb(0 0 0 / 0), rgb(0 0 0 / 60%));
         }
       }
+    }
+  }
+
+  .DemoUnavailable {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    text-align: center;
+    color: var(--color-gray-500);
+    max-width: 28rem;
+    margin-inline: auto;
+
+    strong {
+      color: var(--color-foreground);
+      font-weight: 500;
     }
   }
 

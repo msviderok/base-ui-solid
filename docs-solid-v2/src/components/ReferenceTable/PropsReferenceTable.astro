@@ -1,55 +1,6 @@
 ---
-interface PropDef {
-  type?: string;
-  default?: string;
-  description?: string;
-  required?: boolean;
-}
-interface Props {
-  name: string;
-  data: Record<string, PropDef>;
-  class?: string;
-}
-const { name, data, class: className } = Astro.props;
-const entries = Object.entries(data ?? {});
----
+import { PropsReferenceTable as PropsReferenceTableRoot } from './PropsReferenceTable.tsx';
 
-<div class={`TableRoot my-5 ${className ?? ''}`} role="table" aria-label={`${name} props`}>
-  <table>
-    <thead class="TableHead">
-      <tr class="TableRow">
-        <th class="TableColumnHeader">Prop</th>
-        <th class="TableColumnHeader">Type</th>
-        <th class="TableColumnHeader">Default</th>
-      </tr>
-    </thead>
-    <tbody class="TableBody">
-      {entries.flatMap(([propName, prop]) => {
-        const rows = [];
-        rows.push({ type: 'main', propName, prop });
-        if (prop.description) {
-          rows.push({ type: 'desc', propName, prop });
-        }
-        return rows;
-      }).map((row) =>
-        row.type === 'main' ? (
-          <tr class="TableRow" id={`${name}-${row.propName}`}>
-            <th scope="row" class="TableRowHeader">
-              <code class="Code text-navy">{row.propName}{row.prop.required ? <sup class="text-red-800">*</sup> : ''}</code>
-            </th>
-            <td class="TableCell">
-              {row.prop.type && <code class="Code">{row.prop.type}</code>}
-            </td>
-            <td class="TableCell">
-              {row.prop.default !== undefined ? <code class="Code">{row.prop.default}</code> : <span class="text-gray-500">—</span>}
-            </td>
-          </tr>
-        ) : (
-          <tr class="TableRow">
-            <td colspan="3" class="TableCell text-gray-600 text-sm pb-3">{row.prop.description}</td>
-          </tr>
-        )
-      )}
-    </tbody>
-  </table>
-</div>
+const props = Astro.props;
+---
+<PropsReferenceTableRoot {...props} client:only="solid-js" />

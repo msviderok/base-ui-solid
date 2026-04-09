@@ -1,0 +1,46 @@
+---
+import { ExternalLinkIcon } from '../icons/ExternalLinkIcon';
+
+interface Props {
+  href?: string | URL;
+  class?: string;
+  className?: string;
+  skipExternalIcon?: boolean;
+  rel?: string;
+  target?: string;
+}
+
+const {
+  href,
+  class: className,
+  className: classNameProp,
+  skipExternalIcon = false,
+  rel,
+  target,
+  ...rest
+} = Astro.props;
+
+const initialHref = href instanceof URL ? href.toString() : href ? String(href) : '';
+let normalizedHref = initialHref;
+
+if (normalizedHref.startsWith('https://base-ui.com/react')) {
+  normalizedHref = normalizedHref.replace('https://base-ui.com/react', '/solid');
+}
+
+const isExternal = /^https?:\/\//.test(normalizedHref);
+const linkClass = isExternal
+  ? `Link mr-[0.125em] inline-flex items-center gap-[0.25em] ${className ?? classNameProp ?? ''}`.trim()
+  : `Link ${className ?? classNameProp ?? ''}`.trim();
+const resolvedTarget = isExternal ? target ?? '_blank' : target;
+const resolvedRel = isExternal ? rel ?? 'noopener' : rel;
+---
+<a
+  {...rest}
+  href={normalizedHref}
+  class={linkClass}
+  rel={resolvedRel}
+  target={resolvedTarget}
+>
+  <slot />
+  {isExternal && !skipExternalIcon && <ExternalLinkIcon />}
+</a>

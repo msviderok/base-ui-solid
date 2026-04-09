@@ -59,7 +59,7 @@ function getLangFromFile(filename: string): 'tsx' | 'css' {
 }
 
 async function buildVirtualModule(projectRoot: string): Promise<string> {
-  const demosDir = path.join(projectRoot, 'src', 'demos');
+  const demosDir = path.join(projectRoot, 'src', 'demos', 'solid');
 
   if (!fs.existsSync(demosDir)) {
     return `export const demoComponents = [];\nexport const demoData = {};\n`;
@@ -70,9 +70,9 @@ async function buildVirtualModule(projectRoot: string): Promise<string> {
   // Find all demo component entry files (index.tsx per variant)
   const componentFiles = await fg('**/*/index.tsx', { cwd: demosDir, absolute: true });
 
-  // Group by demo key: "component/demo-name"
-  // Path structure: src/demos/component/demo-name/variant/index.tsx
-  // Variant dirs are the immediate parents of index.tsx
+  // Group by demo key.
+  // Path structure: src/demos/solid/**/variant/index.tsx
+  // The variant dir is the immediate parent of index.tsx.
 
   interface VariantInfo {
     demoKey: string;
@@ -84,13 +84,15 @@ async function buildVirtualModule(projectRoot: string): Promise<string> {
   const variants: VariantInfo[] = [];
 
   for (const file of componentFiles) {
-    const rel = path.relative(demosDir, file); // e.g. collapsible/hero/tailwind/index.tsx
+    const rel = path.relative(demosDir, file);
     const parts = rel.split(path.sep);
-    if (parts.length < 4) continue; // need component/demo/variant/index.tsx
+    if (parts.length < 3) continue;
 
-    const [component, demo, variant] = parts;
-    const demoKey = `${component}/${demo}`;
+    const variant = parts.at(-2);
+    const demoKey = parts.slice(0, -2).join('/');
     const variantDir = path.dirname(file);
+
+    if (!variant || !demoKey) continue;
 
     variants.push({ demoKey, variantName: variant, componentFile: file, dir: variantDir });
   }
@@ -170,10 +172,10 @@ export function demosPlugin() {
     },
     // Invalidate when demos change
     configureServer(server: any) {
-      const demosDir = path.join(projectRoot, 'src', 'demos');
+      const demosDir = path.join(projectRoot, 'src', 'demos', 'solid');
       server.watcher.add(demosDir);
       server.watcher.on('change', (file: string) => {
-        if (file.includes(path.join('src', 'demos'))) {
+        if (file.includes(path.join('src', 'demos', 'solid'))) {
           cachedModule = null;
           const mod = server.moduleGraph.getModuleById(RESOLVED_ID);
           if (mod) {

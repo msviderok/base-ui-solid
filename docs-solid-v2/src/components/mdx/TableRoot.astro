@@ -1,4 +1,10 @@
 ---
-const { ...props } = Astro.props;
+import TableRootEnhancer from './TableRootEnhancer';
+
+const { class: className, ...props } = Astro.props;
+const rootId = `table-${crypto.randomUUID()}`;
 ---
-<div class="TableRoot my-5" {...props}><table><slot /></table></div>
+<div id={rootId} class={`TableRoot my-5 ${className ?? ''}`.trim()} {...props}>
+  <table class="TableRootTable"><slot /></table>
+</div>
+<TableRootEnhancer client:load rootId={rootId} />

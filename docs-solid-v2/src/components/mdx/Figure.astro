@@ -1,9 +1,18 @@
 ---
+import CodeBlockEnhancer from './CodeBlockEnhancer';
+
 const props = Astro.props;
 const isCodeBlock = 'data-rehype-pretty-code-figure' in props;
+const { class: className, ...rest } = props;
+const rootId = `code-block-${crypto.randomUUID()}`;
 ---
 {isCodeBlock ? (
-  <div role="figure" class="CodeBlockRoot mt-5 mb-6" {...props}><slot /></div>
+  <>
+    <div id={rootId} role="figure" class={`CodeBlockRoot mt-5 mb-6 ${className ?? ''}`.trim()} {...rest}>
+      <slot />
+    </div>
+    <CodeBlockEnhancer client:load rootId={rootId} />
+  </>
 ) : (
   <figure {...props}><slot /></figure>
 )}

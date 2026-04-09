@@ -1,15 +1,21 @@
 ---
-title: Accordion
-description: An accordion component for Solid.
+title: "Accordion"
+description: "A high-quality, unstyled React accordion component that displays a set of collapsible panels with headings."
+order: 1
 ---
-
 # Accordion
 
-<Subtitle>A vertically stacked set of interactive headings.</Subtitle>
+<Subtitle>A set of collapsible panels with headings.</Subtitle>
+<Meta
+  name="description"
+  content="A high-quality, unstyled React accordion component that displays a set of collapsible panels with headings."
+/>
 
-> **Coming soon** — Demos and full documentation for this component are in progress.
+<Demo path="accordion/hero" />
 
 ## Anatomy
+
+Import the component and assemble its parts:
 
 ```jsx title="Anatomy"
 import { Accordion } from '@msviderok/base-ui-solid/accordion';
@@ -24,6 +30,29 @@ import { Accordion } from '@msviderok/base-ui-solid/accordion';
 </Accordion.Root>;
 ```
 
+## Examples
+
+### Open multiple panels
+
+You can set up the accordion to allow multiple panels to be open at the same time using the `multiple` prop.
+
+<Demo path="accordion/multiple" compact />
+
 ## API reference
 
 <Reference component="Accordion" parts="Root, Item, Header, Trigger, Panel" />
+
+export const metadata = {
+  keywords: [
+    'React Accordion',
+    'Accordion Component',
+    'Collapsible Content',
+    'Expandable Panel',
+    'Accessible Accordion',
+    'Multi-Panel UI',
+    'Disclosure Widget',
+    'FAQ Component',
+    'Headless React Components',
+    'Base UI',
+  ],
+};

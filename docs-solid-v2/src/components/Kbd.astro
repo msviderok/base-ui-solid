@@ -1,0 +1,12 @@
+---
+interface Props {
+  class?: string;
+  className?: string;
+}
+
+const { class: className, className: classNameProp, ...rest } = Astro.props;
+const mergedClass = `Kbd ${className ?? classNameProp ?? ''}`.trim();
+---
+<kbd {...rest} class={mergedClass}>
+  <slot />
+</kbd>

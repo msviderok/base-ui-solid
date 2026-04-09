@@ -1,38 +1,6 @@
 ---
-interface ParamDef {
-  type?: string;
-  description?: string;
-  required?: boolean;
-}
-interface Props {
-  name: string;
-  data: Record<string, ParamDef>;
-  class?: string;
-}
-const { name, data, class: className } = Astro.props;
-const entries = Object.entries(data ?? {});
----
+import { ParametersReferenceTable as ParametersReferenceTableRoot } from './ParametersReferenceTable.tsx';
 
-<div class={`TableRoot my-5 ${className ?? ''}`} role="table" aria-label={`${name} parameters`}>
-  <table>
-    <thead class="TableHead">
-      <tr class="TableRow">
-        <th class="TableColumnHeader">Parameter</th>
-        <th class="TableColumnHeader">Type</th>
-      </tr>
-    </thead>
-    <tbody class="TableBody">
-      {entries.map(([paramName, param]) => (
-        <tr class="TableRow">
-          <th scope="row" class="TableRowHeader">
-            <code class="Code text-navy">{paramName}{param.required ? <sup class="text-red-800">*</sup> : ''}</code>
-          </th>
-          <td class="TableCell">
-            {param.type && <code class="Code">{param.type}</code>}
-            {param.description && <p class="text-sm text-gray-600 mt-1">{param.description}</p>}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+const props = Astro.props;
+---
+<ParametersReferenceTableRoot {...props} client:only="solid-js" />

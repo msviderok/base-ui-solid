@@ -1,37 +1,6 @@
 ---
-interface ReturnDef {
-  type?: string;
-  description?: string;
-}
-interface Props {
-  name: string;
-  data: Record<string, ReturnDef>;
-  class?: string;
-}
-const { name, data, class: className } = Astro.props;
-const entries = Object.entries(data ?? {});
----
+import { ReturnValueReferenceTable as ReturnValueReferenceTableRoot } from './ReturnValueReferenceTable.tsx';
 
-<div class={`TableRoot my-5 ${className ?? ''}`} role="table" aria-label={`${name} return value`}>
-  <table>
-    <thead class="TableHead">
-      <tr class="TableRow">
-        <th class="TableColumnHeader">Property</th>
-        <th class="TableColumnHeader">Type</th>
-      </tr>
-    </thead>
-    <tbody class="TableBody">
-      {entries.map(([propName, ret]) => (
-        <tr class="TableRow">
-          <th scope="row" class="TableRowHeader">
-            <code class="Code text-navy">{propName}</code>
-          </th>
-          <td class="TableCell">
-            {ret.type && <code class="Code">{ret.type}</code>}
-            {ret.description && <p class="text-sm text-gray-600 mt-1">{ret.description}</p>}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+const props = Astro.props;
+---
+<ReturnValueReferenceTableRoot {...props} client:only="solid-js" />

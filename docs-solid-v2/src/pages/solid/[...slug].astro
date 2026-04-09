@@ -6,15 +6,12 @@ import { mdxComponents } from '../../mdx-components';
 export async function getStaticPaths() {
   const entries = await getCollection('solid');
 
-  return entries.map((entry) => {
-    console.log(entry.id);
-    // Convert 'overview/quick-start.mdx' -> 'overview/quick-start'
-    const slug = entry.id.replace(/\.mdx$/, '');
-    return {
-      params: { slug },
+  return entries
+    .filter((entry) => !['index', 'index.mdx'].includes(entry.id))
+    .map((entry) => ({
+      params: { slug: entry.id.replace(/\.mdx$/, '') },
       props: { entry },
-    };
-  });
+    }));
 }
 
 const { entry } = Astro.props;
