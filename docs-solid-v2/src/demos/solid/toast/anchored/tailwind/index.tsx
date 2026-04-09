@@ -1,8 +1,8 @@
-import { createSignal } from 'solid-js';
-import type { JSX } from 'solid-js';
-import { Toast } from '@msviderok/base-ui-solid/toast';
 import { Button } from '@msviderok/base-ui-solid/button';
+import { Toast } from '@msviderok/base-ui-solid/toast';
 import { Tooltip } from '@msviderok/base-ui-solid/tooltip';
+import type { JSX } from 'solid-js';
+import { createSignal } from 'solid-js';
 
 const stackedToastManager = Toast.createToastManager();
 const anchoredToastManager = Toast.createToastManager();
@@ -36,8 +36,9 @@ function StackedToastButton() {
       type="button"
       class="box-border flex h-10 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-3.5 py-0 font-medium text-gray-900 outline-0 select-none hover:bg-gray-100 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 active:bg-gray-100"
       onClick={createToast}
-    >Stacked toast
-          </button>
+    >
+      Stacked toast
+    </button>
   );
 }
 
@@ -99,11 +100,7 @@ function AnchoredToasts() {
     <Toast.Portal>
       <Toast.Viewport class="outline-0">
         {toasts.map((toast) => (
-          <Toast.Positioner
-            key={toast.id}
-            toast={toast}
-            class="z-[calc(1000-var(--toast-index))]"
-          >
+          <Toast.Positioner key={toast.id} toast={toast} class="z-[calc(1000-var(--toast-index))]">
             <Toast.Root
               toast={toast}
               class="group flex w-max origin-(--transform-origin) flex-col rounded-md bg-[canvas] px-2 py-1 text-sm shadow-lg shadow-gray-200 outline-1 outline-gray-200 transition-[transform,scale,opacity] data-ending-style:scale-90 data-ending-style:opacity-0 data-starting-style:scale-90 data-starting-style:opacity-0 focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 dark:shadow-none dark:-outline-offset-1 dark:outline-gray-300 dark:focus-visible:outline-blue-400"
@@ -178,9 +175,9 @@ function ClipboardIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
@@ -198,9 +195,9 @@ function CheckIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M20 6 9 17l-5-5" />
@@ -217,9 +214,9 @@ function XIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M18 6 6 18" />

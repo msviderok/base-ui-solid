@@ -1,5 +1,3 @@
-
-
 export function Paper(props: React.ComponentProps<'svg'>) {
   return (
     <svg

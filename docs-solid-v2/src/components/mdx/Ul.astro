@@ -1,4 +1,7 @@
 ---
 const { ...props } = Astro.props;
 ---
-<ul class="mb-4 ml-4.5 list-disc" {...props}><slot /></ul>
+
+<ul class="mb-4 ml-4.5 list-disc" {...props}>
+  <slot />
+</ul>

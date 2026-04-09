@@ -33,10 +33,26 @@ export function HomepageFaq() {
             <Accordion.Header class="AccordionHeader">
               <Accordion.Trigger class="AccordionTrigger Text size-2">
                 {item.q}
-                <svg class="AccordionIcon AccordionIconPlus" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <svg
+                  class="AccordionIcon AccordionIconPlus"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
                   <path d="M8 3v10M3 8h10" />
                 </svg>
-                <svg class="AccordionIcon AccordionIconMinus" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <svg
+                  class="AccordionIcon AccordionIconMinus"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
                   <path d="M3 8h10" />
                 </svg>
               </Accordion.Trigger>

@@ -10,6 +10,7 @@
     "styled-components.vscode-styled-components", // styled()
 
     // Lint
+    "biomejs.biome", // Biome
     "dbaeumer.vscode-eslint", // ESLint
     "yoavbls.pretty-ts-errors", // TypeScript
     "stylelint.vscode-stylelint", // Stylelint

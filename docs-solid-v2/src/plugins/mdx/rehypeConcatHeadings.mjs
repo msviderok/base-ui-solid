@@ -1,7 +1,7 @@
 /* eslint-disable no-plusplus */
 import { headingRank } from 'hast-util-heading-rank';
 import { toString } from 'hast-util-to-string';
-import { visit, CONTINUE, EXIT } from 'unist-util-visit';
+import { CONTINUE, EXIT, visit } from 'unist-util-visit';
 import { stringToUrl } from './rehypeSlug.mjs';
 
 export function rehypeConcatHeadings() {

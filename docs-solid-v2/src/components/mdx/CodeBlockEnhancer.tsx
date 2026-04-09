@@ -1,8 +1,8 @@
 import { createSignal, onCleanup, onMount } from 'solid-js';
 import { render } from 'solid-js/web';
-import { CheckIcon } from '../../icons/CheckIcon';
-import { CopyIcon } from '../../icons/CopyIcon';
 import { GhostButton } from '../GhostButton';
+import { CheckIcon } from '../icons/CheckIcon';
+import { CopyIcon } from '../icons/CopyIcon';
 
 interface Props {
   rootId: string;
@@ -10,11 +10,11 @@ interface Props {
 
 function CopyButton(props: { getText: () => string }) {
   const [copied, setCopied] = createSignal(false);
-  let timeoutId: number | undefined;
+  let timeoutId: NodeJS.Timeout | undefined;
 
   onCleanup(() => {
     if (timeoutId) {
-      window.clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
     }
   });
 
@@ -32,10 +32,10 @@ function CopyButton(props: { getText: () => string }) {
         setCopied(true);
 
         if (timeoutId) {
-          window.clearTimeout(timeoutId);
+          clearTimeout(timeoutId);
         }
 
-        timeoutId = window.setTimeout(() => {
+        timeoutId = setTimeout(() => {
           setCopied(false);
           timeoutId = undefined;
         }, 2000);

@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { Popover } from '@msviderok/base-ui-solid/popover';
+import { createSignal } from 'solid-js';
 import { ArrowSvg, BellIcon } from '../../icons-tw';
 
 const demoPopover = Popover.createHandle();

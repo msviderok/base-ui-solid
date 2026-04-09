@@ -1,6 +1,6 @@
-import type { JSX } from 'solid-js';
 import { Combobox } from '@msviderok/base-ui-solid/combobox';
 import { Field } from '@msviderok/base-ui-solid/field';
+import type { JSX } from 'solid-js';
 import styles from './index.module.css';
 
 export default function ExamplePopoverCombobox() {
@@ -11,9 +11,7 @@ export default function ExamplePopoverCombobox() {
       </Field.Label>
       <Combobox.Root items={countries}>
         <Combobox.Trigger class={styles.Trigger}>
-          <Combobox.Value
-            placeholder={<span class={styles.Placeholder}>Select country</span>}
-          />
+          <Combobox.Value placeholder={<span class={styles.Placeholder}>Select country</span>} />
           <Combobox.Icon class={styles.TriggerIcon}>
             <ChevronUpDownIcon />
           </Combobox.Icon>
@@ -51,7 +49,7 @@ function ChevronUpDownIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 8 12"
       fill="none"
       stroke="currentcolor"
-      strokeWidth="1.5"
+      stroke-width="1.5"
       {...props}
     >
       <path d="M0.5 4.5L4 1.5L7.5 4.5" />

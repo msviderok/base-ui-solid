@@ -1,5 +1,5 @@
-import type { JSX } from 'solid-js';
 import { Tooltip } from '@msviderok/base-ui-solid/tooltip';
+import type { JSX } from 'solid-js';
 import styles from '../../index.module.css';
 
 const demoTooltip = Tooltip.createHandle();
@@ -54,9 +54,9 @@ function InfoIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={2}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <circle cx="12" cy="12" r="10" />

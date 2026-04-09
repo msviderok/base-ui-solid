@@ -1,5 +1,5 @@
-import { Popover } from '@msviderok/base-ui-solid/popover';
 import { Avatar } from '@msviderok/base-ui-solid/avatar';
+import { Popover } from '@msviderok/base-ui-solid/popover';
 import { ArrowSvg, BellIcon, ListIcon, UserIcon } from '../../icons-tw';
 
 const demoPopover = Popover.createHandle<React.ComponentType>();

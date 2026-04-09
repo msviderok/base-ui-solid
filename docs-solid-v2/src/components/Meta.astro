@@ -5,4 +5,5 @@ if (name === 'description' && String(content ?? '').length > 170) {
   throw new Error('Meta description shouldn’t be longer than 170 chars');
 }
 ---
+
 <!-- Meta tags are handled via DocsLayout frontmatter; this is a no-op in MDX body -->

@@ -3,8 +3,7 @@ const props = Astro.props;
 const isCodeTitle = 'data-rehype-pretty-code-title' in props;
 ---
 
-{
-  isCodeTitle ? (
+{isCodeTitle ? (
     <div class="CodeBlockPanel" {...props}>
       <div class="CodeBlockPanelTitle">
         <slot />
@@ -14,5 +13,4 @@ const isCodeTitle = 'data-rehype-pretty-code-title' in props;
     <figcaption {...props}>
       <slot />
     </figcaption>
-  )
-}
+  )}

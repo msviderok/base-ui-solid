@@ -1,6 +1,6 @@
-import type { JSX } from 'solid-js';
-import { Select } from '@msviderok/base-ui-solid/select';
 import { Field } from '@msviderok/base-ui-solid/field';
+import { Select } from '@msviderok/base-ui-solid/select';
+import type { JSX } from 'solid-js';
 import styles from './index.module.css';
 
 export default function ObjectValueSelect() {
@@ -61,7 +61,7 @@ function ChevronUpDownIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 8 12"
       fill="none"
       stroke="currentcolor"
-      strokeWidth="1.5"
+      stroke-width="1.5"
       {...props}
     >
       <path d="M0.5 4.5L4 1.5L7.5 4.5" />

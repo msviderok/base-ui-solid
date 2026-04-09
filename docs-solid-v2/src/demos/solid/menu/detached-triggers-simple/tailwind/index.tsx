@@ -1,5 +1,5 @@
-import type { JSX } from 'solid-js';
 import { Menu } from '@msviderok/base-ui-solid/menu';
+import type { JSX } from 'solid-js';
 
 const demoMenu = Menu.createHandle();
 const popupClass =
@@ -68,9 +68,9 @@ export function DotsIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={1.5}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <circle cx="5" cy="12" r="1" />

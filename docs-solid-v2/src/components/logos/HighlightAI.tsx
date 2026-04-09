@@ -1,5 +1,3 @@
-
-
 export function HighlightAI(props: React.ComponentProps<'svg'>) {
   return (
     <svg

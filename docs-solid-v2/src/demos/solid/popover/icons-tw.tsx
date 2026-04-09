@@ -1,3 +1,5 @@
+import type { ComponentProps } from 'solid-js';
+
 export function ArrowSvg(props: ComponentProps<'svg'>) {
   return (
     <svg width="20" height="10" viewBox="0 0 20 10" fill="none" {...props}>
@@ -34,9 +36,9 @@ export function UserIcon(props: ComponentProps<'svg'>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={1.5}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M18 20a6 6 0 0 0-12 0" />
@@ -55,9 +57,9 @@ export function ListIcon(props: ComponentProps<'svg'>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={1.5}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M3 5h.01" />

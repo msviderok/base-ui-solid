@@ -1,5 +1,5 @@
 ---
-import { ExternalLinkIcon } from '../icons/ExternalLinkIcon';
+import { ExternalLinkIcon } from './icons/ExternalLinkIcon';
 
 interface Props {
   href?: string | URL;
@@ -31,16 +31,11 @@ const isExternal = /^https?:\/\//.test(normalizedHref);
 const linkClass = isExternal
   ? `Link mr-[0.125em] inline-flex items-center gap-[0.25em] ${className ?? classNameProp ?? ''}`.trim()
   : `Link ${className ?? classNameProp ?? ''}`.trim();
-const resolvedTarget = isExternal ? target ?? '_blank' : target;
-const resolvedRel = isExternal ? rel ?? 'noopener' : rel;
+const resolvedTarget = isExternal ? (target ?? '_blank') : target;
+const resolvedRel = isExternal ? (rel ?? 'noopener') : rel;
 ---
-<a
-  {...rest}
-  href={normalizedHref}
-  class={linkClass}
-  rel={resolvedRel}
-  target={resolvedTarget}
->
+
+<a {...rest} href={normalizedHref} class={linkClass} rel={resolvedRel} target={resolvedTarget}>
   <slot />
   {isExternal && !skipExternalIcon && <ExternalLinkIcon />}
 </a>

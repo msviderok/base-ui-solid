@@ -1,3 +1,4 @@
+import { callEventHandler } from '@msviderok/base-ui-solid/solid-helpers';
 import clsx from 'clsx';
 import {
   createContext,
@@ -56,7 +57,7 @@ export function Trigger(
     <summary
       class={clsx('AccordionTrigger', local.class)}
       onKeyDown={(event) => {
-        local.onKeyDown?.(event);
+        callEventHandler(local.onKeyDown, event);
 
         if (!context?.rootRef || !SUPPORTED_KEYS.has(event.key)) {
           return;
@@ -97,13 +98,13 @@ export function Trigger(
         if (!selection?.isCollapsed) {
           event.preventDefault();
         }
-        local.onClick?.(event);
+        callEventHandler(local.onClick, event);
       }}
       onMouseDown={(event) => {
         if (!event.defaultPrevented && event.detail > 1) {
           event.preventDefault();
         }
-        local.onMouseDown?.(event);
+        callEventHandler(local.onMouseDown, event);
       }}
       {...rest}
     />

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "files": {
+    "includes": [
+      "docs-solid-v2/**",
+      "!docs-solid-v2/.astro/**",
+      "!docs-solid-v2/dist/**",
+      "!docs-solid-v2/node_modules/**"
+    ]
+  }
+}

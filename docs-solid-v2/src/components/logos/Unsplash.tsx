@@ -1,5 +1,3 @@
-
-
 export function Unsplash(props: React.ComponentProps<'svg'>) {
   return (
     <svg

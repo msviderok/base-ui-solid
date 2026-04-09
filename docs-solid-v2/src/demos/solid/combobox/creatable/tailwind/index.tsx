@@ -1,7 +1,7 @@
-import { createMemo, createSignal, createUniqueId } from 'solid-js';
-import type { JSX } from 'solid-js';
 import { Combobox } from '@msviderok/base-ui-solid/combobox';
 import { Dialog } from '@msviderok/base-ui-solid/dialog';
+import type { JSX } from 'solid-js';
+import { createMemo, createSignal, createUniqueId } from 'solid-js';
 
 export default function ExampleCreatableCombobox() {
   const id = createUniqueId();
@@ -261,9 +261,9 @@ function PlusIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 12 12"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="butt"
-      strokeLinejoin="miter"
+      stroke-width="1.5"
+      stroke-linecap="butt"
+      stroke-linejoin="miter"
       aria-hidden
       {...props}
     >
@@ -281,9 +281,9 @@ function XIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       aria-hidden
       {...props}
     >

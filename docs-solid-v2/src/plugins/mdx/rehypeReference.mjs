@@ -1,10 +1,10 @@
 // @ts-check
-import { readFileSync, existsSync } from 'node:fs';
-import { visitParents } from 'unist-util-visit-parents';
 import { kebabCase } from 'es-toolkit/string';
-import { join } from 'path';
-import { createMdxElement } from '../../mdx/createMdxElement.mjs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { visitParents } from 'unist-util-visit-parents';
 import { createHast } from '../../mdx/createHast.mjs';
+import { createMdxElement } from '../../mdx/createMdxElement.mjs';
 import {
   getAttributeValue,
   isComponentDef,

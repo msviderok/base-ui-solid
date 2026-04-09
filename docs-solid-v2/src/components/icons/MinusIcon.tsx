@@ -1,5 +1,3 @@
-
-
 export function MinusIcon(props: React.ComponentProps<'svg'>) {
   return (
     <svg

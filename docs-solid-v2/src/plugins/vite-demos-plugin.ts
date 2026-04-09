@@ -1,7 +1,7 @@
+import fg from 'fast-glob';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createHighlighter, type Highlighter } from 'shiki';
-import fg from 'fast-glob';
 
 const VIRTUAL_ID = 'virtual:demos';
 const RESOLVED_ID = '\0virtual:demos';
@@ -12,14 +12,33 @@ const theme = {
   bg: 'var(--color-content)',
   fg: 'var(--syntax-default)',
   settings: [
-    { scope: ['comment', 'punctuation.definition.comment', 'string.comment'], settings: { foreground: 'var(--syntax-comment)' } },
-    { scope: ['constant', 'entity.name.constant', 'variable.other.constant', 'variable.other.enummember', 'variable.language'], settings: { foreground: 'var(--syntax-constant)' } },
+    {
+      scope: ['comment', 'punctuation.definition.comment', 'string.comment'],
+      settings: { foreground: 'var(--syntax-comment)' },
+    },
+    {
+      scope: [
+        'constant',
+        'entity.name.constant',
+        'variable.other.constant',
+        'variable.other.enummember',
+        'variable.language',
+      ],
+      settings: { foreground: 'var(--syntax-constant)' },
+    },
     { scope: ['entity', 'entity.name'], settings: { foreground: 'var(--syntax-entity)' } },
     { scope: 'variable.parameter.function', settings: { foreground: 'var(--syntax-parameter)' } },
     { scope: 'entity.name.tag', settings: { foreground: 'var(--syntax-tag)' } },
     { scope: 'keyword', settings: { foreground: 'var(--syntax-keyword)' } },
     { scope: ['storage', 'storage.type'], settings: { foreground: 'var(--syntax-keyword)' } },
-    { scope: ['string', 'punctuation.definition.string', 'string punctuation.section.embedded source'], settings: { foreground: 'var(--syntax-string)' } },
+    {
+      scope: [
+        'string',
+        'punctuation.definition.string',
+        'string punctuation.section.embedded source',
+      ],
+      settings: { foreground: 'var(--syntax-string)' },
+    },
     { scope: 'support', settings: { foreground: 'var(--syntax-constant)' } },
     { scope: 'variable', settings: { foreground: 'var(--syntax-variable)' } },
     { scope: 'variable.other', settings: { foreground: 'var(--syntax-parameter)' } },
@@ -45,7 +64,10 @@ let highlighter: Highlighter | null = null;
 
 async function getHighlighter(): Promise<Highlighter> {
   if (!highlighter) {
-    highlighter = await createHighlighter({ themes: [theme as any], langs: ['tsx', 'jsx', 'css', 'bash', 'json'] });
+    highlighter = await createHighlighter({
+      themes: [theme as any],
+      langs: ['tsx', 'jsx', 'css', 'bash', 'json'],
+    });
   }
   return highlighter;
 }

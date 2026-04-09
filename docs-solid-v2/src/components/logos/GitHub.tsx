@@ -1,5 +1,3 @@
-
-
 export function GitHub(props: React.ComponentProps<'svg'>) {
   return (
     <svg

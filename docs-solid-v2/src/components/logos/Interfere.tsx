@@ -1,5 +1,3 @@
-
-
 export function Interfere(props: React.ComponentProps<'svg'>) {
   return (
     <svg

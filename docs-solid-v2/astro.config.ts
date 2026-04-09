@@ -1,6 +1,6 @@
 import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
 import solidJs from '@astrojs/solid-js';
-
 import { defineConfig } from 'astro/config';
 import remarkGfm from 'remark-gfm';
 import remarkTypography from 'remark-typography';
@@ -14,8 +14,6 @@ import { rehypeSlug } from './src/plugins/mdx/rehypeSlug.mjs';
 import { rehypeSubtitle } from './src/plugins/mdx/rehypeSubtitle.mjs';
 import { demosPlugin } from './src/plugins/vite-demos-plugin';
 import { rehypeSyntaxHighlighting } from './src/syntax-highlighting';
-
-import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({

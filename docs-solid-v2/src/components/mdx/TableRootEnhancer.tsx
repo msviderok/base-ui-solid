@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from 'solid-js';
+import { onCleanup, onMount, type JSX } from 'solid-js';
 import { observeScrollableInner } from '../../utils/observeScrollableInner';
 
 interface Props {

@@ -1,6 +1,6 @@
-import { createMemo, createSignal, createUniqueId, useTransition } from 'solid-js';
-import type { JSX } from 'solid-js';
 import { Combobox } from '@msviderok/base-ui-solid/combobox';
+import type { JSX } from 'solid-js';
+import { createMemo, createSignal, createUniqueId, useTransition } from 'solid-js';
 
 export default function ExampleAsyncSingleCombobox() {
   const id = createUniqueId();
@@ -187,9 +187,9 @@ function ClearIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M18 6L6 18" />
@@ -205,9 +205,9 @@ function ChevronDownIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M6 9l6 6 6-6" />

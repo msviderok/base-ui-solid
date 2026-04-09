@@ -1,0 +1,21 @@
+@layer components {
+  .NavSpinner {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    translate: 0 -50%;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--color-gray-300);
+    border-top-color: var(--color-gray-600);
+    border-radius: 50%;
+    animation: nav-spinner-rotate 0.6s linear infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes nav-spinner-rotate {
+  to {
+    rotate: 360deg;
+  }
+}

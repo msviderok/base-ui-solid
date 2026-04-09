@@ -1,6 +1,6 @@
-import type { JSX } from 'solid-js';
-import { Popover } from '@msviderok/base-ui-solid/popover';
 import { Avatar } from '@msviderok/base-ui-solid/avatar';
+import { Popover } from '@msviderok/base-ui-solid/popover';
+import type { JSX } from 'solid-js';
 import styles from './index.module.css';
 
 const demoPopover = Popover.createHandle<React.ComponentType>();
@@ -8,11 +8,7 @@ const demoPopover = Popover.createHandle<React.ComponentType>();
 export default function PopoverDetachedTriggersFullDemo() {
   return (
     <div class={styles.Container}>
-      <Popover.Trigger
-        class={styles.IconButton}
-        handle={demoPopover}
-        payload={NotificationsPanel}
-      >
+      <Popover.Trigger class={styles.IconButton} handle={demoPopover} payload={NotificationsPanel}>
         <BellIcon aria-label="Notifications" class={styles.Icon} />
       </Popover.Trigger>
       <Popover.Trigger class={styles.IconButton} handle={demoPopover} payload={ActivityPanel}>
@@ -121,9 +117,9 @@ function UserIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={1.5}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M18 20a6 6 0 0 0-12 0" />
@@ -142,9 +138,9 @@ function ListIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={1.5}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M3 5h.01" />

@@ -1,8 +1,8 @@
-import { createSignal } from 'solid-js';
-import type { JSX } from 'solid-js';
-import { Toast } from '@msviderok/base-ui-solid/toast';
 import { Button } from '@msviderok/base-ui-solid/button';
+import { Toast } from '@msviderok/base-ui-solid/toast';
 import { Tooltip } from '@msviderok/base-ui-solid/tooltip';
+import type { JSX } from 'solid-js';
+import { createSignal } from 'solid-js';
 import styles from './index.module.css';
 
 const anchoredToastManager = Toast.createToastManager();
@@ -33,8 +33,9 @@ function StackedToastButton() {
   }
 
   return (
-    <button type="button" class={styles.Button} onClick={createToast}>Stacked toast
-          </button>
+    <button type="button" class={styles.Button} onClick={createToast}>
+      Stacked toast
+    </button>
   );
 }
 
@@ -161,9 +162,9 @@ function ClipboardIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
@@ -181,9 +182,9 @@ function CheckIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M20 6 9 17l-5-5" />
@@ -200,9 +201,9 @@ function XIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M18 6 6 18" />

@@ -1,6 +1,7 @@
 ---
 const { scope, ...props } = Astro.props;
 ---
+
 {scope === 'row' ? (
   <th scope="row" class="TableCell" {...props}><span class="TableCellInner"><slot /></span></th>
 ) : (

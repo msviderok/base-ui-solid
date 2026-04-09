@@ -1,5 +1,3 @@
-
-
 export function PlusIcon(props: React.ComponentProps<'svg'>) {
   return (
     <svg

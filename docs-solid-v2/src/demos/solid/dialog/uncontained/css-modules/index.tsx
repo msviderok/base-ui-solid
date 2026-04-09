@@ -1,5 +1,5 @@
-import type { JSX } from 'solid-js';
 import { Dialog } from '@msviderok/base-ui-solid/dialog';
+import type { JSX } from 'solid-js';
 import styles from './index.module.css';
 
 export default function ExampleUncontainedDialog() {
@@ -30,9 +30,9 @@ function XIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M18 6 6 18" />

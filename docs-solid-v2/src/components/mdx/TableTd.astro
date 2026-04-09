@@ -1,4 +1,7 @@
 ---
 const { ...props } = Astro.props;
 ---
-<td class="TableCell" {...props}><span class="TableCellInner"><slot /></span></td>
+
+<td class="TableCell" {...props}>
+  <span class="TableCellInner"><slot /></span>
+</td>

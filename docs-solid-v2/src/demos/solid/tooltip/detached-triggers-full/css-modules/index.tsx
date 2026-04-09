@@ -1,5 +1,5 @@
-import type { JSX } from 'solid-js';
 import { Tooltip } from '@msviderok/base-ui-solid/tooltip';
+import type { JSX } from 'solid-js';
 import styles from './index.module.css';
 
 const demoTooltip = Tooltip.createHandle<React.ComponentType>();
@@ -81,9 +81,9 @@ function InfoIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={2}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <circle cx="12" cy="12" r="10" />
@@ -102,9 +102,9 @@ function HelpIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={2}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <circle cx="12" cy="12" r="10" />
@@ -123,9 +123,9 @@ function AlertIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width={2}
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />

@@ -1,6 +1,6 @@
-import type { JSX } from 'solid-js';
-import { Select } from '@msviderok/base-ui-solid/select';
 import { Field } from '@msviderok/base-ui-solid/field';
+import { Select } from '@msviderok/base-ui-solid/select';
+import type { JSX } from 'solid-js';
 import styles from './index.module.css';
 
 const languages = {
@@ -44,11 +44,7 @@ export default function MultiSelectExample() {
           </Select.Icon>
         </Select.Trigger>
         <Select.Portal>
-          <Select.Positioner
-            class={styles.Positioner}
-            sideOffset={8}
-            alignItemWithTrigger={false}
-          >
+          <Select.Positioner class={styles.Positioner} sideOffset={8} alignItemWithTrigger={false}>
             <Select.Popup class={styles.Popup}>
               {values.map((value) => (
                 <Select.Item key={value} value={value} class={styles.Item}>
@@ -74,7 +70,7 @@ function ChevronUpDownIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 8 12"
       fill="none"
       stroke="currentcolor"
-      strokeWidth="1.5"
+      stroke-width="1.5"
       {...props}
     >
       <path d="M0.5 4.5L4 1.5L7.5 4.5" />

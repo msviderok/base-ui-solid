@@ -38,7 +38,7 @@ const nav = await buildNav();
           <div class="ContentLayoutRoot">
             <Header />
             <nav aria-label="Main navigation" class="SideNavRoot">
-              <SideNav pathname={pathname} sitemap={nav} client:only />
+              <SideNav pathname={pathname} sitemap={nav} client:load />
             </nav>
             <main class="ContentLayoutMain" id="main-content">
               <QuickNav client:load>
@@ -50,5 +50,21 @@ const nav = await buildNav();
         <span class="RootLayoutFooter"></span>
       </div>
     </div>
+    <script>
+      document.addEventListener('astro:before-preparation', () => {
+        const anchor = document.activeElement?.closest?.('a') ?? document.querySelector('a:hover');
+        if (!anchor) return;
+
+        const spinner = document.createElement('span');
+        spinner.className = 'NavSpinner';
+        anchor.appendChild(spinner);
+
+        // Clean up after navigation completes (or fails)
+        const cleanup = () => spinner.remove();
+        document.addEventListener('astro:after-swap', cleanup, { once: true });
+        // Fallback: remove after 5s in case navigation is cancelled
+        setTimeout(cleanup, 5000);
+      });
+    </script>
   </body>
 </html>

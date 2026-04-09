@@ -1,5 +1,3 @@
-
-
 export function Zed(props: React.ComponentProps<'svg'>) {
   return (
     <svg

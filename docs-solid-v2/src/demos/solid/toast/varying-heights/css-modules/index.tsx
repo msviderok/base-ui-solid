@@ -1,6 +1,6 @@
-import { createSignal } from 'solid-js';
-import type { JSX } from 'solid-js';
 import { Toast } from '@msviderok/base-ui-solid/toast';
+import type { JSX } from 'solid-js';
+import { createSignal } from 'solid-js';
 import styles from './index.module.css';
 
 export default function VaryingHeightsToast() {
@@ -30,8 +30,9 @@ function ToastButton() {
   }
 
   return (
-    <button type="button" class={styles.Button} onClick={createToast}>Create varying height toast
-          </button>
+    <button type="button" class={styles.Button} onClick={createToast}>
+      Create varying height toast
+    </button>
   );
 }
 
@@ -59,9 +60,9 @@ function XIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {...props}
     >
       <path d="M18 6 6 18" />

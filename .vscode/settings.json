@@ -1,6 +1,10 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.trimTrailingWhitespace": true,
+  // Enable Biome only when a repo config is present so the nested docs-solid-v2
+  // app can lint cleanly from the repository root workspace.
+  "biome.enabled": true,
+  "biome.requireConfiguration": true,
 
   // Root workspace only
   "grammarly.selectors": [

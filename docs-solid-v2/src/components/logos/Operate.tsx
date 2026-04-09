@@ -1,5 +1,3 @@
-
-
 export function Operate(props: React.ComponentProps<'svg'>) {
   return (
     <svg

@@ -8,7 +8,7 @@ export function getChildrenText(element?: JSX.Element | HTMLCollection): string 
   }
 
   if (Array.isArray(element)) {
-    return element.map(getChildrenText).flat().filter(Boolean).join('');
+    return element.flatMap(getChildrenText).filter(Boolean).join('');
   }
 
   if (typeof element === 'string') {

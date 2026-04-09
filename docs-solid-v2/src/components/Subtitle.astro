@@ -3,6 +3,7 @@ import MarkdownLink from './MarkdownLink.astro';
 
 const { class: className, skipMarkdownLink = false, ...props } = Astro.props;
 ---
+
 <div
   class={`Subtitle -mt-2 mb-5 flex items-baseline justify-between flex-col md:flex-row ${className ?? ''}`.trim()}
 >
