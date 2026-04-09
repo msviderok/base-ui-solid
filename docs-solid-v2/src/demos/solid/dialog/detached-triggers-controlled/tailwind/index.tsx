@@ -1,0 +1,81 @@
+import { createSignal } from 'solid-js';
+import { Dialog } from '@msviderok/base-ui-solid/dialog';
+
+const demoDialog = Dialog.createHandle<number>();
+
+export default function DialogDetachedTriggersControlledDemo() {
+  const [open, setOpen] = createSignal(false);
+  const [triggerId, setTriggerId] = createSignal<string | null>(null);
+
+  const handleOpenChange = (isOpen: boolean, eventDetails: Dialog.Root.ChangeEventDetails) => {
+    setOpen(isOpen);
+    setTriggerId(eventDetails.trigger?.id ?? null);
+  };
+
+  return (
+    <>
+      <div class="flex gap-2 flex-wrap justify-center">
+        <Dialog.Trigger
+          class="flex h-10 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-3.5 text-base font-medium text-gray-900 select-none hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 active:bg-gray-100"
+          handle={demoDialog}
+          id="trigger-1"
+          payload={1}
+        >
+          Open 1
+        </Dialog.Trigger>
+
+        <Dialog.Trigger
+          class="flex h-10 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-3.5 text-base font-medium text-gray-900 select-none hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 active:bg-gray-100"
+          handle={demoDialog}
+          id="trigger-2"
+          payload={2}
+        >
+          Open 2
+        </Dialog.Trigger>
+
+        <Dialog.Trigger
+          class="flex h-10 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-3.5 text-base font-medium text-gray-900 select-none hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 active:bg-gray-100"
+          handle={demoDialog}
+          id="trigger-3"
+          payload={3}
+        >
+          Open 3
+        </Dialog.Trigger>
+
+        <button
+          type="button"
+          class="flex h-10 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-3.5 text-base font-medium text-gray-900 select-none hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 active:bg-gray-100"
+          onClick={() => {
+            setTriggerId('trigger-2');
+            setOpen(true);
+          }}
+        >
+          Open programmatically
+        </button>
+      </div>
+      <Dialog.Root
+        handle={demoDialog}
+        open={open()}
+        onOpenChange={handleOpenChange}
+        triggerId={triggerId()}
+      >
+        {({ payload }) => (
+          <Dialog.Portal>
+            <Dialog.Backdrop class="fixed inset-0 min-h-dvh bg-black opacity-20 transition-all duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 dark:opacity-70 supports-[-webkit-touch-callout:none]:absolute" />
+            <Dialog.Popup class="fixed top-1/2 left-1/2 -mt-8 w-96 max-w-[calc(100vw-3rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-gray-50 p-6 text-gray-900 outline outline-1 outline-gray-200 transition-all duration-150 data-[ending-style]:scale-90 data-[ending-style]:opacity-0 data-[starting-style]:scale-90 data-[starting-style]:opacity-0 dark:outline-gray-300">
+              <Dialog.Title class="-mt-1.5 mb-1 text-lg font-medium">
+                Dialog {payload}
+              </Dialog.Title>
+
+              <div class="flex justify-end gap-4">
+                <Dialog.Close class="flex h-10 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-3.5 text-base font-medium text-gray-900 select-none hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 active:bg-gray-100">
+                  Close
+                </Dialog.Close>
+              </div>
+            </Dialog.Popup>
+          </Dialog.Portal>
+        )}
+      </Dialog.Root>
+    </>
+  );
+}

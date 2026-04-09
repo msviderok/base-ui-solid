@@ -58,6 +58,49 @@ function getLangFromFile(filename: string): 'tsx' | 'css' {
   return filename.endsWith('.css') ? 'css' : 'tsx';
 }
 
+const localImportPattern = /(?:from\s+|import\s+)(['"])(\.{1,2}\/[^'"]+)\1/g;
+const supportedExtensions = ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.css'];
+
+function resolveLocalImport(fromFile: string, specifier: string): string | null {
+  const resolved = path.resolve(path.dirname(fromFile), specifier);
+  const candidates = [resolved];
+
+  for (const extension of supportedExtensions) {
+    candidates.push(`${resolved}${extension}`);
+    candidates.push(path.join(resolved, `index${extension}`));
+  }
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function collectLocalFiles(entryFile: string, visited: Set<string> = new Set()): string[] {
+  if (visited.has(entryFile)) {
+    return [];
+  }
+  visited.add(entryFile);
+
+  const content = fs.readFileSync(entryFile, 'utf-8');
+  const files = [entryFile];
+
+  for (const match of content.matchAll(localImportPattern)) {
+    const specifier = match[2];
+    const resolved = resolveLocalImport(entryFile, specifier);
+    if (!resolved) {
+      continue;
+    }
+
+    files.push(...collectLocalFiles(resolved, visited));
+  }
+
+  return files;
+}
+
 async function buildVirtualModule(projectRoot: string): Promise<string> {
   const demosDir = path.join(projectRoot, 'src', 'demos', 'solid');
 
@@ -110,18 +153,25 @@ async function buildVirtualModule(projectRoot: string): Promise<string> {
     const importName = `_demo_${componentIndex}`;
     imports.push(`import ${importName} from ${JSON.stringify(v.componentFile)};`);
 
-    // Collect all files in variant dir
-    const allFiles = fs.readdirSync(v.dir);
     const demoFiles: Record<string, DemoFile> = {};
 
-    for (const filename of allFiles) {
-      if (filename === 'index.tsx' || filename.endsWith('.module.css')) {
-        const filePath = path.join(v.dir, filename);
-        const raw = fs.readFileSync(filePath, 'utf-8');
-        const lang = getLangFromFile(filename);
-        const highlighted = highlightCode(hl, raw, lang);
-        demoFiles[filename] = { raw, highlighted };
-      }
+    const allFiles = collectLocalFiles(v.componentFile);
+    const relativeFiles = allFiles
+      .map((filePath) => ({
+        filePath,
+        relativePath: path.relative(v.dir, filePath).split(path.sep).join('/'),
+      }))
+      .sort((a, b) => {
+        if (a.relativePath === 'index.tsx') return -1;
+        if (b.relativePath === 'index.tsx') return 1;
+        return a.relativePath.localeCompare(b.relativePath);
+      });
+
+    for (const { filePath, relativePath } of relativeFiles) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const lang = getLangFromFile(filePath);
+      const highlighted = highlightCode(hl, raw, lang);
+      demoFiles[relativePath] = { raw, highlighted };
     }
 
     if (!demoMap[v.demoKey]) {

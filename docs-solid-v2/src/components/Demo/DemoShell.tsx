@@ -1,6 +1,6 @@
+import clsx from 'clsx';
 import { createSignal, For, Show, type Component } from 'solid-js';
 import { demoComponents, demoData } from 'virtual:demos';
-import clsx from 'clsx';
 
 interface Props {
   path: string;
@@ -55,7 +55,10 @@ export function DemoShell(props: Props) {
               </div>
             }
           >
-            <Show when={Component()} fallback={<span class="text-gray-400 text-sm">Loading demo…</span>}>
+            <Show
+              when={Component()}
+              fallback={<span class="text-gray-400 text-sm">Loading demo…</span>}
+            >
               {(C) => <C />}
             </Show>
           </Show>
@@ -111,12 +114,7 @@ export function DemoShell(props: Props) {
               </Show>
 
               {/* Copy button */}
-              <button
-                type="button"
-                class="GhostButton"
-                aria-label="Copy code"
-                onClick={handleCopy}
-              >
+              <button type="button" class="GhostButton" aria-label="Copy code" onClick={handleCopy}>
                 {copied() ? 'Copied!' : 'Copy'}
               </button>
             </div>
