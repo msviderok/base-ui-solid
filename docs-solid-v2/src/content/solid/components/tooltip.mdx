@@ -1,8 +1,25 @@
 ---
-title: "Tooltip"
-description: "A high-quality, unstyled React tooltip component that appears when an element is hovered or focused, showing a hint for sighted users."
+title: 'Tooltip'
+description: 'A high-quality, unstyled React tooltip component that appears when an element is hovered or focused, showing a hint for sighted users.'
 order: 36
+keywords:
+  - React Tooltip
+  - Tooltip Component
+  - Detached Trigger Tooltip
+  - Hint
+  - Help Text
+  - Hover Text
+  - Hover Hint
+  - Info Popup
+  - Infotip
+  - Flyout
+  - Accessible Tooltip
+  - Multiple Tooltip Triggers
+  - Animated Tooltip
+  - Headless React Components
+  - Base UI
 ---
+
 # Tooltip
 
 <Subtitle>
@@ -139,8 +156,8 @@ const demoTooltip = Tooltip.createHandle<{ text: string }>();
   {({ payload }) => (
     <Tooltip.Portal>
       <Tooltip.Positioner sideOffset={8}>
-        <Tooltip.Popup className={styles.Popup}>
-          <Tooltip.Arrow className={styles.Arrow}>
+        <Tooltip.Popup class={styles.Popup}>
+          <Tooltip.Arrow class={styles.Arrow}>
             <ArrowSvg />
           </Tooltip.Arrow>
           {payload !== undefined && (
@@ -198,22 +215,3 @@ You can use these attributes to style the enter and exit animations.
 
 <Reference component="Tooltip" parts="Provider, Root, Trigger, Portal, Positioner, Popup, Arrow" />
 
-export const metadata = {
-  keywords: [
-    'React Tooltip',
-    'Tooltip Component',
-    'Detached Trigger Tooltip',
-    'Hint',
-    'Help Text',
-    'Hover Text',
-    'Hover Hint',
-    'Info Popup',
-    'Infotip',
-    'Flyout',
-    'Accessible Tooltip',
-    'Multiple Tooltip Triggers',
-    'Animated Tooltip',
-    'Headless React Components',
-    'Base UI',
-  ],
-};

@@ -1,8 +1,21 @@
 ---
-title: "useRender"
-description: "Hook for enabling a render prop in custom components."
+title: 'useRender'
+description: 'Hook for enabling a render prop in custom components.'
 order: 4
+keywords:
+  - Base UI useRender
+  - React Render Prop Hook
+  - Merge Props Helper
+  - Merge Refs Hook
+  - Radix asChild Migration
+  - Component Composition
+  - Props Spreading
+  - Ref Forwarding
+  - Custom Components
+  - asChild Pattern
+  - Slot Pattern
 ---
+
 # useRender
 
 <Subtitle>Hook for enabling a render prop in custom components.</Subtitle>
@@ -26,7 +39,7 @@ The callback version of the `render` prop enables more control of how props are 
 The `mergeProps` function merges two or more sets of React props together. It safely merges three types of props:
 
 1. Event handlers, so that all are invoked
-2. `className` strings
+2. `class` strings
 3. `style` properties
 
 `mergeProps` merges objects from left to right, so that subsequent objects' properties in the arguments overwrite previous ones. Merging props is useful when creating custom components, as well as inside the callback version of the `render` prop for any Base UI component.
@@ -41,7 +54,7 @@ function Button() {
       render={(props, state) => (
         <button
           {...mergeProps<'button'>(props, {
-            className: styles.Button,
+            class: styles.Button,
           })}
         />
       )}
@@ -105,7 +118,7 @@ interface ButtonProps extends useRender.ComponentProps<'button'> {}
 
 function Button({ render, ...props }: ButtonProps) {
   const defaultProps: useRender.ElementProps<'button'> = {
-    className: styles.Button,
+    class: styles.Button,
     type: 'button',
     children: 'Click me',
   };
@@ -176,7 +189,7 @@ function Button({ render, ...props }) {
     props: {
       type: 'Record<string, unknown>',
       description:
-        'Props to be spread on the rendered element.\n\nThey are merged with the internal props\n of the component, so that event handlers are merged,\n`className` strings and `style` properties are joined, and other external props overwrite the internal ones.',
+        'Props to be spread on the rendered element.\n\nThey are merged with the internal props\n of the component, so that event handlers are merged,\n`class` strings and `style` properties are joined, and other external props overwrite the internal ones.',
     },
     ref: {
       type: 'React.Ref<RenderedElementType> | React.Ref<RenderedElementType>[]',
@@ -212,18 +225,3 @@ const element = useRender({
 });
 ```
 
-export const metadata = {
-  keywords: [
-    'Base UI useRender',
-    'React Render Prop Hook',
-    'Merge Props Helper',
-    'Merge Refs Hook',
-    'Radix asChild Migration',
-    'Component Composition',
-    'Props Spreading',
-    'Ref Forwarding',
-    'Custom Components',
-    'asChild Pattern',
-    'Slot Pattern',
-  ],
-};

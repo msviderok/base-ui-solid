@@ -1,4 +1,11 @@
 ---
-const { class: className, ...props } = Astro.props;
+import MarkdownLink from './MarkdownLink.astro';
+
+const { class: className, skipMarkdownLink = false, ...props } = Astro.props;
 ---
-<p class={`Subtitle -mt-2 mb-5 ${className ?? ''}`} {...props}><slot /></p>
+<div
+  class={`Subtitle -mt-2 mb-5 flex items-baseline justify-between flex-col md:flex-row ${className ?? ''}`.trim()}
+>
+  <p {...props}><slot /></p>
+  {!skipMarkdownLink && <MarkdownLink />}
+</div>

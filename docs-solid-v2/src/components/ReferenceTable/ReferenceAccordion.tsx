@@ -2,10 +2,10 @@ import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
 import clsx from 'clsx';
 import { createMdxComponent } from '../../mdx/createMdxComponent';
 import { rehypeSyntaxHighlighting } from '../../syntax-highlighting';
-import { Code } from '../Code';
-import { TableCode, type TableCodeProps } from '../TableCode';
 import * as Accordion from '../Accordion';
+import { Code } from '../Code';
 import * as DescriptionList from '../DescriptionList';
+import { TableCode, type TableCodeProps } from '../TableCode';
 import * as ReferenceTableTooltip from './ReferenceTableTooltip';
 import type { PropDef } from './types';
 
@@ -49,7 +49,7 @@ function getShortPropType(name: string, type: string | undefined) {
     return { type: String(type), detailedType: false };
   }
 
-  if (name === 'className') {
+  if (name === 'className' || name === 'class') {
     return { type: 'string | function', detailedType: true };
   }
 

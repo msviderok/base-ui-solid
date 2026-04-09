@@ -1,14 +1,15 @@
 ---
-title: "mergeProps"
-description: "A utility to merge multiple sets of React props, handling event handlers, className, and style props intelligently."
+title: 'mergeProps'
+description: 'A utility to merge multiple sets of React props, handling event handlers, class, and style props intelligently.'
 order: 3
 ---
+
 # mergeProps
 
 <Subtitle>A utility to merge multiple sets of React props.</Subtitle>
 <Meta
   name="description"
-  content="A utility to merge multiple sets of React props, handling event handlers, className, and style props intelligently."
+  content="A utility to merge multiple sets of React props, handling event handlers, class, and style props intelligently."
 />
 
 `mergeProps` helps you combine multiple prop objects (for example, internal props + user props) into a single set of props you can spread onto an element.
@@ -16,7 +17,7 @@ It behaves like `Object.assign` (rightmost wins) with a few special cases, so co
 
 ## How merging works
 
-- For most keys (everything except `className`, `style`, and event handlers), the value from the rightmost object wins:
+- For most keys (everything except `class`, `style`, and event handlers), the value from the rightmost object wins:
   ```ts title="returns { id: 'b', dir: 'ltr' }"
   mergeProps({ id: 'a', dir: 'ltr' }, { id: 'b' });
   ```
@@ -24,9 +25,9 @@ It behaves like `Object.assign` (rightmost wins) with a few special cases, so co
   ```ts title="only refB is used"
   mergeProps({ ref: refA }, { ref: refB });
   ```
-- `className` values are concatenated right-to-left (rightmost first):
-  ```ts title="className is 'b a'"
-  mergeProps({ className: 'a' }, { className: 'b' });
+- `class` values are concatenated right-to-left (rightmost first):
+  ```ts title="class is 'b a'"
+  mergeProps({ class: 'a' }, { class: 'b' });
   ```
 - `style` objects are merged, with keys from the rightmost style overwriting earlier ones.
 - Event handlers are merged and executed right-to-left (rightmost first):

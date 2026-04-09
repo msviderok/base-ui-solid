@@ -1,8 +1,27 @@
 ---
-title: "Popover"
-description: "A high-quality, unstyled React popover component that displays an accessible popup anchored to a button."
+title: 'Popover'
+description: 'A high-quality, unstyled React popover component that displays an accessible popup anchored to a button.'
 order: 22
+keywords:
+  - React Popover
+  - Popover Component
+  - Popover Menu
+  - Popup Menu
+  - Anchored Popup
+  - Dropdown
+  - Overlay
+  - Floating Panel
+  - Tooltip Alternative
+  - Info Box
+  - Callout
+  - Popup Content
+  - Detached Trigger Popover
+  - Multi Trigger Popover
+  - Animated Popover
+  - Headless React Components
+  - Base UI
 ---
+
 # Popover
 
 <Subtitle>An accessible popup anchored to a button.</Subtitle>
@@ -119,13 +138,13 @@ const demoPopover = Popover.createHandle<{ text: string }>();
   {({ payload }) => (
     <Popover.Portal>
       <Popover.Positioner sideOffset={8}>
-        <Popover.Popup className={styles.Popup}>
-          <Popover.Arrow className={styles.Arrow}>
+        <Popover.Popup class={styles.Popup}>
+          <Popover.Arrow class={styles.Arrow}>
             <ArrowSvg />
           </Popover.Arrow>
-          <Popover.Title className={styles.Title}>Popover</Popover.Title>
+          <Popover.Title class={styles.Title}>Popover</Popover.Title>
           {payload !== undefined && (
-            <Popover.Description className={styles.Description}>
+            <Popover.Description class={styles.Description}>
               This has been opened by {payload.text}
             </Popover.Description>
           )}
@@ -182,24 +201,3 @@ You can use these attributes to style the enter and exit animations.
   parts="Root, Trigger, Backdrop, Portal, Positioner, Popup, Arrow, Title, Description, Close, Viewport"
 />
 
-export const metadata = {
-  keywords: [
-    'React Popover',
-    'Popover Component',
-    'Popover Menu',
-    'Popup Menu',
-    'Anchored Popup',
-    'Dropdown',
-    'Overlay',
-    'Floating Panel',
-    'Tooltip Alternative',
-    'Info Box',
-    'Callout',
-    'Popup Content',
-    'Detached Trigger Popover',
-    'Multi Trigger Popover',
-    'Animated Popover',
-    'Headless React Components',
-    'Base UI',
-  ],
-};

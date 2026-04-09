@@ -19,6 +19,9 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
+  experimental: {
+    contentIntellisense: true,
+  },
   integrations: [solidJs(), mdx(), sitemap()],
   vite: {
     plugins: [demosPlugin() as any],
