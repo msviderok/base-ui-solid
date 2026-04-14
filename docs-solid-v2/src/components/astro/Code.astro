@@ -1,0 +1,9 @@
+---
+import type { JSX } from 'astro/jsx-runtime';
+
+export interface Props extends JSX.HTMLAttributes {}
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<code class={`Code ${className || ''}`.trim()} {...rest}><slot /></code>

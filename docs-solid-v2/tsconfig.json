@@ -6,7 +6,17 @@
     "paths": {
       "@base-ui/utils/*": ["../packages/utils/src/*"],
       "@msviderok/base-ui-solid": ["../packages/solid/src"],
-      "@msviderok/base-ui-solid/*": ["../packages/solid/src/*"]
+      "@msviderok/base-ui-solid/*": ["../packages/solid/src/*"],
+      "@/blocks/*": ["./src/blocks/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/content/*": ["./src/content/*"],
+      "@/data/*": ["./src/data/*"],
+      "@/demos/*": ["./src/demos/*"],
+      "@/layouts/*": ["./src/layouts/*"],
+      "@/mdx/*": ["./src/mdx/*"],
+      "@/pages/*": ["./src/pages/*"],
+      "@/styles/*": ["./src/styles/*"],
+      "@/lib/*": ["./src/lib/*"]
     }
   },
   "include": [".astro/types.d.ts", "**/*"],

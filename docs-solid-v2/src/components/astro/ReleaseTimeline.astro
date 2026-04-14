@@ -1,0 +1,42 @@
+---
+import { releases } from '@/data/releases';
+import '@/styles/components/ReleaseTimeline.css';
+
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+---
+
+<ul class="ReleaseTimeline" aria-label="Release timeline">
+  <span class="TimelineSpine" aria-hidden="true"></span>
+  {
+    releases.map((release) => (
+      <li class="TimelineItem">
+        <article class="TimelineCard">
+          <div class="TimelineCardHeader">
+            <time class="TimelineDate" datetime={release.date}>
+              {dateFormatter.format(new Date(release.date))}
+            </time>
+            <h3 class="TimelineVersion">
+              <a
+                class="TimelineVersionLink"
+                href={`/solid/overview/releases/${release.versionSlug}`}
+              >
+                {release.version}
+              </a>
+              {release.latest && <span class="TimelineBadge">Latest</span>}
+            </h3>
+          </div>
+          <ul class="TimelineHighlights">
+            {release.highlights.map((highlight) => (
+              <li>{highlight}</li>
+            ))}
+          </ul>
+        </article>
+      </li>
+    ))
+  }
+</ul>

@@ -1,10 +1,10 @@
 ---
 import { ClientRouter } from 'astro:transitions';
-import SideNav from '../components/SideNav';
-import Header from '../components/Header.astro';
-import { buildNav } from '../utils/buildNav';
-import { QuickNav } from '../components/QuickNav';
-import '../styles/styles.css';
+import SideNav from '@/components/solid/SideNav';
+import Header from '@/components/astro/Header.astro';
+import { buildNav } from '@/lib/buildNav';
+import { QuickNav } from '@/components/solid/QuickNav';
+import '@/styles/styles.css';
 
 interface Props {
   title?: string;

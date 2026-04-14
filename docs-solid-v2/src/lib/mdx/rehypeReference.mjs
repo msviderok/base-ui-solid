@@ -1,10 +1,10 @@
 // @ts-check
-import { createHast } from 'docs/src/mdx/createHast.mjs';
-import { createMdxElement } from 'docs/src/mdx/createMdxElement.mjs';
 import { kebabCase } from 'es-toolkit/string';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'path';
+import { join } from 'node:path';
 import { visitParents } from 'unist-util-visit-parents';
+import { createHast } from './createHast.mjs';
+import { createMdxElement } from './createMdxElement.mjs';
 import {
   getAttributeValue,
   isComponentDef,
@@ -62,7 +62,7 @@ export function rehypeReference() {
       let functionDef = null;
 
       if (parts) {
-        componentDefs = parts.split(/,\s*/).map((part) => {
+        componentDefs = parts.split(/,\s*/).flatMap((part) => {
           let filename = `${kebabCase(referenceName)}-${kebabCase(part)}.json`;
           let pathname = join(process.cwd(), 'reference/generated', filename);
 
@@ -71,12 +71,28 @@ export function rehypeReference() {
             pathname = join(process.cwd(), 'reference/generated', filename);
           }
 
+          if (!existsSync(pathname)) {
+            console.warn(
+              `[rehypeReference] Missing reference data for ${referenceName}.${part}; skipping.`,
+            );
+            return [];
+          }
+
           const jsonContents = readFileSync(pathname, 'utf-8');
-          return JSON.parse(jsonContents);
+          return [JSON.parse(jsonContents)];
         });
       } else {
         const filename = `${kebabCase(referenceName)}.json`;
         const pathname = join(process.cwd(), 'reference/generated', filename);
+
+        if (!existsSync(pathname)) {
+          console.warn(`[rehypeReference] Missing reference data for ${referenceName}; skipping.`);
+          const parent = ancestors.slice(-1)[0];
+          const index = parent.children.indexOf(node);
+          parent.children.splice(index, 1);
+          return;
+        }
+
         const jsonContents = readFileSync(pathname, 'utf-8');
         const parsedDef = JSON.parse(jsonContents);
 

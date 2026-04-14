@@ -1,0 +1,13 @@
+---
+import TableRootEnhancer from '@/components/solid/TableRootEnhancer';
+
+const { class: className, ...props } = Astro.props;
+const rootId = `table-${crypto.randomUUID()}`;
+---
+
+<div id={rootId} class={`TableRoot my-5 ${className ?? ''}`.trim()} {...props}>
+  <table class="TableRootTable">
+    <slot />
+  </table>
+</div>
+<TableRootEnhancer client:only="solid-js" rootId={rootId} />

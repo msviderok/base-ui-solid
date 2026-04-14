@@ -1,0 +1,23 @@
+---
+import DemoShell from '@/components/solid/DemoShell';
+
+export interface Props {
+  path: string;
+  class?: string;
+  defaultOpen?: boolean;
+  compact?: boolean;
+  showExtraPlaygroundLink?: boolean;
+}
+
+const { path, class: className, defaultOpen, compact, showExtraPlaygroundLink } = Astro.props;
+---
+
+<div class={`mt-5 mb-6 ${className ?? ''}`.trim()}>
+  <DemoShell
+    path={path}
+    defaultOpen={defaultOpen}
+    compact={compact}
+    showExtraPlaygroundLink={showExtraPlaygroundLink}
+    client:only="solid-js"
+  />
+</div>

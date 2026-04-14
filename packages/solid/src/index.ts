@@ -31,6 +31,7 @@ export * from './scroll-area';
 export * from './select';
 export * from './separator';
 export * from './slider';
+export * from './solid-helpers';
 export * from './switch';
 export * from './tabs';
 export * from './toast';

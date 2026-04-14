@@ -1,0 +1,14 @@
+---
+import AttributesTable from '@/components/solid/ReferenceTable/AttributesReferenceTable';
+import type { AttributeDef } from '@/components/solid/ReferenceTable/types';
+
+export interface Props {
+  data: Record<string, AttributeDef>;
+  name?: string;
+  class?: string;
+}
+
+const { data, name, class: className } = Astro.props;
+---
+
+<AttributesTable class={className} name={name} data={data} client:only="solid-js" />

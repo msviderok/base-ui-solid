@@ -1,21 +1,85 @@
 ---
 import { getCollection, render } from 'astro:content';
-import DocsLayout from '../../layouts/DocsLayout.astro';
-import { mdxComponents } from '../../mdx-components';
+import type { AstroComponentFactory } from 'astro/runtime/server/index.js';
+import DocsLayout from '@/layouts/DocsLayout.astro';
+import Code from '@/components/astro/Code.astro';
+import Kbd from '@/components/astro/Kbd.astro';
+import Link from '@/components/astro/Link.astro';
+import MetaWrapper from '@/components/astro/Meta.astro';
+import ReleaseTimeline from '@/components/astro/ReleaseTimeline.astro';
+import SubtitleWrapper from '@/components/astro/Subtitle.astro';
+import Demo from '@/components/astro/Demo.astro';
+import Figcaption from '@/components/astro/Figcaption.astro';
+import Figure from '@/components/astro/Figure.astro';
+import H1 from '@/components/astro/H1.astro';
+import H2 from '@/components/astro/H2.astro';
+import H3 from '@/components/astro/H3.astro';
+import H4 from '@/components/astro/H4.astro';
+import H5 from '@/components/astro/H5.astro';
+import H6 from '@/components/astro/H6.astro';
+import Li from '@/components/astro/Li.astro';
+import Ol from '@/components/astro/Ol.astro';
+import P from '@/components/astro/P.astro';
+import Pre from '@/components/astro/Pre.astro';
+import AttributesReferenceTable from '@/components/astro/RefTableAttributes.astro';
+import CssVariablesReferenceTable from '@/components/astro/RefTableCssVariables.astro';
+import ParametersReferenceTable from '@/components/astro/RefTableParameters.astro';
+import PropsReferenceTable from '@/components/astro/RefTableProps.astro';
+import ReturnValueReferenceTable from '@/components/astro/RefTableReturnValue.astro';
+import Strong from '@/components/astro/Strong.astro';
+import TableBody from '@/components/astro/TableBody.astro';
+import TableHead from '@/components/astro/TableHead.astro';
+import TableRoot from '@/components/astro/TableRoot.astro';
+import TableRow from '@/components/astro/TableRow.astro';
+import TableTd from '@/components/astro/TableTd.astro';
+import TableTh from '@/components/astro/TableTh.astro';
+import Ul from '@/components/astro/Ul.astro';
 
 export async function getStaticPaths() {
   const entries = await getCollection('solid');
-
-  return entries
-    .filter((entry) => !['index', 'index.mdx'].includes(entry.id))
-    .map((entry) => ({
-      params: { slug: entry.id.replace(/\.mdx$/, '') },
-      props: { entry },
-    }));
+  return entries.map((entry) => {
+    const slug = entry.id === 'index' ? '/' : entry.id.replace(/\.mdx$/, '');
+    return { params: { slug }, props: { entry } };
+  });
 }
 
 const { entry } = Astro.props;
-const { Content, headings } = await render(entry);
+const { Content } = await render(entry);
+
+const mdxComponents: Record<string, AstroComponentFactory | string> = {
+  a: Link,
+  h1: H1,
+  h2: H2,
+  h3: H3,
+  h4: H4,
+  h5: H5,
+  h6: H6,
+  p: P,
+  li: Li,
+  ul: Ul,
+  ol: Ol,
+  kbd: Kbd,
+  strong: Strong,
+  code: Code,
+  figure: Figure,
+  figcaption: Figcaption,
+  pre: Pre,
+  table: TableRoot,
+  thead: TableHead,
+  tbody: TableBody,
+  tr: TableRow,
+  th: TableTh,
+  td: TableTd,
+  Subtitle: SubtitleWrapper,
+  Meta: MetaWrapper,
+  ReleaseTimeline: ReleaseTimeline,
+  Demo,
+  PropsReferenceTable,
+  AttributesReferenceTable,
+  CssVariablesReferenceTable,
+  ParametersReferenceTable,
+  ReturnValueReferenceTable,
+};
 ---
 
 <DocsLayout title={entry.data.title} description={entry.data.description}>

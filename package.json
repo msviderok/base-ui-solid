@@ -24,6 +24,7 @@
     "docs-solid-v2:api": "pnpm --filter api-docs-builder start:solid-v2",
     "docs-solid-v2:build": "pnpm --filter docs-solid-v2 build",
     "docs-solid-v2:dev": "pnpm --filter docs-solid-v2 dev",
+    "docs-solid-v2:preview": "pnpm --filter docs-solid-v2 preview",
     "docs-solid:build": "pnpm --filter docs-solid build",
     "docs-solid:dev": "pnpm --filter docs-solid dev",
     "docs-solid:start": "pnpm --filter docs-solid start",

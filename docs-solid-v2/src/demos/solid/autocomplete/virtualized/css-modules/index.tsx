@@ -1,9 +1,9 @@
-import { Show, createSignal, onCleanup } from 'solid-js';
-import { Autocomplete } from '@msviderok/base-ui-solid/autocomplete';
 import {
   createFixedVirtualizer,
   type FixedVirtualizerHandle,
-} from '../../../_shared/useFixedVirtualizer';
+} from '@/demos/solid/_shared/useFixedVirtualizer';
+import { Autocomplete } from '@msviderok/base-ui-solid/autocomplete';
+import { Show, createSignal, onCleanup } from 'solid-js';
 import styles from './index.module.css';
 
 export default function ExampleVirtualizedAutocomplete() {

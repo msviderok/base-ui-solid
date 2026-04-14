@@ -1,0 +1,39 @@
+---
+import ReferenceAccordion from '@/components/solid/ReferenceTable/ReferenceAccordion';
+import type { FunctionParamDef, PropDef } from '@/components/solid/ReferenceTable/types';
+
+export interface Props {
+  data: Record<string, FunctionParamDef>;
+  name: string;
+  class?: string;
+  renameFrom?: string;
+  renameTo?: string;
+}
+
+function normalizeParameters(data: Record<string, FunctionParamDef>) {
+  return Object.fromEntries(
+    Object.entries(data).map(([name, param]) => {
+      const { optional, ...rest } = param;
+      const normalized: PropDef = {
+        ...rest,
+        required: optional ? undefined : true,
+      };
+
+      return [name, normalized];
+    }),
+  );
+}
+
+const { data, name, class: className, renameFrom, renameTo } = Astro.props;
+---
+
+<ReferenceAccordion
+  class={className}
+  name={name}
+  data={normalizeParameters(data)}
+  renameFrom={renameFrom}
+  renameTo={renameTo}
+  nameLabel="Parameter"
+  caption="Function parameters table"
+  client:only="solid-js"
+/>

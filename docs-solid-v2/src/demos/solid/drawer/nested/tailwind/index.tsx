@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { DrawerPreview as Drawer } from '@msviderok/base-ui-solid/drawer';
+import { createSignal } from 'solid-js';
 
 export default function ExampleDrawerNested() {
   const [firstOpen, setFirstOpen] = createSignal(false);
@@ -86,28 +86,28 @@ export default function ExampleDrawerNested() {
                                           <div class="grid gap-1.5 mb-4">
                                             <label
                                               class="text-sm font-medium text-gray-700"
-                                              htmlFor="device-name-tw"
+                                              for="device-name-tw"
                                             >
                                               Device name
                                             </label>
                                             <input
                                               id="device-name-tw"
                                               class="w-full rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2 text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800"
-                                              defaultValue="Personal laptop"
+                                              value="Personal laptop"
                                             />
                                           </div>
 
                                           <div class="grid gap-1.5 mb-6">
                                             <label
                                               class="text-sm font-medium text-gray-700"
-                                              htmlFor="notes-tw"
+                                              for="notes-tw"
                                             >
                                               Notes
                                             </label>
                                             <textarea
                                               id="notes-tw"
                                               class="w-full rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2 text-gray-900 resize-y focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800"
-                                              defaultValue="Rotate recovery codes and revoke older sessions."
+                                              value="Rotate recovery codes and revoke older sessions."
                                               rows={3}
                                             />
                                           </div>

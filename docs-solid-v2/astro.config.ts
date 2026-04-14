@@ -4,16 +4,16 @@ import solidJs from '@astrojs/solid-js';
 import { defineConfig } from 'astro/config';
 import remarkGfm from 'remark-gfm';
 import remarkTypography from 'remark-typography';
-import { rehypeConcatHeadings } from './src/plugins/mdx/rehypeConcatHeadings.mjs';
-import { rehypeInlineCode } from './src/plugins/mdx/rehypeInlineCode.mjs';
-import { rehypeJsxExpressions } from './src/plugins/mdx/rehypeJsxExpressions.mjs';
-import { rehypeKbd } from './src/plugins/mdx/rehypeKbd.mjs';
-import { rehypePrettierIgnore } from './src/plugins/mdx/rehypePrettierIgnore.mjs';
-import { rehypeReference } from './src/plugins/mdx/rehypeReference.mjs';
-import { rehypeSlug } from './src/plugins/mdx/rehypeSlug.mjs';
-import { rehypeSubtitle } from './src/plugins/mdx/rehypeSubtitle.mjs';
-import { demosPlugin } from './src/plugins/vite-demos-plugin';
-import { rehypeSyntaxHighlighting } from './src/syntax-highlighting';
+import { rehypeConcatHeadings } from './src/lib/mdx/rehypeConcatHeadings.mjs';
+import { rehypeInlineCode } from './src/lib/mdx/rehypeInlineCode.mjs';
+import { rehypeJsxExpressions } from './src/lib/mdx/rehypeJsxExpressions.mjs';
+import { rehypeKbd } from './src/lib/mdx/rehypeKbd.mjs';
+import { rehypePrettierIgnore } from './src/lib/mdx/rehypePrettierIgnore.mjs';
+import { rehypeReference } from './src/lib/mdx/rehypeReference.mjs';
+import { rehypeSlug } from './src/lib/mdx/rehypeSlug.mjs';
+import { rehypeSubtitle } from './src/lib/mdx/rehypeSubtitle.mjs';
+import { rehypeSyntaxHighlighting } from './src/lib/syntax-highlighting';
+import { demosPlugin } from './src/lib/vite-demos-plugin';
 
 // https://astro.build/config
 export default defineConfig({
@@ -25,7 +25,6 @@ export default defineConfig({
     plugins: [demosPlugin() as any],
     resolve: {
       alias: {
-        '@base-ui/utils': new URL('../packages/utils/src', import.meta.url).pathname,
         '@msviderok/base-ui-solid': new URL('../packages/solid/src', import.meta.url).pathname,
       },
     },
