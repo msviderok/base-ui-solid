@@ -203,6 +203,23 @@ function getDemoTitle(path: string) {
   return `Base UI ${humanizeLabel(titleSegment)} example`;
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function highlightStaticFile(content: string) {
+  const lines = escapeHtml(content)
+    .split('\n')
+    .map((line) => `<span class="line">${line || ' '}</span>`)
+    .join('');
+
+  return `<pre class="shiki css"><code><span class="frame" data-lined="">${lines}</span></code></pre>`;
+}
+
 function collectTailwindClasses(files: ExportDemoFile[]) {
   const classes = new Set<string>();
 
@@ -282,9 +299,21 @@ export default function DemoShell(componentProps: Props) {
     const data = entry[variantName];
     return Array.isArray(data) ? undefined : data;
   });
-  const currentFiles = createMemo<Record<string, ManifestDemoFile>>(
-    () => currentVariantData()?.files ?? {},
-  );
+  const currentFiles = createMemo<Record<string, ManifestDemoFile>>(() => {
+    const files = currentVariantData()?.files ?? {};
+
+    if (currentVariant() !== 'css-modules') {
+      return files;
+    }
+
+    return {
+      ...files,
+      'theme.css': {
+        raw: themeCss,
+        highlighted: highlightStaticFile(themeCss),
+      },
+    };
+  });
   const fileEntries = createMemo(() =>
     Object.keys(currentFiles()).map((path) => ({
       key: path,
@@ -313,25 +342,13 @@ export default function DemoShell(componentProps: Props) {
     Object.fromEntries(variantNames().map((name) => [name, getVariantLabel(name)])),
   );
   const exportDemoFiles = createMemo<ExportDemoFile[]>(() => {
-    const mappedFiles = fileEntries().map(({ key, label }) => ({
+    return fileEntries().map(({ key, label }) => ({
       path: key,
       name: label,
       content: currentFiles()[key].raw,
       prettyContent: currentFiles()[key].highlighted,
       type: getFileLanguage(key),
     }));
-
-    if (currentVariant() === 'css-modules') {
-      mappedFiles.push({
-        path: 'theme.css',
-        name: 'theme.css',
-        content: themeCss,
-        prettyContent: '',
-        type: 'css',
-      });
-    }
-
-    return mappedFiles;
   });
   const playgroundButtonLabel = createMemo(() =>
     isSafari || isEdge ? 'CodeSandbox' : 'StackBlitz',
