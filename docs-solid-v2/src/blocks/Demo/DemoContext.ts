@@ -1,5 +1,5 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
-import { DemoFile, DemoVariant } from './types';
+import type { DemoFile, DemoVariant } from './types';
 
 export interface DemoContext {
   selectedFile: Accessor<DemoFile>;

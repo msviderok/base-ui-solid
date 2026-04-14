@@ -1,4 +1,4 @@
-import { DemoFile } from '../Demo';
+import type { DemoFile } from '../Demo';
 import LZString from 'lz-string';
 import { addHiddenInput } from './addHiddenInput';
 import * as CSA from './CreateSolidApp';

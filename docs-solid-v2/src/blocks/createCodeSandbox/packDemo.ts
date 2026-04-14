@@ -1,4 +1,4 @@
-import { DemoFile } from '../Demo';
+import type { DemoFile } from '../Demo';
 import flattenRelativeImports from './flattenRelativeImports';
 
 const SCRIPT_EXTENSIONS = ['js', 'ts', 'jsx', 'tsx'];

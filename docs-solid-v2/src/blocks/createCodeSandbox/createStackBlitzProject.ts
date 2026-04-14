@@ -1,4 +1,4 @@
-import { DemoFile } from '../Demo';
+import type { DemoFile } from '../Demo';
 import { addHiddenInput } from './addHiddenInput';
 import * as CSA from './CreateSolidApp';
 import { packDemo } from './packDemo';

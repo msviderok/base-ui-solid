@@ -1,6 +1,6 @@
 import { createEffect, createSignal, splitProps, type JSX } from 'solid-js';
 import { DemoContext } from './DemoContext';
-import { DemoFile, DemoVariant } from './types';
+import type { DemoFile, DemoVariant } from './types';
 
 export function DemoRoot(props: DemoRoot.Props) {
   const [local, other] = splitProps(props, ['variants', 'children']);

@@ -1,8 +1,8 @@
-import LZString from 'lz-string';
 import { DemoFile } from 'docs/src/blocks/Demo';
+import LZString from 'lz-string';
+import { addHiddenInput } from './addHiddenInput';
 import * as CRA from './CreateReactApp';
 import { packDemo } from './packDemo';
-import { addHiddenInput } from './addHiddenInput';
 
 export function createCodeSandbox(options: createCodeSandbox.Options) {
   const payload = createCodeSandboxRequestPayload(options);
