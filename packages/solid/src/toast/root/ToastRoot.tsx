@@ -1,8 +1,8 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import { activeElement, contains, getTarget } from '../../floating-ui-solid/utils';
 import { splitComponentProps, useRef } from '../../solid-helpers';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { ownerDocument } from '../../utils/owner';
 import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';

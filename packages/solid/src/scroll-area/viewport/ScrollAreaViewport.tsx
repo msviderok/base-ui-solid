@@ -1,8 +1,8 @@
-import { isWebKit } from '@base-ui/utils/detectBrowser';
 import { batch, createEffect, on, onCleanup, onMount, type ComponentProps } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
 import { splitComponentProps } from '../../solid-helpers';
 import { clamp } from '../../utils/clamp';
+import { isWebKit } from '../../utils/detectBrowser';
 import { styleDisableScrollbar } from '../../utils/styles';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';

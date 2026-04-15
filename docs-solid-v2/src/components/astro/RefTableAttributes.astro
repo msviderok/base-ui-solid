@@ -11,4 +11,9 @@ export interface Props {
 const { data, name, class: className } = Astro.props;
 ---
 
-<AttributesTable class={className} name={name} data={data} client:only="solid-js" />
+<AttributesTable
+  class={`mt-5 mb-6 ${className || ''}`.trim()}
+  name={name}
+  data={data}
+  client:only="solid-js"
+/>

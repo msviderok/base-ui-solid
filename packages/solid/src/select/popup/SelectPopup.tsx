@@ -1,6 +1,3 @@
-import { isWebKit } from '@base-ui/utils/detectBrowser';
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
-import type { InteractionType } from '@base-ui/utils/useEnhancedClickHandler';
 import { createEffect, onCleanup, onMount, type JSX } from 'solid-js';
 import { COMPOSITE_KEYS } from '../../composite/composite';
 import { useCSPContext } from '../../csp-provider/CSPContext';
@@ -9,9 +6,11 @@ import { splitComponentProps } from '../../solid-helpers';
 import { useToolbarRootContext } from '../../toolbar/root/ToolbarRootContext';
 import { clamp } from '../../utils/clamp';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { isWebKit } from '../../utils/detectBrowser';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
 import type { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { isMouseWithinBounds } from '../../utils/isMouseWithinBounds';
+import { ownerDocument, ownerWindow } from '../../utils/owner';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
 import { transitionStatusMapping } from '../../utils/stateAttributesMapping';
@@ -19,6 +18,7 @@ import { styleDisableScrollbar, useStyleDisableScrollbar } from '../../utils/sty
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import type { Align, Side } from '../../utils/useAnchorPositioning';
 import { useAnimationFrame } from '../../utils/useAnimationFrame';
+import type { InteractionType } from '../../utils/useEnhancedClickHandler';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTimeout } from '../../utils/useTimeout';

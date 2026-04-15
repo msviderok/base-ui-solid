@@ -1,5 +1,5 @@
 import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
-import { isWebKit } from '@base-ui/utils/detectBrowser';
+import { isWebKit } from '#utils/detectBrowser';
 import { Slider } from '@msviderok/base-ui-solid/slider';
 import { useRef } from '@msviderok/base-ui-solid/solid-helpers';
 import { fireEvent, screen } from '@solidjs/testing-library';

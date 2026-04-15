@@ -1,6 +1,6 @@
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
-import { batch, createEffect, createSignal, onCleanup } from 'solid-js';
+import { batch, createEffect, createSignal, on, onCleanup } from 'solid-js';
 import { access, type MaybeAccessor } from '../solid-helpers';
+import { AnimationFrame } from './useAnimationFrame';
 
 export type TransitionStatus = 'starting' | 'ending' | 'idle' | undefined;
 
@@ -22,28 +22,44 @@ export function useTransitionStatus(
     openProp() && enableIdleStateProp() ? 'idle' : undefined,
   );
 
-  createEffect(() => {
-    const isOpen = openProp();
-    const isMounted = mounted();
-    const status = transitionStatus();
+  function updateState(newMounted: boolean) {
+    batch(() => {
+      setMounted(newMounted);
 
-    if (isOpen && !isMounted) {
-      batch(() => {
+      if (openProp() && !newMounted) {
         setMounted(true);
         setTransitionStatus('starting');
-      });
-      return;
-    }
+        return;
+      }
 
-    if (!isOpen && isMounted && status !== 'ending' && !deferEndingStateProp()) {
-      setTransitionStatus('ending');
-      return;
-    }
+      if (!openProp() && newMounted && transitionStatus() !== 'ending' && !deferEndingStateProp()) {
+        setTransitionStatus('ending');
+        return;
+      }
 
-    if (!isOpen && !isMounted && status === 'ending') {
-      setTransitionStatus(undefined);
-    }
-  });
+      if (!openProp() && !newMounted && transitionStatus() === 'ending') {
+        setTransitionStatus(undefined);
+        return;
+      }
+
+      if (mounted() && !newMounted && !openProp() && transitionStatus() !== 'ending') {
+        setTransitionStatus('ending');
+        return;
+      }
+
+      if (newMounted === false && mounted() && !openProp() && transitionStatus() === 'ending') {
+        setMounted(false);
+        setTransitionStatus(undefined);
+        return;
+      }
+    });
+  }
+
+  createEffect(
+    on([openProp, enableIdleStateProp, deferEndingStateProp, mounted, transitionStatus], () => {
+      updateState(mounted());
+    }),
+  );
 
   createEffect(() => {
     if (!openProp() && mounted() && transitionStatus() !== 'ending' && deferEndingStateProp()) {
@@ -53,25 +69,23 @@ export function useTransitionStatus(
   });
 
   createEffect(() => {
-    if (!openProp() || enableIdleStateProp()) {
+    if (!openProp()) {
       return;
     }
 
-    let nextFrame: number | undefined;
-    const frame = AnimationFrame.request(() => {
-      nextFrame = AnimationFrame.request(() => setTransitionStatus(undefined));
-    });
-    onCleanup(() => {
-      AnimationFrame.cancel(frame);
-      if (nextFrame !== undefined) {
-        AnimationFrame.cancel(nextFrame);
-      }
-    });
+    if (mounted() && enableIdleStateProp() && transitionStatus() !== 'idle') {
+      setTransitionStatus('starting');
+    }
+
+    const frame = AnimationFrame.request(() =>
+      setTransitionStatus(enableIdleStateProp() ? 'idle' : undefined),
+    );
+    onCleanup(() => AnimationFrame.cancel(frame));
   });
 
   return {
     mounted,
     transitionStatus,
-    setMounted,
+    setMounted: updateState,
   };
 }

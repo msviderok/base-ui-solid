@@ -1,10 +1,10 @@
-import { error } from '@base-ui/utils/error';
-import { ownerDocument } from '@base-ui/utils/owner';
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { createEffect, onCleanup } from 'solid-js';
 import { getTarget } from '../../floating-ui-solid/utils';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { splitComponentProps } from '../../solid-helpers';
+import { error } from '../../utils/error';
+import { ownerDocument } from '../../utils/owner';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useRenderElement } from '../../utils/useRenderElement';

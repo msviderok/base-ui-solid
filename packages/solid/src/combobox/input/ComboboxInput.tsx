@@ -1,11 +1,4 @@
-import { isAndroid, isFirefox } from '@base-ui/utils/detectBrowser';
-import {
-  createRenderEffect,
-  createSignal,
-  onCleanup,
-  onMount,
-  mergeProps as solidMergeProps,
-} from 'solid-js';
+import { createRenderEffect, createSignal, mergeProps as solidMergeProps } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
 import type { FieldRoot } from '../../field/root/FieldRoot';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
@@ -13,6 +6,7 @@ import { contains, stopEvent } from '../../floating-ui-solid/utils';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { splitComponentProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { isAndroid, isFirefox } from '../../utils/detectBrowser';
 import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps } from '../../utils/types';
 import type { Side } from '../../utils/useAnchorPositioning';

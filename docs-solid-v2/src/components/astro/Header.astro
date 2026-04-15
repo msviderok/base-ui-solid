@@ -2,6 +2,8 @@
 import { buildNav, type NavSection } from '@/lib/buildNav';
 import { MobileNav } from '@/components/solid/MobileNav';
 import { Logo } from '@/components/solid/Logo';
+import { NpmIcon } from '@/components/solid/icons/NpmIcon';
+import { GitHubIcon } from '@/components/solid/icons/GitHubIcon';
 
 const nav: NavSection[] = await buildNav();
 ---
@@ -16,9 +18,11 @@ const nav: NavSection[] = await buildNav();
         rel="noopener"
         target="_blank"
       >
-        npm
+        <NpmIcon />
+        {import.meta.env.VITE_LIB_VERSION}
       </a>
       <a class="HeaderLink" href="https://github.com/mui/base-ui" rel="noopener" target="_blank">
+        <GitHubIcon />
         GitHub
       </a>
     </div>

@@ -9,7 +9,13 @@ import {
   type Setter,
 } from 'solid-js';
 import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
-import { access, type CodependentRefs, type MaybeAccessor } from '../../solid-helpers';
+import {
+  access,
+  useRef,
+  type CodependentRefs,
+  type MaybeAccessor,
+  type ReactLikeRef,
+} from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { useAnimationsFinished } from '../../utils/useAnimationsFinished';
@@ -55,17 +61,15 @@ export function useCollapsibleRoot(
   const [hiddenUntilFound, setHiddenUntilFound] = createSignal(false);
   const [keepMounted, setKeepMounted] = createSignal(false);
 
-  const refs: useCollapsibleRoot.ReturnValue['refs'] = {
-    panelRef: null,
-    abortControllerRef: null,
-  };
+  const panelRef = useRef<HTMLElement | null | undefined>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [animationType, setAnimationType] = createSignal<AnimationType>(null);
   const [transitionDimension, setTransitionDimension] = createSignal<'width' | 'height' | null>(
     null,
   );
 
-  const runOnceAnimationsFinish = useAnimationsFinished(refs.panelRef, false);
+  const runOnceAnimationsFinish = useAnimationsFinished(() => panelRef.current, false);
 
   function handleTrigger(event: MouseEvent | KeyboardEvent) {
     const nextOpen = !open();
@@ -78,8 +82,8 @@ export function useCollapsibleRoot(
         return;
       }
 
-      if (animationType() === 'css-animation' && refs.panelRef != null) {
-        refs.panelRef!.style.removeProperty('animation-name');
+      if (animationType() === 'css-animation' && panelRef.current != null) {
+        panelRef.current!.style.removeProperty('animation-name');
       }
 
       if (!hiddenUntilFound() && !keepMounted()) {
@@ -135,7 +139,8 @@ export function useCollapsibleRoot(
   );
 
   return {
-    refs,
+    panelRef,
+    abortControllerRef,
     animationType,
     setAnimationType,
     disabled,
@@ -209,10 +214,8 @@ export interface UseCollapsibleRootReturnValue {
   codependentRefs: Store<CodependentRefs<['panel']>>;
   setCodependentRefs: SetStoreFunction<CodependentRefs<['panel']>>;
   panelId: Accessor<JSX.HTMLAttributes<Element>['id']>;
-  refs: {
-    abortControllerRef: AbortController | null;
-    panelRef: HTMLElement | null | undefined;
-  };
+  panelRef: ReactLikeRef<HTMLElement | null | undefined>;
+  abortControllerRef: ReactLikeRef<AbortController | null>;
   runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
   setDimensions: Setter<Dimensions>;
   setHiddenUntilFound: Setter<boolean>;

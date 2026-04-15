@@ -1,4 +1,3 @@
-import { isElementDisabled } from '@base-ui/utils/isElementDisabled';
 import { type JSX } from 'solid-js';
 import { useCollapsibleRootContext } from '../../collapsible/root/CollapsibleRootContext';
 import {
@@ -13,6 +12,7 @@ import {
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { triggerOpenStateMapping } from '../../utils/collapsibleOpenStateMapping';
+import { isElementDisabled } from '../../utils/isElementDisabled';
 import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { AccordionItem } from '../item/AccordionItem';

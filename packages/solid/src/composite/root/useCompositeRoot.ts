@@ -1,7 +1,7 @@
-import { isElementDisabled } from '@base-ui/utils/isElementDisabled';
 import { createSignal, type Accessor } from 'solid-js';
 import type { TextDirection } from '../../direction-provider/DirectionContext';
 import { access, type MaybeAccessor } from '../../solid-helpers';
+import { isElementDisabled } from '../../utils/isElementDisabled';
 import type { HTMLProps } from '../../utils/types';
 import {
   ALL_KEYS,

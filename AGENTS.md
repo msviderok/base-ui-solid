@@ -6,6 +6,7 @@ This repository contains the source code and documentation for Base UI: a headl
 
 ## Project structure
 
+- Unless I explicitly say otherwise, any request to implement a feature, fix, or other code change should be treated as applying only to `packages/solid/` or `docs-solid-v2/`.
 - Source code for components and private utils is in `packages/react/`.
 - Source code for public shared utils is in `packages/utils/`.
 - Experiments are located at `docs/src/app/(private)/experiments/`. Use for creating demos that require manual testing in the browser.

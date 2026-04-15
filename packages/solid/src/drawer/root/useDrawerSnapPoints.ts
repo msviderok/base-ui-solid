@@ -1,7 +1,7 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext';
 import { clamp } from '../../utils/clamp';
+import { ownerDocument } from '../../utils/owner';
 import { type DrawerSnapPoint, useDrawerRootContext } from './DrawerRootContext';
 
 export interface ResolvedDrawerSnapPoint {

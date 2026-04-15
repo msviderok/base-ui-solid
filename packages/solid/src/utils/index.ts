@@ -1,43 +1,28 @@
-export { EMPTY_ARRAY, EMPTY_OBJECT, NOOP } from '@base-ui/utils/empty';
-export { error, reset } from '@base-ui/utils/error';
-export * from '@base-ui/utils/detectBrowser';
-export * from '@base-ui/utils/fastHooks';
-export * from '@base-ui/utils/fastObjectShallowCompare';
-export { default as formatErrorMessage } from '@base-ui/utils/formatErrorMessage';
-export { generateId } from '@base-ui/utils/generateId';
-export { getReactElementRef } from '@base-ui/utils/getReactElementRef';
-export { inertValue } from '@base-ui/utils/inertValue';
-export { isElementDisabled } from '@base-ui/utils/isElementDisabled';
-export { isMouseWithinBounds } from '@base-ui/utils/isMouseWithinBounds';
-export { mergeObjects } from '@base-ui/utils/mergeObjects';
-export { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
-export { isReactVersionAtLeast } from '@base-ui/utils/reactVersion';
-export { SafeReact } from '@base-ui/utils/safeReact';
-export { expectType } from '@base-ui/utils/testUtils';
-export type { IfEquals } from '@base-ui/utils/testUtils';
-export { useForcedRerendering } from '@base-ui/utils/useForcedRerendering';
-export { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
-export { useMergedRefs, useMergedRefsN } from '@base-ui/utils/useMergedRefs';
-export { useOnFirstRender } from '@base-ui/utils/useOnFirstRender';
-export { useOnMount } from '@base-ui/utils/useOnMount';
-export { useRefWithInit } from '@base-ui/utils/useRefWithInit';
-export { useStableCallback } from '@base-ui/utils/useStableCallback';
-export { useValueAsRef } from '@base-ui/utils/useValueAsRef';
-export { warn } from '@base-ui/utils/warn';
-export * from '@base-ui/utils/store';
+export * from './detectBrowser';
+export { EMPTY_ARRAY, EMPTY_OBJECT, NOOP } from './empty';
+export { error, reset } from './error';
+export { default as formatErrorMessage } from './formatErrorMessage';
+export { generateId } from './generateId';
+export { isElementDisabled } from './isElementDisabled';
+export { isMouseWithinBounds } from './isMouseWithinBounds';
+export { mergeObjects } from './mergeObjects';
+export { ownerDocument, ownerWindow } from './owner';
+export { expectType } from './testUtils';
+export type { IfEquals } from './testUtils';
+export { warn } from './warn';
 
-export {
-  TYPEAHEAD_RESET_MS,
-  PATIENT_CLICK_THRESHOLD,
-  DISABLED_TRANSITIONS_STYLE,
-  CLICK_TRIGGER_IDENTIFIER,
-  DROPDOWN_COLLISION_AVOIDANCE,
-  POPUP_COLLISION_AVOIDANCE,
-  ownerVisuallyHidden,
-} from './constants';
 export * from './areArraysEqual';
 export * from './clamp';
 export * from './collapsibleOpenStateMapping';
+export {
+  CLICK_TRIGGER_IDENTIFIER,
+  DISABLED_TRANSITIONS_STYLE,
+  DROPDOWN_COLLISION_AVOIDANCE,
+  PATIENT_CLICK_THRESHOLD,
+  POPUP_COLLISION_AVOIDANCE,
+  TYPEAHEAD_RESET_MS,
+  ownerVisuallyHidden,
+} from './constants';
 export * from './createBaseUIEventDetails';
 export * from './formatNumber';
 export * from './getCssDimensions';

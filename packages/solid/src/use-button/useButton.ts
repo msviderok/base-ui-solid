@@ -1,10 +1,10 @@
-import { error } from '@base-ui/utils/error';
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { createEffect, on, splitProps, type ComponentProps, type JSX } from 'solid-js';
 import { useCompositeRootContext } from '../composite/root/CompositeRootContext';
 import { makeEventPreventable } from '../merge-props';
 import { mergeProps } from '../merge-props/mergeProps';
 import { access, callEventHandler, type MaybeAccessor } from '../solid-helpers';
+import { error } from '../utils/error';
 import { HTMLProps } from '../utils/types';
 import { useFocusableWhenDisabled } from '../utils/useFocusableWhenDisabled';
 

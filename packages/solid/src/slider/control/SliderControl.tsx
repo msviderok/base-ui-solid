@@ -1,4 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
 import { createEffect, onCleanup } from 'solid-js';
 import { useDirection } from '../../direction-provider/DirectionContext';
@@ -10,6 +9,7 @@ import {
   createChangeEventDetails,
   createGenericEventDetails,
 } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useAnimationFrame } from '../../utils/useAnimationFrame';

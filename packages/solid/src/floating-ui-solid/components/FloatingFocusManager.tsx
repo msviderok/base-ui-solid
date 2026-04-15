@@ -1,12 +1,12 @@
-import { isWebKit } from '@base-ui/utils/detectBrowser';
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { getNodeName, isHTMLElement } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, createSignal, on, onCleanup, Show, type JSX } from 'solid-js';
 import { focusable, isTabbable, tabbable, type FocusableElement } from 'tabbable';
 import { defaultProps, type ReactLikeRef } from '../../solid-helpers';
 import { CLICK_TRIGGER_IDENTIFIER } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { isWebKit } from '../../utils/detectBrowser';
 import { FocusGuard } from '../../utils/FocusGuard';
+import { ownerDocument, ownerWindow } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { FloatingUIOpenChangeDetails } from '../../utils/types';
 import { useAnimationFrame } from '../../utils/useAnimationFrame';

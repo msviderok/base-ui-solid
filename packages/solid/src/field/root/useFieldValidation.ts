@@ -1,10 +1,10 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { reconcile } from 'solid-js/store';
 import type { Form } from '../../form';
 import { useFormContext } from '../../form/FormContext';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { mergeProps } from '../../merge-props';
 import { access, useRef, type MaybeAccessor, type ReactLikeRef } from '../../solid-helpers';
+import { EMPTY_OBJECT } from '../../utils/empty';
 import type { BaseUIHTMLProps, HTMLProps } from '../../utils/types';
 import { useTimeout } from '../../utils/useTimeout';
 import { DEFAULT_VALIDITY_STATE } from '../utils/constants';

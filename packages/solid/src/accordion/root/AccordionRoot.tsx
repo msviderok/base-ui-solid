@@ -1,4 +1,3 @@
-import { warn } from '@base-ui/utils/warn';
 import { batch, createEffect, createMemo } from 'solid-js';
 import { CompositeList } from '../../composite/list/CompositeList';
 import { useDirection } from '../../direction-provider/DirectionContext';
@@ -11,6 +10,7 @@ import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps, Orientation } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { warn } from '../../utils/warn';
 import { AccordionRootContext } from './AccordionRootContext';
 
 const rootStateAttributesMapping = {

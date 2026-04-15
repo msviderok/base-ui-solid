@@ -1,5 +1,5 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { tabbable, type FocusableElement } from 'tabbable';
+import { ownerDocument } from '../../utils/owner';
 import { activeElement, contains } from './element';
 
 export const getTabbableOptions = () =>

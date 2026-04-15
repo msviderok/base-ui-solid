@@ -1,8 +1,8 @@
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { createEffect, createMemo, For, onCleanup, Show } from 'solid-js';
 import { activeElement, contains, getTarget } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
 import { FocusGuard } from '../../utils/FocusGuard';
+import { ownerDocument, ownerWindow } from '../../utils/owner';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useTimeout } from '../../utils/useTimeout';

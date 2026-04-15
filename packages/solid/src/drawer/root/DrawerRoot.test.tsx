@@ -6,9 +6,9 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { REASONS } from '../../utils/reasons';
 import { useDrawerRootContext } from './DrawerRootContext';
 
-vi.mock('@base-ui/utils/detectBrowser', async () => {
-  const actual = await vi.importActual<typeof import('@base-ui/utils/detectBrowser')>(
-    '@base-ui/utils/detectBrowser',
+vi.mock('#utils/detectBrowser', async () => {
+  const actual = await vi.importActual<typeof import('#utils/detectBrowser')>(
+    '#utils/detectBrowser',
   );
   return { ...actual, isAndroid: true };
 });

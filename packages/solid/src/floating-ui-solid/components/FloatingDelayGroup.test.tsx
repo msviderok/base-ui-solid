@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import { flushMicrotasks } from '#test-utils';
-import { isJSDOM } from '@base-ui/utils/detectBrowser';
+import { isJSDOM } from '#utils/detectBrowser';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import { type Component, createEffect, createSignal, type JSX, Show } from 'solid-js';
 import { vi } from 'vitest';

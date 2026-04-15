@@ -1,4 +1,3 @@
-import { error } from '@base-ui/utils/error';
 import { batch, createEffect, Show } from 'solid-js';
 import { CompositeItem } from '../composite/item/CompositeItem';
 import { splitComponentProps } from '../solid-helpers';
@@ -8,6 +7,7 @@ import {
   type BaseUIChangeEventDetails,
   createChangeEventDetails,
 } from '../utils/createBaseUIEventDetails';
+import { error } from '../utils/error';
 import { REASONS } from '../utils/reasons';
 import type { BaseUIComponentProps, NativeButtonProps } from '../utils/types';
 import { useBaseUiId } from '../utils/useBaseUiId';

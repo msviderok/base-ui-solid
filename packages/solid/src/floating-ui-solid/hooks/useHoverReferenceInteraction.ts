@@ -1,8 +1,8 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
 import { createEffect, onCleanup, mergeProps as solidMergeProps } from 'solid-js';
 import { defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import { FloatingUIOpenChangeDetails, HTMLProps } from '../../utils/types';
 import { useFloatingTree } from '../components/FloatingTree';

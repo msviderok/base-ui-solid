@@ -1,4 +1,3 @@
-import { EMPTY_ARRAY } from '@base-ui/utils/empty';
 import {
   createEffect,
   createMemo,
@@ -35,6 +34,7 @@ import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
 } from '../../utils/createBaseUIEventDetails';
+import { EMPTY_ARRAY } from '../../utils/empty';
 import {
   PayloadChildRenderFunction,
   useImplicitActiveTrigger,

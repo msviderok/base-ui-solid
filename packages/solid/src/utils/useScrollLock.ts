@@ -1,10 +1,10 @@
-import { isIOS, isWebKit } from '@base-ui/utils/detectBrowser';
-import { NOOP } from '@base-ui/utils/empty';
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { isOverflowElement } from '@floating-ui/utils/dom';
 import { createEffect, onCleanup } from 'solid-js';
 import { access, type MaybeAccessor } from '../solid-helpers';
+import { isIOS, isWebKit } from './detectBrowser';
+import { NOOP } from './empty';
+import { ownerDocument, ownerWindow } from './owner';
+import { AnimationFrame } from './useAnimationFrame';
 import { useTimeout } from './useTimeout';
 
 let originalHtmlStyles: Partial<CSSStyleDeclaration> = {};

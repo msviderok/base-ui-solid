@@ -1,5 +1,3 @@
-import { isIOS } from '@base-ui/utils/detectBrowser';
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import {
   batch,
   createEffect,
@@ -20,7 +18,9 @@ import {
   type BaseUIGenericEventDetails,
   type ReasonToEvent,
 } from '../../utils/createBaseUIEventDetails';
+import { isIOS } from '../../utils/detectBrowser';
 import { formatNumber, formatNumberMaxPrecision } from '../../utils/formatNumber';
+import { ownerDocument, ownerWindow } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';

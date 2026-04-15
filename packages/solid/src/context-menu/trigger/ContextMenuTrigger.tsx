@@ -1,10 +1,10 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { onCleanup, onMount } from 'solid-js';
 import { contains, getTarget, stopEvent } from '../../floating-ui-solid/utils';
 import { useMenuRootContext } from '../../menu/root/MenuRootContext';
 import { findRootOwnerId } from '../../menu/utils/findRootOwnerId';
 import { splitComponentProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';

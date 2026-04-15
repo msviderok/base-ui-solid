@@ -1,4 +1,3 @@
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext';
@@ -8,6 +7,7 @@ import { mergeProps } from '../../merge-props';
 import { splitComponentProps } from '../../solid-helpers';
 import { clamp } from '../../utils/clamp';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument, ownerWindow } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import { findScrollableTouchTarget, type ScrollAxis } from '../../utils/scrollable';
 import { TransitionStatusDataAttributes } from '../../utils/stateAttributesMapping';

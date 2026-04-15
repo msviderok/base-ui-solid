@@ -1,10 +1,10 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { createEffect, createSignal, Match, on, Switch } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { CompositeRoot } from '../../composite/root/CompositeRoot';
 import { FloatingNode } from '../../floating-ui-solid';
 import { contains, getTarget } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
+import { EMPTY_OBJECT } from '../../utils/empty';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import { transitionStatusMapping } from '../../utils/stateAttributesMapping';

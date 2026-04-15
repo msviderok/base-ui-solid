@@ -1,4 +1,4 @@
-import { generateId } from '@base-ui/utils/generateId';
+import { generateId } from '../utils/generateId';
 import type {
   ToastManagerAddOptions,
   ToastManagerPromiseOptions,

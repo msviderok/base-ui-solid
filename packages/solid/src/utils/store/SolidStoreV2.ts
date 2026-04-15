@@ -1,7 +1,7 @@
-import { NOOP } from '@base-ui/utils/empty';
 import { createEffect, createMemo, createRoot, on, onCleanup, type Accessor } from 'solid-js';
 import { createStore, produce, type SetStoreFunction, type Store } from 'solid-js/store';
 import { access, type MaybeAccessor, type MaybeAccessorValue } from '../../solid-helpers';
+import { NOOP } from '../empty';
 
 /**
  * A Store that supports controlled state keys, non-reactive values and provides utility methods for React.

@@ -1,9 +1,9 @@
-import { generateId } from '@base-ui/utils/generateId';
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createMemo, mergeProps as solidMergeProps, type Accessor } from 'solid-js';
 import { createStore, produce, type SetStoreFunction, type Store } from 'solid-js/store';
 import { activeElement, contains, getTarget } from '../floating-ui-solid/utils';
 import { access, type MaybeAccessor } from '../solid-helpers';
+import { generateId } from '../utils/generateId';
+import { ownerDocument } from '../utils/owner';
 import { SolidStore } from '../utils/store/SolidStoreV2';
 import { useTimeout } from '../utils/useTimeout';
 import {

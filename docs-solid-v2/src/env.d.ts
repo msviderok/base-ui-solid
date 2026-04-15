@@ -2,11 +2,12 @@
 /// <reference types="astro/client" />
 
 declare module 'virtual:demos-manifest' {
+  import type { DemoSource } from '@/blocks/Demo';
   import type { Component } from 'solid-js';
 
   export interface DemoFile {
     raw: string;
-    highlighted: string;
+    source: DemoSource;
   }
 
   export interface DemoVariantData {

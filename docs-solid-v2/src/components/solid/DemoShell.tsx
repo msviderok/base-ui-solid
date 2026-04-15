@@ -1,12 +1,18 @@
 import type { DemoFile as ExportDemoFile } from '@/blocks/Demo';
+import { DemoSourceRenderer } from '@/blocks/Demo/DemoSourceRenderer';
 import { createCodeSandbox } from '@/blocks/createCodeSandbox/createCodeSandbox';
 import { createStackBlitzProject } from '@/blocks/createCodeSandbox/createStackBlitzProject';
 import { GhostButton } from '@/components/solid/GhostButton';
 import * as ScrollArea from '@/components/solid/ScrollArea';
 import * as Select from '@/components/solid/Select';
+import {
+  setPreferredDemoVariant,
+  usePreferredDemoVariant,
+} from '@/components/solid/demoVariantPreference';
 import { CheckIcon } from '@/components/solid/icons/CheckIcon';
 import { CopyIcon } from '@/components/solid/icons/CopyIcon';
 import { ExternalLinkIcon } from '@/components/solid/icons/ExternalLinkIcon';
+import { themeCss } from '@/lib/demo-theme-css';
 import { callEventHandler } from '@msviderok/base-ui-solid';
 import { Tabs } from '@msviderok/base-ui-solid/tabs';
 import { isEdge, isSafari, useTimeout } from '@msviderok/base-ui-solid/utils';
@@ -24,12 +30,7 @@ import {
   type ComponentProps,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import {
-  demoManifest,
-  type DemoVariantData,
-  type DemoEntry as ManifestDemoEntry,
-  type DemoFile as ManifestDemoFile,
-} from 'virtual:demos-manifest';
+import { demoManifest, type DemoVariantData, type DemoEntry as ManifestDemoEntry, type DemoFile as ManifestDemoFile } from 'virtual:demos-manifest';
 
 const COLLAPSIBLE_LINES_THRESHOLD = 12;
 const SOLID_JS_VERSION = '^1.9.8';
@@ -73,40 +74,6 @@ const tailwindSetup = `
     </script>
 `;
 
-const themeCss = `:root {
-  --color-blue: oklch(45% 50% 264deg);
-  --color-red: oklch(50% 55% 31deg);
-  --color-gray-50: oklch(98% 0.25% 264deg);
-  --color-gray-100: oklch(12% 9.5% 264deg / 5%);
-  --color-gray-200: oklch(12% 9% 264deg / 7%);
-  --color-gray-300: oklch(12% 8.5% 264deg / 17%);
-  --color-gray-400: oklch(12% 8% 264deg / 38%);
-  --color-gray-500: oklch(12% 7.5% 264deg / 50%);
-  --color-gray-600: oklch(12% 7% 264deg / 67%);
-  --color-gray-700: oklch(12% 6% 264deg / 77%);
-  --color-gray-800: oklch(12% 5% 264deg / 85%);
-  --color-gray-900: oklch(12% 5% 264deg / 90%);
-  --color-gray-950: oklch(12% 5% 264deg / 95%);
-  color-scheme: light dark;
-
-  @media (prefers-color-scheme: dark) {
-    --color-blue: oklch(69% 50% 264deg);
-    --color-red: oklch(80% 55% 31deg);
-    --color-gray-50: oklch(17% 0.25% 264deg);
-    --color-gray-100: oklch(28% 0.75% 264deg / 65%);
-    --color-gray-200: oklch(29% 0.75% 264deg / 80%);
-    --color-gray-300: oklch(35% 0.75% 264deg / 80%);
-    --color-gray-400: oklch(47% 0.875% 264deg / 80%);
-    --color-gray-500: oklch(64% 1% 264deg / 80%);
-    --color-gray-600: oklch(82% 1% 264deg / 80%);
-    --color-gray-700: oklch(92% 1.125% 264deg / 80%);
-    --color-gray-800: oklch(93% 0.875% 264deg / 85%);
-    --color-gray-900: oklch(95% 0.5% 264deg / 90%);
-    --color-gray-950: oklch(94% 0.375% 264deg / 95%);
-  }
-}
-`;
-
 const variantLabels: Record<string, string> = {
   default: 'Default',
   system: 'MUI System',
@@ -123,15 +90,14 @@ interface Props {
   showExtraPlaygroundLink?: boolean;
 }
 
-function CodeBlockRoot(componentProps: ComponentProps<typeof ScrollArea.Root>) {
-  const [local, props] = splitProps(componentProps, ['class', 'onKeyDown']);
-
+function CodeBlockRoot(props: ComponentProps<typeof ScrollArea.Root>) {
   return (
     <ScrollArea.Root
-      class={clsx('DemoCodeBlockRoot', local.class)}
+      {...props}
+      class={clsx('DemoCodeBlockRoot', props.class)}
       tabIndex={-1}
       onKeyDown={(event) => {
-        callEventHandler(local.onKeyDown, event);
+        callEventHandler(props.onKeyDown, event);
 
         if (
           event.key.toLowerCase() === 'a' &&
@@ -143,7 +109,6 @@ function CodeBlockRoot(componentProps: ComponentProps<typeof ScrollArea.Root>) {
           window.getSelection()?.selectAllChildren(event.currentTarget);
         }
       }}
-      {...props}
     />
   );
 }
@@ -201,23 +166,6 @@ function getDemoTitle(path: string) {
       : lastSegment;
 
   return `Base UI ${humanizeLabel(titleSegment)} example`;
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-}
-
-function highlightStaticFile(content: string) {
-  const lines = escapeHtml(content)
-    .split('\n')
-    .map((line) => `<span class="line">${line || ' '}</span>`)
-    .join('');
-
-  return `<pre class="shiki css"><code><span class="frame" data-lined="">${lines}</span></code></pre>`;
 }
 
 function collectTailwindClasses(files: ExportDemoFile[]) {
@@ -279,15 +227,24 @@ export default function DemoShell(componentProps: Props) {
       return mod.default;
     },
   );
-  const [variant, setVariant] = createSignal('');
   const [filePath, setFilePath] = createSignal('index.tsx');
   const [expanded, setExpanded] = createSignal(props.defaultOpen);
   const [copied, setCopied] = createSignal(false);
+  const preferredVariant = usePreferredDemoVariant();
 
   const hasDemo = () => Boolean(demo());
   const hasLoadedDemo = () => Boolean(demoEntry());
   const variantNames = createMemo(() => demo()?.variants ?? []);
-  const currentVariant = createMemo(() => variant() || variantNames()[0] || '');
+  const currentVariant = createMemo(() => {
+    const variantName = preferredVariant();
+    const availableVariants = variantNames();
+
+    if (variantName && availableVariants.includes(variantName)) {
+      return variantName;
+    }
+
+    return availableVariants[0] || '';
+  });
   const currentVariantData = createMemo<DemoVariantData | undefined>(() => {
     const entry = demoEntry();
     const variantName = currentVariant();
@@ -300,19 +257,7 @@ export default function DemoShell(componentProps: Props) {
     return Array.isArray(data) ? undefined : data;
   });
   const currentFiles = createMemo<Record<string, ManifestDemoFile>>(() => {
-    const files = currentVariantData()?.files ?? {};
-
-    if (currentVariant() !== 'css-modules') {
-      return files;
-    }
-
-    return {
-      ...files,
-      'theme.css': {
-        raw: themeCss,
-        highlighted: highlightStaticFile(themeCss),
-      },
-    };
+    return currentVariantData()?.files ?? {};
   });
   const fileEntries = createMemo(() =>
     Object.keys(currentFiles()).map((path) => ({
@@ -346,7 +291,7 @@ export default function DemoShell(componentProps: Props) {
       path: key,
       name: label,
       content: currentFiles()[key].raw,
-      prettyContent: currentFiles()[key].highlighted,
+      source: currentFiles()[key].source,
       type: getFileLanguage(key),
     }));
   });
@@ -502,7 +447,7 @@ export default function DemoShell(componentProps: Props) {
                       }
 
                       batch(() => {
-                        setVariant(value);
+                        setPreferredDemoVariant(value);
                         setFilePath('index.tsx');
                         setExpanded(true);
                       });
@@ -546,12 +491,17 @@ export default function DemoShell(componentProps: Props) {
                 class="DemoCodeBlockViewport"
                 data-closed={showCollapsedPreview() ? '' : undefined}
               >
-                <div
-                  class="DemoSourceBrowser"
-                  data-language={getFileLanguage(currentFilePath())}
-                  // eslint-disable-next-line solid/no-innerhtml
-                  innerHTML={currentFile()?.highlighted ?? ''}
-                />
+                <ScrollArea.Content>
+                  <div
+                    class="DemoSourceBrowser"
+                    data-language={getFileLanguage(currentFilePath())}
+                  >
+                    <DemoSourceRenderer
+                      language={getFileLanguage(currentFilePath())}
+                      source={currentFile()?.source ?? currentFile()?.raw ?? ''}
+                    />
+                  </div>
+                </ScrollArea.Content>
               </ScrollArea.Viewport>
 
               <Show when={!showCollapsedPreview()}>

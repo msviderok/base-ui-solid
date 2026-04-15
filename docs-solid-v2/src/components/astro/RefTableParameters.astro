@@ -28,7 +28,7 @@ const { data, name, class: className, renameFrom, renameTo } = Astro.props;
 ---
 
 <ReferenceAccordion
-  class={className}
+  class={`mt-5 mb-6 ${className || ''}`.trim()}
   name={name}
   data={normalizeParameters(data)}
   renameFrom={renameFrom}

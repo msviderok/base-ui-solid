@@ -1,5 +1,3 @@
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
-import { warn } from '@base-ui/utils/warn';
 import {
   createEffect,
   createMemo,
@@ -11,11 +9,12 @@ import {
   type JSX,
 } from 'solid-js';
 import { AccordionRootDataAttributes } from '../../accordion/root/AccordionRootDataAttributes';
-import { access, type MaybeAccessor } from '../../solid-helpers';
+import { access, type MaybeAccessor, type ReactLikeRef } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { HTMLProps } from '../../utils/types';
-import { useAnimationFrame } from '../../utils/useAnimationFrame';
+import { AnimationFrame, useAnimationFrame } from '../../utils/useAnimationFrame';
+import { warn } from '../../utils/warn';
 import type { CollapsibleRoot } from '../root/CollapsibleRoot';
 import { useCollapsibleRootContext } from '../root/CollapsibleRootContext';
 import type { AnimationType, Dimensions } from '../root/useCollapsibleRoot';
@@ -159,7 +158,7 @@ export function useCollapsiblePanel(
           return;
         }
 
-        const panel = parameters.refs.panelRef;
+        const panel = parameters.panelRef.current;
 
         if (!panel) {
           return;
@@ -167,9 +166,9 @@ export function useCollapsiblePanel(
 
         let resizeFrame = -1;
 
-        if (parameters.refs.abortControllerRef != null) {
-          parameters.refs.abortControllerRef.abort();
-          parameters.refs.abortControllerRef = null;
+        if (parameters.abortControllerRef.current != null) {
+          parameters.abortControllerRef.current.abort();
+          parameters.abortControllerRef.current = null;
         }
 
         if (open()) {
@@ -215,7 +214,7 @@ export function useCollapsiblePanel(
           parameters.setDimensions({ height: panel.scrollHeight, width: panel.scrollWidth });
 
           const abortController = new AbortController();
-          parameters.refs.abortControllerRef = abortController;
+          parameters.abortControllerRef.current = abortController;
           const signal = abortController.signal;
 
           let attributeObserver: MutationObserver | null = null;
@@ -236,8 +235,8 @@ export function useCollapsiblePanel(
                 parameters.setDimensions({ height: 0, width: 0 });
                 panel.style.removeProperty('content-visibility');
                 parameters.setMounted(false);
-                if (parameters.refs.abortControllerRef === abortController) {
-                  parameters.refs.abortControllerRef = null;
+                if (parameters.abortControllerRef.current === abortController) {
+                  parameters.abortControllerRef.current = null;
                 }
               }, signal);
             }
@@ -251,9 +250,9 @@ export function useCollapsiblePanel(
           onCleanup(() => {
             attributeObserver?.disconnect();
             endingStyleFrame.cancel();
-            if (parameters.refs.abortControllerRef === abortController) {
+            if (parameters.abortControllerRef.current === abortController) {
               abortController.abort();
-              parameters.refs.abortControllerRef = null;
+              parameters.abortControllerRef.current = null;
             }
           });
           return;
@@ -271,7 +270,7 @@ export function useCollapsiblePanel(
       return;
     }
 
-    const panel = parameters.refs.panelRef;
+    const panel = parameters.panelRef.current;
     if (!panel) {
       return;
     }
@@ -287,19 +286,19 @@ export function useCollapsiblePanel(
     }
 
     if (open()) {
-      if (parameters.refs.abortControllerRef != null) {
-        parameters.refs.abortControllerRef.abort();
-        parameters.refs.abortControllerRef = null;
+      if (parameters.abortControllerRef.current != null) {
+        parameters.abortControllerRef.current.abort();
+        parameters.abortControllerRef.current = null;
       }
       parameters.setMounted(true);
       parameters.setVisible(true);
     } else {
-      parameters.refs.abortControllerRef = new AbortController();
+      parameters.abortControllerRef.current = new AbortController();
       parameters.runOnceAnimationsFinish(() => {
         parameters.setMounted(false);
         parameters.setVisible(false);
-        parameters.refs.abortControllerRef = null;
-      }, parameters.refs.abortControllerRef.signal);
+        parameters.abortControllerRef.current = null;
+      }, parameters.abortControllerRef.current.signal);
     }
   });
 
@@ -315,7 +314,7 @@ export function useCollapsiblePanel(
       return;
     }
 
-    const panel = parameters.refs.panelRef;
+    const panel = parameters.panelRef.current;
     if (!panel) {
       return;
     }
@@ -343,7 +342,7 @@ export function useCollapsiblePanel(
   });
 
   createEffect(() => {
-    const panel = parameters.refs.panelRef;
+    const panel = parameters.panelRef.current;
 
     if (panel && hiddenUntilFound() && hidden()) {
       /**
@@ -365,7 +364,7 @@ export function useCollapsiblePanel(
   });
 
   createEffect(function registerBeforeMatchListener() {
-    const panel = parameters.refs.panelRef;
+    const panel = parameters.panelRef.current;
     if (!panel) {
       return;
     }
@@ -442,10 +441,8 @@ export interface UseCollapsiblePanelParameters {
    * Whether the collapsible panel is currently open.
    */
   open: MaybeAccessor<boolean>;
-  refs: {
-    abortControllerRef: AbortController | null;
-    panelRef: HTMLElement | null | undefined;
-  };
+  panelRef: ReactLikeRef<HTMLElement | null | undefined>;
+  abortControllerRef: ReactLikeRef<AbortController | null>;
   runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
   setDimensions: (nextDimensions: Dimensions) => void;
   setMounted: (nextMounted: boolean) => void;

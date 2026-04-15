@@ -1,8 +1,8 @@
-import { isWebKit } from '@base-ui/utils/detectBrowser';
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createSignal } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { splitComponentProps } from '../../solid-helpers';
+import { isWebKit } from '../../utils/detectBrowser';
+import { ownerDocument } from '../../utils/owner';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { NumberFieldRoot } from '../root/NumberFieldRoot';

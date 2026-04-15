@@ -1,4 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createEffect, mergeProps as solidMergeProps, type JSX } from 'solid-js';
 import { activeElement } from '../../floating-ui-solid/utils';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
@@ -6,6 +5,7 @@ import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';

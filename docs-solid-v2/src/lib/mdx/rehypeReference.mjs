@@ -56,9 +56,9 @@ export function rehypeReference() {
         throw new Error(`Missing "component" or "name" prop on the "<Reference />" component.`);
       }
 
-      /** @type {import('./types').ComponentDef[]} */
+      /** @type {import('@/components/solid/ReferenceTable/types').ComponentDef[]} */
       let componentDefs = [];
-      /** @type {import('./types').FunctionDef | null} */
+      /** @type {import('@/components/solid/ReferenceTable/types').FunctionDef | null} */
       let functionDef = null;
 
       if (parts) {
@@ -118,7 +118,7 @@ export function rehypeReference() {
 /**
  * Creates tables with components props descriptions.
  *
- * @param {import('./types').ComponentDef[]} componentDefs
+ * @param {import('@/components/solid/ReferenceTable/types').ComponentDef[]} componentDefs
  * @param {string} referenceName
  * @param {string | undefined} parts
  * @param {string | undefined} asParam
@@ -198,7 +198,7 @@ function describeComponents(componentDefs, referenceName, parts, asParam) {
 /**
  * Creates tables with function parameters and return value descriptions.
  *
- * @param {import('./types').FunctionDef} functionDef
+ * @param {import('@/components/solid/ReferenceTable/types').FunctionDef} functionDef
  */
 function describeFunction(functionDef) {
   const subtree = [];

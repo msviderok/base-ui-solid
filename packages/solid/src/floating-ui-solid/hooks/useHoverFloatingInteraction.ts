@@ -1,9 +1,9 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
 import { createEffect, onCleanup } from 'solid-js';
 import { produce } from 'solid-js/store';
 import { defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import { useFloatingParentNodeId, useFloatingTree } from '../components/FloatingTree';
 import type { FloatingContext, FloatingRootContext } from '../types';

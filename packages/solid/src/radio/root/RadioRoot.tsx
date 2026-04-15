@@ -1,4 +1,3 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import {
   batch,
   createEffect,
@@ -20,6 +19,7 @@ import { useRadioGroupContext } from '../../radio-group/RadioGroupContext';
 import { splitComponentProps, type ReactLikeRef } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { EMPTY_OBJECT } from '../../utils/empty';
 import { NOOP } from '../../utils/noop';
 import { REASONS } from '../../utils/reasons';
 import { serializeValue } from '../../utils/serializeValue';

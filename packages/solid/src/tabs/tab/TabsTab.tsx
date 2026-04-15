@@ -1,4 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createEffect, type Accessor } from 'solid-js';
 import { ACTIVE_COMPOSITE_ITEM } from '../../composite/constants';
 import { useCompositeItem } from '../../composite/item/useCompositeItem';
@@ -6,6 +5,7 @@ import { activeElement, contains } from '../../floating-ui-solid/utils';
 import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';

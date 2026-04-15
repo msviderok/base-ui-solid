@@ -1,5 +1,5 @@
 import { createRenderer, describeConformance } from '#test-utils';
-import { isWebKit } from '@base-ui/utils/detectBrowser';
+import { isWebKit } from '#utils/detectBrowser';
 import { NumberField } from '@msviderok/base-ui-solid/number-field';
 import { screen } from '@solidjs/testing-library';
 import { expect } from 'chai';

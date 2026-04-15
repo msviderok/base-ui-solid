@@ -1,5 +1,5 @@
-import { isSafari } from '@base-ui/utils/detectBrowser';
 import { createSignal, onMount, type ComponentProps } from 'solid-js';
+import { isSafari } from './detectBrowser';
 import { visuallyHidden } from './visuallyHidden';
 
 /**

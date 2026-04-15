@@ -1,5 +1,3 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
-import { ownerDocument } from '@base-ui/utils/owner';
 import {
   createEffect,
   createMemo,
@@ -37,8 +35,10 @@ import { access, splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button/useButton';
 import { PATIENT_CLICK_THRESHOLD } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { EMPTY_OBJECT } from '../../utils/empty';
 import { FocusGuard } from '../../utils/FocusGuard';
 import { getPseudoElementBounds } from '../../utils/getPseudoElementBounds';
+import { ownerDocument } from '../../utils/owner';
 import { useTriggerDataForwarding } from '../../utils/popups';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';

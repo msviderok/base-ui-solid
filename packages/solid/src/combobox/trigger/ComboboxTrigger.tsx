@@ -1,4 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createEffect, mergeProps as solidMergeProps } from 'solid-js';
 import type { FieldRoot } from '../../field/root/FieldRoot';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
@@ -10,6 +9,7 @@ import { splitComponentProps } from '../../solid-helpers';
 import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { getPseudoElementBounds } from '../../utils/getPseudoElementBounds';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';
 import type { Side } from '../../utils/useAnchorPositioning';

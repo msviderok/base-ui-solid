@@ -1,4 +1,3 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import {
   createContext,
   createEffect,
@@ -16,6 +15,7 @@ import { Portal } from 'solid-js/web';
 import { defaultProps } from '../../solid-helpers';
 import { ownerVisuallyHidden } from '../../utils/constants';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { EMPTY_OBJECT } from '../../utils/empty';
 import { FocusGuard } from '../../utils/FocusGuard';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';

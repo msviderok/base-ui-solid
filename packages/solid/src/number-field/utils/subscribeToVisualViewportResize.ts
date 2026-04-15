@@ -1,5 +1,5 @@
-import { ownerWindow } from '@base-ui/utils/owner';
 import { onCleanup } from 'solid-js';
+import { ownerWindow } from '../../utils/owner';
 
 // This lets us invert the scale of the cursor to match the OS scale, in which the cursor doesn't
 // scale with the content on pinch-zoom.

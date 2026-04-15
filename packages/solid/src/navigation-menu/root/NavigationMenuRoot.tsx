@@ -1,4 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { batch, createEffect, createMemo, createSignal, on, Show, splitProps } from 'solid-js';
 import {
@@ -10,6 +9,7 @@ import {
 import { activeElement, contains } from '../../floating-ui-solid/utils';
 import { splitComponentProps, useRef, type ReactLikeRef } from '../../solid-helpers';
 import { type BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useControlled } from '../../utils/useControlled';

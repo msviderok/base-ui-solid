@@ -1,5 +1,5 @@
 import { flushMicrotasks } from '#test-utils';
-import { isJSDOM } from '@base-ui/utils/detectBrowser';
+import { isJSDOM } from '#utils/detectBrowser';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { createSignal, Show, splitProps, type Accessor, type JSX } from 'solid-js';

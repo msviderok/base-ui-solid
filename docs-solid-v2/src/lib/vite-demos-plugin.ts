@@ -2,6 +2,9 @@ import fg from 'fast-glob';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createHighlighter, type Highlighter } from 'shiki';
+import { normalizeShikiHast, serializeDemoSource } from '../blocks/Demo/demoSourceUtils';
+import type { SerializedDemoSource } from '../blocks/Demo';
+import { themeCss } from './demo-theme-css';
 
 const VIRTUAL_MANIFEST_ID = 'virtual:demos-manifest';
 const RESOLVED_MANIFEST_ID = '\0virtual:demos-manifest';
@@ -49,7 +52,7 @@ const theme = {
 
 interface DemoFile {
   raw: string;
-  highlighted: string;
+  source: SerializedDemoSource;
 }
 
 interface DemoVariantEntry {
@@ -79,8 +82,9 @@ async function getHighlighter(): Promise<Highlighter> {
   return highlighter;
 }
 
-function highlightCode(hl: Highlighter, code: string, lang: 'tsx' | 'css'): string {
-  return hl.codeToHtml(code, { lang, theme: 'base-ui', defaultColor: false });
+function highlightCode(hl: Highlighter, code: string, lang: 'tsx' | 'css'): SerializedDemoSource {
+  const hast = hl.codeToHast(code, { lang, theme: 'base-ui', defaultColor: false });
+  return serializeDemoSource(normalizeShikiHast(hast));
 }
 
 function getLangFromFile(filename: string): 'tsx' | 'css' {
@@ -186,8 +190,15 @@ async function collectDemoEntries(projectRoot: string): Promise<Map<string, Demo
     for (const { filePath, relativePath } of relativeFiles) {
       const raw = fs.readFileSync(filePath, 'utf-8');
       const lang = getLangFromFile(filePath);
-      const highlighted = highlightCode(hl, raw, lang);
-      demoFiles[relativePath] = { raw, highlighted };
+      const source = highlightCode(hl, raw, lang);
+      demoFiles[relativePath] = { raw, source };
+    }
+
+    if (variant.variantName === 'css-modules') {
+      demoFiles['theme.css'] = {
+        raw: themeCss,
+        source: highlightCode(hl, themeCss, 'css'),
+      };
     }
 
     if (!demoEntries.has(variant.demoKey)) {

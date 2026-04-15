@@ -1,8 +1,8 @@
-import { NOOP } from '@base-ui/utils/empty';
 import { createEffect, createMemo, JSX, on, onCleanup } from 'solid-js';
 import { Dimensions } from '../floating-ui-solid/types';
 import { access, type MaybeAccessor } from '../solid-helpers';
 import { EMPTY_OBJECT } from './constants';
+import { NOOP } from './empty';
 import { getCssDimensions } from './getCssDimensions';
 import { Side } from './useAnchorPositioning';
 import { useAnimationFrame } from './useAnimationFrame';

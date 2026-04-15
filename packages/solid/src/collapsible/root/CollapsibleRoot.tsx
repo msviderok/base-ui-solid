@@ -1,4 +1,4 @@
-import { Show, mergeProps as solidMergeProps } from 'solid-js';
+import { mergeProps as solidMergeProps } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import type { BaseUIChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';

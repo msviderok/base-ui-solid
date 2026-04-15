@@ -1,5 +1,5 @@
-import { isJSDOM } from '@base-ui/utils/detectBrowser';
 import { isElement, isHTMLElement, isShadowRoot } from '@floating-ui/utils/dom';
+import { isJSDOM } from '../../utils/detectBrowser';
 import { type PopupTriggerMap } from '../../utils/popups';
 import { FOCUSABLE_ATTRIBUTE, TYPEABLE_SELECTOR } from './constants';
 import { createAttribute } from './createAttribute';

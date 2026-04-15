@@ -9,6 +9,11 @@ export function Viewport(props: ScrollArea.Viewport.Props) {
   return <ScrollArea.Viewport class={clsx('ScrollAreaViewport', local.class)} {...rest} />;
 }
 
+export function Content(props: ScrollArea.Content.Props) {
+  const [local, rest] = splitProps(props, ['class']);
+  return <ScrollArea.Content class={clsx('ScrollAreaContent', local.class)} {...rest} />;
+}
+
 export function Scrollbar(props: ScrollArea.Scrollbar.Props) {
   const [local, rest] = splitProps(props, ['class']);
   return (

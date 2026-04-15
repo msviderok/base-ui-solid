@@ -2,7 +2,7 @@
 /* eslint-disable no-promise-executor-return */
 /* eslint-disable @typescript-eslint/no-shadow */
 import { flushMicrotasks } from '#test-utils';
-import { isJSDOM } from '@base-ui/utils/detectBrowser';
+import { isJSDOM } from '#utils/detectBrowser';
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { batch, createMemo, createSignal, onMount, Show, type Component, type JSX } from 'solid-js';

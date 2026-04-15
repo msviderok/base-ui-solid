@@ -1,8 +1,8 @@
-import { EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { type Accessor, mergeProps as solidMergeProps } from 'solid-js';
 import { FloatingTreeStore } from '../../floating-ui-solid/components/FloatingTreeStore';
 import { getEmptyRootContext } from '../../floating-ui-solid/utils/getEmptyRootContext';
 import type { ReactLikeRef } from '../../solid-helpers';
+import { EMPTY_OBJECT } from '../../utils/empty';
 import {
   createInitialPopupStoreState,
   PopupStoreContext,

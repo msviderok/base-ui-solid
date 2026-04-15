@@ -1,3 +1,21 @@
+import type { Root as HastRoot, RootData } from 'hast';
+
+export interface DemoSourceData extends RootData {
+  totalLines?: number;
+  preClassName?: string;
+  preStyle?: string;
+}
+
+export type DemoSourceHast = HastRoot & {
+  data?: DemoSourceData;
+};
+
+export interface SerializedDemoSource {
+  hastJson: string;
+}
+
+export type DemoSource = string | DemoSourceHast | SerializedDemoSource;
+
 export interface DemoFile {
   /**
    * Absolute path to the file.
@@ -12,9 +30,9 @@ export interface DemoFile {
    */
   content: string;
   /**
-   * Pretty content of the file as HTML with highlighted syntax.
+   * Syntax-highlighted source of the file.
    */
-  prettyContent?: string;
+  source?: DemoSource;
   /**
    * Type of the file.
    */

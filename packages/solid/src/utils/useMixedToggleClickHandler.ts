@@ -1,7 +1,7 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { createMemo } from 'solid-js';
 import { access, type MaybeAccessor } from '../solid-helpers';
 import { EMPTY_OBJECT } from './constants';
+import { ownerDocument } from './owner';
 import { BaseUIEvent } from './types';
 
 /**

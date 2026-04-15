@@ -1,5 +1,5 @@
 import { createRenderer, describeConformance, flushMicrotasks, isJSDOM } from '#test-utils';
-import { isWebKit } from '@base-ui/utils/detectBrowser';
+import { isWebKit } from '#utils/detectBrowser';
 import { DirectionProvider, type TextDirection } from '@msviderok/base-ui-solid/direction-provider';
 import { Field } from '@msviderok/base-ui-solid/field';
 import { Form } from '@msviderok/base-ui-solid/form';

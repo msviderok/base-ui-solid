@@ -1,4 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { getOverflowAncestors } from '@floating-ui/dom';
 import {
   getComputedStyle,
@@ -11,6 +10,7 @@ import {
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
 import { access, defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import { useTimeout } from '../../utils/useTimeout';
 import { useFloatingTree } from '../components/FloatingTree';

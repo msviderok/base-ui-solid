@@ -17,7 +17,6 @@ export default mergeConfig(
     plugins: [solidPlugin() as any],
     resolve: {
       alias: {
-        '@base-ui/utils': resolve(WORKSPACE_ROOT, 'packages/utils/src'),
         '@msviderok/base-ui-solid': resolve(__dirname, 'src'),
       },
     },

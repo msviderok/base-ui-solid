@@ -1,9 +1,9 @@
-import { isMac, isSafari } from '@base-ui/utils/detectBrowser';
-import { ownerDocument } from '@base-ui/utils/owner';
 import { getWindow, isElement, isHTMLElement } from '@floating-ui/utils/dom';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { defaultProps } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
+import { isMac, isSafari } from '../../utils/detectBrowser';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { FloatingUIOpenChangeDetails } from '../../utils/types';
 import { useTimeout } from '../../utils/useTimeout';

@@ -284,6 +284,10 @@
       white-space: pre;
       padding-left: 0.75rem;
       padding-right: 0.75rem;
+
+      &:empty {
+        height: 1lh;
+      }
     }
   }
 

@@ -1,4 +1,3 @@
-import { ownerWindow } from '@base-ui/utils/owner';
 import { createEffect, createSignal, onCleanup, type JSX } from 'solid-js';
 import {
   disableFocusInside,
@@ -10,6 +9,7 @@ import { splitComponentProps } from '../../solid-helpers';
 import { adaptiveOrigin } from '../../utils/adaptiveOriginMiddleware';
 import { DROPDOWN_COLLISION_AVOIDANCE, POPUP_COLLISION_AVOIDANCE } from '../../utils/constants';
 import { getDisabledMountTransitionStyles } from '../../utils/getDisabledMountTransitionStyles';
+import { ownerWindow } from '../../utils/owner';
 import { popupStateMapping } from '../../utils/popupStateMapping';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { useAnchorPositioning, type Align, type Side } from '../../utils/useAnchorPositioning';

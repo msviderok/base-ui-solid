@@ -1,5 +1,3 @@
-import { isAndroid } from '@base-ui/utils/detectBrowser';
-import { ownerWindow } from '@base-ui/utils/owner';
 import {
   createEffect,
   createMemo,
@@ -16,6 +14,8 @@ import {
   createChangeEventDetails,
   type BaseUIChangeEventDetails,
 } from '../../utils/createBaseUIEventDetails';
+import { isAndroid } from '../../utils/detectBrowser';
+import { ownerWindow } from '../../utils/owner';
 import type { PayloadChildRenderFunction } from '../../utils/popups';
 import { REASONS } from '../../utils/reasons';
 import { useControlled } from '../../utils/useControlled';

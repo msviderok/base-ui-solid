@@ -74,7 +74,8 @@
   },
   "imports": {
     "#test-utils": "./test/index.ts",
-    "#formatErrorMessage": "@base-ui/utils/formatErrorMessage"
+    "#formatErrorMessage": "./src/utils/formatErrorMessage.ts",
+    "#utils/*": "./src/utils/*.ts"
   },
   "type": "commonjs",
   "scripts": {
@@ -88,7 +89,6 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.28.6",
-    "@base-ui/utils": "workspace:*",
     "@floating-ui/dom": "^1.7.2",
     "@floating-ui/utils": "^0.2.10",
     "tabbable": "^6.4.0"
@@ -111,7 +111,8 @@
     "vite-plugin-solid": "2.11.11"
   },
   "peerDependencies": {
-    "solid-js": "1.9.7"
+    "solid-js": "1.9.7",
+    "babel-preset-solid": "1.9.6"
   },
   "sideEffects": false,
   "publishConfig": {

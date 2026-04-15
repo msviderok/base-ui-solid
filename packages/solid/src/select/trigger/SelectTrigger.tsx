@@ -1,4 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import {
   createEffect,
   createMemo,
@@ -19,6 +18,7 @@ import { useButton } from '../../use-button';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { getPseudoElementBounds } from '../../utils/getPseudoElementBounds';
 import { StateAttributesMapping } from '../../utils/getStateAttributesProps';
+import { ownerDocument } from '../../utils/owner';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping';
 import { REASONS } from '../../utils/reasons';
 import { BaseUIComponentProps, NativeButtonProps } from '../../utils/types';

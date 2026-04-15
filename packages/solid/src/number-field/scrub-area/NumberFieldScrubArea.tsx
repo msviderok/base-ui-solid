@@ -1,8 +1,8 @@
-import { isFirefox, isWebKit } from '@base-ui/utils/detectBrowser';
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { splitComponentProps, useRef } from '../../solid-helpers';
 import { createGenericEventDetails } from '../../utils/createBaseUIEventDetails';
+import { isFirefox, isWebKit } from '../../utils/detectBrowser';
+import { ownerDocument, ownerWindow } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps, HTMLProps } from '../../utils/types';
 import { useRenderElement } from '../../utils/useRenderElement';

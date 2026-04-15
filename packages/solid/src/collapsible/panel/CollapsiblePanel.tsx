@@ -1,10 +1,10 @@
-import { warn } from '@base-ui/utils/warn';
 import { createEffect, createMemo, Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
 import { useRenderElement } from '../../utils/useRenderElement';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
+import { warn } from '../../utils/warn';
 import type { CollapsibleRoot } from '../root/CollapsibleRoot';
 import { useCollapsibleRootContext } from '../root/CollapsibleRootContext';
 import { collapsibleStateAttributesMapping } from '../root/stateAttributesMapping';
@@ -46,7 +46,8 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     mounted,
     onOpenChange,
     open,
-    refs,
+    panelRef,
+    abortControllerRef,
     runOnceAnimationsFinish,
     setDimensions,
     setMounted,
@@ -78,7 +79,8 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     mounted,
     onOpenChange,
     open,
-    refs,
+    panelRef,
+    abortControllerRef,
     runOnceAnimationsFinish,
     setDimensions,
     setMounted,
@@ -90,9 +92,13 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     width,
   });
 
+  createEffect(() => {
+    console.log(transitionStatus());
+  });
+
   useOpenChangeComplete({
     open: () => open() && transitionStatus() === 'idle',
-    ref: () => refs.panelRef,
+    ref: () => panelRef.current,
     onComplete() {
       if (!open()) {
         return;
@@ -109,7 +115,7 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
   const element = useRenderElement('div', componentProps, {
     state,
     ref: (el) => {
-      refs.panelRef = el;
+      panelRef.current = el;
       setRef(el);
     },
     props: [

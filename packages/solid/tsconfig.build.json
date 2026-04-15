@@ -13,13 +13,10 @@
     "outDir": "build/esm",
     "lib": ["ES2022", "DOM"],
     "jsx": "preserve",
-    "jsxImportSource": "solid-js"
+    "jsxImportSource": "solid-js",
+    "types": ["@types/node"]
   },
   "include": ["src/**/*.ts*"],
   "exclude": ["src/**/*.spec.ts*", "src/**/*.test.ts*", "../../node_modules/@types/react"],
-  "references": [
-    {
-      "path": "../utils/tsconfig.build.json"
-    }
-  ]
+  "references": []
 }

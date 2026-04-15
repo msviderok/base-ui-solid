@@ -1,5 +1,3 @@
-import { ownerDocument } from '@base-ui/utils/owner';
-import { warn } from '@base-ui/utils/warn';
 import {
   batch,
   createEffect,
@@ -24,11 +22,13 @@ import {
   type BaseUIChangeEventDetails,
   type BaseUIGenericEventDetails,
 } from '../../utils/createBaseUIEventDetails';
+import { ownerDocument } from '../../utils/owner';
 import { REASONS } from '../../utils/reasons';
 import type { BaseUIComponentProps, Orientation } from '../../utils/types';
 import { useBaseUiId } from '../../utils/useBaseUiId';
 import { useControlled } from '../../utils/useControlled';
 import { useRenderElement } from '../../utils/useRenderElement';
+import { warn } from '../../utils/warn';
 import type { ThumbMetadata } from '../thumb/SliderThumb';
 import { asc } from '../utils/asc';
 import { getSliderValue } from '../utils/getSliderValue';

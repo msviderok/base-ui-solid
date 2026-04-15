@@ -1,7 +1,7 @@
-import { ownerDocument } from '@base-ui/utils/owner';
 import { batch, createEffect, createMemo, createSignal, type JSX } from 'solid-js';
 import { contains, getTarget } from '../floating-ui-solid/utils';
 import { clamp } from './clamp';
+import { ownerDocument } from './owner';
 import { findScrollableTouchTarget, hasScrollableAncestor, type ScrollAxis } from './scrollable';
 
 export type SwipeDirection = 'up' | 'down' | 'left' | 'right';
