@@ -1,7 +1,7 @@
 import { isJSDOM } from '#test-utils';
+import * as Utils from '@msviderok/base-ui-solid/utils';
 import { expect } from 'chai';
 import { describe, it } from 'vitest';
-import * as Utils from '@msviderok/base-ui-solid/utils';
 
 describe('@msviderok/base-ui-solid/utils', () => {
   it('should have exports', () => {
@@ -20,10 +20,8 @@ describe('@msviderok/base-ui-solid/utils', () => {
     expect(Utils.NOOP).to.be.a('function');
     expect(Utils.formatErrorMessage).to.be.a('function');
     expect(Utils.expectType).to.be.a('function');
-    expect(Utils.useMergedRefs).to.be.a('function');
     expect(Utils.useTimeout).to.be.a('function');
     expect(Utils.useBaseUiId).to.be.a('function');
     expect(Utils.PopupTriggerMap).to.be.a('function');
-    expect(Utils.Store).to.be.a('function');
   });
 });

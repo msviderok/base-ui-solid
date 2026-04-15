@@ -41,7 +41,8 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
     onOpenChange,
     open,
     panelId,
-    refs,
+    panelRef,
+    abortControllerRef,
     runOnceAnimationsFinish,
     setDimensions,
     setHiddenUntilFound,
@@ -76,7 +77,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
 
   useOpenChangeComplete({
     open: () => open() && transitionStatus() === 'idle',
-    ref: () => refs.panelRef,
+    ref: () => panelRef.current,
     onComplete() {
       if (!open()) {
         return;
@@ -96,7 +97,8 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
     mounted,
     onOpenChange,
     open,
-    refs,
+    panelRef,
+    abortControllerRef,
     runOnceAnimationsFinish,
     setDimensions,
     setMounted,
@@ -119,7 +121,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
   const element = useRenderElement('div', componentProps, {
     state: panelState,
     ref: (el) => {
-      refs.panelRef = el;
+      panelRef.current = el;
       panel.setRef(el);
     },
     props: [

@@ -33,7 +33,7 @@ export function useCollapsiblePanel(
   const width = () => access(parameters.width);
   const { setCodependentRefs } = useCollapsibleRootContext();
 
-  let ref: HTMLElement | undefined;
+  let ref: HTMLElement | null | undefined;
   let isBeforeMatchRef = false;
   let latestAnimationNameRef = null as string | null;
   let shouldCancelInitialOpenAnimationRef = open();
@@ -61,7 +61,7 @@ export function useCollapsiblePanel(
    * time it opens. If the panel is in the middle of a close transition that is
    * interrupted and re-opens, this won't run as the panel was not unmounted.
    */
-  function handlePanelRef(element: HTMLElement) {
+  function handlePanelRef(element: HTMLElement | null | undefined) {
     if (!element) {
       return;
     }
@@ -462,7 +462,7 @@ export interface UseCollapsiblePanelParameters {
 }
 
 export interface UseCollapsiblePanelReturnValue {
-  setRef: (el: HTMLElement) => void;
+  setRef: (el: HTMLElement | null | undefined) => void;
   props: HTMLProps;
 }
 
