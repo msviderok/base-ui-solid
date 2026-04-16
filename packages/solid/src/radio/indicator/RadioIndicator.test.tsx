@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM, mockAnimationsFinished } from '#test-utils';
+import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Radio } from '@msviderok/base-ui-solid/radio';
 import { RadioGroup } from '@msviderok/base-ui-solid/radio-group';
 import { screen, waitFor } from '@solidjs/testing-library';
@@ -81,8 +81,7 @@ describe('<Radio.Indicator />', () => {
 
       return (
         <div>
-          {/* eslint-disable-next-line solid/no-innerhtml */}
-          <style innerHTML={style} />
+          <style>{style}</style>
           <button onClick={() => setValue('b')}>Close</button>
           <RadioGroup value={value()}>
             <Radio.Root value="a">
@@ -146,8 +145,7 @@ describe('<Radio.Indicator />', () => {
 
         return (
           <div>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
-            <style innerHTML={style} />
+            <style>{style}</style>
             <button onClick={handleSelectA}>Select a</button>
             <RadioGroup value={value()}>
               <Radio.Root value="a">
@@ -180,6 +178,18 @@ describe('<Radio.Indicator />', () => {
     it('applies data-ending-style before unmount', async () => {
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
 
+      const style = `
+        @keyframes test-anim {
+          to {
+            opacity: 0;
+          }
+        }
+
+        .animation-test-indicator[data-ending-style] {
+          animation: test-anim 1ms;
+        }
+      `;
+
       function Test() {
         const [value, setValue] = createSignal('a');
 
@@ -189,6 +199,7 @@ describe('<Radio.Indicator />', () => {
 
         return (
           <div>
+            <style>{style}</style>
             <button onClick={handleSelectB}>Select b</button>
             <RadioGroup value={value()}>
               <Radio.Root value="a">
@@ -203,21 +214,15 @@ describe('<Radio.Indicator />', () => {
       }
 
       const { user } = render(() => <Test />);
-      const indicator = screen.getByTestId('indicator-a');
-      expect(indicator).not.to.equal(null);
-
-      // Headless Chromium can miss this component's real 1ms exit animation when the full
-      // indicator suite runs, so keep the animation lifecycle under test control here.
-      const animation = mockAnimationsFinished(indicator);
+      expect(screen.getByTestId('indicator-a')).not.to.equal(null);
 
       await user.click(screen.getByText('Select b'));
 
       await waitFor(() => {
+        const indicator = screen.queryByTestId('indicator-a');
+        expect(indicator).not.to.equal(null);
         expect(indicator).to.have.attribute('data-ending-style');
-        expect(screen.queryByTestId('indicator-a')).to.equal(indicator);
       });
-
-      animation.finish();
 
       await waitFor(() => {
         expect(screen.queryByTestId('indicator-a')).to.equal(null);

@@ -2,7 +2,6 @@ import {
   createRenderer,
   describeConformance,
   isJSDOM,
-  mockAnimationsFinished,
   waitSingleFrame,
 } from '#test-utils';
 import { PreviewCard } from '@msviderok/base-ui-solid/preview-card';
@@ -200,8 +199,6 @@ describe('<PreviewCard.Viewport />', () => {
         expect(nextContainer).not.to.equal(null);
       });
 
-      const animation = mockAnimationsFinished(nextContainer!);
-
       await waitFor(() => {
         expect(previousContainer).to.have.attribute('inert');
         expect(previousContainer!.textContent).to.equal('Content 0');
@@ -209,8 +206,6 @@ describe('<PreviewCard.Viewport />', () => {
       });
 
       // Verify they are cleaned up after animation
-      animation.finish();
-
       await waitFor(() => {
         expect(document.querySelector('[data-previous]')).to.equal(null);
       });

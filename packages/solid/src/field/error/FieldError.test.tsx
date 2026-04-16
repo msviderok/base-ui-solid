@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM, mockAnimationsFinished } from '#test-utils';
+import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Field } from '@msviderok/base-ui-solid/field';
 import { Form } from '@msviderok/base-ui-solid/form';
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
@@ -149,8 +149,7 @@ describe('<Field.Error />', () => {
 
         return (
           <div>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
-            <style innerHTML={style} />
+            <style>{style}</style>
             <button onClick={handleShowError}>Show</button>
             <Field.Root>
               <Field.Control required />
@@ -203,6 +202,7 @@ describe('<Field.Error />', () => {
 
         return (
           <div>
+            <style>{style}</style>
             <button onClick={handleHideError}>Hide</button>
             <Field.Root>
               <Field.Control required />
@@ -215,18 +215,15 @@ describe('<Field.Error />', () => {
       }
 
       const { user } = render(() => <Test />);
-      const error = screen.getByTestId('error');
-      expect(error).not.to.equal(null);
-      const animation = mockAnimationsFinished(error);
+      expect(screen.getByTestId('error')).not.to.equal(null);
 
       await user.click(screen.getByText('Hide'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('error')).to.equal(error);
+        const error = screen.queryByTestId('error');
+        expect(error).not.to.equal(null);
         expect(error).to.have.attribute('data-ending-style');
       });
-
-      animation.finish();
 
       await waitFor(() => {
         expect(screen.queryByTestId('error')).to.equal(null);

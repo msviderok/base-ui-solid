@@ -795,6 +795,12 @@ describe('<Dialog.Root />', () => {
         await user.click(closeButton);
 
         await waitFor(() => {
+          const popup = screen.queryByTestId('dialog-popup');
+          expect(popup).not.to.equal(null);
+          expect(popup).to.have.attribute('data-ending-style');
+        });
+
+        await waitFor(() => {
           expect(screen.queryByTestId('dialog-popup')).to.equal(null);
         });
 
@@ -808,10 +814,23 @@ describe('<Dialog.Root />', () => {
         const onOpenChangeComplete = spy();
 
         function Test() {
+          const style = `
+        @keyframes test-anim {
+          to {
+            opacity: 0;
+          }
+        }
+
+        .animation-test-indicator[data-ending-style] {
+          animation: test-anim 1ms;
+        }
+      `;
+
           const [open, setOpen] = createSignal(true);
 
           return (
             <div>
+              <style>{style}</style>
               <button onClick={() => setOpen(false)}>Close externally</button>
               <TestDialog
                 rootProps={{ open: open(), onOpenChangeComplete }}
@@ -832,16 +851,14 @@ describe('<Dialog.Root />', () => {
           expect(onOpenChangeComplete.firstCall.args[0]).to.equal(true);
         });
 
-        const popup = screen.getByTestId('dialog-popup');
-        const animation = mockAnimationsFinished(popup);
         const closeButton = screen.getByText('Close externally');
         await user.click(closeButton);
 
         await waitFor(() => {
+          const popup = screen.queryByTestId('dialog-popup');
+          expect(popup).not.to.equal(null);
           expect(popup).to.have.attribute('data-ending-style');
         });
-
-        animation.finish();
 
         await waitFor(() => {
           expect(screen.queryByTestId('dialog-popup')).to.equal(null);
@@ -898,8 +915,7 @@ describe('<Dialog.Root />', () => {
 
           return (
             <div>
-              {/* eslint-disable-next-line solid/no-innerhtml */}
-              <style innerHTML={style} />
+              <style>{style}</style>
               <button onClick={() => setOpen(true)}>Open externally</button>
               <TestDialog
                 rootProps={{ open: open(), onOpenChange: setOpen, onOpenChangeComplete }}
@@ -957,8 +973,7 @@ describe('<Dialog.Root />', () => {
 
           return (
             <div>
-              {/* eslint-disable-next-line solid/no-innerhtml */}
-              <style innerHTML={style} />
+              <style>{style}</style>
               <button onClick={() => setOpen(true)}>Open externally</button>
               <button onClick={() => setVariant((v) => (v === 'a' ? 'b' : 'a'))}>
                 Swap animation
@@ -1024,8 +1039,7 @@ describe('<Dialog.Root />', () => {
 
           return (
             <div>
-              {/* eslint-disable-next-line solid/no-innerhtml */}
-              <style innerHTML={style} />
+              <style>{style}</style>
               <button onClick={() => setOpen(true)}>Open externally</button>
               <TestDialog
                 rootProps={{ open: open(), onOpenChange: setOpen, onOpenChangeComplete }}

@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM, mockAnimationsFinished } from '#test-utils';
+import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Avatar } from '@msviderok/base-ui-solid/avatar';
 import { screen, waitFor } from '@solidjs/testing-library';
 import { createSignal } from 'solid-js';
@@ -62,8 +62,7 @@ describe('<Avatar.Image />', () => {
 
         return (
           <div>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
-            <style innerHTML={style} />
+            <style>{style}</style>
             <button onClick={handleShowImage}>Show image</button>
             <Avatar.Root>
               <Avatar.Image
@@ -96,6 +95,18 @@ describe('<Avatar.Image />', () => {
         options.src ? 'loaded' : 'idle',
       );
 
+      const style = `
+        @keyframes test-anim {
+          to {
+            opacity: 0;
+          }
+        }
+
+        .animation-test-image[data-ending-style] {
+          animation: test-anim 1ms;
+        }
+      `;
+
       function Test() {
         const [showImage, setShowImage] = createSignal(true);
 
@@ -105,6 +116,7 @@ describe('<Avatar.Image />', () => {
 
         return (
           <div>
+            <style>{style}</style>
             <button onClick={handleHideImage}>Hide image</button>
             <Avatar.Root>
               <Avatar.Image
@@ -118,18 +130,15 @@ describe('<Avatar.Image />', () => {
       }
 
       const { user } = render(() => <Test />);
-      const image = screen.getByTestId('image');
-      expect(image).not.to.equal(null);
-      const animation = mockAnimationsFinished(image);
+      expect(screen.getByTestId('image')).not.to.equal(null);
 
       await user.click(screen.getByText('Hide image'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('image')).to.equal(image);
+        const image = screen.queryByTestId('image');
+        expect(image).not.to.equal(null);
         expect(image).to.have.attribute('data-ending-style');
       });
-
-      animation.finish();
 
       await waitFor(() => {
         expect(screen.queryByTestId('image')).to.equal(null);

@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM, mockAnimationsFinished } from '#test-utils';
+import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Avatar } from '@msviderok/base-ui-solid/avatar';
 import { screen, waitFor } from '@solidjs/testing-library';
 import { createSignal } from 'solid-js';
@@ -81,8 +81,8 @@ describe('<Avatar.Fallback />', () => {
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
 
       const useImageLoadingStatusMock = useImageLoadingStatus as Mock;
-      useImageLoadingStatusMock.mockImplementation((options) => () =>
-        options.src ? 'loaded' : 'error',
+      useImageLoadingStatusMock.mockImplementation(
+        (options) => () => (options.src ? 'loaded' : 'error'),
       );
 
       let transitionFinished = false;
@@ -110,8 +110,7 @@ describe('<Avatar.Fallback />', () => {
 
         return (
           <div>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
-            <style innerHTML={style} />
+            <style>{style}</style>
             <button onClick={handleShowFallback}>Show fallback</button>
             <Avatar.Root>
               <Avatar.Image src={showImage() ? 'avatar.png' : undefined} />
@@ -145,9 +144,21 @@ describe('<Avatar.Fallback />', () => {
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
 
       const useImageLoadingStatusMock = useImageLoadingStatus as Mock;
-      useImageLoadingStatusMock.mockImplementation((options) => () =>
-        options.src ? 'loaded' : 'error',
+      useImageLoadingStatusMock.mockImplementation(
+        (options) => () => (options.src ? 'loaded' : 'error'),
       );
+
+      const style = `
+        @keyframes test-anim {
+          to {
+            opacity: 0;
+          }
+        }
+
+        .animation-test-fallback[data-ending-style] {
+          animation: test-anim 1ms;
+        }
+      `;
 
       function Test() {
         const [showImage, setShowImage] = createSignal(false);
@@ -158,6 +169,7 @@ describe('<Avatar.Fallback />', () => {
 
         return (
           <div>
+            <style>{style}</style>
             <button onClick={handleShowImage}>Show image</button>
             <Avatar.Root>
               <Avatar.Image src={showImage() ? 'avatar.png' : undefined} />
@@ -170,18 +182,15 @@ describe('<Avatar.Fallback />', () => {
       }
 
       const { user } = render(() => <Test />);
-      const fallback = screen.getByTestId('fallback');
-      expect(fallback).not.to.equal(null);
-      const animation = mockAnimationsFinished(fallback);
+      expect(screen.getByTestId('fallback')).not.to.equal(null);
 
       await user.click(screen.getByText('Show image'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('fallback')).to.equal(fallback);
+        const fallback = screen.queryByTestId('fallback');
+        expect(fallback).not.to.equal(null);
         expect(fallback).to.have.attribute('data-ending-style');
       });
-
-      animation.finish();
 
       await waitFor(() => {
         expect(screen.queryByTestId('fallback')).to.equal(null);

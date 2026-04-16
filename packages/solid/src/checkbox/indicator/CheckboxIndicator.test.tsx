@@ -1,4 +1,4 @@
-import { createRenderer, describeConformance, isJSDOM, mockAnimationsFinished } from '#test-utils';
+import { createRenderer, describeConformance, isJSDOM } from '#test-utils';
 import { Checkbox } from '@msviderok/base-ui-solid/checkbox';
 import { screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
@@ -158,8 +158,7 @@ describe('<Checkbox.Indicator />', () => {
 
       return (
         <div>
-          {/* eslint-disable-next-line solid/no-innerhtml */}
-          <style innerHTML={style} />
+          <style>{style}</style>
           <button onClick={() => setChecked(false)}>Close</button>
           <Checkbox.Root checked={checked()}>
             <Checkbox.Indicator
@@ -217,8 +216,7 @@ describe('<Checkbox.Indicator />', () => {
 
         return (
           <div>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
-            <style innerHTML={style} />
+            <style>{style}</style>
             <button onClick={handleCheck}>Check</button>
             <Checkbox.Root checked={checked()}>
               <Checkbox.Indicator
@@ -246,6 +244,18 @@ describe('<Checkbox.Indicator />', () => {
     it('applies data-ending-style before unmount', async () => {
       globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
 
+      const style = `
+        @keyframes test-anim {
+          to {
+            opacity: 0;
+          }
+        }
+
+        .animation-test-indicator[data-ending-style] {
+          animation: test-anim 1ms;
+        }
+      `;
+
       function Test() {
         const [checked, setChecked] = createSignal(true);
 
@@ -255,6 +265,7 @@ describe('<Checkbox.Indicator />', () => {
 
         return (
           <div>
+            <style>{style}</style>
             <button onClick={handleUncheck}>Uncheck</button>
             <Checkbox.Root checked={checked()}>
               <Checkbox.Indicator class="animation-test-indicator" data-testid="indicator" />
@@ -264,21 +275,15 @@ describe('<Checkbox.Indicator />', () => {
       }
 
       const { user } = render(() => <Test />);
-      const indicator = screen.getByTestId('indicator');
-      expect(indicator).not.to.equal(null);
-
-      // Headless Chromium can miss this component's real 1ms exit animation when the full
-      // indicator suite runs, so keep the animation lifecycle under test control here.
-      const animation = mockAnimationsFinished(indicator);
+      expect(screen.getByTestId('indicator')).not.to.equal(null);
 
       await user.click(screen.getByText('Uncheck'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('indicator')).to.equal(indicator);
+        const indicator = screen.queryByTestId('indicator');
+        expect(indicator).not.to.equal(null);
         expect(indicator).to.have.attribute('data-ending-style');
       });
-
-      animation.finish();
 
       await waitFor(() => {
         expect(screen.queryByTestId('indicator')).to.equal(null);
