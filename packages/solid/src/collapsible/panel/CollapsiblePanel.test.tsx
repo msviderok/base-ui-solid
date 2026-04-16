@@ -1,9 +1,10 @@
 import { createRenderer, describeConformance, flushMicrotasks, isJSDOM } from '#test-utils';
 import { Collapsible } from '@msviderok/base-ui-solid/collapsible';
-import { fireEvent, screen } from '@solidjs/testing-library';
+import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { createSignal } from 'solid-js';
+import { afterEach } from 'vitest';
 
 const PANEL_CONTENT = 'This is panel content';
 
@@ -84,6 +85,99 @@ describe('<Collapsible.Panel />', () => {
 
       expect(handleOpenChange.callCount).to.equal(1);
       expect(panel).to.have.attribute('data-open');
+    });
+  });
+
+  describe.skipIf(isJSDOM)('animations', () => {
+    afterEach(() => {
+      globalThis.BASE_UI_ANIMATIONS_DISABLED = true;
+    });
+
+    it('triggers enter animation via data-starting-style when mounting', async () => {
+      globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
+
+      let transitionFinished = false;
+      function notifyTransitionFinished() {
+        transitionFinished = true;
+      }
+
+      const style = `
+        .animation-test-panel {
+          transition: opacity 1ms;
+        }
+
+        .animation-test-panel[data-starting-style],
+        .animation-test-panel[data-ending-style] {
+          opacity: 0;
+        }
+      `;
+
+      const { user } = render(() => (
+        <div>
+          <style>{style}</style>
+          <Collapsible.Root>
+            <Collapsible.Trigger>Toggle</Collapsible.Trigger>
+            <Collapsible.Panel
+              class="animation-test-panel"
+              data-testid="panel"
+              onTransitionEnd={notifyTransitionFinished}
+            >
+              {PANEL_CONTENT}
+            </Collapsible.Panel>
+          </Collapsible.Root>
+        </div>
+      ));
+
+      expect(screen.queryByTestId('panel')).to.equal(null);
+
+      await user.click(screen.getByRole('button', { name: 'Toggle' }));
+
+      await waitFor(() => {
+        expect(transitionFinished).to.equal(true);
+      });
+
+      expect(screen.getByTestId('panel')).to.have.attribute('data-open');
+    });
+
+    it('applies data-ending-style before unmount during a close transition', async () => {
+      globalThis.BASE_UI_ANIMATIONS_DISABLED = false;
+
+      const style = `
+        .animation-test-panel {
+          transition: opacity 100ms;
+        }
+
+        .animation-test-panel[data-starting-style],
+        .animation-test-panel[data-ending-style] {
+          opacity: 0;
+        }
+      `;
+
+      const { user } = render(() => (
+        <div>
+          <style>{style}</style>
+          <Collapsible.Root defaultOpen>
+            <Collapsible.Trigger>Toggle</Collapsible.Trigger>
+            <Collapsible.Panel class="animation-test-panel" data-testid="panel">
+              {PANEL_CONTENT}
+            </Collapsible.Panel>
+          </Collapsible.Root>
+        </div>
+      ));
+
+      expect(screen.getByTestId('panel')).not.to.equal(null);
+
+      await user.click(screen.getByRole('button', { name: 'Toggle' }));
+
+      await waitFor(() => {
+        const panel = screen.queryByTestId('panel');
+        expect(panel).not.to.equal(null);
+        expect(panel).to.have.attribute('data-ending-style');
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('panel')).to.equal(null);
+      });
     });
   });
 });
