@@ -16,7 +16,6 @@ import { HTMLProps } from '../../utils/types';
 import { AnimationFrame, useAnimationFrame } from '../../utils/useAnimationFrame';
 import { warn } from '../../utils/warn';
 import type { CollapsibleRoot } from '../root/CollapsibleRoot';
-import { useCollapsibleRootContext } from '../root/CollapsibleRootContext';
 import type { AnimationType, Dimensions } from '../root/useCollapsibleRoot';
 import { CollapsiblePanelDataAttributes } from './CollapsiblePanelDataAttributes';
 
@@ -31,9 +30,7 @@ export function useCollapsiblePanel(
   const open = () => access(parameters.open);
   const visible = () => access(parameters.visible);
   const width = () => access(parameters.width);
-  const { setCodependentRefs } = useCollapsibleRootContext();
 
-  let ref: HTMLElement | null | undefined;
   let isBeforeMatchRef = false;
   let latestAnimationNameRef = null as string | null;
   let shouldCancelInitialOpenAnimationRef = open();
@@ -46,7 +43,7 @@ export function useCollapsiblePanel(
    * When closing, the `hidden` attribute is set after any exit animations runs.
    */
   const hidden = createMemo(() => {
-    if (parameters.animationType() === 'css-animation') {
+    if (parameters.animationTypeRef.current === 'css-animation') {
       return !visible();
     }
 
@@ -65,7 +62,10 @@ export function useCollapsiblePanel(
     if (!element) {
       return;
     }
-    if (parameters.animationType() == null || parameters.transitionDimension() == null) {
+    if (
+      parameters.animationTypeRef.current == null ||
+      parameters.transitionDimensionRef.current == null
+    ) {
       const panelStyles = getComputedStyle(element);
 
       const hasAnimation = panelStyles.animationName !== 'none' && panelStyles.animationName !== '';
@@ -85,11 +85,11 @@ export function useCollapsiblePanel(
           );
         }
       } else if (panelStyles.animationName === 'none' && panelStyles.transitionDuration !== '0s') {
-        parameters.setAnimationType('css-transition');
+        parameters.animationTypeRef.current = 'css-transition';
       } else if (panelStyles.animationName !== 'none' && panelStyles.transitionDuration === '0s') {
-        parameters.setAnimationType('css-animation');
+        parameters.animationTypeRef.current = 'css-animation';
       } else {
-        parameters.setAnimationType('none');
+        parameters.animationTypeRef.current = 'none';
       }
 
       /**
@@ -101,13 +101,13 @@ export function useCollapsiblePanel(
         element.getAttribute(AccordionRootDataAttributes.orientation) === 'horizontal' ||
         panelStyles.transitionProperty.indexOf('width') > -1
       ) {
-        parameters.setTransitionDimension('width');
+        parameters.transitionDimensionRef.current = 'width';
       } else {
-        parameters.setTransitionDimension('height');
+        parameters.transitionDimensionRef.current = 'height';
       }
     }
 
-    if (parameters.animationType() !== 'css-transition') {
+    if (parameters.animationTypeRef.current !== 'css-transition') {
       return;
     }
 
@@ -144,129 +144,119 @@ export function useCollapsiblePanel(
   }
 
   createEffect(
-    on(
-      [
-        parameters.animationType,
-        hiddenUntilFound,
-        keepMounted,
-        mounted,
-        open,
-        parameters.transitionDimension,
-      ],
-      () => {
-        if (parameters.animationType() !== 'css-transition') {
-          return;
+    on([hiddenUntilFound, keepMounted, mounted, open], () => {
+      if (parameters.animationTypeRef.current !== 'css-transition') {
+        return;
+      }
+
+      const panel = parameters.panelRef.current;
+
+      if (!panel) {
+        return;
+      }
+
+      let resizeFrame = -1;
+
+      if (parameters.abortControllerRef.current != null) {
+        parameters.abortControllerRef.current.abort();
+        parameters.abortControllerRef.current = null;
+      }
+
+      if (open()) {
+        const originalLayoutStyles = {
+          'justify-content': panel.style.justifyContent,
+          'align-items': panel.style.alignItems,
+          'align-content': panel.style.alignContent,
+          'justify-items': panel.style.justifyItems,
+        };
+        /* opening */
+        Object.keys(originalLayoutStyles).forEach((key) => {
+          panel.style.setProperty(key, 'initial', 'important');
+        });
+
+        /**
+         * When `keepMounted={false}` and the panel is initially closed, the very
+         * first time it opens (not any subsequent opens) `data-starting-style` is
+         * off or missing by a frame so we need to set it manually. Otherwise any
+         * CSS properties expected to transition using [data-starting-style] may
+         * be mis-timed and appear to be complete skipped.
+         */
+        if (!shouldCancelInitialOpenTransitionRef && !keepMounted()) {
+          panel.setAttribute(CollapsiblePanelDataAttributes.startingStyle, '');
         }
 
-        const panel = parameters.panelRef.current;
+        parameters.setDimensions({ height: panel.scrollHeight, width: panel.scrollWidth });
 
-        if (!panel) {
-          return;
-        }
-
-        let resizeFrame = -1;
-
-        if (parameters.abortControllerRef.current != null) {
-          parameters.abortControllerRef.current.abort();
-          parameters.abortControllerRef.current = null;
-        }
-
-        if (open()) {
-          const originalLayoutStyles = {
-            'justify-content': panel.style.justifyContent,
-            'align-items': panel.style.alignItems,
-            'align-content': panel.style.alignContent,
-            'justify-items': panel.style.justifyItems,
-          };
-          /* opening */
-          Object.keys(originalLayoutStyles).forEach((key) => {
-            panel.style.setProperty(key, 'initial', 'important');
-          });
-
-          /**
-           * When `keepMounted={false}` and the panel is initially closed, the very
-           * first time it opens (not any subsequent opens) `data-starting-style` is
-           * off or missing by a frame so we need to set it manually. Otherwise any
-           * CSS properties expected to transition using [data-starting-style] may
-           * be mis-timed and appear to be complete skipped.
-           */
-          if (!shouldCancelInitialOpenTransitionRef && !keepMounted()) {
-            panel.setAttribute(CollapsiblePanelDataAttributes.startingStyle, '');
-          }
-
-          parameters.setDimensions({ height: panel.scrollHeight, width: panel.scrollWidth });
-
-          resizeFrame = AnimationFrame.request(() => {
-            Object.entries(originalLayoutStyles).forEach(([key, value]) => {
-              if (value === '') {
-                panel.style.removeProperty(key);
-              } else {
-                panel.style.setProperty(key, value);
-              }
-            });
-          });
-        } else {
-          if (panel.scrollHeight === 0 && panel.scrollWidth === 0) {
-            return;
-          }
-
-          /* closing */
-          parameters.setDimensions({ height: panel.scrollHeight, width: panel.scrollWidth });
-
-          const abortController = new AbortController();
-          parameters.abortControllerRef.current = abortController;
-          const signal = abortController.signal;
-
-          let attributeObserver: MutationObserver | null = null;
-
-          const endingStyleAttribute = CollapsiblePanelDataAttributes.endingStyle;
-
-          // Wait for `[data-ending-style]` to be applied.
-          attributeObserver = new MutationObserver((mutationList) => {
-            const hasEndingStyle = mutationList.some(
-              (mutation) =>
-                mutation.type === 'attributes' && mutation.attributeName === endingStyleAttribute,
-            );
-
-            if (hasEndingStyle) {
-              attributeObserver?.disconnect();
-              attributeObserver = null;
-              parameters.runOnceAnimationsFinish(() => {
-                parameters.setDimensions({ height: 0, width: 0 });
-                panel.style.removeProperty('content-visibility');
-                parameters.setMounted(false);
-                if (parameters.abortControllerRef.current === abortController) {
-                  parameters.abortControllerRef.current = null;
-                }
-              }, signal);
+        resizeFrame = AnimationFrame.request(() => {
+          Object.entries(originalLayoutStyles).forEach(([key, value]) => {
+            if (value === '') {
+              panel.style.removeProperty(key);
+            } else {
+              panel.style.setProperty(key, value);
             }
           });
+        });
+      } else {
+        if (panel.scrollHeight === 0 && panel.scrollWidth === 0) {
+          return;
+        }
 
-          attributeObserver.observe(panel, {
-            attributes: true,
-            attributeFilter: [endingStyleAttribute],
-          });
+        /* closing */
+        parameters.setDimensions({ height: panel.scrollHeight, width: panel.scrollWidth });
 
-          onCleanup(() => {
+        const abortController = new AbortController();
+        parameters.abortControllerRef.current = abortController;
+        const signal = abortController.signal;
+
+        let attributeObserver: MutationObserver | null = null;
+
+        const endingStyleAttribute = CollapsiblePanelDataAttributes.endingStyle;
+
+        // Wait for `[data-ending-style]` to be applied.
+        attributeObserver = new MutationObserver((mutationList) => {
+          const hasEndingStyle = mutationList.some(
+            (mutation) =>
+              mutation.type === 'attributes' && mutation.attributeName === endingStyleAttribute,
+          );
+
+          if (hasEndingStyle) {
             attributeObserver?.disconnect();
-            endingStyleFrame.cancel();
-            if (parameters.abortControllerRef.current === abortController) {
-              abortController.abort();
-              parameters.abortControllerRef.current = null;
-            }
-          });
-          return;
-        }
+            attributeObserver = null;
+            parameters.runOnceAnimationsFinish(() => {
+              parameters.setDimensions({ height: 0, width: 0 });
+              panel.style.removeProperty('content-visibility');
+              parameters.setMounted(false);
+              if (parameters.abortControllerRef.current === abortController) {
+                parameters.abortControllerRef.current = null;
+              }
+            }, signal);
+          }
+        });
+
+        attributeObserver.observe(panel, {
+          attributes: true,
+          attributeFilter: [endingStyleAttribute],
+        });
 
         onCleanup(() => {
-          AnimationFrame.cancel(resizeFrame);
+          attributeObserver?.disconnect();
+          endingStyleFrame.cancel();
+          if (parameters.abortControllerRef.current === abortController) {
+            abortController.abort();
+            parameters.abortControllerRef.current = null;
+          }
         });
-      },
-    ),
+        return;
+      }
+
+      onCleanup(() => {
+        AnimationFrame.cancel(resizeFrame);
+      });
+    }),
   );
 
   createEffect(() => {
-    if (parameters.animationType() !== 'css-animation') {
+    if (parameters.animationTypeRef.current !== 'css-animation') {
       return;
     }
 
@@ -357,7 +347,7 @@ export function useCollapsiblePanel(
        * to `'until-found'` as they could have different `display` properties:
        * https://github.com/tailwindlabs/tailwindcss/pull/14625
        */
-      if (parameters.animationType() === 'css-transition') {
+      if (parameters.animationTypeRef.current === 'css-transition') {
         panel.setAttribute(CollapsiblePanelDataAttributes.startingStyle, '');
       }
     }
@@ -381,17 +371,8 @@ export function useCollapsiblePanel(
     });
   });
 
-  onMount(() => {
-    setCodependentRefs('panel', {
-      explicitId: () => undefined,
-      ref: () => ref,
-      id: () => access(parameters.id),
-    });
-  });
-
   return {
     setRef: (el) => {
-      ref = el;
       /**
        * TODO: putting it into onMount seems to properly time the measurement.
        * Otherwise the ref is set slightly too early.
@@ -410,8 +391,8 @@ export function useCollapsiblePanel(
 }
 
 export interface UseCollapsiblePanelParameters {
-  animationType: Accessor<AnimationType>;
-  setAnimationType: Setter<AnimationType>;
+  abortControllerRef: ReactLikeRef<AbortController | null>;
+  animationTypeRef: ReactLikeRef<AnimationType>;
   /**
    * The height of the panel.
    */
@@ -442,14 +423,12 @@ export interface UseCollapsiblePanelParameters {
    */
   open: MaybeAccessor<boolean>;
   panelRef: ReactLikeRef<HTMLElement | null | undefined>;
-  abortControllerRef: ReactLikeRef<AbortController | null>;
   runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
   setDimensions: (nextDimensions: Dimensions) => void;
   setMounted: (nextMounted: boolean) => void;
   setOpen: (nextOpen: boolean) => void;
   setVisible: (nextVisible: boolean) => void;
-  transitionDimension: Accessor<'height' | 'width' | null>;
-  setTransitionDimension: Setter<'height' | 'width' | null>;
+  transitionDimensionRef: ReactLikeRef<'height' | 'width' | null>;
   /**
    * The visible state of the panel used to determine the `[hidden]` attribute
    * only when CSS keyframe animations are used.

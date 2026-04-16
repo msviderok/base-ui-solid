@@ -1,4 +1,4 @@
-import { createEffect, Show, mergeProps as solidMergeProps } from 'solid-js';
+import { createEffect, onCleanup, Show, mergeProps as solidMergeProps } from 'solid-js';
 import { useCollapsiblePanel } from '../../collapsible/panel/useCollapsiblePanel';
 import { useCollapsibleRootContext } from '../../collapsible/root/CollapsibleRootContext';
 import { splitComponentProps } from '../../solid-helpers';
@@ -34,8 +34,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
   const keepMounted = () => local.keepMounted ?? contextKeepMounted();
 
   const {
-    animationType,
-    setAnimationType,
+    animationTypeRef,
     height,
     mounted,
     onOpenChange,
@@ -47,11 +46,11 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
     setDimensions,
     setHiddenUntilFound,
     setKeepMounted,
+    setPanelIdState,
     setMounted,
     setOpen,
     setVisible,
-    transitionDimension,
-    setTransitionDimension,
+    transitionDimensionRef,
     visible,
     width,
     transitionStatus,
@@ -75,6 +74,13 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
     setKeepMounted(keepMounted());
   });
 
+  createEffect(() => {
+    if (local.id) {
+      setPanelIdState(local.id);
+      onCleanup(() => setPanelIdState(undefined));
+    }
+  });
+
   useOpenChangeComplete({
     open: () => open() && transitionStatus() === 'idle',
     ref: () => panelRef.current,
@@ -88,8 +94,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
   });
 
   const panel = useCollapsiblePanel({
-    animationType,
-    setAnimationType,
+    animationTypeRef,
     height,
     hiddenUntilFound,
     id: () => local.id ?? panelId(),
@@ -104,8 +109,7 @@ export function AccordionPanel(componentProps: AccordionPanel.Props) {
     setMounted,
     setOpen,
     setVisible,
-    transitionDimension,
-    setTransitionDimension,
+    transitionDimensionRef,
     visible,
     width,
   });

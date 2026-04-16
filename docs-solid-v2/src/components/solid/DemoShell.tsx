@@ -12,7 +12,6 @@ import {
 import { CheckIcon } from '@/components/solid/icons/CheckIcon';
 import { CopyIcon } from '@/components/solid/icons/CopyIcon';
 import { ExternalLinkIcon } from '@/components/solid/icons/ExternalLinkIcon';
-import { themeCss } from '@/lib/demo-theme-css';
 import { callEventHandler } from '@msviderok/base-ui-solid';
 import { Tabs } from '@msviderok/base-ui-solid/tabs';
 import { isEdge, isSafari, useTimeout } from '@msviderok/base-ui-solid/utils';
@@ -25,12 +24,16 @@ import {
   For,
   mergeProps,
   Show,
-  splitProps,
   type Component,
   type ComponentProps,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import { demoManifest, type DemoVariantData, type DemoEntry as ManifestDemoEntry, type DemoFile as ManifestDemoFile } from 'virtual:demos-manifest';
+import {
+  demoManifest,
+  type DemoVariantData,
+  type DemoEntry as ManifestDemoEntry,
+  type DemoFile as ManifestDemoFile,
+} from 'virtual:demos-manifest';
 
 const COLLAPSIBLE_LINES_THRESHOLD = 12;
 const SOLID_JS_VERSION = '^1.9.8';
@@ -492,10 +495,7 @@ export default function DemoShell(componentProps: Props) {
                 data-closed={showCollapsedPreview() ? '' : undefined}
               >
                 <ScrollArea.Content>
-                  <div
-                    class="DemoSourceBrowser"
-                    data-language={getFileLanguage(currentFilePath())}
-                  >
+                  <div class="DemoSourceBrowser" data-language={getFileLanguage(currentFilePath())}>
                     <DemoSourceRenderer
                       language={getFileLanguage(currentFilePath())}
                       source={currentFile()?.source ?? currentFile()?.raw ?? ''}

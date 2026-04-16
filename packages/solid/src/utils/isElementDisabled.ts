@@ -1,4 +1,4 @@
-export function isElementDisabled(element: HTMLElement | null) {
+export function isElementDisabled(element: HTMLElement | null | undefined) {
   return (
     element == null ||
     element.hasAttribute('disabled') ||

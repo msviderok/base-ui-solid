@@ -100,9 +100,6 @@ export function AccordionRoot(componentProps: AccordionRoot.Props) {
     });
   };
 
-  const isRtl = () => direction() === 'rtl';
-  const isHorizontal = () => orientation() === 'horizontal';
-
   const state: AccordionRoot.State = {
     get value() {
       return value();

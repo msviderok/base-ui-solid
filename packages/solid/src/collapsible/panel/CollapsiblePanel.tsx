@@ -1,4 +1,4 @@
-import { createEffect, createMemo, Show } from 'solid-js';
+import { createEffect, createMemo, onCleanup, onMount, Show } from 'solid-js';
 import { splitComponentProps } from '../../solid-helpers';
 import { BaseUIComponentProps } from '../../utils/types';
 import { useOpenChangeComplete } from '../../utils/useOpenChangeComplete';
@@ -37,8 +37,7 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
   }
 
   const {
-    animationType,
-    setAnimationType,
+    animationTypeRef,
     height,
     setHiddenUntilFound,
     setKeepMounted,
@@ -51,15 +50,22 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     runOnceAnimationsFinish,
     setDimensions,
     setMounted,
+    setPanelIdState,
     setOpen,
     setVisible,
-    transitionDimension,
-    setTransitionDimension,
+    transitionDimensionRef,
     visible,
     width,
     state,
     transitionStatus,
   } = useCollapsibleRootContext();
+
+  createEffect(() => {
+    if (local.id) {
+      setPanelIdState(local.id);
+      onCleanup(() => setPanelIdState(undefined));
+    }
+  });
 
   createEffect(() => {
     setHiddenUntilFound(hiddenUntilFound());
@@ -70,8 +76,7 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
   });
 
   const { props, setRef } = useCollapsiblePanel({
-    animationType,
-    setAnimationType,
+    animationTypeRef,
     height,
     hiddenUntilFound,
     id: () => local.id ?? panelId(),
@@ -86,14 +91,17 @@ export function CollapsiblePanel(componentProps: CollapsiblePanel.Props) {
     setMounted,
     setOpen,
     setVisible,
-    transitionDimension,
-    setTransitionDimension,
+    transitionDimensionRef,
     visible,
     width,
   });
 
-  createEffect(() => {
-    console.log(transitionStatus());
+  onMount(() => {
+    console.log('MOUNT');
+
+    onCleanup(() => {
+      console.log('UNMOUNT');
+    });
   });
 
   useOpenChangeComplete({

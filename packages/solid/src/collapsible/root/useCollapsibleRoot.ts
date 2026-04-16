@@ -3,19 +3,11 @@ import {
   createEffect,
   createSignal,
   on,
-  onCleanup,
   type Accessor,
   type JSX,
   type Setter,
 } from 'solid-js';
-import { createStore, type SetStoreFunction, type Store } from 'solid-js/store';
-import {
-  access,
-  useRef,
-  type CodependentRefs,
-  type MaybeAccessor,
-  type ReactLikeRef,
-} from '../../solid-helpers';
+import { access, useRef, type MaybeAccessor, type ReactLikeRef } from '../../solid-helpers';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import { useAnimationsFinished } from '../../utils/useAnimationsFinished';
@@ -46,7 +38,6 @@ export function useCollapsibleRoot(
     state: 'open',
   });
 
-  const [codependentRefs, setCodependentRefs] = createStore<CodependentRefs<['panel']>>({});
   const { transitionStatus, setMounted, mounted } = useTransitionStatus(open, true, true);
   const [visible, setVisible] = createSignal(open());
   const [dimensions, setDimensions] = createSignal<Dimensions>({
@@ -61,13 +52,10 @@ export function useCollapsibleRoot(
   const [hiddenUntilFound, setHiddenUntilFound] = createSignal(false);
   const [keepMounted, setKeepMounted] = createSignal(false);
 
-  const panelRef = useRef<HTMLElement | null | undefined>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  const [animationType, setAnimationType] = createSignal<AnimationType>(null);
-  const [transitionDimension, setTransitionDimension] = createSignal<'width' | 'height' | null>(
-    null,
-  );
+  const animationTypeRef = useRef<AnimationType>(null);
+  const transitionDimensionRef = useRef<'width' | 'height' | null>(null);
+  const panelRef = useRef<HTMLElement | null | undefined>(null);
 
   const runOnceAnimationsFinish = useAnimationsFinished(() => panelRef.current, false);
 
@@ -82,18 +70,18 @@ export function useCollapsibleRoot(
         return;
       }
 
-      if (animationType() === 'css-animation' && panelRef.current != null) {
+      if (animationTypeRef.current === 'css-animation' && panelRef.current != null) {
         panelRef.current!.style.removeProperty('animation-name');
       }
 
       if (!hiddenUntilFound() && !keepMounted()) {
-        if (animationType() != null && animationType() !== 'css-animation') {
+        if (animationTypeRef.current != null && animationTypeRef.current !== 'css-animation') {
           if (!mounted() && nextOpen) {
             setMounted(true);
           }
         }
 
-        if (animationType() === 'css-animation') {
+        if (animationTypeRef.current === 'css-animation') {
           if (!visible() && nextOpen) {
             setVisible(true);
           }
@@ -105,34 +93,19 @@ export function useCollapsibleRoot(
 
       setOpen(nextOpen);
 
-      if (animationType() === 'none' && mounted() && !nextOpen) {
+      if (animationTypeRef.current === 'none' && mounted() && !nextOpen) {
         setMounted(false);
       }
     });
   }
 
   createEffect(
-    on(
-      () => codependentRefs.panel,
-      (panel) => {
-        if (panel) {
-          setPanelIdState(panel.id() ?? panel.explicitId());
-        }
-
-        onCleanup(() => {
-          setPanelIdState(undefined);
-        });
-      },
-    ),
-  );
-
-  createEffect(
-    on([open, keepMounted, openParam, isControlled, animationType], () => {
+    on([open, keepMounted, openParam, isControlled], () => {
       /**
        * Unmount immediately when closing in controlled mode and keepMounted={false}
        * and no CSS animations or transitions are applied
        */
-      if (isControlled() && animationType() === 'none' && !keepMounted() && !open()) {
+      if (isControlled() && animationTypeRef.current === 'none' && !keepMounted() && !open()) {
         setMounted(false);
       }
     }),
@@ -141,8 +114,7 @@ export function useCollapsibleRoot(
   return {
     panelRef,
     abortControllerRef,
-    animationType,
-    setAnimationType,
+    animationTypeRef,
     disabled,
     handleTrigger,
     mounted,
@@ -154,13 +126,11 @@ export function useCollapsibleRoot(
     setKeepMounted,
     setMounted,
     setOpen,
+    setPanelIdState,
     setVisible,
-    transitionDimension,
-    setTransitionDimension,
+    transitionDimensionRef,
     transitionStatus,
     visible,
-    codependentRefs,
-    setCodependentRefs,
     height: () => dimensions().height,
     width: () => dimensions().width,
   };
@@ -192,8 +162,8 @@ export interface UseCollapsibleRootParameters {
 }
 
 export interface UseCollapsibleRootReturnValue {
-  animationType: Accessor<AnimationType>;
-  setAnimationType: Setter<AnimationType>;
+  abortControllerRef: ReactLikeRef<AbortController | null>;
+  animationTypeRef: ReactLikeRef<AnimationType>;
   /**
    * Whether the component should ignore user interaction.
    */
@@ -211,20 +181,17 @@ export interface UseCollapsibleRootReturnValue {
    * Whether the collapsible panel is currently open.
    */
   open: Accessor<boolean>;
-  codependentRefs: Store<CodependentRefs<['panel']>>;
-  setCodependentRefs: SetStoreFunction<CodependentRefs<['panel']>>;
   panelId: Accessor<JSX.HTMLAttributes<Element>['id']>;
   panelRef: ReactLikeRef<HTMLElement | null | undefined>;
-  abortControllerRef: ReactLikeRef<AbortController | null>;
   runOnceAnimationsFinish: (fnToExecute: () => void, signal?: AbortSignal | null) => void;
   setDimensions: Setter<Dimensions>;
   setHiddenUntilFound: Setter<boolean>;
   setKeepMounted: Setter<boolean>;
   setMounted: (open: boolean) => void;
   setOpen: (open: boolean) => void;
+  setPanelIdState: (id: string | undefined) => void;
   setVisible: Setter<boolean>;
-  transitionDimension: Accessor<'height' | 'width' | null>;
-  setTransitionDimension: Setter<'height' | 'width' | null>;
+  transitionDimensionRef: ReactLikeRef<'height' | 'width' | null>;
   transitionStatus: Accessor<TransitionStatus>;
   /**
    * The visible state of the panel used to determine the `[hidden]` attribute
