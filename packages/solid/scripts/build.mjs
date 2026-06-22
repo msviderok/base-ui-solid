@@ -13,11 +13,17 @@ const validBundles = [
   'node',
   // build with a hardcoded target using ES6 modules
   'stable',
+  // build for server rendering using ES modules
+  'server',
+  // build for server rendering using CommonJS modules
+  'server-node',
 ];
 
 const bundleTypes = {
   stable: 'module',
   node: 'commonjs',
+  server: 'module',
+  'server-node': 'commonjs',
 };
 
 async function run(argv) {
@@ -58,6 +64,8 @@ async function run(argv) {
   const relativeOutDir = {
     node: cjsDir,
     stable: './esm',
+    server: './ssr',
+    'server-node': './cjs-ssr',
   }[bundle];
 
   const outDir = path.resolve(outDirBase, relativeOutDir);

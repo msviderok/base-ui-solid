@@ -1,6 +1,6 @@
 {
   "name": "@msviderok/base-ui-solid",
-  "version": "1.0.0-beta.11",
+  "version": "1.0.0-beta.12",
   "private": false,
   "author": "MUI Team",
   "description": "Base UI is a library of headless ('unstyled') Solid components and low-level hooks. You gain complete control over your app's CSS and accessibility features.",
@@ -73,13 +73,16 @@
   "type": "commonjs",
   "scripts": {
     "prebuild": "rimraf --glob build build-tests \"*.tsbuildinfo\"",
-    "build": "pnpm build:node && pnpm build:stable && pnpm build:types && pnpm build:copy-files && pnpm build:manifest",
+    "build": "pnpm build:node && pnpm build:stable && pnpm build:server && pnpm build:server-node && pnpm build:types && pnpm build:copy-files && pnpm build:manifest",
     "build:node": "node ./scripts/build.mjs node --cjsDir ./cjs",
     "build:stable": "node ./scripts/build.mjs stable --cjsDir ./cjs",
+    "build:server": "node ./scripts/build.mjs server --cjsDir ./cjs",
+    "build:server-node": "node ./scripts/build.mjs server-node --cjsDir ./cjs",
     "build:types": "tsx ../../scripts/buildTypes.mts --copy build/cjs",
     "build:copy-files": "node ../../scripts/copyFiles.mjs ./.npmignore:./.npmignore",
     "build:manifest": "tsx ./scripts/createPackageManifest.mts",
-    "test:package": "publint ./build && attw --pack ./build --exclude-entrypoints package.json",
+    "test:exports": "node ./test/packageExportsResolution.mjs",
+    "test:package": "pnpm test:exports && publint ./build && attw --pack ./build --exclude-entrypoints package.json",
     "release": "pnpm build && pnpm publish",
     "test": "cross-env NODE_ENV=test VITEST_ENV=jsdom vitest",
     "typescript": "tsc -b tsconfig.json"
@@ -104,10 +107,10 @@
     "eslint-plugin-solid": "^0.14.5",
     "fs-extra": "^11.3.0",
     "lodash": "^4.17.21",
-    "solid-js": "^1.9.8",
     "sinon": "^21.0.0",
+    "solid-js": "^1.9.8",
     "typescript": "^5.8.3",
-    "vitest": "^3.1.4"
+    "vitest": "^4.1.9"
   },
   "peerDependencies": {
     "solid-js": "^1.8"

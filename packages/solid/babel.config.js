@@ -5,7 +5,10 @@ const missingError = process.env.MUI_EXTRACT_ERROR_CODES === 'true' ? 'write' : 
 const baseUIPackageJson = require('./package.json');
 
 module.exports = function getBabelConfig(api) {
-  const useESModules = !api.env('node');
+  const babelEnv = api.env();
+  const isCommonJSBuild = babelEnv === 'node' || babelEnv === 'server-node';
+  const isServerBuild = babelEnv === 'server' || babelEnv === 'server-node';
+  const useESModules = !isCommonJSBuild;
 
   const presets = [
     [
@@ -19,11 +22,9 @@ module.exports = function getBabelConfig(api) {
     ],
     [
       'babel-preset-solid',
-      // {
-      //   runtime: 'automatic',
-      //   useBuiltIns: true,
-      //   useSpread: true,
-      // },
+      {
+        generate: isServerBuild ? 'ssr' : 'dom',
+      },
     ],
     '@babel/preset-typescript',
   ];

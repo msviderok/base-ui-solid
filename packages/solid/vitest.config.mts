@@ -21,7 +21,7 @@ export default mergeConfig(
       // },
       server: {
         deps: {
-          inline: ['@solidjs/testing-library', 'solid-js'],
+          inline: ['@mui/internal-test-utils', '@solidjs/testing-library', 'solid-js'],
         },
       },
     },

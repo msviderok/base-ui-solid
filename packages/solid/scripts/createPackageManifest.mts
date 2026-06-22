@@ -7,10 +7,26 @@ const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(CURRENT_DIR, '..');
 const PROJECT_BUILD_DIR = path.join(PROJECT_ROOT, './build');
 
-type TransformedExports = Record<
-  string,
-  Record<'require' | 'import', Record<'types' | 'default', string>>
->;
+interface RuntimeExportCondition {
+  import: RuntimeFormatCondition;
+  require: RuntimeFormatCondition;
+}
+
+interface RuntimeFormatCondition {
+  types: string;
+  default: string;
+}
+
+interface TransformedExportCondition {
+  browser: RuntimeExportCondition;
+  node: RuntimeExportCondition;
+  worker: RuntimeExportCondition;
+  import: RuntimeFormatCondition;
+  require: RuntimeFormatCondition;
+  default: string;
+}
+
+type TransformedExports = Record<string, TransformedExportCondition>;
 
 export async function createPackageManifest() {
   const packageData = await fse.readFile(path.resolve(PROJECT_ROOT, './package.json'), 'utf8');
@@ -59,15 +75,53 @@ function retargetExports(originalExports: Record<string, string>) {
 
   for (const subpath of subpaths) {
     const originalPath = originalExports[subpath];
+    const cjsTypesPath = originalPath.replace('/src/', '/cjs/').replace(/\.tsx?$/, '.d.ts');
+    const esmTypesPath = originalPath.replace('/src/', '/esm/').replace(/\.tsx?$/, '.d.ts');
+    const cjsPath = originalPath.replace('/src/', '/cjs/').replace(/\.tsx?$/, '.js');
+    const esmPath = originalPath.replace('/src/', '/esm/').replace(/\.tsx?$/, '.js');
+    const cjsServerPath = originalPath.replace('/src/', '/cjs-ssr/').replace(/\.tsx?$/, '.js');
+    const esmServerPath = originalPath.replace('/src/', '/ssr/').replace(/\.tsx?$/, '.js');
+
     transformed[subpath] = {
-      require: {
-        types: originalPath.replace('/src/', '/cjs/').replace(/\.tsx?$/, '.d.ts'),
-        default: originalPath.replace('/src/', '/cjs/').replace(/\.tsx?$/, '.js'),
+      browser: {
+        import: {
+          types: esmTypesPath,
+          default: esmPath,
+        },
+        require: {
+          types: cjsTypesPath,
+          default: cjsPath,
+        },
+      },
+      node: {
+        import: {
+          types: esmTypesPath,
+          default: esmServerPath,
+        },
+        require: {
+          types: cjsTypesPath,
+          default: cjsServerPath,
+        },
+      },
+      worker: {
+        import: {
+          types: esmTypesPath,
+          default: esmServerPath,
+        },
+        require: {
+          types: cjsTypesPath,
+          default: cjsServerPath,
+        },
       },
       import: {
-        types: originalPath.replace('/src/', '/esm/').replace(/\.tsx?$/, '.d.ts'),
-        default: originalPath.replace('/src/', '/esm/').replace(/\.tsx?$/, '.js'),
+        types: esmTypesPath,
+        default: esmPath,
       },
+      require: {
+        types: cjsTypesPath,
+        default: cjsPath,
+      },
+      default: esmPath,
     };
   }
 

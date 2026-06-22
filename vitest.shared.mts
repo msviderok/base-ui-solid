@@ -7,8 +7,10 @@ const WORKSPACE_ROOT = resolve(CURRENT_DIR, './');
 const environment = process.env.VITEST_ENV;
 
 type BrowserModeConfig = (UserWorkspaceConfig['test'] & {})['browser'];
+type BrowserProvider = NonNullable<BrowserModeConfig>['provider'];
 
 const supportedBrowsers = ['chromium', 'webkit', 'firefox'];
+const playwrightProvider = 'playwright' as unknown as BrowserProvider;
 
 function getBrowserConfig(): BrowserModeConfig {
   if (
@@ -17,9 +19,9 @@ function getBrowserConfig(): BrowserModeConfig {
   ) {
     const commonConfig = {
       enabled: true,
-      provider: 'playwright',
+      provider: playwrightProvider,
       screenshotFailures: false,
-    };
+    } satisfies BrowserModeConfig;
 
     if (environment === 'all-browsers') {
       return {
@@ -56,12 +58,23 @@ const config: UserWorkspaceConfig = {
     browser: getBrowserConfig(),
     env: {
       VITEST: 'true',
+      VITEST_ENV: 'jsdom',
+    },
+    alias: {
+      '@testing-library/react/pure': resolve(
+        WORKSPACE_ROOT,
+        './node_modules/@testing-library/react/pure.js',
+      ),
     },
     retry: 1,
   },
   resolve: {
     alias: {
       docs: resolve(WORKSPACE_ROOT, './docs'),
+      '@testing-library/react/pure': resolve(
+        WORKSPACE_ROOT,
+        './node_modules/@testing-library/react/pure.js',
+      ),
     },
   },
 };
